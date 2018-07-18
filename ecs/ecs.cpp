@@ -106,10 +106,7 @@ struct RegComp
 
   const RegComp *next = nullptr;
 
-  RegComp(const char *_name, int _id, int _size) : id(_id), size(_size)
-  {
-    name = ::strdup(_name);
-  }
+  RegComp(const char *_name, int _id, int _size);
 
   virtual ~RegComp()
   {
@@ -121,6 +118,14 @@ struct RegComp
 
 static RegComp *reg_comp_head = nullptr;
 static int reg_comp_count = 0;
+
+RegComp::RegComp(const char *_name, int _id, int _size) : id(_id), size(_size)
+{
+  name = ::strdup(_name);
+  next = reg_comp_head;
+  reg_comp_head = this;
+  ++reg_comp_count;
+}
 
 static const RegComp *find_comp(const char *name)
 {
@@ -147,9 +152,6 @@ struct RegCompSpec : RegComp
 
   RegCompSpec(const char *name) : RegComp(name, reg_comp_count, sizeof(CompType))
   {
-    next = reg_comp_head;
-    reg_comp_head = this;
-    ++reg_comp_count;
   }
 };
 
@@ -164,9 +166,6 @@ struct RegCompSpec<EntityId> : RegComp
 
   RegCompSpec() : RegComp("eid", reg_comp_count, sizeof(CompType))
   {
-    next = reg_comp_head;
-    reg_comp_head = this;
-    ++reg_comp_count;
   }
 };
 static RegCompSpec<EntityId> _eid;
