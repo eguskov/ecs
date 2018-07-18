@@ -26,6 +26,17 @@ namespace std
   static RegSysSpec<decltype(func)> _##func(#func, func); \
   RegSysSpec<decltype(func)>::SysType RegSysSpec<decltype(func)>::sys = &func; \
 
+struct EntityId
+{
+  uint32_t handle = 0;
+  EntityId(uint32_t h = 0) : handle(h) {}
+};
+
+static inline EntityId make_eid(uint16_t gen, uint16_t index)
+{
+  return EntityId((uint32_t)gen << 16 | index);
+}
+
 struct RegComp;
 
 struct Template
@@ -37,7 +48,7 @@ struct Template
   };
 
   int size = 0;
-  int typeId = -1;
+  int storageId = -1;
 
   std::string name;
   std::bitarray compMask;
@@ -46,7 +57,7 @@ struct Template
 
 struct RegSys
 {
-  using ExecFunc = void(*)(const std::vector<Template::CompDesc> &, uint8_t *);
+  using ExecFunc = void(*)(EntityId, const std::vector<Template::CompDesc> &, uint8_t *);
 
   char *name = nullptr;
 
@@ -55,6 +66,7 @@ struct RegSys
   const RegSys *next = nullptr;
   ExecFunc execFn = nullptr;
 
+  std::bitarray compMask;
   std::vector<const RegComp*> components;
 
   RegSys(const char *_name, int _id) : id(_id)
@@ -141,6 +153,24 @@ struct RegCompSpec : RegComp
   }
 };
 
+template <> struct Desc<EntityId> { constexpr static char* typeName = "EntityId"; constexpr static char* name = "eid"; };
+template <>
+struct RegCompSpec<EntityId> : RegComp
+{
+  using CompType = EntityId;
+  using CompDesc = Desc<EntityId>;
+
+  void init(uint8_t *) const override final {}
+
+  RegCompSpec() : RegComp("eid", reg_comp_count, sizeof(CompType))
+  {
+    next = reg_comp_head;
+    reg_comp_head = this;
+    ++reg_comp_count;
+  }
+};
+static RegCompSpec<EntityId> _eid;
+
 template <typename T>
 struct RegSysSpec;
 
@@ -174,21 +204,27 @@ struct RegSysSpec<R(Args...)> : RegSys
     return std::array<T, N>{ {Argument<I>::CompDesc::name...} };
   }
 
-  template<typename T, std::size_t N, std::size_t... I>
-  constexpr static auto createDescs(std::index_sequence<I...>)
-  {
-    return std::array<T, N>{ {ArgumentDesc(Argument<I>::CompDesc::name)...} };
-  }
-
   constexpr static std::array<const char*, ArgsCount> componentNames = createNames<const char*, ArgsCount>(Indices{});
 
   static SysType sys;
 
   template <typename T>
-  static inline T toValue(uint8_t *components, std::size_t offset)
+  struct Exctract
   {
-    return *(typename std::remove_reference<T>::type *)&components[offset];
-  }
+    static inline T toValue(EntityId eid, uint8_t *components, std::size_t offset)
+    {
+      return *(typename std::remove_reference<T>::type *)&components[offset];
+    }
+  };
+
+  template <>
+  struct Exctract<EntityId>
+  {
+    static inline EntityId toValue(EntityId eid, uint8_t *, std::size_t)
+    {
+      return eid;
+    }
+  };
 
   static inline size_t getCompOffset(const std::vector<Template::CompDesc> &templ_desc, int comp_id)
   {
@@ -199,19 +235,19 @@ struct RegSysSpec<R(Args...)> : RegSys
   }
 
   template <size_t... I>
-  static inline void execImpl(const std::vector<Template::CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
+  static inline void execImpl(EntityId eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
   {
     static bool inited = false;
     static std::array<size_t, ArgsCount> offsets;
     if (!inited)
       offsets = std::array<size_t, ArgsCount>{ {getCompOffset(templ_desc, find_comp(componentNames[I])->id)...} };
 
-    sys(toValue<Args>(components, offsets[I])...);
+    sys(Exctract<Args>::toValue(eid, components, offsets[I])...);
   }
 
-  static void exec(const std::vector<Template::CompDesc> &templ_desc, uint8_t *components)
+  static void exec(EntityId eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components)
   {
-    execImpl(templ_desc, components, Indices{});
+    execImpl(eid, templ_desc, components, Indices{});
   }
 
   RegSysSpec(const char *name, const SysType &_sys) : RegSys(name, reg_sys_count)
@@ -226,19 +262,15 @@ struct RegSysSpec<R(Args...)> : RegSys
   {
     for (const char *n : componentNames)
       components.push_back(find_comp(n));
+    std::sort(components.begin(), components.end(),
+      [](const RegComp* &lhs, const RegComp* &rhs) { return lhs->id < rhs->id; });
+    compMask.resize(reg_comp_count);
+    compMask.assign(reg_comp_count, false);
+
+    for (const auto &c : components)
+      compMask[c->id] = true;
   }
 };
-
-struct EntityId
-{
-  uint32_t handle = 0;
-  EntityId(uint32_t h) : handle(h) {}
-};
-
-static inline EntityId make_eid(uint16_t gen, uint16_t index)
-{
-  return EntityId((uint32_t)gen << 16 | index);
-}
 
 struct PositionComponent
 {
@@ -261,7 +293,7 @@ struct TestComponent
 };
 REG_COMP(TestComponent, test);
 
-struct Archetype
+struct Storage
 {
   int count = 0;
   int size = 0;
@@ -276,10 +308,25 @@ struct Archetype
   }
 };
 
+struct Entity
+{
+  EntityId eid;
+	int templateId = -1;
+  int memId = -1;
+};
+
+struct System
+{
+  int id;
+  const RegSys *desc;
+};
+
 struct EntityManager
 {
   std::vector<Template> templates;
-  std::vector<Archetype> types;
+  std::vector<Storage> storages;
+  std::vector<Entity> entities;
+  std::vector<System> systems;
 
   EntityManager()
   {
@@ -292,6 +339,12 @@ struct EntityManager
         head = head->next;
       }
     }
+
+    for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
+      systems.push_back({getSystemId(sys->name), sys});
+
+    std::sort(systems.begin(), systems.end(),
+      [](const System &lhs, const System &rhs) { return lhs.id > rhs.id; });
 
     // Add template
     {
@@ -313,53 +366,96 @@ struct EntityManager
       {
         c.offset = offset;
         offset += c.desc->size;
-      }
-      templ.size = offset;
 
-      for (const auto &c : templ.components)
         templ.compMask[c.desc->id] = true;
+      }
+      templ.compMask[find_comp("eid")->id] = true;
+      templ.size = offset;
     }
 
     // TODO: Search by size
-    types.emplace_back();
-    auto &t = types.back();
-    t.size = templates[0].size;
-    templates[0].typeId = types.size() - 1;
+    storages.emplace_back();
+    auto &s = storages.back();
+    s.size = templates[0].size;
+    templates[0].storageId = storages.size() - 1;
+  }
+
+  int getSystemId(const char *name)
+  {
+    if (::strcmp(name, "update_position")) return 0;
+    if (::strcmp(name, "position_printer")) return 1;
+    if (::strcmp(name, "test_printer")) return 2;
+    return 0;
   }
 
   EntityId createEntity(const char *templ_name)
   {
     // TOOD: Search template by name
     auto &templ = templates[0];
-    auto &type = types[templ.typeId];
+    auto &storage = storages[templ.storageId];
 
-    uint8_t *mem = type.allocate();
+    uint8_t *mem = storage.allocate();
 
     for (const auto &c : templ.components)
       c.desc->init(mem + c.offset);
 
-    reg_sys_head->execFn(templ.components, mem);
+    entities.emplace_back();
+    auto &e = entities.back();
+    e.eid = make_eid(1, entities.size() - 1);
+    e.templateId = 0;
+    e.memId = storage.count - 1;
 
-    return (EntityId)0;
+    return e.eid;
   }
 
   void tick()
   {
+    for (auto &e : entities)
+    {
+      const auto &templ = templates[e.templateId];
+      auto &storage = storages[templ.storageId];
+      
+      for (const auto &sys : systems)
+      {
+        bool ok = true;
+        for (int compId = 0 ; compId < sys.desc->compMask.size(); ++compId)
+          if (sys.desc->compMask[compId] && !templ.compMask[compId])
+          {
+            ok = false;
+            break;
+          }
+        if (!ok)
+          continue;
+        sys.desc->execFn(e.eid, templ.components, &storage.data[storage.size * e.memId]);
+      }
+    }
   }
 };
 
-void update_position(const VelocityComponent &velocity, PositionComponent &position)
+void update_position(EntityId eid, const VelocityComponent &velocity, PositionComponent &position)
 {
   position.x += velocity.x;
   position.y += velocity.y;
 }
 REG_SYS(update_position);
 
+void position_printer(EntityId eid, const PositionComponent &position)
+{
+  std::cout << "(" << position.x << ", " << position.y << ")" << std::endl;
+}
+REG_SYS(position_printer);
+
+void test_printer(EntityId eid, const TestComponent &test)
+{
+  std::cout << "TEST (" << test.a << ", " << test.b << ")" << std::endl;
+}
+REG_SYS(test_printer);
+
 int main()
 {
   EntityManager mgr;
-  mgr.createEntity("test");
-  // mgr.createEntity("test");
+  EntityId eid1 = mgr.createEntity("test");
+  EntityId eid2 = mgr.createEntity("test");
 
   mgr.tick();
 
