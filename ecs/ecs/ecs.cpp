@@ -77,8 +77,8 @@ EntityManager::EntityManager()
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
   // Add template
-  addTemplate("test", { "velocity", "position" });
-  addTemplate("test1", { "test", "position" });
+  addTemplate("test", { { "velocity", "v" }, { "position", "p" }, { "position", "p1"} });
+  addTemplate("test1", { { "test", "t" }, { "position", "p1" } });
 
   // TODO: Search by size
 }
@@ -91,7 +91,7 @@ int EntityManager::getSystemId(const char *name)
   return 0;
 }
 
-void EntityManager::addTemplate(const char *templ_name, std::initializer_list<const char*> compNames)
+void EntityManager::addTemplate(const char *templ_name, std::initializer_list<std::pair<const char*, const char*>> compNames)
 {
   templates.emplace_back();
   auto &templ = templates.back();
@@ -100,10 +100,15 @@ void EntityManager::addTemplate(const char *templ_name, std::initializer_list<co
   templ.compMask.assign(reg_comp_count, false);
 
   for (const auto &name : compNames)
-    templ.components.push_back({ 0, find_comp(name) });
+    templ.components.push_back({ 0, name.second, find_comp(name.first) });
 
   std::sort(templ.components.begin(), templ.components.end(),
-    [](const CompDesc &lhs, const CompDesc &rhs) { return lhs.desc->id < rhs.desc->id; });
+    [](const CompDesc &lhs, const CompDesc &rhs)
+    {
+      if (lhs.desc->id == rhs.desc->id)
+        return lhs.name < rhs.name;
+      return lhs.desc->id < rhs.desc->id;
+    });
 
   int offset = 0;
   for (auto &c : templ.components)

@@ -82,7 +82,7 @@ struct EntityManager
 
   int getSystemId(const char *name);
 
-  void addTemplate(const char *templ_name, std::initializer_list<const char*> compNames);
+  void addTemplate(const char *templ_name, std::initializer_list<std::pair<const char*, const char*>> compNames);
 
   EntityId createEntity(const char *templ_name);
 

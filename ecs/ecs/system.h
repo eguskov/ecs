@@ -2,11 +2,19 @@
 
 #include "stdafx.h"
 
-#define REG_SYS(func) \
+#define REG_SYS_BASE(func) \
   template <> struct Desc<decltype(func)> { constexpr static char* name = #func; }; \
   static RegSysSpec<decltype(func)> _##func(#func, func); \
   RegSysSpec<decltype(func)>::SysType RegSysSpec<decltype(func)>::sys = &func; \
   RegSysSpec<decltype(func)>::Buffer RegSysSpec<decltype(func)>::buffer; \
+
+#define REG_SYS(func, ...) \
+  REG_SYS_BASE(func) \
+  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {__VA_ARGS__};\
+
+#define REG_SYS_2(func, ...) \
+  REG_SYS_BASE(func) \
+  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", "", __VA_ARGS__};\
 
 struct RawArg
 {
@@ -25,6 +33,7 @@ struct RawArgSpec : RawArg
 struct CompDesc
 {
   int offset;
+  std::string name;
   const RegComp* desc;
 };
 
@@ -43,7 +52,7 @@ struct RegSys
   StageFunc stageFn = nullptr;
 
   std::bitarray compMask;
-  std::vector<const RegComp*> components;
+  std::vector<CompDesc> components;
 
   RegSys(const char *_name, int _id);
   virtual ~RegSys();
@@ -92,7 +101,8 @@ struct RegSysSpec<R(Args...)> : RegSys
     return std::array<T, N>{ {Argument<I>::CompDesc::name...} };
   }
 
-  constexpr static std::array<const char*, ArgsCount> componentNames = createNames<const char*, ArgsCount>(Indices{});
+  constexpr static std::array<const char*, ArgsCount> componentTypeNames = createNames<const char*, ArgsCount>(Indices{});
+  static std::array<const char*, ArgsCount> componentNames;
 
   template <typename T>
   static inline T toValue(uint8_t *components, int offset)
@@ -102,13 +112,13 @@ struct RegSysSpec<R(Args...)> : RegSys
     return *(typename std::remove_reference<T>::type *)&components[offset];
   }
 
-  static inline int getCompOffset(bool is_eid, bool is_stage, const std::vector<CompDesc> &templ_desc, int comp_id)
+  static inline int getCompOffset(bool is_eid, bool is_stage, const std::vector<CompDesc> &templ_desc, const char *comp_name, int comp_id)
   {
-    for (const auto &d : templ_desc)
-      if (d.desc->id == comp_id)
-        return d.offset;
     if (is_eid) return -buffer.eid - 1;
     if (is_stage) return -buffer.stage - 1;
+    for (const auto &d : templ_desc)
+      if (d.desc->id == comp_id && d.name == comp_name)
+        return d.offset;
     return -1;
   }
 
@@ -118,7 +128,7 @@ struct RegSysSpec<R(Args...)> : RegSys
     static bool inited = false;
     static std::array<int, ArgsCount> offsets;
     if (!inited)
-      offsets = std::array<int, ArgsCount>{ {getCompOffset(std::is_same<EntityId, Argument<I>::Type>::value, std::is_base_of<Stage, Argument<I>::PureType>::value, templ_desc, find_comp(componentNames[I])->id)...} };
+      offsets = std::array<int, ArgsCount>{ {getCompOffset(std::is_same<EntityId, Argument<I>::Type>::value, std::is_base_of<Stage, Argument<I>::PureType>::value, templ_desc, componentNames[I], find_comp(componentTypeNames[I])->id)...} };
 
     sys(toValue<Args>(components, offsets[I])...);
   }
@@ -153,15 +163,22 @@ struct RegSysSpec<R(Args...)> : RegSys
 
   void init() override final
   {
-    for (const char *n : componentNames)
-      components.push_back(find_comp(n));
+    for (size_t i = 0 ; i < componentTypeNames.size(); ++i)
+      components.push_back({ 0, componentNames[i], find_comp(componentTypeNames[i]) });
+
     std::sort(components.begin(), components.end(),
-      [](const RegComp* &lhs, const RegComp* &rhs) { return lhs->id < rhs->id; });
+      [](const CompDesc &lhs, const CompDesc &rhs)
+      {
+        if (lhs.desc->id == rhs.desc->id)
+          return lhs.name < rhs.name;
+        return lhs.desc->id < rhs.desc->id;
+      });
+
     compMask.resize(reg_comp_count);
     compMask.assign(reg_comp_count, false);
 
     for (const auto &c : components)
-      compMask[c->id] = true;
+      compMask[c.desc->id] = true;
 
     if (std::is_base_of<Stage, Argument<0>::PureType>::value)
       stageId = find_comp(Argument<0>::CompDesc::name)->id;

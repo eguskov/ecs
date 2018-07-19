@@ -11,4 +11,4 @@ void test_printer(const UpdateStage &stage,
   std::cout << "test_printer(" << eid.handle << ")" << std::endl;
   std::cout << "TEST (" << test.a << ", " << test.b << ")" << std::endl;
 }
-REG_SYS(test_printer);
+REG_SYS_2(test_printer, "t", "p");
