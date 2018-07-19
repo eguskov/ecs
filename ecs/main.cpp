@@ -18,7 +18,7 @@
 int main()
 {
   EntityManager mgr;
-  //EntityId eid1 = mgr.createEntity("test");
+  EntityId eid1 = mgr.createEntity("test");
   EntityId eid2 = mgr.createEntity("test");
   EntityId eid3 = mgr.createEntity("test1");
 

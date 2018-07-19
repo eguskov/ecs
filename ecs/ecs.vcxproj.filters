@@ -76,4 +76,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="custom.natvis" />
+  </ItemGroup>
 </Project>

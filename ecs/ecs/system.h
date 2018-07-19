@@ -58,6 +58,8 @@ struct RegSys
   virtual ~RegSys();
 
   virtual void init() = 0;
+
+  bool hasCompontent(int id, const char *name) const;
 };
 
 template <typename T>

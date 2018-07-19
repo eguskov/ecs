@@ -35,6 +35,8 @@ struct Template
   std::string name;
   std::bitarray compMask;
   std::vector<CompDesc> components;
+
+  bool hasCompontent(int id, const char *name) const;
 };
 
 template <typename T>
@@ -73,6 +75,8 @@ struct System
 
 struct EntityManager
 {
+  int eidCompId = -1;
+
   std::vector<Template> templates;
   std::vector<Storage> storages;
   std::vector<Entity> entities;

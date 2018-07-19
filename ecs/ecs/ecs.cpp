@@ -21,6 +21,14 @@ RegSys::~RegSys()
   ::free(name);
 }
 
+bool RegSys::hasCompontent(int id, const char *name) const
+{
+  for (const auto &c : components)
+    if (c.desc->id == id && c.name == name)
+      return true;
+  return false;
+}
+
 const RegSys *find_sys(const char *name)
 {
   const RegSys *head = reg_sys_head;
@@ -58,6 +66,16 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
+bool Template::hasCompontent(int id, const char *name) const
+{
+  if (!name || !name[0])
+    return compMask[id];
+  for (const auto &c : components)
+    if (c.desc->id == id && c.name == name)
+      return true;
+  return false;
+}
+
 EntityManager::EntityManager()
 {
   // Init systems' descs
@@ -77,10 +95,10 @@ EntityManager::EntityManager()
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
   // Add template
-  addTemplate("test", { { "velocity", "v" }, { "position", "p" }, { "position", "p1"} });
-  addTemplate("test1", { { "test", "t" }, { "position", "p1" } });
+  addTemplate("test", { { "velocity", "vel" }, { "position", "pos" }, { "position", "pos1"} });
+  addTemplate("test1", { { "test", "test" }, { "position", "pos1" } });
 
-  // TODO: Search by size
+  eidCompId = find_comp("eid")->id;
 }
 
 int EntityManager::getSystemId(const char *name)
@@ -118,14 +136,12 @@ void EntityManager::addTemplate(const char *templ_name, std::initializer_list<st
 
     templ.compMask[c.desc->id] = true;
   }
-  templ.compMask[find_comp("eid")->id] = true;
-  templ.compMask[find_comp("update_stage")->id] = true;
   templ.size = offset;
 
   for (size_t i = 0; i < storages.size(); ++i)
     if (storages[i].size == templ.size)
     {
-      templ.storageId = i;
+      templ.storageId = (int)i;
       break;
     }
 
@@ -134,7 +150,7 @@ void EntityManager::addTemplate(const char *templ_name, std::initializer_list<st
     storages.emplace_back();
     auto &s = storages.back();
     s.size = templ.size;
-    templ.storageId = storages.size() - 1;
+    templ.storageId = (int)storages.size() - 1;
   }
 }
 
@@ -144,7 +160,7 @@ EntityId EntityManager::createEntity(const char *templ_name)
   for (size_t i = 0; i < templates.size(); ++i)
     if (templates[i].name == templ_name)
     {
-      templateId = i;
+      templateId = (int)i;
       break;
     }
 
@@ -183,8 +199,8 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
       auto &storage = storages[templ.storageId];
 
       bool ok = true;
-      for (size_t compId = 0; compId < sys.desc->compMask.size(); ++compId)
-        if (sys.desc->compMask[compId] && !templ.compMask[compId])
+      for (const auto &c : sys.desc->components)
+        if (c.desc->id != eidCompId && c.desc->id != stage_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
         {
           ok = false;
           break;
