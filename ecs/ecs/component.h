@@ -8,8 +8,6 @@
 #define REG_COMP_INIT(type, n) \
   static RegCompSpec<type> _##n(#n); \
 
-extern int reg_comp_count;
-
 template <typename T>
 struct Desc;
 
@@ -22,7 +20,7 @@ struct RegComp
 
   const RegComp *next = nullptr;
 
-  RegComp(const char *_name, int _id, int _size);
+  RegComp(const char *_name, int _size);
   virtual ~RegComp();
 
   virtual void init(uint8_t *mem) const = 0;
@@ -36,7 +34,7 @@ struct RegCompSpec : RegComp
 
   void init(uint8_t *mem) const override final { new (mem) CompType; }
 
-  RegCompSpec(const char *name) : RegComp(name, reg_comp_count, sizeof(CompType))
+  RegCompSpec(const char *name) : RegComp(name, sizeof(CompType))
   {
   }
 };

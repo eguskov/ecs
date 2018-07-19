@@ -46,6 +46,7 @@ struct RegSys
 
   int id = -1;
   int stageId = -1;
+  int eventId = -1;
 
   const RegSys *next = nullptr;
   ExecFunc execFn = nullptr;
@@ -86,6 +87,10 @@ struct RegSysSpec<R(Args...)> : RegSys
     using PureType = typename std::remove_const<typename std::remove_reference<Type>::type>::type;
     using CompType = RegCompSpec<PureType>;
     using CompDesc = typename CompType::CompDesc;
+
+    constexpr static bool isEid = std::is_same<EntityId, PureType>::value;
+    constexpr static bool isStage = std::is_base_of<Stage, PureType>::value;
+    constexpr static bool isEvent = std::is_base_of<Event, PureType>::value;
   };
 
   static SysType sys;
@@ -114,10 +119,10 @@ struct RegSysSpec<R(Args...)> : RegSys
     return *(typename std::remove_reference<T>::type *)&components[offset];
   }
 
-  static inline int getCompOffset(bool is_eid, bool is_stage, const std::vector<CompDesc> &templ_desc, const char *comp_name, int comp_id)
+  static inline int getCompOffset(bool is_eid, bool is_stage_or_event, const std::vector<CompDesc> &templ_desc, const char *comp_name, int comp_id)
   {
     if (is_eid) return -buffer.eid - 1;
-    if (is_stage) return -buffer.stage - 1;
+    if (is_stage_or_event) return -buffer.stage - 1;
     for (const auto &d : templ_desc)
       if (d.desc->id == comp_id && d.name == comp_name)
         return d.offset;
@@ -130,7 +135,9 @@ struct RegSysSpec<R(Args...)> : RegSys
     static bool inited = false;
     static std::array<int, ArgsCount> offsets;
     if (!inited)
-      offsets = std::array<int, ArgsCount>{ {getCompOffset(std::is_same<EntityId, Argument<I>::Type>::value, std::is_base_of<Stage, Argument<I>::PureType>::value, templ_desc, componentNames[I], find_comp(componentTypeNames[I])->id)...} };
+    {
+      offsets = std::array<int, ArgsCount>{ {getCompOffset(Argument<I>::isEid, Argument<I>::isStage || Argument<I>::isEvent, templ_desc, componentNames[I], find_comp(componentTypeNames[I])->id)...} };
+    }
 
     sys(toValue<Args>(components, offsets[I])...);
   }
@@ -182,8 +189,10 @@ struct RegSysSpec<R(Args...)> : RegSys
     for (const auto &c : components)
       compMask[c.desc->id] = true;
 
-    if (std::is_base_of<Stage, Argument<0>::PureType>::value)
+    if (Argument<0>::isStage)
       stageId = find_comp(Argument<0>::CompDesc::name)->id;
+    if (Argument<0>::isEvent)
+      eventId = find_comp(Argument<0>::CompDesc::name)->id;
   }
 };
 

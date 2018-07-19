@@ -11,6 +11,11 @@ static inline EntityId make_eid(uint16_t gen, uint16_t index)
   return EntityId((uint32_t)gen << 16 | index);
 }
 
+static inline int eid2idx(EntityId eid)
+{
+  return eid.handle & 0xFFFF;
+}
+
 RegSys::RegSys(const char *_name, int _id) : id(_id)
 {
   name = ::_strdup(_name);
@@ -41,7 +46,7 @@ const RegSys *find_sys(const char *name)
   return nullptr;
 }
 
-RegComp::RegComp(const char *_name, int _id, int _size) : id(_id), size(_size)
+RegComp::RegComp(const char *_name, int _size) : id(reg_comp_count), size(_size)
 {
   name = ::_strdup(_name);
   next = reg_comp_head;
@@ -215,4 +220,32 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
       }
     }
   }
+}
+
+void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
+{
+  // TODO: Make deferred
+  auto &e = entities[eid2idx(eid)];
+  const auto &templ = templates[e.templateId];
+  auto &storage = storages[templ.storageId];
+
+  for (const auto &sys : systems)
+    if (sys.desc->eventId == event_id)
+    {
+      bool ok = true;
+      for (const auto &c : sys.desc->components)
+        if (c.desc->id != eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+        {
+          ok = false;
+          break;
+        }
+
+      if (ok)
+      {
+        RawArgSpec<sizeof(EntityId)> eid;
+        new (eid.mem) EntityId(e.eid);
+
+        sys.desc->stageFn(ev, eid, templ.components, &storage.data[storage.size * e.memId]);
+      }
+    }
 }

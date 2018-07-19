@@ -3,8 +3,6 @@
 #include "ecs/component.h"
 #include "ecs/stage.h"
 
-extern int reg_comp_count;
-
 struct UpdateStage : Stage
 {
   float dt;

@@ -149,9 +149,11 @@
     <ClInclude Include="components\eid.component.h" />
     <ClInclude Include="ecs\entity.h" />
     <ClInclude Include="components\position.component.h" />
+    <ClInclude Include="ecs\event.h" />
     <ClInclude Include="ecs\stage.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="ecs\system.h" />
+    <ClInclude Include="systems\update.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="components\test.component.h" />
     <ClInclude Include="stages\update.stage.h" />

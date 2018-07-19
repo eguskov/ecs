@@ -13,6 +13,8 @@
 
 #include "ecs/ecs.h"
 
+#include "systems/update.h"
+
 #define PI 3.141592f
 
 int main()
@@ -24,6 +26,8 @@ int main()
 
   mgr.tick(UpdateStage{ 0.5f });
   mgr.tick();
+
+  mgr.sendEvent(eid2, EventOnTest{ 5.f, 10.f });
 
   //Get a console handle
   HWND myconsole = GetConsoleWindow();

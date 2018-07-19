@@ -9,10 +9,10 @@
     using CompDesc = Desc<type>; \
     static int ID; \
     void init(uint8_t *) const override final {} \
-    RegCompSpec() : RegComp(#n, reg_comp_count, sizeof(CompType)) { ID = id; } \
+    RegCompSpec() : RegComp(#n, sizeof(CompType)) { ID = id; } \
   }; \
 
-#define REG_STAGE_INIT(type, n) \
+#define REG_STAGE_INIT(type) \
   static RegCompSpec<type> _##n; \
   int RegCompSpec<type>::ID = -1; \
 

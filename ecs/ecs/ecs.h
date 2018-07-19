@@ -15,6 +15,8 @@
 #include "component.h"
 #include "system.h"
 
+#include "event.h"
+
 #include "components/eid.component.h"
 
 #include "stages/update.stage.h"
@@ -92,6 +94,7 @@ struct EntityManager
 
   void tick();
   void tickStage(int stage_id, const RawArg &stage);
+  void sendEvent(EntityId eid, int event_id, const RawArg &ev);
 
   template <typename S>
   void tick(const S &stage)
@@ -100,5 +103,14 @@ struct EntityManager
     new (arg0.mem) S(stage);
 
     tickStage(RegCompSpec<S>::ID, arg0);
+  }
+
+  template <typename E>
+  void sendEvent(EntityId eid, const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    sendEvent(eid, RegCompSpec<E>::ID, arg0);
   }
 };

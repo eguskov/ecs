@@ -1,7 +1,11 @@
 #include "ecs/ecs.h"
 
+#include "update.h"
+
 #include "components/position.component.h"
 #include "components/velocity.component.h"
+
+REG_EVENT_INIT(EventOnTest);
 
 void update_position(const UpdateStage &stage, EntityId eid, const VelocityComponent &velocity, PositionComponent &p, const PositionComponent &p1)
 {
@@ -17,3 +21,9 @@ void position_printer(const UpdateStage &stage, EntityId eid, const PositionComp
   std::cout << "(" << p.x << ", " << p.y << ")" << std::endl;
 }
 REG_SYS_2(position_printer, "pos", "pos1");
+
+void test_handler(const EventOnTest &ev, EntityId eid, const VelocityComponent &velocity, PositionComponent &p, const PositionComponent &p1)
+{
+  std::cout << "test_handler(" << eid.handle << ")" << std::endl;
+}
+REG_SYS_2(test_handler, "vel", "pos", "pos1");
