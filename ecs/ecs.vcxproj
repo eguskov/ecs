@@ -88,6 +88,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,17 +143,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="ecs.h" />
+    <ClInclude Include="ecs\component.h" />
+    <ClInclude Include="ecs\ecs.h" />
+    <ClInclude Include="components\eid.component.h" />
+    <ClInclude Include="ecs\entity.h" />
+    <ClInclude Include="components\position.component.h" />
+    <ClInclude Include="ecs\stage.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="ecs\system.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="components\test.component.h" />
+    <ClInclude Include="stages\update.stage.h" />
+    <ClInclude Include="components\velocity.component.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ecs.cpp" />
+    <ClCompile Include="ecs\ecs.cpp" />
+    <ClCompile Include="components\eid.component.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="components\position.component.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="components\test.component.cpp" />
+    <ClCompile Include="systems\test.cpp" />
+    <ClCompile Include="systems\update.cpp" />
+    <ClCompile Include="stages\update.stage.cpp" />
+    <ClCompile Include="components\velocity.component.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

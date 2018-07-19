@@ -10,6 +10,11 @@
 #include <stdio.h>
 #include <tchar.h>
 
+#include <vector>
 
+namespace std
+{
+  using bitarray = vector<bool>;
+}
 
 // TODO: reference additional headers your program requires here

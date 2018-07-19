@@ -1,42 +1,79 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="components">
+      <UniqueIdentifier>{e39cb56b-adc2-45d9-8907-3c1d9caabae9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    <Filter Include="ecs">
+      <UniqueIdentifier>{76a3ba95-abb4-4b16-8f48-43f1a68ae057}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="systems">
+      <UniqueIdentifier>{d0cd0d7b-76f2-4577-9487-14f004d30b80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="stages">
+      <UniqueIdentifier>{34d81510-4e28-4fc2-ad92-bfc6d5dfcd80}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
+    <ClInclude Include="stages\update.stage.h">
+      <Filter>stages</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs\ecs.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs\component.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs\entity.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs\stage.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs\system.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="components\eid.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\position.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\test.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\velocity.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ecs.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="stages\update.stage.cpp">
+      <Filter>stages</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ecs\ecs.cpp">
+      <Filter>ecs</Filter>
     </ClCompile>
-    <ClCompile Include="ecs.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="components\eid.component.cpp">
+      <Filter>components</Filter>
     </ClCompile>
+    <ClCompile Include="components\position.component.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="components\test.component.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="components\velocity.component.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="systems\test.cpp">
+      <Filter>systems</Filter>
+    </ClCompile>
+    <ClCompile Include="systems\update.cpp">
+      <Filter>systems</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
 </Project>

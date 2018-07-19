@@ -2,53 +2,11 @@
 
 #include "stdafx.h"
 
-#include <stdint.h>
-
-#include <vector>
-#include <array>
-#include <string>
-#include <bitset>
-#include <algorithm>
-#include <iostream>
-
-namespace std
-{
-  using bitarray = vector<bool>;
-}
-
-#define REG_COMP(type, n) \
-  template <> struct Desc<type> { constexpr static char* typeName = #type; constexpr static char* name = #n; };\
-  static RegCompSpec<type> _##n(#n); \
-
 #define REG_SYS(func) \
   template <> struct Desc<decltype(func)> { constexpr static char* name = #func; }; \
   static RegSysSpec<decltype(func)> _##func(#func, func); \
   RegSysSpec<decltype(func)>::SysType RegSysSpec<decltype(func)>::sys = &func; \
   RegSysSpec<decltype(func)>::Buffer RegSysSpec<decltype(func)>::buffer; \
-
-struct RegSys;
-extern RegSys *reg_sys_head;
-extern int reg_sys_count;
-
-struct RegComp;
-extern RegComp *reg_comp_head;
-extern int reg_comp_count;
-
-struct EntityId
-{
-  uint32_t handle = 0;
-  EntityId(uint32_t h = 0) : handle(h) {}
-};
-
-struct Stage
-{
-};
-
-struct UpdateStage : Stage
-{
-  float dt;
-  UpdateStage(float _dt) : dt(_dt) {}
-};
 
 struct RawArg
 {
@@ -64,28 +22,16 @@ struct RawArgSpec : RawArg
   RawArgSpec() : RawArg(Size, buffer) {}
 };
 
-struct RegComp;
-
-struct Template
+struct CompDesc
 {
-  struct CompDesc
-  {
-    int offset;
-    const RegComp* desc;
-  };
-
-  int size = 0;
-  int storageId = -1;
-
-  std::string name;
-  std::bitarray compMask;
-  std::vector<CompDesc> components;
+  int offset;
+  const RegComp* desc;
 };
 
 struct RegSys
 {
-  using ExecFunc = void(*)(const RawArg &, const std::vector<Template::CompDesc> &, uint8_t *);
-  using StageFunc = void(*)(const RawArg &, const RawArg &, const std::vector<Template::CompDesc> &, uint8_t *);
+  using ExecFunc = void(*)(const RawArg &, const std::vector<CompDesc> &, uint8_t *);
+  using StageFunc = void(*)(const RawArg &, const RawArg &, const std::vector<CompDesc> &, uint8_t *);
 
   char *name = nullptr;
 
@@ -103,78 +49,6 @@ struct RegSys
   virtual ~RegSys();
 
   virtual void init() = 0;
-};
-
-const RegSys *find_sys(const char *name);
-
-struct RegComp
-{
-  char *name = nullptr;
-
-  int id = -1;
-  int size = 0;
-
-  const RegComp *next = nullptr;
-
-  RegComp(const char *_name, int _id, int _size);
-  virtual ~RegComp();
-
-  virtual void init(uint8_t *mem) const = 0;
-};
-
-const RegComp *find_comp(const char *name);
-
-template <typename T>
-struct Desc;
-
-template <typename T>
-struct RegCompSpec : RegComp
-{
-  using CompType = T;
-  using CompDesc = Desc<T>;
-
-  void init(uint8_t *mem) const override final { new (mem) CompType; }
-
-  RegCompSpec(const char *name) : RegComp(name, reg_comp_count, sizeof(CompType))
-  {
-  }
-};
-
-template <> struct Desc<EntityId> { constexpr static char* typeName = "EntityId"; constexpr static char* name = "eid"; };
-template <>
-struct RegCompSpec<EntityId> : RegComp
-{
-  using CompType = EntityId;
-  using CompDesc = Desc<EntityId>;
-
-  void init(uint8_t *) const override final {}
-
-  RegCompSpec() : RegComp("eid", reg_comp_count, sizeof(CompType))
-  {
-  }
-};
-
-template <> struct Desc<UpdateStage> { constexpr static char* typeName = "UpdateStage"; constexpr static char* name = "update_stage"; };
-template <>
-struct RegCompSpec<UpdateStage> : RegComp
-{
-  using CompType = UpdateStage;
-  using CompDesc = Desc<UpdateStage>;
-
-  static int ID;
-
-  void init(uint8_t *) const override final {}
-
-  RegCompSpec() : RegComp("update_stage", reg_comp_count, sizeof(CompType))
-  {
-    ID = id;
-  }
-};
-
-template <typename T>
-struct Cleanup
-{
-  using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
 };
 
 template <typename T>
@@ -225,7 +99,7 @@ struct RegSysSpec<R(Args...)> : RegSys
     }
   };
 
-  static inline int getCompOffset(bool is_eid, bool is_stage, const std::vector<Template::CompDesc> &templ_desc, int comp_id)
+  static inline int getCompOffset(bool is_eid, bool is_stage, const std::vector<CompDesc> &templ_desc, int comp_id)
   {
     for (const auto &d : templ_desc)
       if (d.desc->id == comp_id)
@@ -236,7 +110,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   }
 
   template <size_t... I>
-  static inline void execImpl(EntityId eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
+  static inline void execImpl(EntityId eid, const std::vector<CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
   {
     static bool inited = false;
     static std::array<size_t, ArgsCount> offsets;
@@ -246,13 +120,13 @@ struct RegSysSpec<R(Args...)> : RegSys
     sys(Exctract<Args>::toValue(eid, components, offsets[I])...);
   }
 
-  static void exec(EntityId eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components)
+  static void exec(EntityId eid, const std::vector<CompDesc> &templ_desc, uint8_t *components)
   {
     execImpl(eid, templ_desc, components, Indices{});
   }
 
   template <size_t... I>
-  static inline void execStageImpl(const std::vector<Template::CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
+  static inline void execStageImpl(const std::vector<CompDesc> &templ_desc, uint8_t *components, std::index_sequence<I...>)
   {
     static bool inited = false;
     static std::array<int, ArgsCount> offsets;
@@ -269,7 +143,7 @@ struct RegSysSpec<R(Args...)> : RegSys
     uint8_t mem[256];
   } buffer;
 
-  static void execStage(const RawArg &eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components)
+  static void execStage(const RawArg &eid, const std::vector<CompDesc> &templ_desc, uint8_t *components)
   {
     buffer.eid = 0;
     ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
@@ -277,7 +151,7 @@ struct RegSysSpec<R(Args...)> : RegSys
     execStageImpl(templ_desc, components, Indices{});
   }
 
-  static void execStage1(const RawArg &stage, const RawArg &eid, const std::vector<Template::CompDesc> &templ_desc, uint8_t *components)
+  static void execStage1(const RawArg &stage, const RawArg &eid, const std::vector<CompDesc> &templ_desc, uint8_t *components)
   {
     buffer.eid = 0;
     buffer.stage = eid.size;
@@ -316,58 +190,4 @@ struct RegSysSpec<R(Args...)> : RegSys
   }
 };
 
-struct Storage
-{
-  int count = 0;
-  int size = 0;
-
-  std::vector<uint8_t> data;
-
-  uint8_t* allocate()
-  {
-    ++count;
-    data.resize(count * size);
-    return &data[(count - 1) * size];
-  }
-};
-
-struct Entity
-{
-  EntityId eid;
-  int templateId = -1;
-  int memId = -1;
-};
-
-struct System
-{
-  int id;
-  const RegSys *desc;
-};
-
-struct EntityManager
-{
-  std::vector<Template> templates;
-  std::vector<Storage> storages;
-  std::vector<Entity> entities;
-  std::vector<System> systems;
-
-  EntityManager();
-
-  int getSystemId(const char *name);
-
-  void addTemplate(const char *templ_name, std::initializer_list<const char*> compNames);
-
-  EntityId createEntity(const char *templ_name);
-
-  void tick();
-  void tickImpl(int stage_id, const RawArg &stage);
-
-  template <typename S>
-  void tick(const S &stage)
-  {
-    RawArgSpec<sizeof(S)> arg0;
-    new (arg0.mem) S(stage);
-
-    tickImpl(RegCompSpec<S>::ID, arg0);
-  }
-};
+const RegSys *find_sys(const char *name);

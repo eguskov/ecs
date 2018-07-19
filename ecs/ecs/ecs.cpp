@@ -6,10 +6,6 @@ int reg_sys_count = 0;
 RegComp *reg_comp_head = nullptr;
 int reg_comp_count = 0;
 
-static RegCompSpec<EntityId> _eid;
-static RegCompSpec<UpdateStage> _update_stage;
-int RegCompSpec<UpdateStage>::ID = -1;
-
 static inline EntityId make_eid(uint16_t gen, uint16_t index)
 {
   return EntityId((uint32_t)gen << 16 | index);
@@ -107,7 +103,7 @@ void EntityManager::addTemplate(const char *templ_name, std::initializer_list<co
     templ.components.push_back({ 0, find_comp(name) });
 
   std::sort(templ.components.begin(), templ.components.end(),
-    [](const Template::CompDesc &lhs, const Template::CompDesc &rhs) { return lhs.desc->id < rhs.desc->id; });
+    [](const CompDesc &lhs, const CompDesc &rhs) { return lhs.desc->id < rhs.desc->id; });
 
   int offset = 0;
   for (auto &c : templ.components)
@@ -169,7 +165,7 @@ void EntityManager::tick()
 {
 }
 
-void EntityManager::tickImpl(int stage_id, const RawArg &stage)
+void EntityManager::tickStage(int stage_id, const RawArg &stage)
 {
   for (const auto &sys : systems)
   {
