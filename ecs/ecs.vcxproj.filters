@@ -56,6 +56,9 @@
     <ClInclude Include="stages\render.stage.h">
       <Filter>stages</Filter>
     </ClInclude>
+    <ClInclude Include="components\timer.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stages\update.stage.cpp">
@@ -86,6 +89,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stages\render.stage.cpp">
       <Filter>stages</Filter>
+    </ClCompile>
+    <ClCompile Include="components\timer.component.cpp">
+      <Filter>components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

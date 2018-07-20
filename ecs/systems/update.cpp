@@ -12,6 +12,7 @@
 
 #include "components/position.component.h"
 #include "components/velocity.component.h"
+#include "components/timer.component.h"
 
 REG_EVENT_INIT(EventOnTest);
 REG_EVENT_INIT(EventOnAnotherTest);
@@ -22,12 +23,27 @@ void update_position(const UpdateStage &stage,
   PositionComponent &pos,
   const PositionComponent &pos1)
 {
-  std::srand(unsigned(std::time(0)));
-
-  pos.x += ((float)std::rand() / RAND_MAX) * vel.x * stage.dt;
-  pos.y += ((float)std::rand() / RAND_MAX) * vel.y * stage.dt;
+  pos.x += 2.f * vel.x * stage.dt;
+  pos.y += 2.f * vel.y * stage.dt;
 }
 REG_SYS_2(update_position, "vel", "pos", "pos1");
+
+void update_velocity(const UpdateStage &stage,
+  EntityId eid,
+  VelocityComponent &vel,
+  TimerComponent &timer)
+{
+  timer.time += stage.dt;
+  if (timer.time >= 5.f)
+  {
+    timer.time = 0.f;
+    vel.y *= 0.2f + ((float)std::rand() / RAND_MAX);
+
+    // It works!
+    // g_mgr->sendEvent(eid, EventOnTest{0.f, 0.f});
+  }
+}
+REG_SYS_2(update_velocity, "vel", "timer");
 
 void render(const RenderStage &stage,
   EntityId eid,

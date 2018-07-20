@@ -168,7 +168,7 @@ EntityManager::EntityManager()
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
   // Add template
-  addTemplate("test", { { "velocity", "vel" }, { "position", "pos" }, { "position", "pos1"} });
+  addTemplate("test", { { "velocity", "vel" }, { "position", "pos" }, { "position", "pos1"}, { "timer", "timer" } });
   addTemplate("test1", { { "test", "test" }, { "position", "pos1" } });
 
   eidCompId = find_comp("eid")->id;

@@ -8,6 +8,8 @@
 #include <bitset>
 #include <algorithm>
 #include <iostream>
+#include <random>
+#include <ctime>
 
 #include <windows.h>
 
@@ -34,12 +36,19 @@ void loop()
     g_mgr->tick(UpdateStage{ float(dt) / 1000.f });
     g_mgr->tick(RenderStage{});
     g_mgr->tick();
+
+    Sleep(1);
   }
 }
 
 int main()
 {
+  std::srand(unsigned(std::time(0)));
+
   EntityManager::init();
+
+  for (int i = 0; i < 10; ++i)
+    g_mgr->createEntity("test");
 
   EntityId eid1 = g_mgr->createEntity("test");
   EntityId eid2 = g_mgr->createEntity("test");

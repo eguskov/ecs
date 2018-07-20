@@ -144,6 +144,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="components\timer.component.h" />
     <ClInclude Include="ecs\component.h" />
     <ClInclude Include="ecs\ecs.h" />
     <ClInclude Include="components\eid.component.h" />
@@ -161,6 +162,7 @@
     <ClInclude Include="components\velocity.component.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="components\timer.component.cpp" />
     <ClCompile Include="ecs\ecs.cpp" />
     <ClCompile Include="components\eid.component.cpp" />
     <ClCompile Include="main.cpp" />
