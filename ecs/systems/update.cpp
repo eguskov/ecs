@@ -6,6 +6,7 @@
 #include "components/velocity.component.h"
 
 REG_EVENT_INIT(EventOnTest);
+REG_EVENT_INIT(EventOnAnotherTest);
 
 void update_position(const UpdateStage &stage, EntityId eid, const VelocityComponent &velocity, PositionComponent &p, const PositionComponent &p1)
 {
@@ -27,3 +28,9 @@ void test_handler(const EventOnTest &ev, EntityId eid, const VelocityComponent &
   std::cout << "test_handler(" << eid.handle << ")" << std::endl;
 }
 REG_SYS_2(test_handler, "vel", "pos", "pos1");
+
+void test_another_handler(const EventOnAnotherTest &ev, EntityId eid, const VelocityComponent &velocity, const PositionComponent &pos1)
+{
+  std::cout << "test_another_handler(" << eid.handle << ")" << std::endl;
+}
+REG_SYS_2(test_another_handler, "vel", "pos1");

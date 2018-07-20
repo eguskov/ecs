@@ -75,6 +75,17 @@ struct System
   const RegSys *desc;
 };
 
+struct EventStream
+{
+  int popOffset = 0;
+  int pushOffset = 0;
+  int count = 0;
+  std::vector<uint8_t> data;
+
+  void push(EntityId eid, int event_id, const RawArg &ev);
+  std::tuple<EntityId, int, RawArg> pop();
+};
+
 struct EntityManager
 {
   int eidCompId = -1;
@@ -83,6 +94,10 @@ struct EntityManager
   std::vector<Storage> storages;
   std::vector<Entity> entities;
   std::vector<System> systems;
+
+  EventStream events;
+
+  static void init();
 
   EntityManager();
 
@@ -95,6 +110,7 @@ struct EntityManager
   void tick();
   void tickStage(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
+  void processEvent(EntityId eid, int event_id, const RawArg &ev);
 
   template <typename S>
   void tick(const S &stage)
@@ -114,3 +130,5 @@ struct EntityManager
     sendEvent(eid, RegCompSpec<E>::ID, arg0);
   }
 };
+
+extern EntityManager *g_mgr;

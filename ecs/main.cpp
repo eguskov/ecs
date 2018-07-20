@@ -19,15 +19,23 @@
 
 int main()
 {
-  EntityManager mgr;
-  EntityId eid1 = mgr.createEntity("test");
-  EntityId eid2 = mgr.createEntity("test");
-  EntityId eid3 = mgr.createEntity("test1");
+  EntityManager::init();
 
-  mgr.tick(UpdateStage{ 0.5f });
-  mgr.tick();
+  EntityId eid1 = g_mgr->createEntity("test");
+  EntityId eid2 = g_mgr->createEntity("test");
+  EntityId eid3 = g_mgr->createEntity("test1");
 
-  mgr.sendEvent(eid2, EventOnTest{ 5.f, 10.f });
+  g_mgr->tick(UpdateStage{ 0.5f });
+
+  g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
+  g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
+
+  g_mgr->tick();
+
+  g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
+  g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
+
+  g_mgr->tick();
 
   //Get a console handle
   HWND myconsole = GetConsoleWindow();

@@ -1,5 +1,7 @@
 #include "ecs.h"
 
+EntityManager *g_mgr = nullptr;
+
 RegSys *reg_sys_head = nullptr;
 int reg_sys_count = 0;
 
@@ -79,6 +81,72 @@ bool Template::hasCompontent(int id, const char *name) const
     if (c.desc->id == id && c.name == name)
       return true;
   return false;
+}
+
+
+void EventStream::push(EntityId eid, int event_id, const RawArg &ev)
+{
+  ++count;
+
+  int sz = sizeof(eid) + sizeof(event_id) + sizeof(ev.size) + ev.size;
+  int pos = 0;
+
+  if (pushOffset + sz <= (int)data.size())
+    pos = pushOffset;
+  else
+  {
+    pos = pushOffset;
+    data.resize(pushOffset + sz);
+  }
+
+  new (&data[pos]) EntityId(eid);
+  pos += sizeof(eid);
+
+  new (&data[pos]) int(event_id);
+  pos += sizeof(event_id);
+
+  new (&data[pos]) int(ev.size);
+  pos += sizeof(ev.size);
+
+  ::memcpy(&data[pos], ev.mem, ev.size);
+
+  pushOffset += sz;
+}
+
+std::tuple<EntityId, int, RawArg> EventStream::pop()
+{
+  assert(count > 0);
+
+  if (count <= 0)
+    return {};
+
+  EntityId eid = *(EntityId*)&data[popOffset];
+  popOffset += sizeof(eid);
+
+  int event_id = *(int*)&data[popOffset];
+  popOffset += sizeof(event_id);
+
+  int event_size = *(int*)&data[popOffset];
+  popOffset += sizeof(event_size);
+
+  uint8_t *mem = &data[popOffset];
+  popOffset += event_size;
+
+  if (--count == 0)
+  {
+    popOffset = 0;
+    pushOffset = 0;
+  }
+
+  return { eid, event_id, RawArg{ event_size, mem } };
+}
+
+void EntityManager::init()
+{
+  if (g_mgr)
+    return;
+
+  g_mgr = new EntityManager;
 }
 
 EntityManager::EntityManager()
@@ -189,6 +257,14 @@ EntityId EntityManager::createEntity(const char *templ_name)
 
 void EntityManager::tick()
 {
+  while (events.count)
+  {
+    EntityId eid;
+    int event_id = -1;
+    RawArg ev;
+    std::tie(eid, event_id, ev) = events.pop();
+    processEvent(eid, event_id, ev);
+  }
 }
 
 void EntityManager::tickStage(int stage_id, const RawArg &stage)
@@ -224,7 +300,11 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
-  // TODO: Make deferred
+  events.push(eid, event_id, ev);
+}
+
+void EntityManager::processEvent(EntityId eid, int event_id, const RawArg &ev)
+{
   auto &e = entities[eid2idx(eid)];
   const auto &templ = templates[e.templateId];
   auto &storage = storages[templ.storageId];
