@@ -2,6 +2,8 @@
 
 #include "stdafx.h"
 
+#include "io/json.h"
+
 #define REG_COMP(type, n) \
   template <> struct Desc<type> { constexpr static char* typeName = #type; constexpr static char* name = #n; }; \
 
@@ -23,7 +25,7 @@ struct RegComp
   RegComp(const char *_name, int _size);
   virtual ~RegComp();
 
-  virtual void init(uint8_t *mem) const = 0;
+  virtual bool init(uint8_t *mem, const JValue &value) const = 0;
 };
 
 template <typename T>
@@ -32,7 +34,11 @@ struct RegCompSpec : RegComp
   using CompType = T;
   using CompDesc = Desc<T>;
 
-  void init(uint8_t *mem) const override final { new (mem) CompType; }
+  bool init(uint8_t *mem, const JValue &value) const override final
+  {
+    CompType *comp = new (mem) CompType;
+    return comp->set(value);
+  }
 
   RegCompSpec(const char *name) : RegComp(name, sizeof(CompType))
   {

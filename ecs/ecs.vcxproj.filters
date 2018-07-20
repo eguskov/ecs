@@ -13,6 +13,9 @@
     <Filter Include="stages">
       <UniqueIdentifier>{34d81510-4e28-4fc2-ad92-bfc6d5dfcd80}</UniqueIdentifier>
     </Filter>
+    <Filter Include="io">
+      <UniqueIdentifier>{43adfa92-589d-4520-a12f-904bb7ddfc3c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stages\update.stage.h">
@@ -59,6 +62,9 @@
     <ClInclude Include="components\timer.component.h">
       <Filter>components</Filter>
     </ClInclude>
+    <ClInclude Include="io\json.h">
+      <Filter>io</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stages\update.stage.cpp">
@@ -93,5 +99,8 @@
     <ClCompile Include="components\timer.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
   </ItemGroup>
 </Project>

@@ -8,7 +8,7 @@
     using CompType = type; \
     using CompDesc = Desc<type>; \
     static int ID; \
-    void init(uint8_t *) const override final {} \
+    bool init(uint8_t *, const JValue &) const override final { return true; } \
     RegCompSpec() : RegComp(#type, sizeof(CompType)) { ID = id; } \
   }; \
 

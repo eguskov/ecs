@@ -12,6 +12,10 @@
   REG_SYS_BASE(func) \
   decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {__VA_ARGS__};\
 
+#define REG_SYS_1(func, ...) \
+  REG_SYS_BASE(func) \
+  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", __VA_ARGS__};\
+
 #define REG_SYS_2(func, ...) \
   REG_SYS_BASE(func) \
   decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", "", __VA_ARGS__};\

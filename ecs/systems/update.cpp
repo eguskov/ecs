@@ -18,15 +18,13 @@ REG_EVENT_INIT(EventOnTest);
 REG_EVENT_INIT(EventOnAnotherTest);
 
 void update_position(const UpdateStage &stage,
-  EntityId eid,
   const VelocityComponent &vel,
-  PositionComponent &pos,
-  const PositionComponent &pos1)
+  PositionComponent &pos)
 {
   pos.x += 2.f * vel.x * stage.dt;
   pos.y += 2.f * vel.y * stage.dt;
 }
-REG_SYS_2(update_position, "vel", "pos", "pos1");
+REG_SYS_1(update_position, "vel", "pos");
 
 void update_velocity(const UpdateStage &stage,
   EntityId eid,
@@ -34,7 +32,7 @@ void update_velocity(const UpdateStage &stage,
   TimerComponent &timer)
 {
   timer.time += stage.dt;
-  if (timer.time >= 5.f)
+  if (timer.time >= timer.period)
   {
     timer.time = 0.f;
     vel.y *= 0.2f + ((float)std::rand() / RAND_MAX);

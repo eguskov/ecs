@@ -47,16 +47,43 @@ int main()
 
   EntityManager::init();
 
-  for (int i = 0; i < 10; ++i)
-    g_mgr->createEntity("test");
+  FILE *file = nullptr;
+  ::fopen_s(&file, "entities.json", "r");
+  if (file)
+  {
+    size_t sz = ::ftell(file);
+    ::fseek(file, 0, SEEK_END);
+    sz = ::ftell(file) - sz;
+    ::fseek(file, 0, SEEK_SET);
 
-  EntityId eid1 = g_mgr->createEntity("test");
-  EntityId eid2 = g_mgr->createEntity("test");
-  EntityId eid3 = g_mgr->createEntity("test1");
+    char *buffer = new char[sz + 1];
+    buffer[sz] = '\0';
+    ::fread(buffer, 1, sz, file);
+    ::fclose(file);
+
+    JDocument doc;
+    doc.Parse(buffer);
+    delete[] buffer;
+
+    assert(doc.HasMember("$entities"));
+    assert(doc["$entities"].IsArray());
+    for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
+    {
+      const JValue &ent = doc["$entities"][i];
+      g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
+    }
+  }
+
+  //for (int i = 0; i < 10; ++i)
+  //  g_mgr->createEntity("test");
+
+  //EntityId eid1 = g_mgr->createEntity("test");
+  //EntityId eid2 = g_mgr->createEntity("test");
+  //EntityId eid3 = g_mgr->createEntity("test1");
 
   loop();
 
-  g_mgr->tick(UpdateStage{ 0.5f });
+  /*g_mgr->tick(UpdateStage{ 0.5f });
 
   g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
   g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
@@ -66,7 +93,7 @@ int main()
   g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
   g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
 
-  g_mgr->tick();
+  g_mgr->tick();*/
 
   //Get a console handle
   HWND myconsole = GetConsoleWindow();

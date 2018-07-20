@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "io/json.h"
+
 #include "entity.h"
 #include "component.h"
 #include "system.h"
@@ -31,6 +33,7 @@ struct Template
 {
   int size = 0;
   int storageId = -1;
+  int docId = -1;
 
   std::string name;
   std::bitarray compMask;
@@ -88,6 +91,9 @@ struct EntityManager
 {
   int eidCompId = -1;
 
+  JDocument templatesDoc;
+
+  std::vector<std::string> order;
   std::vector<Template> templates;
   std::vector<Storage> storages;
   std::vector<Entity> entities;
@@ -101,9 +107,9 @@ struct EntityManager
 
   int getSystemId(const char *name);
 
-  void addTemplate(const char *templ_name, std::initializer_list<std::pair<const char*, const char*>> compNames);
+  void addTemplate(const char *templ_name, const std::vector<std::pair<const char*, const char*>> &compNames);
 
-  EntityId createEntity(const char *templ_name);
+  EntityId createEntity(const char *templ_name, const JValue &comps);
 
   void tick();
   void tickStage(int stage_id, const RawArg &stage);

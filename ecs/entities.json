@@ -1,0 +1,35 @@
+{
+  "$entities": [
+    {
+      "$template": "test",
+      "$components": {
+        "pos": {
+          "x": 10.0,
+          "y": 0.0
+        }
+      }
+    },
+    {
+      "$template": "test",
+      "$components": {
+        "pos": {
+          "x": 50.0,
+          "y": 0.0
+        }
+      }
+    },
+    {
+      "$template": "test",
+      "$components": {
+        "pos": {
+          "x": 100.0,
+          "y": 0.0
+        },
+        "vel": {
+          "x": 5.0,
+          "y": 5.0
+        }
+      }
+    }
+  ]
+}

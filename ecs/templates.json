@@ -1,0 +1,51 @@
+{
+  "$order": [
+    "update_position",
+    "update_velocity",
+    "position_printer",
+    "test_printer",
+    "render",
+    "test_handler",
+    "test_another_handler"
+  ],
+  "$templates": [
+    {
+      "$name": "test",
+      "$components": {
+        "pos": {
+          "$type": "position",
+          "x": 10.0,
+          "y": 10.0
+        },
+        "vel": {
+          "$type": "velocity",
+          "x": 10.0,
+          "y": 10.0
+        },
+        "timer": {
+          "$type": "timer",
+          "time": 0.0,
+          "period": 2.0
+        }
+      }
+    },
+    {
+      "$name": "test1",
+      "$components": {
+        "pos": {
+          "$type": "position",
+          "x": 0.0,
+          "y": 0.0
+        },
+        "pos1": {
+          "$type": "position",
+          "x": 0.0,
+          "y": 0.0
+        },
+        "test": {
+          "$type": "test"
+        }
+      }
+    }
+  ]
+}

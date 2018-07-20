@@ -5,6 +5,8 @@
 
 #pragma once
 
+#define NOMINMAX
+
 #include "targetver.h"
 
 #include <assert.h> 

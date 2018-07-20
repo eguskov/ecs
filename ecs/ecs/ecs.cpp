@@ -151,6 +151,48 @@ void EntityManager::init()
 
 EntityManager::EntityManager()
 {
+  {
+    FILE *file = nullptr;
+    ::fopen_s(&file, "templates.json", "r");
+    if (file)
+    {
+      size_t sz = ::ftell(file);
+      ::fseek(file, 0, SEEK_END);
+      sz = ::ftell(file) - sz;
+      ::fseek(file, 0, SEEK_SET);
+
+      char *buffer = new char[sz + 1];
+      buffer[sz] = '\0';
+      ::fread(buffer, 1, sz, file);
+      ::fclose(file);
+
+      templatesDoc.Parse(buffer);
+      delete [] buffer;
+
+      assert(templatesDoc.HasMember("$order"));
+      assert(templatesDoc["$order"].IsArray());
+      for (int i = 0; i < (int)templatesDoc["$order"].Size(); ++i)
+        order.emplace_back(templatesDoc["$order"][i].GetString());
+
+      assert(templatesDoc.HasMember("$templates"));
+      assert(templatesDoc["$templates"].IsArray());
+      for (int i = 0; i < (int)templatesDoc["$templates"].Size(); ++i)
+      {
+        JValue &templ = templatesDoc["$templates"][i];
+
+        std::vector<std::pair<const char*, const char*>> comps;
+
+        JValue &templComps = templ["$components"];
+        for (auto compIter = templComps.MemberBegin(); compIter != templComps.MemberEnd(); ++compIter)
+          comps.push_back({ compIter->value["$type"].GetString(), compIter->name.GetString() });
+        addTemplate(templ["$name"].GetString(), comps);
+
+        // TODO: Move to addTemplate
+        templates.back().docId = i;
+      }
+    }
+  }
+
   // Init systems' descs
   {
     const RegSys *head = reg_sys_head;
@@ -167,22 +209,17 @@ EntityManager::EntityManager()
   std::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
-  // Add template
-  addTemplate("test", { { "velocity", "vel" }, { "position", "pos" }, { "position", "pos1"}, { "timer", "timer" } });
-  addTemplate("test1", { { "test", "test" }, { "position", "pos1" } });
-
   eidCompId = find_comp("eid")->id;
 }
 
 int EntityManager::getSystemId(const char *name)
 {
-  if (::strcmp(name, "update_position") == 0) return 0;
-  if (::strcmp(name, "position_printer") == 0) return 1;
-  if (::strcmp(name, "test_printer") == 0) return 2;
-  return 0;
+  auto res = std::find_if(order.begin(), order.end(), [name](const std::string &n) { return n == name; });
+  assert(res != order.end());
+  return res - order.begin();
 }
 
-void EntityManager::addTemplate(const char *templ_name, std::initializer_list<std::pair<const char*, const char*>> compNames)
+void EntityManager::addTemplate(const char *templ_name, const std::vector<std::pair<const char*, const char*>> &compNames)
 {
   templates.emplace_back();
   auto &templ = templates.back();
@@ -227,7 +264,7 @@ void EntityManager::addTemplate(const char *templ_name, std::initializer_list<st
   }
 }
 
-EntityId EntityManager::createEntity(const char *templ_name)
+EntityId EntityManager::createEntity(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
   for (size_t i = 0; i < templates.size(); ++i)
@@ -236,15 +273,24 @@ EntityId EntityManager::createEntity(const char *templ_name)
       templateId = (int)i;
       break;
     }
+  assert(templateId >= 0);
 
   // TOOD: Search template by name
   auto &templ = templates[templateId];
   auto &storage = storages[templ.storageId];
 
-  uint8_t *mem = storage.allocate();
+  const JValue &value = templatesDoc["$templates"][templ.docId];
 
+  JDocument tmpDoc;
+  JValue tmpValue(rapidjson::kObjectType);
+  tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
+
+  for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
+    tmpValue[compIter->name.GetString()].CopyFrom(compIter->value, tmpDoc.GetAllocator());
+
+  uint8_t *mem = storage.allocate();
   for (const auto &c : templ.components)
-    c.desc->init(mem + c.offset);
+    c.desc->init(mem + c.offset, tmpValue[c.name.c_str()]);
 
   entities.emplace_back();
   auto &e = entities.back();
