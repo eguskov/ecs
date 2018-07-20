@@ -38,7 +38,7 @@ void update_velocity(const UpdateStage &stage,
     vel.y *= 0.2f + ((float)std::rand() / RAND_MAX);
 
     // It works!
-    // g_mgr->sendEvent(eid, EventOnTest{0.f, 0.f});
+    g_mgr->sendEvent(eid, EventOnTest{0.f, 0.f});
   }
 }
 REG_SYS_2(update_velocity, "vel", "timer");
@@ -71,12 +71,21 @@ REG_SYS_2(render, "pos");
 void test_handler(const EventOnTest &ev,
   EntityId eid,
   const VelocityComponent &vel,
-  PositionComponent &pos,
-  const PositionComponent &pos1)
+  const PositionComponent &pos)
 {
-  std::cout << "test_handler(" << eid.handle << ")" << std::endl;
+  JDocument doc;
+  auto &a = doc.GetAllocator();
+
+  JValue posValue(rapidjson::kObjectType);
+  posValue.AddMember("x", pos.x, a);
+  posValue.AddMember("y", pos.y, a);
+
+  JValue value(rapidjson::kObjectType);
+  value.AddMember("pos", posValue, a);
+  
+  g_mgr->createEntity("test", value);
 }
-REG_SYS_2(test_handler, "vel", "pos", "pos1");
+REG_SYS_2(test_handler, "vel", "pos");
 
 void test_another_handler(const EventOnAnotherTest &ev,
   EntityId eid,

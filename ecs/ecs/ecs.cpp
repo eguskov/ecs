@@ -285,8 +285,9 @@ EntityId EntityManager::createEntity(const char *templ_name, const JValue &comps
   JValue tmpValue(rapidjson::kObjectType);
   tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
 
-  for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-    tmpValue[compIter->name.GetString()].CopyFrom(compIter->value, tmpDoc.GetAllocator());
+  if (!comps.IsNull())
+    for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
+      tmpValue[compIter->name.GetString()].CopyFrom(compIter->value, tmpDoc.GetAllocator());
 
   uint8_t *mem = storage.allocate();
   for (const auto &c : templ.components)
