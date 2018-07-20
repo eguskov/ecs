@@ -53,6 +53,9 @@
     <ClInclude Include="systems\update.h">
       <Filter>systems</Filter>
     </ClInclude>
+    <ClInclude Include="stages\render.stage.h">
+      <Filter>stages</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stages\update.stage.cpp">
@@ -81,5 +84,8 @@
     </ClCompile>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="stages\render.stage.cpp">
+      <Filter>stages</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

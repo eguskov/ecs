@@ -13,9 +13,29 @@
 
 #include "ecs/ecs.h"
 
+#include "stages/update.stage.h"
+#include "stages/render.stage.h"
+
 #include "systems/update.h"
 
 #define PI 3.141592f
+
+void loop()
+{
+  DWORD tick = ::GetTickCount();
+  while (true)
+  {
+    DWORD dt = ::GetTickCount() - tick;
+    tick = ::GetTickCount();
+
+    if (dt == 0)
+      dt = 1;
+
+    g_mgr->tick(UpdateStage{ float(dt) / 1000.f });
+    g_mgr->tick(RenderStage{});
+    g_mgr->tick();
+  }
+}
 
 int main()
 {
@@ -24,6 +44,8 @@ int main()
   EntityId eid1 = g_mgr->createEntity("test");
   EntityId eid2 = g_mgr->createEntity("test");
   EntityId eid3 = g_mgr->createEntity("test1");
+
+  loop();
 
   g_mgr->tick(UpdateStage{ 0.5f });
 

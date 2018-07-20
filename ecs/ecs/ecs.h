@@ -19,8 +19,6 @@
 
 #include "components/eid.component.h"
 
-#include "stages/update.stage.h"
-
 struct RegSys;
 extern RegSys *reg_sys_head;
 extern int reg_sys_count;
