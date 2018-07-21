@@ -26,6 +26,13 @@ void update_position(const UpdateStage &stage,
 }
 REG_SYS_1(update_position, "vel", "pos");
 
+void update_vels(const UpdateStage &stage,
+  const ArrayComp<VelocityComponent, 2> &vels)
+{
+  vels[0].x;
+}
+REG_SYS_1(update_vels, "vels");
+
 void update_velocity(const UpdateStage &stage,
   EntityId eid,
   VelocityComponent &vel,

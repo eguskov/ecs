@@ -1,5 +1,7 @@
 #include "ecs.h"
 
+#include <sstream>
+
 EntityManager *g_mgr = nullptr;
 
 RegSys *reg_sys_head = nullptr;
@@ -153,7 +155,7 @@ EntityManager::EntityManager()
 {
   {
     FILE *file = nullptr;
-    ::fopen_s(&file, "templates.json", "r");
+    ::fopen_s(&file, "templates.json", "rb");
     if (file)
     {
       size_t sz = ::ftell(file);
@@ -178,17 +180,30 @@ EntityManager::EntityManager()
       assert(templatesDoc["$templates"].IsArray());
       for (int i = 0; i < (int)templatesDoc["$templates"].Size(); ++i)
       {
-        JValue &templ = templatesDoc["$templates"][i];
+        const JValue &templ = templatesDoc["$templates"][i];
 
         std::vector<std::pair<const char*, const char*>> comps;
 
-        JValue &templComps = templ["$components"];
+        const JValue &templComps = templ["$components"];
         for (auto compIter = templComps.MemberBegin(); compIter != templComps.MemberEnd(); ++compIter)
-          comps.push_back({ compIter->value["$type"].GetString(), compIter->name.GetString() });
-        addTemplate(templ["$name"].GetString(), comps);
+        {
+          const JValue &type = compIter->value["$type"];
+          comps.push_back({ type.GetString(), compIter->name.GetString() });
 
-        // TODO: Move to addTemplate
-        templates.back().docId = i;
+          if (compIter->value.HasMember("$array"))
+          {
+            // Debug check
+            std::ostringstream oss;
+            oss << "[" << compIter->value["$array"].Size() << "]";
+            std::string res = oss.str();
+            int offset = type.GetStringLength() - (int)res.length();
+            assert(offset > 0);
+            const char *tail = type.GetString() + offset;
+            assert(::strcmp(res.c_str(), tail) == 0);
+          }
+        }
+
+        addTemplate(i, templ["$name"].GetString(), comps);
       }
     }
   }
@@ -216,18 +231,19 @@ int EntityManager::getSystemId(const char *name)
 {
   auto res = std::find_if(order.begin(), order.end(), [name](const std::string &n) { return n == name; });
   assert(res != order.end());
-  return res - order.begin();
+  return (int)(res - order.begin());
 }
 
-void EntityManager::addTemplate(const char *templ_name, const std::vector<std::pair<const char*, const char*>> &compNames)
+void EntityManager::addTemplate(int doc_id, const char *templ_name, const std::vector<std::pair<const char*, const char*>> &comp_names)
 {
   templates.emplace_back();
   auto &templ = templates.back();
+  templ.docId = doc_id;
   templ.name = templ_name;
   templ.compMask.resize(reg_comp_count);
   templ.compMask.assign(reg_comp_count, false);
 
-  for (const auto &name : compNames)
+  for (const auto &name : comp_names)
     templ.components.push_back({ 0, name.second, find_comp(name.first) });
 
   std::sort(templ.components.begin(), templ.components.end(),

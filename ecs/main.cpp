@@ -48,7 +48,7 @@ int main()
   EntityManager::init();
 
   FILE *file = nullptr;
-  ::fopen_s(&file, "entities.json", "r");
+  ::fopen_s(&file, "entities.json", "rb");
   if (file)
   {
     size_t sz = ::ftell(file);

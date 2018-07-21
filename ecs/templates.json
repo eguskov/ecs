@@ -2,6 +2,7 @@
   "$order": [
     "update_position",
     "update_velocity",
+    "update_vels",
     "position_printer",
     "test_printer",
     "render",
@@ -26,6 +27,19 @@
           "$type": "timer",
           "time": 0.0,
           "period": 10.0
+        },
+        "vels": {
+          "$type": "velocity[2]",
+          "$array": [
+            {
+              "x": 1.0,
+              "y": 1.0
+            },
+            {
+              "x": 2.0,
+              "y": 2.0
+            }
+          ]
         }
       }
     },

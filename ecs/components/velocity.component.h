@@ -16,3 +16,4 @@ struct VelocityComponent
   }
 };
 REG_COMP(VelocityComponent, velocity);
+REG_COMP_ARR(VelocityComponent, velocity, 2);

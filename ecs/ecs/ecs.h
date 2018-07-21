@@ -107,7 +107,7 @@ struct EntityManager
 
   int getSystemId(const char *name);
 
-  void addTemplate(const char *templ_name, const std::vector<std::pair<const char*, const char*>> &compNames);
+  void addTemplate(int doc_id, const char *templ_name, const std::vector<std::pair<const char*, const char*>> &comp_names);
 
   EntityId createEntity(const char *templ_name, const JValue &comps);
 
