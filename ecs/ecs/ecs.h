@@ -111,8 +111,10 @@ struct EntityManager
   EventStream events;
 
   static void init();
+  static void release();
 
   EntityManager();
+  ~EntityManager();
 
   int getSystemId(const char *name);
 

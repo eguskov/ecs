@@ -39,7 +39,7 @@ void loop()
     g_mgr->tick(RenderStage{});
     g_mgr->tick();
 
-    Sleep(1);
+    ::Sleep(1);
   }
 }
 

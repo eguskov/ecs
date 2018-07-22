@@ -5,6 +5,7 @@
     "update_vels",
     "position_printer",
     "test_printer",
+    "clear_screen",
     "render",
     "test_handler",
     "test_another_handler",
@@ -23,6 +24,12 @@
           "$type": "velocity",
           "x": 10.0,
           "y": 10.0
+        },
+        "color": {
+          "$type": "color",
+          "r": 255,
+          "g": 255,
+          "b": 255
         },
         "foo": {
           "$type": "foo",
@@ -64,6 +71,17 @@
         },
         "test": {
           "$type": "test"
+        }
+      }
+    },
+    {
+      "$name": "renderer",
+      "$components": {
+        "screenSize": {
+          "$type": "screenSize"
+        },
+        "context": {
+          "$type": "context"
         }
       }
     }

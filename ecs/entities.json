@@ -1,6 +1,10 @@
 {
   "$entities": [
     {
+      "$template": "renderer",
+      "$components": {}
+    },
+    {
       "$template": "test",
       "$components": {
         "pos": {

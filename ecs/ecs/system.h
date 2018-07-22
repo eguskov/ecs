@@ -176,8 +176,13 @@ struct RegSysSpec<R(Args...)> : RegSys
 
   void init() override final
   {
-    for (size_t i = 0 ; i < componentTypeNames.size(); ++i)
-      components.push_back({ 0, componentNames[i], find_comp(componentTypeNames[i]) });
+    assert(componentNames.size() == componentTypeNames.size());
+    for (size_t i = 0; i < componentTypeNames.size(); ++i)
+    {
+      const RegComp *desc = find_comp(componentTypeNames[i]);
+      assert(desc != nullptr);
+      components.push_back({ 0, componentNames[i], desc });
+    }
 
     std::sort(components.begin(), components.end(),
       [](const CompDesc &lhs, const CompDesc &rhs)

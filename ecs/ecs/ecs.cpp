@@ -150,6 +150,12 @@ void EntityManager::init()
   g_mgr = new EntityManager;
 }
 
+void EntityManager::release()
+{
+  delete g_mgr;
+  g_mgr = nullptr;
+}
+
 EntityManager::EntityManager()
 {
   {
@@ -224,6 +230,11 @@ EntityManager::EntityManager()
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
   eidCompId = find_comp("eid")->id;
+}
+
+EntityManager::~EntityManager()
+{
+  // TODO: Call dtors for components
 }
 
 int EntityManager::getSystemId(const char *name)
