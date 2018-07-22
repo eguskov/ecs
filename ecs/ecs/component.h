@@ -19,9 +19,11 @@
 
 #define REG_COMP_INIT(type, n) \
   static RegCompSpec<type> _##n(#n); \
+  int RegCompSpec<type>::ID = -1; \
 
 #define REG_COMP_ARR_INIT(type, n, sz) \
   static RegCompSpec<ArrayComp<type, sz>> _array_##n(__C4(n, [, sz, ])); \
+  int RegCompSpec<ArrayComp<type, sz>>::ID = -1; \
 
 #define REG_COMP_AND_INIT(type, n) \
   REG_COMP(type, n); \
@@ -83,6 +85,8 @@ struct RegCompSpec : RegComp
   using CompType = T;
   using CompDesc = Desc<T>;
 
+  static int ID;
+
   bool init(uint8_t *mem, const JValue &value) const override final
   {
     CompType *comp = new (mem) CompType;
@@ -91,6 +95,7 @@ struct RegCompSpec : RegComp
 
   RegCompSpec(const char *name) : RegComp(name, CompDesc::Size)
   {
+    ID = id;
   }
 };
 

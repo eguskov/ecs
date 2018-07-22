@@ -72,7 +72,7 @@ int main()
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JValue &ent = doc["$entities"][i];
-      g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
+      g_mgr->createEntitySync(ent["$template"].GetString(), ent["$components"]);
     }
   }
 

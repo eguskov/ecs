@@ -10,6 +10,7 @@
 #include <bitset>
 #include <algorithm>
 #include <iostream>
+#include <queue>
 
 #include "io/json.h"
 
@@ -88,6 +89,12 @@ struct EventStream
   std::tuple<EntityId, int, RawArg> pop();
 };
 
+struct CreateQueueData
+{
+  std::string templanemName;
+  JDocument components;
+};
+
 struct EntityManager
 {
   int eidCompId = -1;
@@ -99,6 +106,7 @@ struct EntityManager
   std::vector<Storage> storages;
   std::vector<Entity> entities;
   std::vector<System> systems;
+  std::queue<CreateQueueData> createQueue;
 
   EventStream events;
 
@@ -110,7 +118,8 @@ struct EntityManager
 
   void addTemplate(int doc_id, const char *templ_name, const std::vector<std::pair<const char*, const char*>> &comp_names);
 
-  EntityId createEntity(const char *templ_name, const JValue &comps);
+  void createEntity(const char *templ_name, const JValue &comps);
+  void createEntitySync(const char *templ_name, const JValue &comps);
 
   template <typename T>
   const T& getComponent(EntityId eid, const char *name)
@@ -130,7 +139,7 @@ struct EntityManager
   void tick();
   void tickStage(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
-  void processEvent(EntityId eid, int event_id, const RawArg &ev);
+  void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
 
   template <typename S>
   void tick(const S &stage)

@@ -279,7 +279,17 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const std::v
   }
 }
 
-EntityId EntityManager::createEntity(const char *templ_name, const JValue &comps)
+void EntityManager::createEntity(const char *templ_name, const JValue &comps)
+{
+  JDocument doc;
+  doc.CopyFrom(comps, doc.GetAllocator());
+  createQueue.emplace();
+  auto &q = createQueue.back();
+  q.templanemName = templ_name;
+  q.components = std::move(doc);
+}
+
+void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
   for (size_t i = 0; i < templates.size(); ++i)
@@ -313,19 +323,24 @@ EntityId EntityManager::createEntity(const char *templ_name, const JValue &comps
   e.eid = make_eid(1, (uint16_t)entities.size() - 1);
   e.templateId = templateId;
   e.memId = storage.count - 1;
-
-  return e.eid;
 }
 
 void EntityManager::tick()
 {
+  while (!createQueue.empty())
+  {
+    const auto &q = createQueue.front();
+    createEntitySync(q.templanemName.c_str(), q.components);
+    createQueue.pop();
+  }
+
   while (events.count)
   {
     EntityId eid;
     int event_id = -1;
     RawArg ev;
     std::tie(eid, event_id, ev) = events.pop();
-    processEvent(eid, event_id, ev);
+    sendEventSync(eid, event_id, ev);
   }
 }
 
@@ -365,7 +380,7 @@ void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
   events.push(eid, event_id, ev);
 }
 
-void EntityManager::processEvent(EntityId eid, int event_id, const RawArg &ev)
+void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
   auto &e = entities[eid2idx(eid)];
   const auto &templ = templates[e.templateId];
