@@ -98,6 +98,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   };
 
   static SysType sys;
+  static std::array<const char*, ArgsCount> componentNames;
 
   static struct Buffer
   {
@@ -113,7 +114,6 @@ struct RegSysSpec<R(Args...)> : RegSys
   }
 
   constexpr static std::array<const char*, ArgsCount> componentTypeNames = createNames<const char*, ArgsCount>(Indices{});
-  static std::array<const char*, ArgsCount> componentNames;
 
   template <typename T>
   static inline T toValue(uint8_t *components, int offset)

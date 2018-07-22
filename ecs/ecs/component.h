@@ -23,6 +23,10 @@
 #define REG_COMP_ARR_INIT(type, n, sz) \
   static RegCompSpec<ArrayComp<type, sz>> _array_##n(__C4(n, [, sz, ])); \
 
+#define REG_COMP_AND_INIT(type, n) \
+  REG_COMP(type, n); \
+  REG_COMP_INIT(type, n); \
+
 template <typename T>
 struct Desc;
 

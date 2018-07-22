@@ -18,6 +18,8 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
+#include "components/velocity.component.h"
+
 #include "systems/update.h"
 
 #define PI 3.141592f
@@ -72,6 +74,15 @@ int main()
       const JValue &ent = doc["$entities"][i];
       g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
     }
+  }
+
+  std::vector<EntityId> eids;
+  g_mgr->query(eids, { { "velocity", "vel" },{ "position", "pos" } });
+
+  for (EntityId eid : eids)
+  {
+    const auto &vel = g_mgr->getComponent<VelocityComponent>(eid, "vel");
+    continue;
   }
 
   //for (int i = 0; i < 10; ++i)

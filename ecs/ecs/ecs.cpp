@@ -10,16 +10,6 @@ int reg_sys_count = 0;
 RegComp *reg_comp_head = nullptr;
 int reg_comp_count = 0;
 
-static inline EntityId make_eid(uint16_t gen, uint16_t index)
-{
-  return EntityId((uint32_t)gen << 16 | index);
-}
-
-static inline int eid2idx(EntityId eid)
-{
-  return eid.handle & 0xFFFF;
-}
-
 RegSys::RegSys(const char *_name, int _id) : id(_id)
 {
   name = ::_strdup(_name);
@@ -85,6 +75,15 @@ bool Template::hasCompontent(int id, const char *name) const
   return false;
 }
 
+int Template::getCompontentOffset(int id, const char *name) const
+{
+  if (!name || !name[0])
+    return -1;
+  for (const auto &c : components)
+    if (c.desc->id == id && c.name == name)
+      return c.offset;
+  return -1;
+}
 
 void EventStream::push(EntityId eid, int event_id, const RawArg &ev)
 {

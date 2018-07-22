@@ -40,6 +40,7 @@ struct Template
   std::vector<CompDesc> components;
 
   bool hasCompontent(int id, const char *name) const;
+  int getCompontentOffset(int id, const char *name) const;
 };
 
 template <typename T>
@@ -111,6 +112,21 @@ struct EntityManager
 
   EntityId createEntity(const char *templ_name, const JValue &comps);
 
+  template <typename T>
+  const T& getComponent(EntityId eid, const char *name)
+  {
+    const auto &e = entities[eid2idx(eid)];
+
+    const auto &templ = templates[e.templateId];
+    const auto &storage = storages[templ.storageId];
+
+    const RegComp *desc = find_comp(Desc<T>::name);
+    const int offset = templ.getCompontentOffset(desc->id, name);
+    assert(offset >= 0);
+
+    return *(T*)&storage.data[storage.size * e.memId + offset];
+  }
+
   void tick();
   void tickStage(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
@@ -132,6 +148,33 @@ struct EntityManager
     new (arg0.mem) E(ev);
 
     sendEvent(eid, RegCompSpec<E>::ID, arg0);
+  }
+
+  // TODO: cache components descs
+  // Query createQuery(...)
+
+  template <typename C>
+  void query(C& out_eids, std::initializer_list<std::pair<const char*, const char*>> comps)
+  {
+    for (auto &e : entities)
+    {
+      const auto &templ = templates[e.templateId];
+      auto &storage = storages[templ.storageId];
+
+      bool ok = true;
+      for (const auto &c : comps)
+      {
+        const RegComp *desc = find_comp(c.first);
+        if (!templ.hasCompontent(desc->id, c.second))
+        {
+          ok = false;
+          break;
+        }
+      }
+
+      if (ok)
+        out_eids.push_back(e.eid);
+    }
   }
 };
 

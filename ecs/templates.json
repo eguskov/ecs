@@ -7,7 +7,8 @@
     "test_printer",
     "render",
     "test_handler",
-    "test_another_handler"
+    "test_another_handler",
+    "foo_sys"
   ],
   "$templates": [
     {
@@ -20,6 +21,11 @@
         },
         "vel": {
           "$type": "velocity",
+          "x": 10.0,
+          "y": 10.0
+        },
+        "foo": {
+          "$type": "foo",
           "x": 10.0,
           "y": 10.0
         },
