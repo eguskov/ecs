@@ -2,6 +2,9 @@
 
 #include <sstream>
 
+REG_EVENT_INIT(EventOnEntityCreate);
+REG_EVENT_INIT(EventOnEntityReady);
+
 EntityManager *g_mgr = nullptr;
 
 RegSys *reg_sys_head = nullptr;
@@ -300,6 +303,13 @@ void EntityManager::createEntity(const char *templ_name, const JValue &comps)
   q.components = std::move(doc);
 }
 
+void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
+{
+  assert(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
+  asyncValues.emplace_back(eid, std::move(value));
+  entities[eid2idx(eid)].ready = false;
+}
+
 void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
@@ -334,6 +344,9 @@ void EntityManager::createEntitySync(const char *templ_name, const JValue &comps
   e.eid = make_eid(1, (uint16_t)entities.size() - 1);
   e.templateId = templateId;
   e.memId = storage.count - 1;
+  e.ready = true;
+
+  sendEventSync(e.eid, EventOnEntityCreate{});
 }
 
 void EntityManager::tick()
@@ -344,6 +357,19 @@ void EntityManager::tick()
     createEntitySync(q.templanemName.c_str(), q.components);
     createQueue.pop();
   }
+
+  for (const auto &v : asyncValues)
+  {
+    const bool ready = v.isReady();
+    if (ready)
+    {
+      entities[eid2idx(v.eid)].ready = ready;
+      sendEventSync(v.eid, EventOnEntityReady{});
+    }
+  }
+
+  if (!asyncValues.empty())
+    asyncValues.erase(std::remove_if(asyncValues.begin(), asyncValues.end(), [](const AsyncValue &v) { return v.isReady(); }), asyncValues.end());
 
   while (events.count)
   {
@@ -364,6 +390,9 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
     for (auto &e : entities)
     {
+      if (!e.ready)
+        continue;
+
       const auto &templ = templates[e.templateId];
       auto &storage = storages[templ.storageId];
 
@@ -394,6 +423,7 @@ void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
   auto &e = entities[eid2idx(eid)];
+
   const auto &templ = templates[e.templateId];
   auto &storage = storages[templ.storageId];
 

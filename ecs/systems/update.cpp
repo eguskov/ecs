@@ -6,6 +6,7 @@
 
 #include <random>
 #include <ctime>
+#include <future>
 
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
@@ -13,6 +14,7 @@
 #include "components/position.component.h"
 #include "components/velocity.component.h"
 #include "components/timer.component.h"
+#include "components/color.component.h"
 
 REG_EVENT_INIT(EventOnTest);
 REG_EVENT_INIT(EventOnAnotherTest);
@@ -50,25 +52,6 @@ void update_velocity(const UpdateStage &stage,
 }
 REG_SYS_2(update_velocity, "vel", "timer");
 
-struct ColorComponent
-{
-  uint8_t r = 255;
-  uint8_t g = 255;
-  uint8_t b = 255;
-
-  bool set(const JValue &value)
-  {
-    assert(value.HasMember("r"));
-    r = (uint8_t)value["r"].GetInt();
-    assert(value.HasMember("g"));
-    g = (uint8_t)value["g"].GetInt();
-    assert(value.HasMember("b"));
-    b = (uint8_t)value["b"].GetInt();
-    return true;
-  }
-};
-REG_COMP_AND_INIT(ColorComponent, color);
-
 struct ScreenSizeComponent
 {
   int width = 0;
@@ -76,19 +59,7 @@ struct ScreenSizeComponent
 
   ScreenSizeComponent()
   {
-    HWND console = ::GetConsoleWindow();
-    HDC dc = ::GetDC(console);
-
-    BITMAP structBitmapHeader;
-    memset(&structBitmapHeader, 0, sizeof(BITMAP));
-
-    HGDIOBJ hBitmap = GetCurrentObject(dc, OBJ_BITMAP);
-    GetObject(hBitmap, sizeof(BITMAP), &structBitmapHeader);
-
-    width = structBitmapHeader.bmWidth;
-    height = structBitmapHeader.bmHeight;
-
-    ::ReleaseDC(console, dc);
+    
   }
 
   bool set(const JValue &value)
@@ -121,6 +92,40 @@ struct ContextComponent
 };
 REG_COMP_AND_INIT(ContextComponent, context);
 
+void screen_size_create_handler(const EventOnEntityCreate &ev,
+  EntityId eid,
+  const ContextComponent &ctx,
+  ScreenSizeComponent &sz)
+{
+  g_mgr->waitFor(eid, std::async(std::launch::async, []()
+  {
+    ::Sleep(10 * 1000);
+    return true;
+  }));
+}
+REG_SYS_2(screen_size_create_handler, "context", "screenSize");
+
+void screen_size_ready_handler(const EventOnEntityReady &ev,
+  EntityId eid,
+  const ContextComponent &ctx,
+  ScreenSizeComponent &sz)
+{
+  HWND console = ::GetConsoleWindow();
+  HDC dc = ::GetDC(console);
+
+  BITMAP structBitmapHeader;
+  memset(&structBitmapHeader, 0, sizeof(BITMAP));
+
+  HGDIOBJ hBitmap = GetCurrentObject(dc, OBJ_BITMAP);
+  GetObject(hBitmap, sizeof(BITMAP), &structBitmapHeader);
+
+  sz.width = structBitmapHeader.bmWidth;
+  sz.height = structBitmapHeader.bmHeight;
+
+  ::ReleaseDC(console, dc);
+}
+REG_SYS_2(screen_size_ready_handler, "context", "screenSize");
+
 void clear_screen(const RenderStage &stage,
   const ContextComponent &ctx,
   const ScreenSizeComponent &sz)
@@ -147,14 +152,6 @@ void render(const RenderStage &stage,
   for (int x = 0; x < 10; ++x)
     for (int y = 0; y < 10; ++y)
       ::SetPixel(ctx.dc, (int)pos.x + x, (int)pos.y + y, COLOR);
-
-  RECT r;
-  r.left = 0;
-  r.top = 0;
-  r.right = 500;
-  r.bottom = 500;
-  // ::InvalidateRect(ctx.dc, &r);
-  // ::InvalidateRect(ctx.console, nullptr, FALSE);
 }
 REG_SYS_2(render, "color", "pos");
 

@@ -16,6 +16,10 @@
   static RegCompSpec<type> _##type; \
   int RegCompSpec<type>::ID = -1; \
 
+#define REG_EVENT_AND_INIT(type) \
+  REG_EVENT(type); \
+  REG_EVENT_INIT(type); \
+
 struct Event
 {
 };

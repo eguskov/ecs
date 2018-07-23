@@ -43,8 +43,36 @@ void loop()
   }
 }
 
+struct A
+{
+
+};
+
+struct B
+{
+  void require() const {}
+};
+
+template<typename T, HAS_METHOD(T, require)>
+void test(const T &t)
+{
+  t.require();
+}
+
+template<typename T, NOT_HAVE_METHOD(T, require)>
+void test(const T &t)
+{
+  // t.require();
+}
+
 int main()
 {
+  B b;
+  test(b);
+
+  A a;
+  test<A>(a);
+
   std::srand(unsigned(std::time(0)));
 
   EntityManager::init();

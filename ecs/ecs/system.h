@@ -20,6 +20,23 @@
   REG_SYS_BASE(func) \
   decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", "", __VA_ARGS__};\
 
+#define DEF_HAS_METHOD(method) \
+  template <typename T> \
+  struct has_##method \
+  { \
+    struct has { char d[1]; }; \
+    struct notHas { char d[2]; }; \
+    template <typename C> static has test(decltype(&C::require)); \
+    template <typename C> static notHas test(...); \
+    static constexpr bool value = sizeof(test<T>(0)) == sizeof(has); \
+  }; \
+
+#define HAS_METHOD(T, method) \
+  typename = typename std::enable_if<has_##method<T>::value>::type \
+
+#define NOT_HAVE_METHOD(T, method) \
+  typename = typename std::enable_if<!has_##method<T>::value>::type \
+
 struct RawArg
 {
   int size = 0;
@@ -40,6 +57,8 @@ struct CompDesc
   std::string name;
   const RegComp* desc;
 };
+
+DEF_HAS_METHOD(require);
 
 struct RegSys
 {

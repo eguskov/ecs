@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iostream>
 #include <queue>
+#include <future>
 
 #include "io/json.h"
 
@@ -19,6 +20,7 @@
 #include "system.h"
 
 #include "event.h"
+#include "stage.h"
 
 #include "components/eid.component.h"
 
@@ -29,6 +31,16 @@ extern int reg_sys_count;
 struct RegComp;
 extern RegComp *reg_comp_head;
 extern int reg_comp_count;
+
+struct EventOnEntityCreate : Event
+{
+};
+REG_EVENT(EventOnEntityCreate);
+
+struct EventOnEntityReady : Event
+{
+};
+REG_EVENT(EventOnEntityReady);
 
 struct Template
 {
@@ -67,6 +79,7 @@ struct Storage
 
 struct Entity
 {
+  bool ready = false;
   EntityId eid;
   int templateId = -1;
   int memId = -1;
@@ -95,6 +108,19 @@ struct CreateQueueData
   JDocument components;
 };
 
+struct AsyncValue
+{
+  EntityId eid;
+  std::future<bool> value;
+
+  AsyncValue(EntityId _eid, std::future<bool> &&_value) : eid(_eid), value(std::move(_value)) {}
+
+  bool isReady() const
+  {
+    return value.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+  }
+};
+
 struct EntityManager
 {
   int eidCompId = -1;
@@ -106,6 +132,7 @@ struct EntityManager
   std::vector<Storage> storages;
   std::vector<Entity> entities;
   std::vector<System> systems;
+  std::vector<AsyncValue> asyncValues;
   std::queue<CreateQueueData> createQueue;
 
   EventStream events;
@@ -122,6 +149,8 @@ struct EntityManager
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntitySync(const char *templ_name, const JValue &comps);
+
+  void waitFor(EntityId eid, std::future<bool> && value);
 
   template <typename T>
   const T& getComponent(EntityId eid, const char *name)
@@ -159,6 +188,15 @@ struct EntityManager
     new (arg0.mem) E(ev);
 
     sendEvent(eid, RegCompSpec<E>::ID, arg0);
+  }
+
+  template <typename E>
+  void sendEventSync(EntityId eid, const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    sendEventSync(eid, RegCompSpec<E>::ID, arg0);
   }
 
   // TODO: cache components descs

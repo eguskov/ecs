@@ -1,6 +1,10 @@
 {
   "$entities": [
     {
+      "$template": "window",
+      "$components": {}
+    },
+    {
       "$template": "renderer",
       "$components": {}
     },

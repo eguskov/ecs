@@ -16,6 +16,10 @@
   static RegCompSpec<type> _##n; \
   int RegCompSpec<type>::ID = -1; \
 
+#define REG_STAGE_AND_INIT(type, n) \
+  REG_STAGE(type, n) \
+  REG_STAGE_INIT(type) \
+
 struct Stage
 {
 };
