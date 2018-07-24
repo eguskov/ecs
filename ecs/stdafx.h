@@ -16,6 +16,15 @@
 
 #include <vector>
 
+#include "raylib.h"
+
+#pragma warning(push)
+#pragma warning(disable: 4244)
+
+#include "raymath.h"
+
+#pragma warning(pop) 
+
 namespace std
 {
   using bitarray = vector<bool>;

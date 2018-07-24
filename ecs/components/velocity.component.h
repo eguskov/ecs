@@ -4,14 +4,14 @@
 
 struct VelocityComponent
 {
-  float x = 3.f;
-  float y = 4.f;
+  Vector2 v;
+
   bool set(const JValue &value)
   {
     assert(value.HasMember("x"));
-    x = value["x"].GetFloat();
+    v.x = value["x"].GetFloat();
     assert(value.HasMember("y"));
-    y = value["y"].GetFloat();
+    v.y = value["y"].GetFloat();
     return true;
   }
 };

@@ -4,15 +4,14 @@
 
 struct PositionComponent
 {
-  float x = 1.f;
-  float y = 2.f;
+  Vector2 p;
 
   bool set(const JValue &value)
   {
     assert(value.HasMember("x"));
-    x = value["x"].GetFloat();
+    p.x = value["x"].GetFloat();
     assert(value.HasMember("y"));
-    y = value["y"].GetFloat();
+    p.y = value["y"].GetFloat();
     return true;
   }
 };

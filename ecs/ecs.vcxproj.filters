@@ -88,9 +88,6 @@
     <ClCompile Include="components\velocity.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="systems\test.cpp">
-      <Filter>systems</Filter>
-    </ClCompile>
     <ClCompile Include="systems\update.cpp">
       <Filter>systems</Filter>
     </ClCompile>
@@ -101,9 +98,6 @@
     </ClCompile>
     <ClCompile Include="components\timer.component.cpp">
       <Filter>components</Filter>
-    </ClCompile>
-    <ClCompile Include="systems\window.cpp">
-      <Filter>systems</Filter>
     </ClCompile>
     <ClCompile Include="components\color.component.cpp">
       <Filter>components</Filter>

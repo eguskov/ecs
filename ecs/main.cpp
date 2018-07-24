@@ -11,8 +11,6 @@
 #include <random>
 #include <ctime>
 
-#include <windows.h>
-
 #include "ecs/ecs.h"
 
 #include "stages/update.stage.h"
@@ -22,57 +20,11 @@
 
 #include "systems/update.h"
 
-#define PI 3.141592f
-
-void loop()
-{
-  DWORD tick = ::GetTickCount();
-  while (true)
-  {
-    DWORD dt = ::GetTickCount() - tick;
-    tick = ::GetTickCount();
-
-    if (dt == 0)
-      dt = 1;
-
-    g_mgr->tick(UpdateStage{ float(dt) / 1000.f });
-    g_mgr->tick(RenderStage{});
-    g_mgr->tick();
-
-    ::Sleep(1);
-  }
-}
-
-struct A
-{
-
-};
-
-struct B
-{
-  void require() const {}
-};
-
-template<typename T, HAS_METHOD(T, require)>
-void test(const T &t)
-{
-  t.require();
-}
-
-template<typename T, NOT_HAVE_METHOD(T, require)>
-void test(const T &t)
-{
-  // t.require();
-}
+int screen_width = 800;
+int screen_height = 450;
 
 int main()
 {
-  B b;
-  test(b);
-
-  A a;
-  test<A>(a);
-
   std::srand(unsigned(std::time(0)));
 
   EntityManager::init();
@@ -104,55 +56,30 @@ int main()
     }
   }
 
-  std::vector<EntityId> eids;
-  g_mgr->query(eids, { { "velocity", "vel" },{ "position", "pos" } });
+  InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
-  for (EntityId eid : eids)
+  SetTargetFPS(60);
+
+  while (!WindowShouldClose())
   {
-    const auto &vel = g_mgr->getComponent<VelocityComponent>(eid, "vel");
-    continue;
+    double t = GetTime();
+    g_mgr->tick();
+    g_mgr->tick(UpdateStage{ GetFrameTime() });
+
+    BeginDrawing();
+
+    ClearBackground(RAYWHITE);
+
+    g_mgr->tick(RenderStage{});
+
+    DrawText(FormatText("ECS time: %f ms", (GetTime() - t) * 1e3), 10, 30, 20, LIME);
+    DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
+    DrawFPS(10, 10);
+
+    EndDrawing();
   }
-
-  //for (int i = 0; i < 10; ++i)
-  //  g_mgr->createEntity("test");
-
-  //EntityId eid1 = g_mgr->createEntity("test");
-  //EntityId eid2 = g_mgr->createEntity("test");
-  //EntityId eid3 = g_mgr->createEntity("test1");
-
-  loop();
-
-  /*g_mgr->tick(UpdateStage{ 0.5f });
-
-  g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
-  g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
-
-  g_mgr->tick();
-
-  g_mgr->sendEvent(eid1, EventOnAnotherTest{ 5.f, 10.f, 25.f });
-  g_mgr->sendEvent(eid2, EventOnTest{ 5.f, 10.f });
-
-  g_mgr->tick();*/
-
-  //Get a console handle
-  HWND myconsole = GetConsoleWindow();
-  //Get a handle to device context
-  HDC mydc = GetDC(myconsole);
-
-  int pixel = 0;
-
-  //Choose any color
-  COLORREF COLOR = RGB(255, 255, 255);
-
-  //Draw pixels
-  for (double i = 0; i < PI * 4; i += 0.05)
-  {
-    SetPixel(mydc, pixel, (int)(50 + 25 * cos(i)), COLOR);
-    pixel += 1;
-  }
-
-  ReleaseDC(myconsole, mydc);
-  std::cin.ignore();
+  
+  CloseWindow();
 
   return 0;
 }

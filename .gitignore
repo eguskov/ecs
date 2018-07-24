@@ -1,0 +1,13 @@
+/ecs/Debug
+/.vs/ecs/v14/*.suo
+/Debug
+/Release
+/ecs/Release
+/ecs/x64/Debug
+/*.opendb
+/*.db
+/ecs/*.user
+/raylib/examples
+/raylib/games
+/raylib/projects
+/raylib/templates

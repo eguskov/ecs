@@ -1,23 +1,15 @@
 {
   "$entities": [
     {
-      "$template": "window",
-      "$components": {}
-    },
-    {
-      "$template": "renderer",
-      "$components": {}
-    },
-    {
       "$template": "test",
       "$components": {
         "pos": {
-          "x": 10.0,
+          "x": 0.0,
           "y": 0.0
         }
       }
     },
-    {
+    { 
       "$template": "test",
       "$components": {
         "pos": {
@@ -34,8 +26,8 @@
           "y": 0.0
         },
         "vel": {
-          "x": 5.0,
-          "y": 5.0
+          "x": 10.0,
+          "y": 10.0
         }
       }
     }

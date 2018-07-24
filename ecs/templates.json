@@ -1,22 +1,11 @@
 {
   "$order": [
-    "window_create_handler",
-    "WM_ACTIVATE_handler",
-    "window_updater",
-    "window_painter",
-    "rect_painter",
-    "screen_size_create_handler",
-    "screen_size_ready_handler",
-    "update_position",
+    "spawner",
     "update_velocity",
+    "update_position",
     "update_vels",
-    "position_printer",
-    "test_printer",
-    "clear_screen",
     "render",
-    "test_handler",
-    "test_another_handler",
-    "foo_sys"
+    "spawn_handler"
   ],
   "$templates": [
     {
@@ -29,19 +18,14 @@
         },
         "vel": {
           "$type": "velocity",
-          "x": 10.0,
-          "y": 10.0
+          "x": 30.0,
+          "y": 30.0
         },
         "color": {
           "$type": "color",
           "r": 0,
           "g": 255,
           "b": 0
-        },
-        "foo": {
-          "$type": "foo",
-          "x": 10.0,
-          "y": 10.0
         },
         "timer": {
           "$type": "timer",
@@ -78,27 +62,6 @@
         },
         "test": {
           "$type": "test"
-        }
-      }
-    },
-    {
-      "$name": "window",
-      "$components": {
-        "window": {
-          "$type": "window",
-          "width": 640,
-          "height": 480
-        }
-      }
-    },
-    {
-      "$name": "renderer",
-      "$components": {
-        "screenSize": {
-          "$type": "screenSize"
-        },
-        "context": {
-          "$type": "context"
         }
       }
     }
