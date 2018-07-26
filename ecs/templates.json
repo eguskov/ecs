@@ -1,6 +1,7 @@
 {
   "$order": [
     "spawner",
+    "update_collisions",
     "update_velocity",
     "update_position",
     "update_vels",
@@ -36,6 +37,10 @@
           "$type": "timer",
           "time": 0.0,
           "period": 0.1
+        },
+        "no_hit_timer": {
+          "$type": "no_hit_timer",
+          "time": 2.0
         },
         "vels": {
           "$type": "velocity[2]",
@@ -75,6 +80,10 @@
           "$type": "position",
           "x": 20.0,
           "y": 20.0
+        },
+        "no_hit_timer": {
+          "$type": "no_hit_timer",
+          "time": 2.0
         }
       }
     }

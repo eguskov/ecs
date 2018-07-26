@@ -15,12 +15,14 @@ int reg_comp_count = 0;
 
 RegSys::RegSys(const char *_name, int _id) : id(_id)
 {
-  name = ::_strdup(_name);
+  if (_name)
+    name = ::_strdup(_name);
 }
 
 RegSys::~RegSys()
 {
-  ::free(name);
+  if (name)
+    ::free(name);
 }
 
 bool RegSys::hasCompontent(int id, const char *name) const
@@ -477,7 +479,6 @@ void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
         continue;
 
       const auto &templ = templates[e.templateId];
-      // auto &storage = storages[templ.storageId];
 
       bool ok = true;
       for (const auto &c : sys.desc->components)
@@ -492,7 +493,7 @@ void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
         RawArgSpec<sizeof(EntityId)> eid;
         new (eid.mem) EntityId(e.eid);
 
-        sys.desc->stageFnSoA(stage, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
+        (sys.desc->*sys.desc->stageFnSoA)(stage, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
       }
     }
   }
@@ -553,7 +554,7 @@ void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &e
         RawArgSpec<sizeof(EntityId)> eid;
         new (eid.mem) EntityId(e.eid);
 
-        sys.desc->stageFnSoA(ev, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
+        (sys.desc->*sys.desc->stageFnSoA)(ev, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
       }
     }
 }

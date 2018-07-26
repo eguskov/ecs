@@ -108,6 +108,5 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
-    <Natvis Include="..\EASTL\doc\EASTL.natvis" />
   </ItemGroup>
 </Project>

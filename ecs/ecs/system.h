@@ -2,23 +2,18 @@
 
 #include "stdafx.h"
 
-#define REG_SYS_BASE(func) \
+#define REG_SYS_BASE(func, ...) \
   template <> struct Desc<decltype(func)> { constexpr static char* name = #func; }; \
-  static RegSysSpec<decltype(func)> _##func(#func, func); \
-  RegSysSpec<decltype(func)>::SysType RegSysSpec<decltype(func)>::sys = &func; \
-  RegSysSpec<decltype(func)>::Buffer RegSysSpec<decltype(func)>::buffer; \
+  static RegSysSpec<decltype(func)> _##func(#func, &func, {__VA_ARGS__}); \
 
 #define REG_SYS(func, ...) \
-  REG_SYS_BASE(func) \
-  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {__VA_ARGS__};\
+  REG_SYS_BASE(func, __VA_ARGS__) \
 
 #define REG_SYS_1(func, ...) \
-  REG_SYS_BASE(func) \
-  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", __VA_ARGS__};\
+  REG_SYS_BASE(func, "", __VA_ARGS__) \
 
 #define REG_SYS_2(func, ...) \
-  REG_SYS_BASE(func) \
-  decltype(RegSysSpec<decltype(func)>::componentNames) RegSysSpec<decltype(func)>::componentNames = {"", "", __VA_ARGS__};\
+  REG_SYS_BASE(func, "", "", __VA_ARGS__) \
 
 #define DEF_HAS_METHOD(method) \
   template <typename T> \
@@ -86,7 +81,7 @@ struct RegSys
 
   using ExecFunc = void(*)(const RawArg &, const eastl::vector<CompDesc> &, uint8_t *);
   using StageFunc = void(*)(const RawArg &, const RawArg &, const eastl::vector<CompDesc> &, uint8_t *);
-  using StageFuncSoA = void(*)(const RawArg &, const RawArg &, const RegSys::Remap &, const int *, Storage *);
+  using StageFuncSoA = void(RegSys::*)(const RawArg &, const RawArg &, const RegSys::Remap &, const int *, Storage *) const;
 
   char *name = nullptr;
 
@@ -131,7 +126,9 @@ struct RegSysSpec<R(Args...)> : RegSys
   static constexpr std::size_t ArgsCount = sizeof...(Args);
 
   using SysType = R(*)(Args...);
+  using SysFuncType = eastl::function<R(Args...)>;
   using Indices = eastl::make_index_sequence<ArgsCount>;
+  using StringArray = eastl::array<const char*, ArgsCount>;
   using ReturnType = R;
 
   template <std::size_t N>
@@ -161,72 +158,24 @@ struct RegSysSpec<R(Args...)> : RegSys
     constexpr static ValueSoAType valueType = getValueType();
   };
 
-  static SysType sys;
-  static eastl::array<const char*, ArgsCount> componentNames;
+  SysType sys;
+  SysFuncType sysFunc;
+  StringArray componentNames;
 
-  static struct Buffer
+  mutable struct Buffer
   {
     int eid = -1;
     int stage = -1;
     uint8_t mem[256];
   } buffer;
 
-  template<typename T, std::size_t N, std::size_t... I>
+  template <std::size_t... I>
   constexpr static auto createNames(eastl::index_sequence<I...>)
   {
-    return eastl::array<T, N>{ {Argument<I>::CompDesc::name...} };
+    return StringArray{ {Argument<I>::CompDesc::name...} };
   }
 
-  constexpr static eastl::array<const char*, ArgsCount> componentTypeNames = createNames<const char*, ArgsCount>(Indices{});
-
-  template <typename T>
-  static inline T toValue(uint8_t *components, int offset)
-  {
-    if (offset < 0)
-      return *(typename eastl::remove_reference<T>::type *)&buffer.mem[-offset - 1];
-    return *(typename eastl::remove_reference<T>::type *)&components[offset];
-  }
-
-  static inline int getCompOffset(bool is_eid, bool is_stage_or_event, const eastl::vector<CompDesc> &templ_desc, const char *comp_name, int comp_id)
-  {
-    if (is_eid) return -buffer.eid - 1;
-    if (is_stage_or_event) return -buffer.stage - 1;
-    for (const auto &d : templ_desc)
-      if (d.desc->id == comp_id && d.name == comp_name)
-        return d.offset;
-    return -1;
-  }
-
-  template <size_t... I>
-  static inline void execImpl(const eastl::vector<CompDesc> &templ_desc, uint8_t *components, eastl::index_sequence<I...>)
-  {
-    static bool inited = false;
-    static eastl::array<int, ArgsCount> offsets;
-    if (!inited)
-    {
-      offsets = eastl::array<int, ArgsCount>{ {getCompOffset(Argument<I>::isEid, Argument<I>::isStage || Argument<I>::isEvent, templ_desc, componentNames[I], find_comp(componentTypeNames[I])->id)...} };
-    }
-
-    sys(toValue<Args>(components, offsets[I])...);
-  }
-
-  static void execEid(const RawArg &eid, const eastl::vector<CompDesc> &templ_desc, uint8_t *components)
-  {
-    buffer.eid = 0;
-    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
-
-    execImpl(templ_desc, components, Indices{});
-  }
-
-  static void execStage(const RawArg &stage, const RawArg &eid, const eastl::vector<CompDesc> &templ_desc, uint8_t *components)
-  {
-    buffer.eid = 0;
-    buffer.stage = eid.size;
-    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
-    ::memcpy(&buffer.mem[buffer.stage], stage.mem, stage.size);
-
-    execImpl(templ_desc, components, Indices{});
-  }
+  constexpr static StringArray componentTypeNames = createNames(Indices{});
 
   template <typename T, ValueSoAType ValueType>
   struct ValueSoA;
@@ -234,7 +183,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   template <typename T>
   struct ValueSoA<T, ValueSoAType::kComponent>
   {
-    static inline T get(Storage *components, int comp_id, int offset)
+    static inline T get(const Buffer &buf, Storage *components, int comp_id, int offset)
     {
       return *(typename eastl::remove_reference<T>::type *)&components[comp_id][offset];
     }
@@ -243,27 +192,27 @@ struct RegSysSpec<R(Args...)> : RegSys
   template <typename T>
   struct ValueSoA<T, ValueSoAType::kStage>
   {
-    static inline T get(Storage*, int, int)
+    static inline T get(const Buffer &buf, Storage*, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buffer.mem[buffer.stage];
+      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.stage];
     }
   };
 
   template <typename T>
   struct ValueSoA<T, ValueSoAType::kEvent>
   {
-    static inline T get(Storage*, int, int)
+    static inline T get(const Buffer &buf, Storage*, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buffer.mem[buffer.stage];
+      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.stage];
     }
   };
 
   template <typename T>
   struct ValueSoA<T, ValueSoAType::kEid>
   {
-    static inline T get(Storage *, int, int)
+    static inline T get(const Buffer &buf, Storage *, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buffer.mem[buffer.eid];
+      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.eid];
     }
   };
 
@@ -284,34 +233,40 @@ struct RegSysSpec<R(Args...)> : RegSys
 
   constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
 
-  constexpr static int fixArgumentsOffset(int i)
-  {
-    return i < argumentsOffset ? 0 : i - argumentsOffset;
-  }
-
-  static inline int getCompOffsetIndexSoA(const eastl::vector<CompDesc> &templ_desc, const char *comp_name, int comp_id)
-  {
-    for (size_t i = 0; i < templ_desc.size(); ++i)
-      if (templ_desc[i].desc->id == comp_id && templ_desc[i].name == comp_name)
-        return i;
-    return -1;
-  }
-
   static inline int getOffset(int i, const RegSys::Remap &remap, const int *offsets)
   {
     return remap[i] >= 0 ? offsets[remap[i]] : -1;
   }
 
-  template <size_t... I>
-  static inline void execImplSoA(const RegSys::Remap &remap, const int *offsets, Storage *components, eastl::index_sequence<I...>)
+  template <typename T, size_t... I>
+  inline void execImplSoA(const T &_sys, const RegSys::Remap &remap, const int *offsets, Storage *components, eastl::index_sequence<I...>) const
   {
-    sys(ValueSoA<Args, Argument<I>::valueType>::get(
+    _sys(ValueSoA<Args, Argument<I>::valueType>::get(
+      buffer,
       components,
       RegCompSpec<Argument<I>::PureType>::ID,
       getOffset(I, remap, offsets))...);
   }
 
-  static void execStageSoA(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components)
+  inline void operator()(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
+  {
+    buffer.eid = 0;
+    buffer.stage = eid.size;
+    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
+    ::memcpy(&buffer.mem[buffer.stage], stage.mem, stage.size);
+
+    execImplSoA(sysFunc, remap, offsets, components, Indices{});
+  }
+
+  inline void operator()(const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
+  {
+    buffer.eid = 0;
+    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
+
+    execImplSoA(sysFunc, remap, offsets, components, Indices{});
+  }
+
+  void execStageSoA(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
   {
     // Call in loop for eids
     // This must be inlined !!!
@@ -320,18 +275,28 @@ struct RegSysSpec<R(Args...)> : RegSys
     ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
     ::memcpy(&buffer.mem[buffer.stage], stage.mem, stage.size);
 
-    execImplSoA(remap, offsets, components, Indices{});
+    execImplSoA(sys, remap, offsets, components, Indices{});
   }
 
-  RegSysSpec(const char *name, const SysType &_sys) : RegSys(name, reg_sys_count)
+  void execEidSoA(const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
   {
-    execFn = &execEid;
-    stageFn = &execStage;
-    stageFnSoA = &execStageSoA;
+    buffer.eid = 0;
+    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
+
+    execImplSoA(sys, remap, offsets, components, Indices{});
+  }
+
+  RegSysSpec(const char *name, const SysType &_sys, const StringArray &arr) : RegSys(name, reg_sys_count), sys(_sys), componentNames(arr)
+  {
+    stageFnSoA = (StageFuncSoA)&RegSysSpec::execStageSoA;
 
     next = reg_sys_head;
     reg_sys_head = this;
     ++reg_sys_count;
+  }
+
+  RegSysSpec(SysFuncType &&_sys, StringArray &&arr) : RegSys(nullptr, -1), sysFunc(eastl::move(_sys)), componentNames(eastl::move(arr))
+  {
   }
 
   void init() override final

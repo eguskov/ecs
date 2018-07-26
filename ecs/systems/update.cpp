@@ -52,6 +52,40 @@ static inline void update_velocity(
 }
 REG_SYS_1(update_velocity, "pos", "pos_copy", "vel");
 
+static inline void update_collisions(
+  const UpdateStage &stage,
+  const PositionComponent &pos,
+  VelocityComponent &vel,
+  NoHitTimerComponent &no_hit_timer)
+{
+  // FIXME: Low performance
+  return;
+
+  no_hit_timer.time -= stage.dt;
+  if (no_hit_timer.time > 0.f)
+    return;
+
+  const PositionComponent &curPos = pos;
+  VelocityComponent &curVel = vel;
+
+  g_mgr->query<void(const PositionComponent&, VelocityComponent&, NoHitTimerComponent&)>(
+    [&](const PositionComponent &pos, VelocityComponent &vel, NoHitTimerComponent &no_hit_timer)
+  {
+    if (no_hit_timer.time > 0.f)
+      return;
+
+    const float dx = ::fabsf(pos.p.x - curPos.p.x);
+    const float dy = ::fabsf(pos.p.y - curPos.p.y);
+    if (dx < 10 && dy < 10)
+    {
+      //vel.v.x = -vel.v.x;
+      //vel.v.y = -vel.v.y;
+    }
+  },
+  { "pos", "vel", "no_hit_timer" });
+}
+REG_SYS_1(update_collisions, "pos", "vel", "no_hit_timer");
+
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {
   timer.time += stage.dt;

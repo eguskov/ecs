@@ -17,3 +17,16 @@ struct TimerComponent
   }
 };
 REG_COMP(TimerComponent, timer);
+
+struct NoHitTimerComponent
+{
+  float time = 0.f;
+
+  bool set(const JValue &value)
+  {
+    assert(value.HasMember("time"));
+    time = value["time"].GetFloat();
+    return true;
+  }
+};
+REG_COMP(NoHitTimerComponent, no_hit_timer);

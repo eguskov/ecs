@@ -58,6 +58,11 @@ int main()
     }
   }
 
+  g_mgr->query<void(const VelocityComponent&)>([](const VelocityComponent &vel)
+  {
+  },
+  { "vel" });
+
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
   SetTargetFPS(60);

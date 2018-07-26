@@ -214,8 +214,54 @@ struct EntityManager
   // TODO: cache components descs
   // Query createQuery(...)
 
+  template <typename SysT, typename C>
+  void query(const C &callback, std::initializer_list<const char*> comp_names)
+  {
+    static bool inited = false;
+
+    using T = RegSysSpec<SysT>;
+    static T::StringArray names;
+
+    if (!inited)
+      eastl::copy(comp_names.begin(), comp_names.end(), names.begin());
+
+    static T sys(eastl::move(eastl::function<SysT>(callback)), eastl::move(names));
+
+    if (!inited)
+      sys.init();
+
+    inited = true;
+
+    for (auto &e : entitiesSoA)
+    {
+      if (!e.ready)
+        continue;
+
+      const auto &templ = templates[e.templateId];
+
+      bool ok = true;
+      for (const auto &c : sys.components)
+        if (c.desc->id != eidCompId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+        {
+          ok = false;
+          break;
+        }
+
+      if (ok)
+      {
+        RawArgSpec<sizeof(EntityId)> eid;
+        new (eid.mem) EntityId(e.eid);
+
+        RegSys::Remap remap;
+        sys.initRemap(templ.components, remap);
+
+        sys(eid, remap, &e.componentOffsets[0], &storagesSoA[0]);
+      }
+    }
+  }
+
   template <typename C>
-  void query(C& out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
+  void queryEids(C& out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
   {
     for (auto &e : entities)
     {

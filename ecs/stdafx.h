@@ -25,6 +25,7 @@
 #include <EASTL/queue.h>
 #include <EASTL/sort.h>
 #include <EASTL/tuple.h>
+#include <EASTL/functional.h>
 
 #include "raylib.h"
 
