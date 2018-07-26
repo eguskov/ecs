@@ -37,17 +37,20 @@ void update_vels(
 }
 REG_SYS_1(update_vels, "vels");
 
-void update_velocity(
+static inline void update_velocity(
   const UpdateStage &stage,
   const PositionComponent &pos,
+  const PositionComponent &pos_copy,
   VelocityComponent &vel)
 {
-  if (pos.p.x < 0 || pos.p.x > screen_width)
+  const int hw = 10;
+  const int hh = 10;
+  if (pos.p.x < hw || pos.p.x > screen_width - hw)
     vel.v.x = -vel.v.x;
-  if (pos.p.y < 0 || pos.p.y > screen_height)
+  if (pos.p.y < hh || pos.p.y > screen_height - hh)
     vel.v.y = -vel.v.y;
 }
-REG_SYS_1(update_velocity, "pos", "vel");
+REG_SYS_1(update_velocity, "pos", "pos_copy", "vel");
 
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {
@@ -79,16 +82,16 @@ void spawn_handler(
   JDocument doc;
   auto &a = doc.GetAllocator();
 
-  const float sx = (float)GetRandomValue(-30, 30);
-  const float sy = (float)GetRandomValue(-30, 30);
+  const float sx = (float)GetRandomValue(-50, 50);
+  const float sy = (float)GetRandomValue(-50, 50);
 
   JValue posValue(rapidjson::kObjectType);
   posValue.AddMember("x", pos.p.x, a);
   posValue.AddMember("y", pos.p.y, a);
 
   JValue velValue(rapidjson::kObjectType);
-  velValue.AddMember("x", -sx, a);
-  velValue.AddMember("y", -sy, a);
+  velValue.AddMember("x", sx, a);
+  velValue.AddMember("y", sy, a);
 
   JValue colorValue(rapidjson::kObjectType);
   colorValue.AddMember("r", std::rand() % 256, a);
@@ -100,6 +103,6 @@ void spawn_handler(
   value.AddMember("vel", velValue, a);
   value.AddMember("color", colorValue, a);
   
-  g_mgr->createEntity("test", value);
+  g_mgr->createEntity("ball", value);
 }
 REG_SYS_2(spawn_handler, "vel", "pos");

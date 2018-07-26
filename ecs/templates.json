@@ -9,12 +9,17 @@
   ],
   "$templates": [
     {
-      "$name": "test",
+      "$name": "spawner_ball",
       "$components": {
         "pos": {
           "$type": "position",
           "x": 10.0,
           "y": 10.0
+        },
+        "pos_copy": {
+          "$type": "position",
+          "x": 20.0,
+          "y": 20.0
         },
         "vel": {
           "$type": "velocity",
@@ -30,7 +35,7 @@
         "timer": {
           "$type": "timer",
           "time": 0.0,
-          "period": 10.0
+          "period": 0.1
         },
         "vels": {
           "$type": "velocity[2]",
@@ -48,20 +53,28 @@
       }
     },
     {
-      "$name": "test1",
+      "$name": "ball",
       "$components": {
         "pos": {
           "$type": "position",
-          "x": 0.0,
-          "y": 0.0
+          "x": 10.0,
+          "y": 10.0
         },
-        "pos1": {
+        "vel": {
+          "$type": "velocity",
+          "x": 30.0,
+          "y": 30.0
+        },
+        "color": {
+          "$type": "color",
+          "r": 0,
+          "g": 255,
+          "b": 0
+        },
+        "pos_copy": {
           "$type": "position",
-          "x": 0.0,
-          "y": 0.0
-        },
-        "test": {
-          "$type": "test"
+          "x": 20.0,
+          "y": 20.0
         }
       }
     }

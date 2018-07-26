@@ -102,8 +102,12 @@
     <ClCompile Include="components\color.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
+    <ClCompile Include="ecs\memory.cpp">
+      <Filter>ecs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
+    <Natvis Include="..\EASTL\doc\EASTL.natvis" />
   </ItemGroup>
 </Project>

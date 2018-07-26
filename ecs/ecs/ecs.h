@@ -2,15 +2,6 @@
 
 #include "stdafx.h"
 
-#include <stdint.h>
-
-#include <vector>
-#include <array>
-#include <string>
-#include <bitset>
-#include <algorithm>
-#include <iostream>
-#include <queue>
 #include <future>
 
 #include "io/json.h"
@@ -48,9 +39,10 @@ struct Template
   int storageId = -1;
   int docId = -1;
 
-  std::string name;
-  std::bitarray compMask;
-  std::vector<CompDesc> components;
+  eastl::string name;
+  eastl::bitvector<> compMask;
+  eastl::vector<CompDesc> components;
+  eastl::vector<RegSys::Remap> remaps;
 
   bool hasCompontent(int id, const char *name) const;
   int getCompontentOffset(int id, const char *name) const;
@@ -59,22 +51,7 @@ struct Template
 template <typename T>
 struct Cleanup
 {
-  using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
-};
-
-struct Storage
-{
-  int count = 0;
-  int size = 0;
-
-  std::vector<uint8_t> data;
-
-  uint8_t* allocate()
-  {
-    ++count;
-    data.resize(count * size);
-    return &data[(count - 1) * size];
-  }
+  using Type = typename eastl::remove_const<typename eastl::remove_reference<T>::type>::type;
 };
 
 struct Entity
@@ -83,6 +60,17 @@ struct Entity
   EntityId eid;
   int templateId = -1;
   int memId = -1;
+};
+
+struct EntitySoA
+{
+  bool ready = false;
+
+  EntityId eid;
+
+  int templateId = -1;
+
+  eastl::fixed_vector<int, 256, false> componentOffsets;
 };
 
 struct System
@@ -96,15 +84,15 @@ struct EventStream
   int popOffset = 0;
   int pushOffset = 0;
   int count = 0;
-  std::vector<uint8_t> data;
+  eastl::vector<uint8_t> data;
 
   void push(EntityId eid, int event_id, const RawArg &ev);
-  std::tuple<EntityId, int, RawArg> pop();
+  eastl::tuple<EntityId, int, RawArg> pop();
 };
 
 struct CreateQueueData
 {
-  std::string templanemName;
+  eastl::string templanemName;
   JDocument components;
 };
 
@@ -113,7 +101,7 @@ struct AsyncValue
   EntityId eid;
   std::future<bool> value;
 
-  AsyncValue(EntityId _eid, std::future<bool> &&_value) : eid(_eid), value(std::move(_value)) {}
+  AsyncValue(EntityId _eid, std::future<bool> &&_value) : eid(_eid), value(eastl::move(_value)) {}
 
   bool isReady() const
   {
@@ -127,13 +115,16 @@ struct EntityManager
 
   JDocument templatesDoc;
 
-  std::vector<std::string> order;
-  std::vector<Template> templates;
-  std::vector<Storage> storages;
-  std::vector<Entity> entities;
-  std::vector<System> systems;
-  std::vector<AsyncValue> asyncValues;
-  std::queue<CreateQueueData> createQueue;
+  eastl::vector<eastl::string> order;
+  eastl::vector<Template> templates;
+  eastl::vector<Storage> storages;
+  eastl::vector<Storage> storagesSoA;
+  eastl::vector<Entity> entities;
+  eastl::vector<EntitySoA> entitiesSoA;
+  eastl::vector<eastl::string> componentNames;
+  eastl::vector<System> systems;
+  eastl::vector<AsyncValue> asyncValues;
+  eastl::queue<CreateQueueData> createQueue;
 
   EventStream events;
 
@@ -145,10 +136,11 @@ struct EntityManager
 
   int getSystemId(const char *name);
 
-  void addTemplate(int doc_id, const char *templ_name, const std::vector<std::pair<const char*, const char*>> &comp_names);
+  void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names);
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntitySync(const char *templ_name, const JValue &comps);
+  void createEntitySyncSoA(const char *templ_name, const JValue &comps);
 
   void waitFor(EntityId eid, std::future<bool> && value);
 
@@ -169,8 +161,10 @@ struct EntityManager
 
   void tick();
   void tickStage(int stage_id, const RawArg &stage);
+  void tickStageSoA(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
   void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
+  void sendEventSyncSoA(EntityId eid, int event_id, const RawArg &ev);
 
   template <typename S>
   void tick(const S &stage)
@@ -179,6 +173,15 @@ struct EntityManager
     new (arg0.mem) S(stage);
 
     tickStage(RegCompSpec<S>::ID, arg0);
+  }
+
+  template <typename S>
+  void tickSoA(const S &stage)
+  {
+    RawArgSpec<sizeof(S)> arg0;
+    new (arg0.mem) S(stage);
+
+    tickStageSoA(RegCompSpec<S>::ID, arg0);
   }
 
   template <typename E>
@@ -199,11 +202,20 @@ struct EntityManager
     sendEventSync(eid, RegCompSpec<E>::ID, arg0);
   }
 
+  template <typename E>
+  void sendEventSyncSoA(EntityId eid, const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    sendEventSyncSoA(eid, RegCompSpec<E>::ID, arg0);
+  }
+
   // TODO: cache components descs
   // Query createQuery(...)
 
   template <typename C>
-  void query(C& out_eids, std::initializer_list<std::pair<const char*, const char*>> comps)
+  void query(C& out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
   {
     for (auto &e : entities)
     {

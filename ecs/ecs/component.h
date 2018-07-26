@@ -54,7 +54,7 @@ struct ArrayComp
 	using ItemType = T;
   using ItemDesc = Desc<T>;
 
-  std::array<ItemType, Size> items;
+  eastl::array<ItemType, Size> items;
 
   ArrayComp()
   {

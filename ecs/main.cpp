@@ -1,13 +1,5 @@
 #include "stdafx.h"
 
-#include <stdint.h>
-
-#include <vector>
-#include <array>
-#include <string>
-#include <bitset>
-#include <algorithm>
-#include <iostream>
 #include <random>
 #include <ctime>
 
@@ -19,6 +11,16 @@
 #include "components/velocity.component.h"
 
 #include "systems/update.h"
+
+template <size_t N>
+void call(const eastl::array<int, N> &offets, uint8_t** compontes)
+{
+  for (int i = 0; i < N; ++i)
+  {
+    int offset = offsets[i];
+    void *mem = compontes[i][offset];
+  }
+}
 
 int screen_width = 800;
 int screen_height = 450;
@@ -52,7 +54,7 @@ int main()
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JValue &ent = doc["$entities"][i];
-      g_mgr->createEntitySync(ent["$template"].GetString(), ent["$components"]);
+      g_mgr->createEntitySyncSoA(ent["$template"].GetString(), ent["$components"]);
     }
   }
 
@@ -64,16 +66,17 @@ int main()
   {
     double t = GetTime();
     g_mgr->tick();
-    g_mgr->tick(UpdateStage{ GetFrameTime() });
+    g_mgr->tickSoA(UpdateStage{ GetFrameTime() });
+    float delta = (float)((GetTime() - t) * 1e3);
 
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
 
-    g_mgr->tick(RenderStage{});
+    g_mgr->tickSoA(RenderStage{});
 
-    DrawText(FormatText("ECS time: %f ms", (GetTime() - t) * 1e3), 10, 30, 20, LIME);
-    DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
+    DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
+    DrawText(FormatText("ECS count: %d", g_mgr->entitiesSoA.size()), 10, 50, 20, LIME);
     DrawFPS(10, 10);
 
     EndDrawing();

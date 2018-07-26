@@ -13,8 +13,18 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#include <stdint.h>
 
-#include <vector>
+#include <EASTL/vector.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/bitset.h>
+#include <EASTL/bitvector.h>
+#include <EASTL/algorithm.h>
+#include <EASTL/queue.h>
+#include <EASTL/sort.h>
+#include <EASTL/tuple.h>
 
 #include "raylib.h"
 
@@ -23,11 +33,6 @@
 
 #include "raymath.h"
 
-#pragma warning(pop) 
-
-namespace std
-{
-  using bitarray = vector<bool>;
-}
+#pragma warning(pop)
 
 // TODO: reference additional headers your program requires here
