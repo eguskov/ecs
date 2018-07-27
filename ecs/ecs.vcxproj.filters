@@ -39,13 +39,7 @@
     <ClInclude Include="components\eid.component.h">
       <Filter>components</Filter>
     </ClInclude>
-    <ClInclude Include="components\position.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
     <ClInclude Include="components\test.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
-    <ClInclude Include="components\velocity.component.h">
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="targetver.h" />
@@ -68,6 +62,9 @@
     <ClInclude Include="components\color.component.h">
       <Filter>components</Filter>
     </ClInclude>
+    <ClInclude Include="components\default.component.h">
+      <Filter>components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stages\update.stage.cpp">
@@ -79,13 +76,7 @@
     <ClCompile Include="components\eid.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="components\position.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
     <ClCompile Include="components\test.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
-    <ClCompile Include="components\velocity.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="systems\update.cpp">
@@ -104,6 +95,9 @@
     </ClCompile>
     <ClCompile Include="ecs\memory.cpp">
       <Filter>ecs</Filter>
+    </ClCompile>
+    <ClCompile Include="components\default.component.cpp">
+      <Filter>components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

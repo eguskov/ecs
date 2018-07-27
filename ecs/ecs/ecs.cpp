@@ -381,7 +381,7 @@ void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &co
 
   if (!comps.IsNull())
     for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-      tmpValue[compIter->name.GetString()].CopyFrom(compIter->value, tmpDoc.GetAllocator());
+      tmpValue[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, tmpDoc.GetAllocator());
 
   auto &e = entitiesSoA.emplace_back();
   e.eid = make_eid(1, (uint16_t)entitiesSoA.size() - 1);

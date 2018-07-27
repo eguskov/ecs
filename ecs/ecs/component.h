@@ -2,8 +2,6 @@
 
 #include "stdafx.h"
 
-#include <array>
-
 #include "io/json.h"
 
 #define __S(a) #a
@@ -47,11 +45,45 @@ struct RegComp
   virtual bool init(uint8_t *mem, const JValue &value) const = 0;
 };
 
+template <typename T>
+struct HasSetMethod
+{
+  struct has { char d[1]; };
+  struct notHas { char d[2]; };
+  template <typename C> static has test(decltype(&C::set));
+  template <typename C> static notHas test(...);
+  static constexpr bool value = sizeof(test<T>(0)) == sizeof(has);
+};
+
+template <typename T, bool HasSet = HasSetMethod<T>::value>
+struct CompSetter;
+
+template <typename T>
+struct CompSetter<T, true>
+{
+  static inline bool set(T *comp, const JValue &value)
+  {
+    return comp->set(value);
+  }
+};
+
+template <typename T>
+struct Setter;
+
+template <typename T>
+struct CompSetter<T, false>
+{
+  static inline bool set(T *comp, const JValue &value)
+  {
+    return Setter<T>::set(*comp, value);
+  }
+};
+
 template <typename T, size_t Size>
 struct ArrayComp
 {
   using ArrayDesc = Desc<ArrayComp<T, Size>>;
-	using ItemType = T;
+  using ItemType = T;
   using ItemDesc = Desc<T>;
 
   eastl::array<ItemType, Size> items;
@@ -62,9 +94,10 @@ struct ArrayComp
 
   bool set(const JValue &value)
   {
-    const JValue &arr = value["$array"];
+    assert(value.IsArray());
     for (int i = 0; i < Size; ++i)
-      items[i].set(arr[i]);
+      if (!CompSetter<ItemType>::set(&items[i], value[i]))
+        return false;
     return true;
   }
 
@@ -90,7 +123,7 @@ struct RegCompSpec : RegComp
   bool init(uint8_t *mem, const JValue &value) const override final
   {
     CompType *comp = new (mem) CompType;
-    return comp->set(value);
+    return CompSetter<CompType>::set(comp, value["$value"]);
   }
 
   RegCompSpec(const char *name) : RegComp(name, CompDesc::Size)

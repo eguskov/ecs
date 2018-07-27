@@ -42,8 +42,8 @@ struct RawArg
 template <int Size>
 struct RawArgSpec : RawArg
 {
-  uint8_t buffer[Size];
-  RawArgSpec() : RawArg(Size, buffer) {}
+  eastl::array<uint8_t, Size> buffer;
+  RawArgSpec() : RawArg(Size, &buffer[0]) {}
 };
 
 struct CompDesc
@@ -106,6 +106,16 @@ struct RegSys
   bool hasCompontent(int id, const char *name) const;
 };
 
+struct CompArrayDesc
+{
+  const RegSys::Remap &remap;
+  const int *offsets;
+  int count;
+  int remapOffset;
+
+  inline int offset(int comp_idx) const { offsets[remap[remapOffset + comp_idx]]; };
+};
+
 enum class ValueSoAType
 {
   kEid,
@@ -166,7 +176,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   {
     int eid = -1;
     int stage = -1;
-    uint8_t mem[256];
+    eastl::array<uint8_t, 256> mem;
   } buffer;
 
   template <std::size_t... I>
@@ -233,19 +243,16 @@ struct RegSysSpec<R(Args...)> : RegSys
 
   constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
 
-  static inline int getOffset(int i, const RegSys::Remap &remap, const int *offsets)
-  {
-    return remap[i] >= 0 ? offsets[remap[i]] : -1;
-  }
-
   template <typename T, size_t... I>
   inline void execImplSoA(const T &_sys, const RegSys::Remap &remap, const int *offsets, Storage *components, eastl::index_sequence<I...>) const
   {
+    //CompArrayDesc d{ remap, offsets, 10 /* Entities count */, argumentsOffset };
+
     _sys(ValueSoA<Args, Argument<I>::valueType>::get(
       buffer,
       components,
       RegCompSpec<Argument<I>::PureType>::ID,
-      getOffset(I, remap, offsets))...);
+      remap[I] >= 0 ? offsets[remap[I]] : -1)...);
   }
 
   inline void operator()(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const

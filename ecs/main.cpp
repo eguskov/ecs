@@ -8,7 +8,7 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
-#include "components/velocity.component.h"
+#include "components/default.component.h"
 
 #include "systems/update.h"
 
@@ -57,11 +57,6 @@ int main()
       g_mgr->createEntitySyncSoA(ent["$template"].GetString(), ent["$components"]);
     }
   }
-
-  g_mgr->query<void(const VelocityComponent&)>([](const VelocityComponent &vel)
-  {
-  },
-  { "vel" });
 
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 

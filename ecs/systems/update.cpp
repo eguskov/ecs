@@ -9,8 +9,7 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
-#include "components/position.component.h"
-#include "components/velocity.component.h"
+#include "components/default.component.h"
 #include "components/timer.component.h"
 #include "components/color.component.h"
 
@@ -22,69 +21,78 @@ REG_EVENT_INIT(EventOnAnotherTest);
 
 void update_position(
   const UpdateStage &stage,
-  const VelocityComponent &vel,
-  PositionComponent &pos)
+  const glm::vec2 &vel,
+  glm::vec2 &pos)
 {
-  pos.p = Vector2Add(pos.p, Vector2Scale(vel.v, stage.dt));
+  pos += vel * stage.dt;
 }
 REG_SYS_1(update_position, "vel", "pos");
 
 void update_vels(
   const UpdateStage &stage,
-  const ArrayComp<VelocityComponent, 2> &vels)
+  const ArrayComp<glm::vec2, 2> &vels)
 {
-  vels[0].v;
+  vels[0];
 }
 REG_SYS_1(update_vels, "vels");
 
 static inline void update_velocity(
   const UpdateStage &stage,
-  const PositionComponent &pos,
-  const PositionComponent &pos_copy,
-  VelocityComponent &vel)
+  const glm::vec2 &pos,
+  const glm::vec2 &pos_copy,
+  glm::vec2 &vel)
 {
   const int hw = 10;
   const int hh = 10;
-  if (pos.p.x < hw || pos.p.x > screen_width - hw)
-    vel.v.x = -vel.v.x;
-  if (pos.p.y < hh || pos.p.y > screen_height - hh)
-    vel.v.y = -vel.v.y;
+  if (pos.x < hw || pos.x > screen_width - hw)
+    vel.x = -vel.x;
+  if (pos.y < hh || pos.y > screen_height - hh)
+    vel.y = -vel.y;
 }
 REG_SYS_1(update_velocity, "pos", "pos_copy", "vel");
 
+//void update_collisions(
+//  const UpdateStage &stage,
+//  const CompArrayDesc &desc,
+//  const PositionComponent *pos,
+//  VelocityComponent *vel)
+//{
+//  for (int i = 0; i < desc.count; ++i)
+//  {
+//    auto &posi = pos[desc.offset(0)];
+//  }
+//}
+
 static inline void update_collisions(
   const UpdateStage &stage,
-  const PositionComponent &pos,
-  VelocityComponent &vel,
-  NoHitTimerComponent &no_hit_timer)
+  EntityId eid,
+  const glm::vec2 &pos,
+  glm::vec2 &vel)
 {
-  // FIXME: Low performance
   return;
 
-  no_hit_timer.time -= stage.dt;
-  if (no_hit_timer.time > 0.f)
-    return;
+  EntityId curEid = eid;
+  glm::vec2 curPos = pos;
+  glm::vec2 curVel = vel;
 
-  const PositionComponent &curPos = pos;
-  VelocityComponent &curVel = vel;
-
-  g_mgr->query<void(const PositionComponent&, VelocityComponent&, NoHitTimerComponent&)>(
-    [&](const PositionComponent &pos, VelocityComponent &vel, NoHitTimerComponent &no_hit_timer)
+  g_mgr->query<void(EntityId, const glm::vec2&, const glm::vec2&)>(
+    [curEid, &curPos, &curVel, &stage](EntityId eid, const glm::vec2 &pos, const glm::vec2 &vel)
   {
-    if (no_hit_timer.time > 0.f)
+    if (eid == curEid)
       return;
-
-    const float dx = ::fabsf(pos.p.x - curPos.p.x);
-    const float dy = ::fabsf(pos.p.y - curPos.p.y);
-    if (dx < 10 && dy < 10)
-    {
-      //vel.v.x = -vel.v.x;
-      //vel.v.y = -vel.v.y;
-    }
+    const float r = glm::length(curPos - pos);
+    if (r <= 1.e-5f)
+      return;
+    const float m1 = 10.f;
+    const float m2 = 10.f;
+    const glm::vec2 f = glm::normalize(pos - curPos) * ((m1 * m2) / (r * r));
+    curVel += f * stage.dt;
   },
-  { "pos", "vel", "no_hit_timer" });
+  { "", "pos", "vel" });
+
+  vel = curVel;
 }
-REG_SYS_1(update_collisions, "pos", "vel", "no_hit_timer");
+REG_SYS_2(update_collisions, "pos", "vel");
 
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {
@@ -101,17 +109,17 @@ void render(
   const RenderStage &stage,
   EntityId eid,
   const ColorComponent &color,
-  const PositionComponent &pos)
+  const glm::vec2 &pos)
 {
-  DrawCircleV(pos.p, 10, CLITERAL{ color.r, color.g, color.b, 255 });
+  DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
 }
 REG_SYS_2(render, "color", "pos");
 
 void spawn_handler(
   const EventOnSpawn &ev,
   EntityId eid,
-  const VelocityComponent &vel,
-  const PositionComponent &pos)
+  const glm::vec2 &vel,
+  const glm::vec2 &pos)
 {
   JDocument doc;
   auto &a = doc.GetAllocator();
@@ -120,8 +128,8 @@ void spawn_handler(
   const float sy = (float)GetRandomValue(-50, 50);
 
   JValue posValue(rapidjson::kObjectType);
-  posValue.AddMember("x", pos.p.x, a);
-  posValue.AddMember("y", pos.p.y, a);
+  posValue.AddMember("x", pos.x, a);
+  posValue.AddMember("y", pos.y, a);
 
   JValue velValue(rapidjson::kObjectType);
   velValue.AddMember("x", sx, a);

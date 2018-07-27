@@ -27,13 +27,10 @@
 #include <EASTL/tuple.h>
 #include <EASTL/functional.h>
 
+#include <glm/common.hpp>
+#include <glm/geometric.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+
 #include "raylib.h"
-
-#pragma warning(push)
-#pragma warning(disable: 4244)
-
-#include "raymath.h"
-
-#pragma warning(pop)
-
-// TODO: reference additional headers your program requires here

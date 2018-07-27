@@ -88,7 +88,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -122,7 +122,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,7 +158,7 @@
     <ClInclude Include="ecs\ecs.h" />
     <ClInclude Include="components\eid.component.h" />
     <ClInclude Include="ecs\entity.h" />
-    <ClInclude Include="components\position.component.h" />
+    <ClInclude Include="components\default.component.h" />
     <ClInclude Include="ecs\event.h" />
     <ClInclude Include="ecs\stage.h" />
     <ClInclude Include="io\json.h" />
@@ -169,7 +169,6 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="components\test.component.h" />
     <ClInclude Include="stages\update.stage.h" />
-    <ClInclude Include="components\velocity.component.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="components\color.component.cpp" />
@@ -178,13 +177,12 @@
     <ClCompile Include="components\eid.component.cpp" />
     <ClCompile Include="ecs\memory.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="components\position.component.cpp" />
+    <ClCompile Include="components\default.component.cpp" />
     <ClCompile Include="stages\render.stage.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="components\test.component.cpp" />
     <ClCompile Include="systems\update.cpp" />
     <ClCompile Include="stages\update.stage.cpp" />
-    <ClCompile Include="components\velocity.component.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />
