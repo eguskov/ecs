@@ -237,6 +237,14 @@ EntityManager::EntityManager()
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
 
+  queries.resize(reg_sys_count);
+  for (const auto &sys : systems)
+  {
+    auto &q = queries[sys.desc->id];
+    q.stageId = sys.desc->stageId;
+    q.sys = sys.desc;
+  }
+
   eidCompId = find_comp("eid")->id;
 }
 
@@ -398,6 +406,9 @@ void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &co
   }
 
   sendEventSyncSoA(e.eid, EventOnEntityCreate{});
+
+  for (auto &q : queries)
+    invalidateQuery(q);
 }
 
 void EntityManager::tick()
@@ -466,12 +477,50 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
   }
 }
 
+void EntityManager::invalidateQuery(Query &query)
+{
+  query.eids.clear();
+
+  for (auto &e : entitiesSoA)
+  {
+    if (!e.ready)
+      continue;
+
+    const auto &templ = templates[e.templateId];
+
+    bool ok = true;
+    for (const auto &c : query.sys->components)
+      if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.sys->stageId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+      {
+        ok = false;
+        break;
+      }
+
+    if (ok)
+      query.eids.push_back(e.eid);
+  }
+}
+
 void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
 {
   for (const auto &sys : systems)
   {
     if (sys.desc->stageId != stage_id)
       continue;
+
+    auto &query = queries[sys.desc->id];
+    for (auto &eid : query.eids)
+    {
+      const auto &entity = entitiesSoA[eid2idx(eid)];
+      const auto &templ = templates[entity.templateId];
+
+      RawArgSpec<sizeof(EntityId)> eidRaw;
+      new (eidRaw.mem) EntityId(eid);
+
+      (sys.desc->*sys.desc->stageFnSoA)(stage, eidRaw, templ.remaps[sys.desc->id], &entity.componentOffsets[0], &storagesSoA[0]);
+    }
+
+    continue;
 
     for (auto &e : entitiesSoA)
     {

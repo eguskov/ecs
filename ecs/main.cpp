@@ -64,6 +64,13 @@ int main()
 
   while (!WindowShouldClose())
   {
+    if (IsKeyReleased(KEY_SPACE))
+    {
+      eastl::vector<EntityId> eids;
+      g_mgr->queryEids(eids, { { "timer", "timer" } });
+      for (int i = 0; i < 100; ++i)
+        g_mgr->sendEvent(eids[0], EventOnSpawn{});
+    }
     double t = GetTime();
     g_mgr->tick();
     g_mgr->tickSoA(UpdateStage{ GetFrameTime() });

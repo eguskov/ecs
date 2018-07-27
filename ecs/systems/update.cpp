@@ -100,7 +100,7 @@ void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
   if (timer.time >= timer.period)
   {
     timer.time = 0.f;
-    g_mgr->sendEvent(eid, EventOnSpawn{});
+    // g_mgr->sendEvent(eid, EventOnSpawn{});
   }
 }
 REG_SYS_2(spawner, "timer");

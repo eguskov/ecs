@@ -109,6 +109,13 @@ struct AsyncValue
   }
 };
 
+struct Query
+{
+  int stageId = -1;
+  const RegSys *sys = nullptr;
+  eastl::vector<EntityId> eids;
+};
+
 struct EntityManager
 {
   int eidCompId = -1;
@@ -124,6 +131,7 @@ struct EntityManager
   eastl::vector<eastl::string> componentNames;
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
+  eastl::vector<Query> queries;
   eastl::queue<CreateQueueData> createQueue;
 
   EventStream events;
@@ -143,6 +151,8 @@ struct EntityManager
   void createEntitySyncSoA(const char *templ_name, const JValue &comps);
 
   void waitFor(EntityId eid, std::future<bool> && value);
+
+  void invalidateQuery(Query &query);
 
   template <typename T>
   const T& getComponent(EntityId eid, const char *name)
@@ -260,10 +270,9 @@ struct EntityManager
     }
   }
 
-  template <typename C>
-  void queryEids(C& out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
+  void queryEids(eastl::vector<EntityId> &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
   {
-    for (auto &e : entities)
+    for (auto &e : entitiesSoA)
     {
       const auto &templ = templates[e.templateId];
       auto &storage = storages[templ.storageId];
