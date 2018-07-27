@@ -187,6 +187,7 @@
     <ClCompile Include="components\velocity.component.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Natvis Include="..\EASTL\doc\EASTL.natvis" />
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
