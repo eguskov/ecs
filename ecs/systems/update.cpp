@@ -25,6 +25,7 @@ struct Gravity
 };
 REG_COMP_AND_INIT(Gravity, gravity);
 
+//! @system
 void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
@@ -32,16 +33,18 @@ void update_position(
 {
   pos += vel * stage.dt;
 }
-REG_SYS_1(update_position, "vel", "pos");
+//REG_SYS_1(update_position, "vel", "pos");
 
+//! @system
 void update_vels(
   const UpdateStage &stage,
   const ArrayComp<glm::vec2, 2> &vels)
 {
   vels[0];
 }
-REG_SYS_1(update_vels, "vels");
+//REG_SYS_1(update_vels, "vels");
 
+//! @system
 static inline void update_velocity(
   const UpdateStage &stage,
   float damping,
@@ -58,8 +61,10 @@ static inline void update_velocity(
 
   vel *= 1.0 - damping;
 }
-REG_SYS_1(update_velocity, "damping", "pos", "pos_copy", "vel");
+//REG_SYS_1(update_velocity, "damping", "pos", "pos_copy", "vel");
 
+//! @system
+//! @require(Gravity gravity)
 static inline void update_collisions(
   const UpdateStage &stage,
   EntityId eid,
@@ -68,6 +73,7 @@ static inline void update_collisions(
   const glm::vec2 &pos,
   glm::vec2 &vel)
 {
+  return;
   EntityId curEid = eid;
   glm::vec2 curPos = pos;
   glm::vec2 curVel = vel;
@@ -89,8 +95,9 @@ static inline void update_collisions(
 
   vel = curVel;
 }
-REG_SYS_2(update_collisions, "mass", "gravity", "pos", "vel");
+//REG_SYS_2(update_collisions, "mass", "gravity", "pos", "vel");
 
+//! @system
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {
   timer.time += stage.dt;
@@ -100,8 +107,9 @@ void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
     // g_mgr->sendEvent(eid, EventOnSpawn{});
   }
 }
-REG_SYS_2(spawner, "timer");
+//REG_SYS_2(spawner, "timer");
 
+//! @system
 void render(
   const RenderStage &stage,
   EntityId eid,
@@ -110,8 +118,9 @@ void render(
 {
   DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
 }
-REG_SYS_2(render, "color", "pos");
+//REG_SYS_2(render, "color", "pos");
 
+//! @system
 void spawn_handler(
   const EventOnSpawn &ev,
   EntityId eid,
@@ -144,4 +153,4 @@ void spawn_handler(
   
   g_mgr->createEntity("ball", value);
 }
-REG_SYS_2(spawn_handler, "vel", "pos");
+//REG_SYS_2(spawn_handler, "vel", "pos");

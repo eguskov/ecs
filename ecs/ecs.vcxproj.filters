@@ -99,6 +99,9 @@
     <ClCompile Include="components\default.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
+    <ClCompile Include="systems\update.gen.cpp">
+      <Filter>systems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
