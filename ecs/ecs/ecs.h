@@ -230,18 +230,20 @@ struct EntityManager
     static bool inited = false;
 
     using T = RegSysSpec<SysT>;
-    static T::StringArray names;
+    T::StringArray names;
 
-    if (!inited)
+   // if (!inited)
       eastl::copy(comp_names.begin(), comp_names.end(), names.begin());
 
-    static T sys(eastl::move(eastl::function<SysT>(callback)), eastl::move(names));
+    T sys(eastl::move(eastl::function<SysT>(callback)), eastl::move(names));
 
-    if (!inited)
+    // if (!inited)
       sys.init();
 
     inited = true;
 
+    int prevTemplateId = -1;
+    RegSys::Remap remap;
     for (auto &e : entitiesSoA)
     {
       if (!e.ready)
@@ -259,13 +261,12 @@ struct EntityManager
 
       if (ok)
       {
-        RawArgSpec<sizeof(EntityId)> eid;
-        new (eid.mem) EntityId(e.eid);
+        if (e.templateId != prevTemplateId)
+          sys.initRemap(templ.components, remap);
 
-        RegSys::Remap remap;
-        sys.initRemap(templ.components, remap);
+        prevTemplateId = e.templateId;
 
-        sys(eid, remap, &e.componentOffsets[0], &storagesSoA[0]);
+        sys(e.eid, remap, &e.componentOffsets[0], &storagesSoA[0]);
       }
     }
   }

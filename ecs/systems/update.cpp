@@ -19,6 +19,12 @@ extern int screen_height;
 REG_EVENT_INIT(EventOnSpawn);
 REG_EVENT_INIT(EventOnAnotherTest);
 
+struct Gravity
+{
+  bool set(const JValue&) { return true; };
+};
+REG_COMP_AND_INIT(Gravity, gravity);
+
 void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
@@ -38,6 +44,7 @@ REG_SYS_1(update_vels, "vels");
 
 static inline void update_velocity(
   const UpdateStage &stage,
+  float damping,
   const glm::vec2 &pos,
   const glm::vec2 &pos_copy,
   glm::vec2 &vel)
@@ -48,51 +55,41 @@ static inline void update_velocity(
     vel.x = -vel.x;
   if (pos.y < hh || pos.y > screen_height - hh)
     vel.y = -vel.y;
-}
-REG_SYS_1(update_velocity, "pos", "pos_copy", "vel");
 
-//void update_collisions(
-//  const UpdateStage &stage,
-//  const CompArrayDesc &desc,
-//  const PositionComponent *pos,
-//  VelocityComponent *vel)
-//{
-//  for (int i = 0; i < desc.count; ++i)
-//  {
-//    auto &posi = pos[desc.offset(0)];
-//  }
-//}
+  vel *= 1.0 - damping;
+}
+REG_SYS_1(update_velocity, "damping", "pos", "pos_copy", "vel");
 
 static inline void update_collisions(
   const UpdateStage &stage,
   EntityId eid,
+  float mass,
+  const Gravity &gravity,
   const glm::vec2 &pos,
   glm::vec2 &vel)
 {
-  return;
-
   EntityId curEid = eid;
   glm::vec2 curPos = pos;
   glm::vec2 curVel = vel;
+  float curMass = mass;
 
-  g_mgr->query<void(EntityId, const glm::vec2&, const glm::vec2&)>(
-    [curEid, &curPos, &curVel, &stage](EntityId eid, const glm::vec2 &pos, const glm::vec2 &vel)
+  g_mgr->query<void(EntityId, float, const glm::vec2&, glm::vec2&)>(
+    [curEid, curPos, curMass, &stage](EntityId eid, float mass, const glm::vec2 &pos, glm::vec2 &v)
   {
     if (eid == curEid)
       return;
-    const float r = glm::length(curPos - pos);
-    if (r <= 1.e-5f)
+    static const float pix2m = 0.265f * 1e-3f;
+    const float r = glm::length(curPos - pos) * pix2m;
+    if (r <= 0.01f)
       return;
-    const float m1 = 10.f;
-    const float m2 = 10.f;
-    const glm::vec2 f = glm::normalize(pos - curPos) * ((m1 * m2) / (r * r));
-    curVel += f * stage.dt;
+    const glm::vec2 f = glm::normalize(curPos - pos) * ((mass * curMass) / (r * r));
+    v += f * stage.dt;
   },
-  { "", "pos", "vel" });
+  { "", "mass", "pos", "vel" });
 
   vel = curVel;
 }
-REG_SYS_2(update_collisions, "pos", "vel");
+REG_SYS_2(update_collisions, "mass", "gravity", "pos", "vel");
 
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {

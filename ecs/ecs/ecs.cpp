@@ -443,40 +443,6 @@ void EntityManager::tick()
   }
 }
 
-void EntityManager::tickStage(int stage_id, const RawArg &stage)
-{
-  for (const auto &sys : systems)
-  {
-    if (sys.desc->stageId != stage_id)
-      continue;
-
-    for (auto &e : entities)
-    {
-      if (!e.ready)
-        continue;
-
-      const auto &templ = templates[e.templateId];
-      auto &storage = storages[templ.storageId];
-
-      bool ok = true;
-      for (const auto &c : sys.desc->components)
-        if (c.desc->id != eidCompId && c.desc->id != stage_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
-        {
-          ok = false;
-          break;
-        }
-
-      if (ok)
-      {
-        RawArgSpec<sizeof(EntityId)> eid;
-        new (eid.mem) EntityId(e.eid);
-
-        sys.desc->stageFn(stage, eid, templ.components, &storage.data[storage.size * e.memId]);
-      }
-    }
-  }
-}
-
 void EntityManager::invalidateQuery(Query &query)
 {
   query.eids.clear();
@@ -509,41 +475,14 @@ void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
       continue;
 
     auto &query = queries[sys.desc->id];
+
     for (auto &eid : query.eids)
     {
       const auto &entity = entitiesSoA[eid2idx(eid)];
       const auto &templ = templates[entity.templateId];
+      const auto &remap = templ.remaps[sys.desc->id];
 
-      RawArgSpec<sizeof(EntityId)> eidRaw;
-      new (eidRaw.mem) EntityId(eid);
-
-      (sys.desc->*sys.desc->stageFnSoA)(stage, eidRaw, templ.remaps[sys.desc->id], &entity.componentOffsets[0], &storagesSoA[0]);
-    }
-
-    continue;
-
-    for (auto &e : entitiesSoA)
-    {
-      if (!e.ready)
-        continue;
-
-      const auto &templ = templates[e.templateId];
-
-      bool ok = true;
-      for (const auto &c : sys.desc->components)
-        if (c.desc->id != eidCompId && c.desc->id != stage_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
-        {
-          ok = false;
-          break;
-        }
-
-      if (ok)
-      {
-        RawArgSpec<sizeof(EntityId)> eid;
-        new (eid.mem) EntityId(e.eid);
-
-        (sys.desc->*sys.desc->stageFnSoA)(stage, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
-      }
+      (sys.desc->*sys.desc->stageFnSoA)(stage, eid, remap, &entity.componentOffsets[0], &storagesSoA[0]);
     }
   }
 }
@@ -551,34 +490,6 @@ void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
   events.push(eid, event_id, ev);
-}
-
-void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
-{
-  auto &e = entities[eid2idx(eid)];
-
-  const auto &templ = templates[e.templateId];
-  auto &storage = storages[templ.storageId];
-
-  for (const auto &sys : systems)
-    if (sys.desc->eventId == event_id)
-    {
-      bool ok = true;
-      for (const auto &c : sys.desc->components)
-        if (c.desc->id != eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
-        {
-          ok = false;
-          break;
-        }
-
-      if (ok)
-      {
-        RawArgSpec<sizeof(EntityId)> eid;
-        new (eid.mem) EntityId(e.eid);
-
-        sys.desc->stageFn(ev, eid, templ.components, &storage.data[storage.size * e.memId]);
-      }
-    }
 }
 
 void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &ev)
@@ -599,12 +510,7 @@ void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &e
         }
 
       if (ok)
-      {
-        RawArgSpec<sizeof(EntityId)> eid;
-        new (eid.mem) EntityId(e.eid);
-
-        (sys.desc->*sys.desc->stageFnSoA)(ev, eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
-      }
+        (sys.desc->*sys.desc->stageFnSoA)(ev, e.eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
     }
 }
 

@@ -12,6 +12,14 @@
     {
       "$name": "spawner_ball",
       "$components": {
+        "damping": {
+          "$type": "float",
+          "$value": 0.0
+        },
+        "mass": {
+          "$type": "float",
+          "$value": 5.0
+        },
         "pos": {
           "$type": "vec2",
           "$value": {
@@ -48,11 +56,9 @@
             "period": 0.1
           }
         },
-        "no_hit_timer": {
-          "$type": "no_hit_timer",
-          "$value": {
-            "time": 2.0
-          }
+        "gravity": {
+          "$type": "gravity",
+          "$value": {}
         },
         "vels": {
           "$type": "vec2[2]",
@@ -72,6 +78,14 @@
     {
       "$name": "ball",
       "$components": {
+        "damping": {
+          "$type": "float",
+          "$value": 0.02
+        },
+        "mass": {
+          "$type": "float",
+          "$value": 1.0
+        },
         "pos": {
           "$type": "vec2",
           "$value": {

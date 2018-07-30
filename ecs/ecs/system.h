@@ -78,10 +78,7 @@ DEF_HAS_METHOD(require);
 struct RegSys
 {
   using Remap = eastl::fixed_vector<int, 32>;
-
-  using ExecFunc = void(*)(const RawArg &, const eastl::vector<CompDesc> &, uint8_t *);
-  using StageFunc = void(*)(const RawArg &, const RawArg &, const eastl::vector<CompDesc> &, uint8_t *);
-  using StageFuncSoA = void(RegSys::*)(const RawArg &, const RawArg &, const RegSys::Remap &, const int *, Storage *) const;
+  using StageFuncSoA = void(RegSys::*)(const RawArg &, const EntityId &, const RegSys::Remap &, const int *, Storage *) const;
 
   char *name = nullptr;
 
@@ -90,8 +87,7 @@ struct RegSys
   int eventId = -1;
 
   const RegSys *next = nullptr;
-  ExecFunc execFn = nullptr;
-  StageFunc stageFn = nullptr;
+
   StageFuncSoA stageFnSoA = nullptr;
 
   eastl::bitvector<> compMask;
@@ -104,16 +100,6 @@ struct RegSys
   virtual void initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const = 0;
 
   bool hasCompontent(int id, const char *name) const;
-};
-
-struct CompArrayDesc
-{
-  const RegSys::Remap &remap;
-  const int *offsets;
-  int count;
-  int remapOffset;
-
-  inline int offset(int comp_idx) const { offsets[remap[remapOffset + comp_idx]]; };
 };
 
 enum class ValueSoAType
@@ -174,9 +160,8 @@ struct RegSysSpec<R(Args...)> : RegSys
 
   mutable struct Buffer
   {
-    int eid = -1;
-    int stage = -1;
-    eastl::array<uint8_t, 256> mem;
+    EntityId eid;
+    RawArg stage;
   } buffer;
 
   template <std::size_t... I>
@@ -204,7 +189,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   {
     static inline T get(const Buffer &buf, Storage*, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.stage];
+      return *(typename eastl::remove_reference<T>::type *)buf.stage.mem;
     }
   };
 
@@ -213,7 +198,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   {
     static inline T get(const Buffer &buf, Storage*, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.stage];
+      return *(typename eastl::remove_reference<T>::type *)buf.stage.mem;
     }
   };
 
@@ -222,7 +207,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   {
     static inline T get(const Buffer &buf, Storage *, int, int)
     {
-      return *(typename eastl::remove_reference<T>::type *)&buf.mem[buf.eid];
+      return *(typename eastl::remove_reference<T>::type *)&buf.eid;
     }
   };
 
@@ -246,8 +231,6 @@ struct RegSysSpec<R(Args...)> : RegSys
   template <typename T, size_t... I>
   inline void execImplSoA(const T &_sys, const RegSys::Remap &remap, const int *offsets, Storage *components, eastl::index_sequence<I...>) const
   {
-    //CompArrayDesc d{ remap, offsets, 10 /* Entities count */, argumentsOffset };
-
     _sys(ValueSoA<Args, Argument<I>::valueType>::get(
       buffer,
       components,
@@ -255,32 +238,24 @@ struct RegSysSpec<R(Args...)> : RegSys
       remap[I] >= 0 ? offsets[remap[I]] : -1)...);
   }
 
-  inline void operator()(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
+  inline void operator()(const RawArg &stage, const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
   {
-    buffer.eid = 0;
-    buffer.stage = eid.size;
-    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
-    ::memcpy(&buffer.mem[buffer.stage], stage.mem, stage.size);
+    buffer.eid = eid;
+    buffer.stage = stage;
 
     execImplSoA(sysFunc, remap, offsets, components, Indices{});
   }
 
-  inline void operator()(const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
+  inline void operator()(const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
   {
-    buffer.eid = 0;
-    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
-
+    buffer.eid = eid;
     execImplSoA(sysFunc, remap, offsets, components, Indices{});
   }
 
-  void execStageSoA(const RawArg &stage, const RawArg &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
+  void execStageSoA(const RawArg &stage, const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage *components) const
   {
-    // Call in loop for eids
-    // This must be inlined !!!
-    buffer.eid = 0;
-    buffer.stage = eid.size;
-    ::memcpy(&buffer.mem[buffer.eid], eid.mem, eid.size);
-    ::memcpy(&buffer.mem[buffer.stage], stage.mem, stage.size);
+    buffer.eid = eid;
+    buffer.stage = stage;
 
     execImplSoA(sys, remap, offsets, components, Indices{});
   }

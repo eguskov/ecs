@@ -14,6 +14,17 @@ struct Setter<int>
 };
 
 template <>
+struct Setter<float>
+{
+  static inline bool set(float &v, const JValue &value)
+  {
+    assert(value.IsFloat());
+    v = value.GetFloat();
+    return true;
+  }
+};
+
+template <>
 struct Setter<glm::vec2>
 {
   static inline bool set(glm::vec2 &vec, const JValue &value)
@@ -41,6 +52,8 @@ struct Setter<glm::vec3>
   }
 };
 
+REG_COMP(int, int);
+REG_COMP(float, float);
 REG_COMP(glm::vec2, vec2);
 REG_COMP(glm::vec3, vec3);
 REG_COMP_ARR(glm::vec2, vec2, 2);
