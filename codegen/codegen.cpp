@@ -92,33 +92,28 @@ static std::ostream& operator<<(std::ostream &out, const eastl::string &s)
 
 int main(int argc, char* argv[])
 {
-  const char *comment = "//@require(Gravity gravity)";
-  std::regex re = std::regex("@require\\((.*?)\\)");
-
-  std::cmatch match;
-  std::regex_search(comment, match, re);
-
-  std::cout << match[0] << std::endl;
-  std::cout << match[1] << std::endl;
+  std::cout << "Codegen: " << argv[1] << std::endl;
 
   char path[MAX_PATH];
   ::GetCurrentDirectory(MAX_PATH, path);
 
   const char *clangArgs[] = {
     "-xc++",
+    "-std=c++14",
     "-w",
-    // "-D_DEBUG",
+    "-D_DEBUG",
+    "-D__CODEGEN__",
     "-Wno-invalid-token-paste",
-    "-IC:/Users/e.guskov/Documents/Visual Studio 2015/Projects/ecs/rapidjson/include",
-    "-IC:/Users/e.guskov/Documents/Visual Studio 2015/Projects/ecs/ecs",
-    "-IC:/Users/e.guskov/Documents/Visual Studio 2015/Projects/ecs/glm",
-    //"-ID:/Projects/Atum/Atum",
-    //"-ID:/Projects/Atum/Libraries/EUI/include",
-    //"-ID:/Projects/Atum/Libraries/PhysX/Include"
+    "-I../rapidjson/include",
+    "-I../ecs",
+    "-I../glm",
+    "-I../EASTL/include",
+    "-I../EASTL/test/packages/EABase/include/Common",
+    "-I../raylib/src"
   };
   const int clangArgsCount = _countof(clangArgs);
 
-  CXIndex index = clang_createIndex(1, 1);
+  CXIndex index = clang_createIndex(0, 0);
   CXTranslationUnit unit = clang_parseTranslationUnit(
     index,
     argv[1],
@@ -127,7 +122,7 @@ int main(int argc, char* argv[])
     CXTranslationUnit_None);
   if (unit == nullptr)
   {
-    std::cerr << "Unable to parse translation unit. Quitting." << std::endl;
+    std::cerr << "Unable to parse translation unit: " << path << "\\" << argv[1] << std::endl;
     return -1;
   }
 
@@ -188,8 +183,11 @@ int main(int argc, char* argv[])
           sys.functionId = state->functions.size() - 1;
         }
       }
+
+      return CXChildVisit_Recurse;
     }
-    else if (kind == CXCursor_ParmDecl)
+
+    if (kind == CXCursor_ParmDecl)
     {
       // CXCursor funcCursor = clang_getCursorSemanticParent(parent);
       eastl::string funcName = to_string(clang_getCursorSpelling(parent));
@@ -200,25 +198,36 @@ int main(int argc, char* argv[])
         p.name = to_string(spelling);
         p.type = to_string(clang_getTypeSpelling(clang_getCursorType(cursor)));
       }
+
+      return CXChildVisit_Continue;
     }
 
-    return CXChildVisit_Recurse;
+    return CXChildVisit_Continue;
   };
 
   CXCursor cursor = clang_getTranslationUnitCursor(unit);
   clang_visitChildren(cursor, visitor, &state);
 
+  std::cerr << "Done:" << std::endl;
+  std::cerr << "  functions: " << state.functions.size() << std::endl;
+  std::cerr << "  systems: " << state.systems.size() << std::endl;
+
   {
-    const char *filename = "C:/Users/e.guskov/Documents/Visual Studio 2015/Projects/ecs/ecs/systems/update.gen.cpp";
+    eastl::string filename = argv[1];
+    filename += ".gen";
+
     std::ofstream out;
-    out.open(filename, std::ofstream::out);
+    out.open(filename.c_str(), std::ofstream::out);
     if (!out.is_open())
     {
       std::cerr << "Cannon open: " << filename << std::endl;
       return -1;
     }
 
-    out << "#include \"update.cpp\"\n" << std::endl;
+    out << "//! GENERATED FILE\n\n" << std::endl;
+    out << "#ifndef __CODEGEN__\n" << std::endl;
+
+    out << "#include \"update.ecs.cpp\"\n" << std::endl;
 
     for (const auto &sys : state.systems)
     {
@@ -234,12 +243,12 @@ int main(int argc, char* argv[])
       {
         return "\"" + i->name + "\"";
       }, ", ");
-      //for (const auto &p : func.parameters)
-      //  out << p.name << ", ";
 
       out << " });" << std::endl;
       out << std::endl;
     }
+
+    out << "#endif // __CODEGEN__" << std::endl;
   }
 
   clang_disposeTranslationUnit(unit);

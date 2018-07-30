@@ -16,6 +16,9 @@
     <Filter Include="io">
       <UniqueIdentifier>{43adfa92-589d-4520-a12f-904bb7ddfc3c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="gen">
+      <UniqueIdentifier>{f7dff4da-c64a-4095-b647-b0a609a259e4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stages\update.stage.h">
@@ -79,9 +82,6 @@
     <ClCompile Include="components\test.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="systems\update.cpp">
-      <Filter>systems</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stages\render.stage.cpp">
@@ -99,12 +99,17 @@
     <ClCompile Include="components\default.component.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="systems\update.gen.cpp">
-      <Filter>systems</Filter>
+    <ClCompile Include="**\*.gen">
+      <Filter>gen</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="systems\update.ecs.cpp">
+      <Filter>systems</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

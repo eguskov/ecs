@@ -1,4 +1,9 @@
-#include "update.cpp"
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "update.ecs.cpp"
 
 template <> struct Desc<decltype(update_position)> { constexpr static char* name = "update_position"; };
 static RegSysSpec<decltype(update_position)> _reg_sys_update_position("update_position", &update_position, { "stage", "vel", "pos" });
@@ -21,3 +26,4 @@ static RegSysSpec<decltype(render)> _reg_sys_render("render", &render, { "stage"
 template <> struct Desc<decltype(spawn_handler)> { constexpr static char* name = "spawn_handler"; };
 static RegSysSpec<decltype(spawn_handler)> _reg_sys_spawn_handler("spawn_handler", &spawn_handler, { "ev", "eid", "vel", "pos" });
 
+#endif // __CODEGEN__

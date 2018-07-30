@@ -33,7 +33,6 @@ void update_position(
 {
   pos += vel * stage.dt;
 }
-//REG_SYS_1(update_position, "vel", "pos");
 
 //! @system
 void update_vels(
@@ -42,7 +41,6 @@ void update_vels(
 {
   vels[0];
 }
-//REG_SYS_1(update_vels, "vels");
 
 //! @system
 static inline void update_velocity(
@@ -61,7 +59,6 @@ static inline void update_velocity(
 
   vel *= 1.0 - damping;
 }
-//REG_SYS_1(update_velocity, "damping", "pos", "pos_copy", "vel");
 
 //! @system
 //! @require(Gravity gravity)
@@ -95,7 +92,6 @@ static inline void update_collisions(
 
   vel = curVel;
 }
-//REG_SYS_2(update_collisions, "mass", "gravity", "pos", "vel");
 
 //! @system
 void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
@@ -107,7 +103,6 @@ void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
     // g_mgr->sendEvent(eid, EventOnSpawn{});
   }
 }
-//REG_SYS_2(spawner, "timer");
 
 //! @system
 void render(
@@ -118,7 +113,6 @@ void render(
 {
   DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
 }
-//REG_SYS_2(render, "color", "pos");
 
 //! @system
 void spawn_handler(
@@ -150,7 +144,6 @@ void spawn_handler(
   value.AddMember("pos", posValue, a);
   value.AddMember("vel", velValue, a);
   value.AddMember("color", colorValue, a);
-  
+
   g_mgr->createEntity("ball", value);
 }
-//REG_SYS_2(spawn_handler, "vel", "pos");
