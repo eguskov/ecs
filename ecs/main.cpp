@@ -25,8 +25,19 @@ void call(const eastl::array<int, N> &offets, uint8_t** compontes)
 int screen_width = 800;
 int screen_height = 450;
 
+template <size_t... I>
+void testFunc(eastl::index_sequence<I...>);
+
+template <>
+void testFunc<>(eastl::index_sequence<0, 1, 2>)
+{
+
+}
+
 int main()
 {
+  testFunc<0, 1, 2>(eastl::make_index_sequence<3>{});
+
   std::srand(unsigned(std::time(0)));
 
   EntityManager::init();
@@ -68,8 +79,7 @@ int main()
     {
       eastl::vector<EntityId> eids;
       g_mgr->queryEids(eids, { { "timer", "timer" } });
-      for (int i = 0; i < 100; ++i)
-        g_mgr->sendEvent(eids[0], EventOnSpawn{});
+      g_mgr->sendEvent(eids[0], EventOnSpawn{1000});
     }
     double t = GetTime();
     g_mgr->tick();

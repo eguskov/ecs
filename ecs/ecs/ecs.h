@@ -113,7 +113,7 @@ struct Query
 {
   int stageId = -1;
   const RegSys *sys = nullptr;
-  eastl::vector<EntityId> eids;
+  EntityVector eids;
 };
 
 struct EntityManager
@@ -142,7 +142,8 @@ struct EntityManager
   EntityManager();
   ~EntityManager();
 
-  int getSystemId(const char *name);
+  int getSystemId(const char *name) const;
+  int getComponentNameId(const char *name) const;
 
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names);
 
@@ -170,20 +171,9 @@ struct EntityManager
   }
 
   void tick();
-  void tickStage(int stage_id, const RawArg &stage);
   void tickStageSoA(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
-  void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
   void sendEventSyncSoA(EntityId eid, int event_id, const RawArg &ev);
-
-  template <typename S>
-  void tick(const S &stage)
-  {
-    RawArgSpec<sizeof(S)> arg0;
-    new (arg0.mem) S(stage);
-
-    tickStage(RegCompSpec<S>::ID, arg0);
-  }
 
   template <typename S>
   void tickSoA(const S &stage)
@@ -204,15 +194,6 @@ struct EntityManager
   }
 
   template <typename E>
-  void sendEventSync(EntityId eid, const E &ev)
-  {
-    RawArgSpec<sizeof(E)> arg0;
-    new (arg0.mem) E(ev);
-
-    sendEventSync(eid, RegCompSpec<E>::ID, arg0);
-  }
-
-  template <typename E>
   void sendEventSyncSoA(EntityId eid, const E &ev)
   {
     RawArgSpec<sizeof(E)> arg0;
@@ -224,25 +205,17 @@ struct EntityManager
   // TODO: cache components descs
   // Query createQuery(...)
 
-  template <typename SysT, typename C>
+  /*template <typename SysT, typename C>
   void query(const C &callback, std::initializer_list<const char*> comp_names)
   {
-    static bool inited = false;
-
     using T = RegSysSpec<SysT>;
     T::StringArray names;
 
-   // if (!inited)
-      eastl::copy(comp_names.begin(), comp_names.end(), names.begin());
+    eastl::copy(comp_names.begin(), comp_names.end(), names.begin());
 
     T sys(eastl::move(eastl::function<SysT>(callback)), eastl::move(names));
+    sys.init();
 
-    // if (!inited)
-      sys.init();
-
-    inited = true;
-
-    int prevTemplateId = -1;
     RegSys::Remap remap;
     for (auto &e : entitiesSoA)
     {
@@ -261,17 +234,13 @@ struct EntityManager
 
       if (ok)
       {
-        if (e.templateId != prevTemplateId)
-          sys.initRemap(templ.components, remap);
-
-        prevTemplateId = e.templateId;
-
+        sys.initRemap(templ.components, remap);
         sys(e.eid, remap, &e.componentOffsets[0], &storagesSoA[0]);
       }
     }
-  }
+  }*/
 
-  void queryEids(eastl::vector<EntityId> &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
+  void queryEids(EntityVector &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
   {
     for (auto &e : entitiesSoA)
     {

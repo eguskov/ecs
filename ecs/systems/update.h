@@ -4,6 +4,8 @@
 
 struct EventOnSpawn : Event
 {
+  int count;
+  EventOnSpawn(int _count) : count(_count) {}
 };
 REG_EVENT(EventOnSpawn);
 

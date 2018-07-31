@@ -18,3 +18,5 @@ inline int eid2idx(EntityId eid)
 {
   return eid.handle & 0xFFFF;
 }
+
+using EntityVector = eastl::vector<EntityId>;

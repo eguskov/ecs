@@ -218,18 +218,8 @@ EntityManager::EntityManager()
     }
   }
 
-  {
-    componentNames.resize(reg_comp_count);
-    storagesSoA.resize(reg_comp_count);
-    for (const RegComp *comp = reg_comp_head; comp; comp = comp->next)
-    {
-      storagesSoA[comp->id].size = comp->size;
-      componentNames[comp->id] = comp->name;
-    }
-  }
-
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    const_cast<RegSys*>(sys)->init();
+    const_cast<RegSys*>(sys)->init(this);
 
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
     systems.push_back({ getSystemId(sys->name), sys });
@@ -253,11 +243,28 @@ EntityManager::~EntityManager()
   // TODO: Call dtors for components
 }
 
-int EntityManager::getSystemId(const char *name)
+int EntityManager::getSystemId(const char *name) const
 {
   auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name; });
   assert(res != order.end());
   return (int)(res - order.begin());
+}
+
+static int add_component_name(eastl::vector<eastl::string> &to, const char *name)
+{
+  auto it = eastl::find(to.begin(), to.end(), name);
+  if (it == to.end())
+  {
+    to.emplace_back(name);
+    return to.size() - 1;
+  }
+  return it - to.begin();
+}
+
+int EntityManager::getComponentNameId(const char *name) const
+{
+  auto it = eastl::find(componentNames.begin(), componentNames.end(), name);
+  return it == componentNames.end() ? -1 : it - componentNames.begin();
 }
 
 void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names)
@@ -270,7 +277,21 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.compMask.set(reg_comp_count, false);
 
   for (const auto &name : comp_names)
-    templ.components.push_back({ 0, name.second, find_comp(name.first) });
+  {
+    templ.components.push_back({ 0, add_component_name(componentNames, name.second), name.second, find_comp(name.first) });
+
+    if (componentNames.size() > storagesSoA.size())
+      storagesSoA.resize(componentNames.size());
+
+    auto &storage = storagesSoA[templ.components.back().nameId];
+    if (storage.size <= 0)
+    {
+      storage.name = name.second;
+      storage.size = templ.components.back().desc->size;
+    }
+
+    assert(storage.size == templ.components.back().desc->size);
+  }
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)
@@ -398,7 +419,7 @@ void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &co
 
   for (const auto &c : templ.components)
   {
-    auto &storage = storagesSoA[c.desc->id];
+    auto &storage = storagesSoA[c.nameId];
 
     e.componentOffsets.push_back(storage.count * storage.size);
 
@@ -420,11 +441,13 @@ void EntityManager::tick()
     createQueue.pop();
   }
 
+  bool shouldInvalidateQueries = false;
   for (const auto &v : asyncValues)
   {
     const bool ready = v.isReady();
     if (ready)
     {
+      shouldInvalidateQueries = true;
       entitiesSoA[eid2idx(v.eid)].ready = ready;
       sendEventSyncSoA(v.eid, EventOnEntityReady{});
     }
@@ -432,6 +455,10 @@ void EntityManager::tick()
 
   if (!asyncValues.empty())
     asyncValues.erase(eastl::remove_if(asyncValues.begin(), asyncValues.end(), [](const AsyncValue &v) { return v.isReady(); }), asyncValues.end());
+
+  if (shouldInvalidateQueries)
+    for (auto &q : queries)
+      invalidateQuery(q);
 
   while (events.count)
   {
@@ -445,6 +472,9 @@ void EntityManager::tick()
 
 void EntityManager::invalidateQuery(Query &query)
 {
+  if (query.stageId < 0)
+    return;
+
   query.eids.clear();
 
   for (auto &e : entitiesSoA)
@@ -456,7 +486,7 @@ void EntityManager::invalidateQuery(Query &query)
 
     bool ok = true;
     for (const auto &c : query.sys->components)
-      if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.sys->stageId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+      if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.stageId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
       {
         ok = false;
         break;
@@ -470,21 +500,11 @@ void EntityManager::invalidateQuery(Query &query)
 void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
 {
   for (const auto &sys : systems)
-  {
-    if (sys.desc->stageId != stage_id)
-      continue;
-
-    auto &query = queries[sys.desc->id];
-
-    for (auto &eid : query.eids)
+    if (sys.desc->stageId == stage_id)
     {
-      const auto &entity = entitiesSoA[eid2idx(eid)];
-      const auto &templ = templates[entity.templateId];
-      const auto &remap = templ.remaps[sys.desc->id];
-
-      (sys.desc->*sys.desc->stageFnSoA)(stage, eid, remap, &entity.componentOffsets[0], &storagesSoA[0]);
+      auto &query = queries[sys.desc->id];
+      (sys.desc->*sys.desc->stageFnSoA)(query.eids.size(), query.eids.data(), stage, &storagesSoA[0]);
     }
-  }
 }
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
@@ -510,7 +530,7 @@ void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &e
         }
 
       if (ok)
-        (sys.desc->*sys.desc->stageFnSoA)(ev, e.eid, templ.remaps[sys.desc->id], &e.componentOffsets[0], &storagesSoA[0]);
+        (sys.desc->*sys.desc->stageFnSoA)(1, &eid, ev, &storagesSoA[0]);
     }
 }
 

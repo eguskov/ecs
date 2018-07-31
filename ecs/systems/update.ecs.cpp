@@ -26,7 +26,7 @@ struct Gravity
 REG_COMP_AND_INIT(Gravity, gravity);
 
 //! @system
-void update_position(
+static __forceinline void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
   glm::vec2 &pos)
@@ -43,7 +43,7 @@ void update_vels(
 }
 
 //! @system
-static inline void update_velocity(
+static __forceinline void update_velocity(
   const UpdateStage &stage,
   float damping,
   const glm::vec2 &pos,
@@ -57,11 +57,11 @@ static inline void update_velocity(
   if (pos.y < hh || pos.y > screen_height - hh)
     vel.y = -vel.y;
 
-  vel *= 1.0 - damping;
+  vel *= 1.0f / (1.0f + stage.dt * damping);
 }
 
 //! @system
-//! @require(Gravity gravity)
+//! @has(Gravity gravity)
 static inline void update_collisions(
   const UpdateStage &stage,
   EntityId eid,
@@ -76,7 +76,7 @@ static inline void update_collisions(
   glm::vec2 curVel = vel;
   float curMass = mass;
 
-  g_mgr->query<void(EntityId, float, const glm::vec2&, glm::vec2&)>(
+  /*g_mgr->query<void(EntityId, float, const glm::vec2&, glm::vec2&)>(
     [curEid, curPos, curMass, &stage](EntityId eid, float mass, const glm::vec2 &pos, glm::vec2 &v)
   {
     if (eid == curEid)
@@ -88,7 +88,7 @@ static inline void update_collisions(
     const glm::vec2 f = glm::normalize(curPos - pos) * ((mass * curMass) / (r * r));
     v += f * stage.dt;
   },
-  { "", "mass", "pos", "vel" });
+  { "", "mass", "pos", "vel" });*/
 
   vel = curVel;
 }
@@ -111,6 +111,7 @@ void render(
   const ColorComponent &color,
   const glm::vec2 &pos)
 {
+  // return;
   DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
 }
 
@@ -121,29 +122,32 @@ void spawn_handler(
   const glm::vec2 &vel,
   const glm::vec2 &pos)
 {
-  JDocument doc;
-  auto &a = doc.GetAllocator();
+  for (int i = 0; i < ev.count; ++i)
+  {
+    JDocument doc;
+    auto &a = doc.GetAllocator();
 
-  const float sx = (float)GetRandomValue(-50, 50);
-  const float sy = (float)GetRandomValue(-50, 50);
+    const float sx = (float)GetRandomValue(-50, 50);
+    const float sy = (float)GetRandomValue(-50, 50);
 
-  JValue posValue(rapidjson::kObjectType);
-  posValue.AddMember("x", pos.x, a);
-  posValue.AddMember("y", pos.y, a);
+    JValue posValue(rapidjson::kObjectType);
+    posValue.AddMember("x", pos.x, a);
+    posValue.AddMember("y", pos.y, a);
 
-  JValue velValue(rapidjson::kObjectType);
-  velValue.AddMember("x", sx, a);
-  velValue.AddMember("y", sy, a);
+    JValue velValue(rapidjson::kObjectType);
+    velValue.AddMember("x", sx, a);
+    velValue.AddMember("y", sy, a);
 
-  JValue colorValue(rapidjson::kObjectType);
-  colorValue.AddMember("r", std::rand() % 256, a);
-  colorValue.AddMember("g", std::rand() % 256, a);
-  colorValue.AddMember("b", std::rand() % 256, a);
+    JValue colorValue(rapidjson::kObjectType);
+    colorValue.AddMember("r", std::rand() % 256, a);
+    colorValue.AddMember("g", std::rand() % 256, a);
+    colorValue.AddMember("b", std::rand() % 256, a);
 
-  JValue value(rapidjson::kObjectType);
-  value.AddMember("pos", posValue, a);
-  value.AddMember("vel", velValue, a);
-  value.AddMember("color", colorValue, a);
+    JValue value(rapidjson::kObjectType);
+    value.AddMember("pos", posValue, a);
+    value.AddMember("vel", velValue, a);
+    value.AddMember("color", colorValue, a);
 
-  g_mgr->createEntity("ball", value);
+    g_mgr->createEntity("ball", value);
+  }
 }

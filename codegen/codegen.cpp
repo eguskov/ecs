@@ -19,15 +19,15 @@
 namespace utils
 {
   template<typename T>
-  static std::string join(const std::vector<T> &v, const std::string &token) {
+  static eastl::string join(const eastl::vector<T> &v, const eastl::string &token) {
     std::ostringstream result;
-    for (typename std::vector<T>::const_iterator i = v.begin(); i != v.end(); i++) {
+    for (typename eastl::vector<T>::const_iterator i = v.begin(); i != v.end(); i++) {
       if (i != v.begin())
         result << token;
       result << *i;
     }
 
-    return result.str();
+    return eastl::string(result.str().c_str());
   }
 
   template<typename T, typename C>
@@ -231,12 +231,9 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      // template <> struct Desc<decltype(func)> { constexpr static char* name = #func; };
-      // static RegSysSpec<decltype(func)> _##func(#func, &func, { __VA_ARGS__ });
-
       const auto &func = state.functions[sys.functionId];
       out << "template <> struct Desc<decltype(" << func.name << ")> { constexpr static char* name = \"" << func.name << "\"; };" << std::endl;
-      out << "static RegSysSpec<decltype(" << func.name << ")> _reg_sys_" << func.name << "(\"" << func.name << "\", &" << func.name << ", { ";
+      out << "static RegSysSpec<decltype(" << func.name << ")> _reg_sys_" << func.name << "(\"" << func.name << "\", " << func.name << ", { ";
 
       out << utils::join(func.parameters,
         [](decltype(func.parameters)::const_iterator i)
@@ -246,6 +243,72 @@ int main(int argc, char* argv[])
 
       out << " });" << std::endl;
       out << std::endl;
+    }
+
+    auto seq = [](int count)
+    {
+      eastl::vector<int> vec;
+      vec.resize(count);
+      for (int i = 0; i < count; ++i)
+        vec[i] = i;
+
+      return utils::join(vec, ", ");
+    };
+
+    auto argIdSeq = [](int count)
+    {
+      eastl::vector<eastl::string> vec;
+      vec.resize(count);
+      for (int i = 0; i < count; ++i)
+      {
+        std::ostringstream oss;
+        // oss << "RegCompSpec<Argument<" << i << ">::PureType>::ID";
+        oss << "components[" << i << "].nameId";
+        vec[i].assign(oss.str().c_str());
+      }
+
+      return utils::join(vec, ", ");
+    };
+
+    auto argOffsetSeq = [](int count)
+    {
+      eastl::vector<eastl::string> vec;
+      vec.resize(count);
+      for (int i = 0; i < count; ++i)
+      {
+        std::ostringstream oss;
+        oss << "get_offset(remap[" << i << "], offsets)";
+        vec[i].assign(oss.str().c_str());
+      }
+
+      return utils::join(vec, ", ");
+    };
+
+    auto valuesSeq = [](int count)
+    {
+      eastl::vector<eastl::string> vec;
+      vec.resize(count);
+      for (int i = 0; i < count; ++i)
+      {
+        std::ostringstream oss;
+        oss << "ValueSoA<Argument<" << i << ">::Type, Argument<" << i << ">::valueType>::get(args, storage, argId[" << i << "], argOffset[" << i << "])";
+        vec[i].assign(oss.str().c_str());
+      }
+
+      return utils::join(vec, ", ");
+    };
+
+    for (const auto &sys : state.systems)
+    {
+      const auto &func = state.functions[sys.functionId];
+      out << "template <> template <> __forceinline void RegSysSpec<decltype(" << func.name << ")>::execImplSoA<>(const SysType &_sys, const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(func.parameters.size()) << ">) const" << std::endl;
+      out << "{" << std::endl;
+      out << "  const int argId[] = { " << argIdSeq(func.parameters.size()) << " };" << std::endl;
+      out << "  const int argOffset[] = { " << argOffsetSeq(func.parameters.size()) << " };" << std::endl;
+      out << "  " << func.name << "(";
+      out << valuesSeq(func.parameters.size());
+      out << ");" << std::endl;
+      out << "}\n" << std::endl;
     }
 
     out << "#endif // __CODEGEN__" << std::endl;
