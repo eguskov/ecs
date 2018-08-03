@@ -39,12 +39,6 @@
     <ClInclude Include="ecs\system.h">
       <Filter>ecs</Filter>
     </ClInclude>
-    <ClInclude Include="components\eid.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
-    <ClInclude Include="components\test.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
     <ClInclude Include="targetver.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="ecs\event.h">
@@ -56,17 +50,8 @@
     <ClInclude Include="stages\render.stage.h">
       <Filter>stages</Filter>
     </ClInclude>
-    <ClInclude Include="components\timer.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
     <ClInclude Include="io\json.h">
       <Filter>io</Filter>
-    </ClInclude>
-    <ClInclude Include="components\color.component.h">
-      <Filter>components</Filter>
-    </ClInclude>
-    <ClInclude Include="components\default.component.h">
-      <Filter>components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -76,28 +61,34 @@
     <ClCompile Include="ecs\ecs.cpp">
       <Filter>ecs</Filter>
     </ClCompile>
-    <ClCompile Include="components\eid.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
-    <ClCompile Include="components\test.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stages\render.stage.cpp">
       <Filter>stages</Filter>
     </ClCompile>
-    <ClCompile Include="components\timer.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
-    <ClCompile Include="components\color.component.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
     <ClCompile Include="ecs\memory.cpp">
       <Filter>ecs</Filter>
     </ClCompile>
-    <ClCompile Include="components\default.component.cpp">
+    <ClCompile Include="components\core.h.gen">
+      <Filter>gen</Filter>
+    </ClCompile>
+    <ClCompile Include="systems\update.ecs.cpp.gen">
+      <Filter>gen</Filter>
+    </ClCompile>
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="components\core.cpp">
       <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="components\core.h.gen" />
+    <ClCompile Include="systems\update.ecs.cpp.gen" />
+    <ClCompile Include="components\core.h.gen" />
+    <ClCompile Include="systems\update.ecs.cpp.gen" />
+    <ClCompile Include="**\*.gen">
+      <Filter>gen</Filter>
     </ClCompile>
     <ClCompile Include="**\*.gen">
       <Filter>gen</Filter>
@@ -108,8 +99,26 @@
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="systems\update.ecs.cpp">
+    <CustomBuild Include="components\test.component.h" />
+    <CustomBuild Include="components\timer.component.h" />
+    <CustomBuild Include="**\*.component.h" />
+    <CustomBuild Include="**\*.component.h" />
+    <CustomBuild Include="**\*.component.h" />
+    <CustomBuild Include="components\test.component.h" />
+    <CustomBuild Include="components\timer.component.h" />
+    <CustomBuild Include="components\test.component.h" />
+    <CustomBuild Include="components\timer.component.h" />
+    <CustomBuild Include="**\*.component.h">
+      <Filter>components</Filter>
+    </CustomBuild>
+    <CustomBuild Include="**\*.component.h">
+      <Filter>components</Filter>
+    </CustomBuild>
+    <CustomBuild Include="**\*.ecs.cpp">
       <Filter>systems</Filter>
+    </CustomBuild>
+    <CustomBuild Include="**\*.component.h">
+      <Filter>components</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

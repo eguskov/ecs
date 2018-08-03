@@ -9,19 +9,32 @@
 #define __C3(a, b, c) __C2(a, b) __S(c)
 #define __C4(a, b, c, d) __C3(a, b, c) __S(d)
 
+#ifdef __CODEGEN__
+#define CODEGEN_REG_COMP(type, n) __attribute__((annotate( __C3(type, $, n) )))
+#else
+#define CODEGEN_REG_COMP(...)
+#endif
+
+#ifdef __CODEGEN__
+#define DEF_COMP(type, name) __attribute__((annotate("@component: " #name)))
+#else
+#define DEF_COMP(type, name) ;REG_COMP(type, name);
+#endif
+
 #define REG_COMP(type, n) \
   template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char* typeName = #type; constexpr static char* name = #n; }; \
+  CODEGEN_REG_COMP(type, n) \
 
 #define REG_COMP_ARR(type, n, sz) \
   template <> struct Desc<ArrayComp<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char* typeName = #type; constexpr static char* name = __C4(n, [, sz, ]); }; \
 
 #define REG_COMP_INIT(type, n) \
   static RegCompSpec<type> _##n(#n); \
-  int RegCompSpec<type>::ID = -1; \
+  template <> int RegCompSpec<type>::ID = -1; \
 
 #define REG_COMP_ARR_INIT(type, n, sz) \
   static RegCompSpec<ArrayComp<type, sz>> _array_##n(__C4(n, [, sz, ])); \
-  int RegCompSpec<ArrayComp<type, sz>>::ID = -1; \
+  template <> int RegCompSpec<ArrayComp<type, sz>>::ID = -1; \
 
 #define REG_COMP_AND_INIT(type, n) \
   REG_COMP(type, n); \

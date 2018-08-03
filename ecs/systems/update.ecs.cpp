@@ -9,7 +9,6 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
-#include "components/default.component.h"
 #include "components/timer.component.h"
 #include "components/color.component.h"
 
@@ -22,10 +21,10 @@ REG_EVENT_INIT(EventOnAnotherTest);
 struct Gravity
 {
   bool set(const JValue&) { return true; };
-};
-REG_COMP_AND_INIT(Gravity, gravity);
+} DEF_COMP(Gravity, gravity);
+// REG_COMP_AND_INIT(Gravity, gravity);
 
-//! @system
+DEF_SYS()
 static __forceinline void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
@@ -34,15 +33,15 @@ static __forceinline void update_position(
   pos += vel * stage.dt;
 }
 
-//! @system
-void update_vels(
+DEF_SYS()
+static __forceinline void update_vels(
   const UpdateStage &stage,
   const ArrayComp<glm::vec2, 2> &vels)
 {
   vels[0];
 }
 
-//! @system
+DEF_SYS()
 static __forceinline void update_velocity(
   const UpdateStage &stage,
   float damping,
@@ -60,41 +59,38 @@ static __forceinline void update_velocity(
   vel *= 1.0f / (1.0f + stage.dt * damping);
 }
 
-//! @system
-//! @has(Gravity gravity)
-static inline void update_collisions(
+struct TestQuery DEF_QUERY();
+
+DEF_SYS() HAS_COMP(gravity)
+static __forceinline void update_collisions(
   const UpdateStage &stage,
   EntityId eid,
   float mass,
   const Gravity &gravity,
-  const glm::vec2 &pos,
+  glm::vec2 &pos,
   glm::vec2 &vel)
 {
-  return;
   EntityId curEid = eid;
   glm::vec2 curPos = pos;
   glm::vec2 curVel = vel;
   float curMass = mass;
 
-  /*g_mgr->query<void(EntityId, float, const glm::vec2&, glm::vec2&)>(
-    [curEid, curPos, curMass, &stage](EntityId eid, float mass, const glm::vec2 &pos, glm::vec2 &v)
+  TestQuery::exec([curEid, curPos, &curVel, &stage](EntityId eid, float mass, const glm::vec2 &pos, const glm::vec2 &vel)
   {
     if (eid == curEid)
       return;
-    static const float pix2m = 0.265f * 1e-3f;
-    const float r = glm::length(curPos - pos) * pix2m;
-    if (r <= 0.01f)
+    const float r = glm::length(curPos - pos);
+    if (r <= 0.01f || r > 10.f)
       return;
-    const glm::vec2 f = glm::normalize(curPos - pos) * ((mass * curMass) / (r * r));
-    v += f * stage.dt;
-  },
-  { "", "mass", "pos", "vel" });*/
+    const glm::vec2 f = (pos - curPos) * ((r - 10.f) / 10.f);
+    curVel += f * stage.dt;
+  });
 
-  vel = curVel;
+  // vel = curVel;
 }
 
-//! @system
-void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
+DEF_SYS()
+static __forceinline void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
 {
   timer.time += stage.dt;
   if (timer.time >= timer.period)
@@ -104,19 +100,18 @@ void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
   }
 }
 
-//! @system
-void render(
+DEF_SYS()
+static __forceinline void render(
   const RenderStage &stage,
   EntityId eid,
   const ColorComponent &color,
   const glm::vec2 &pos)
 {
-  // return;
   DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
 }
 
-//! @system
-void spawn_handler(
+DEF_SYS()
+static __forceinline void spawn_handler(
   const EventOnSpawn &ev,
   EntityId eid,
   const glm::vec2 &vel,

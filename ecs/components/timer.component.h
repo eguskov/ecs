@@ -15,8 +15,8 @@ struct TimerComponent
     period = value["period"].GetFloat();
     return true;
   }
-};
-REG_COMP(TimerComponent, timer);
+}
+DEF_COMP(TimerComponent, timer);
 
 struct NoHitTimerComponent
 {
@@ -28,5 +28,5 @@ struct NoHitTimerComponent
     time = value["time"].GetFloat();
     return true;
   }
-};
-REG_COMP(NoHitTimerComponent, no_hit_timer);
+}
+DEF_COMP(NoHitTimerComponent, no_hit_timer);

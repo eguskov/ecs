@@ -13,7 +13,7 @@
 #include "event.h"
 #include "stage.h"
 
-#include "components/eid.component.h"
+#include "components/core.h"
 
 struct RegSys;
 extern RegSys *reg_sys_head;

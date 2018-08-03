@@ -8,8 +8,6 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
-#include "components/default.component.h"
-
 #include "systems/update.h"
 
 template <size_t N>

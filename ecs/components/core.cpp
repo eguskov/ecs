@@ -1,4 +1,7 @@
-#include "default.component.h"
+#include "core.h"
+
+static RegCompSpec<EntityId> _eid;
+int RegCompSpec<EntityId>::ID = -1;
 
 REG_COMP_INIT(int, int);
 REG_COMP_INIT(float, float);

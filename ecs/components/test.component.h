@@ -10,5 +10,5 @@ struct TestComponent
   {
     return true;
   }
-};
-REG_COMP(TestComponent, test);
+}
+DEF_COMP(TestComponent, test);

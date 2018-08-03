@@ -1,0 +1,11 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "color.component.h"
+
+static RegCompSpec<ColorComponent> _reg_comp_color("color");
+template <> int RegCompSpec<ColorComponent>::ID = -1;
+
+#endif // __CODEGEN__

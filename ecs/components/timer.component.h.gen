@@ -1,0 +1,14 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "timer.component.h"
+
+static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
+template <> int RegCompSpec<TimerComponent>::ID = -1;
+
+static RegCompSpec<NoHitTimerComponent> _reg_comp_no_hit_timer("no_hit_timer");
+template <> int RegCompSpec<NoHitTimerComponent>::ID = -1;
+
+#endif // __CODEGEN__

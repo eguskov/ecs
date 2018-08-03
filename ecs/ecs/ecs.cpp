@@ -13,7 +13,7 @@ int reg_sys_count = 0;
 RegComp *reg_comp_head = nullptr;
 int reg_comp_count = 0;
 
-RegSys::RegSys(const char *_name, int _id) : id(_id)
+RegSys::RegSys(const char *_name, int _id, bool need_order) : id(_id), needOrder(need_order)
 {
   if (_name)
     name = ::_strdup(_name);
@@ -222,7 +222,7 @@ EntityManager::EntityManager()
     const_cast<RegSys*>(sys)->init(this);
 
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    systems.push_back({ getSystemId(sys->name), sys });
+    systems.push_back({ sys->needOrder ? getSystemId(sys->name) : -1, sys });
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
@@ -472,7 +472,7 @@ void EntityManager::tick()
 
 void EntityManager::invalidateQuery(Query &query)
 {
-  if (query.stageId < 0)
+  if (query.stageId < 0 && query.sys->eventId >= 0)
     return;
 
   query.eids.clear();

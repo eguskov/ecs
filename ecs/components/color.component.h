@@ -18,5 +18,5 @@ struct ColorComponent
     b = (uint8_t)value["b"].GetInt();
     return true;
   }
-};
-REG_COMP(ColorComponent, color);
+}
+DEF_COMP(ColorComponent, color);

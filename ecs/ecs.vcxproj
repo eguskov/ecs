@@ -176,13 +176,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="components\color.component.h" />
-    <ClInclude Include="components\timer.component.h" />
     <ClInclude Include="ecs\component.h" />
     <ClInclude Include="ecs\ecs.h" />
-    <ClInclude Include="components\eid.component.h" />
     <ClInclude Include="ecs\entity.h" />
-    <ClInclude Include="components\default.component.h" />
     <ClInclude Include="ecs\event.h" />
     <ClInclude Include="ecs\stage.h" />
     <ClInclude Include="io\json.h" />
@@ -191,22 +187,23 @@
     <ClInclude Include="ecs\system.h" />
     <ClInclude Include="systems\update.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="components\test.component.h" />
     <ClInclude Include="stages\update.stage.h" />
+    <CustomBuild Include="**\*.component.h">
+      <Message>
+      </Message>
+      <Command>"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs>$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="components\color.component.cpp" />
-    <ClCompile Include="components\timer.component.cpp" />
+    <ClCompile Include="components\core.cpp" />
     <ClCompile Include="ecs\ecs.cpp" />
-    <ClCompile Include="components\eid.component.cpp" />
     <ClCompile Include="ecs\memory.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="components\default.component.cpp" />
     <ClCompile Include="stages\render.stage.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="components\test.component.cpp" />
     <ClCompile Include="stages\update.stage.cpp" />
-    <CustomBuild Include="systems\update.ecs.cpp">
+    <CustomBuild Include="**\*.ecs.cpp">
       <Message>
       </Message>
       <Command>"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
