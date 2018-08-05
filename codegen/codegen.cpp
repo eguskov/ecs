@@ -109,6 +109,9 @@ struct DumpState
 
 CXChildVisitResult dump_cursor_visitor(CXCursor cursor, CXCursor parent, CXClientData data)
 {
+  //if (!clang_Location_isFromMainFile(clang_getCursorLocation(cursor)))
+  //  return CXChildVisit_Continue;
+
   int level = *(int*)data;
   int nextLevel = level + 1;
 
@@ -258,6 +261,12 @@ int main(int argc, char* argv[])
       eastl::string type;
     };
 
+    struct Event
+    {
+      eastl::string name;
+      eastl::string type;
+    };
+
     eastl::string filename;
 
     CXTranslationUnit unit;
@@ -265,6 +274,7 @@ int main(int argc, char* argv[])
     eastl::vector<System> systems;
     eastl::vector<Query> queries;
     eastl::vector<Component> components;
+    eastl::vector<Event> events;
   } state;
 
   auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
@@ -283,9 +293,6 @@ int main(int argc, char* argv[])
       {
         VisitorState &state = *static_cast<VisitorState*>(data);
 
-        if (!clang_Location_isFromMainFile(clang_getCursorLocation(parent)))
-          return CXChildVisit_Continue;
-
         CXCursorKind kind = clang_getCursorKind(cursor);
 
         if (kind == CXCursor_AnnotateAttr)
@@ -295,12 +302,21 @@ int main(int argc, char* argv[])
 
           if (utils::startsWith(name, "@component: "))
           {
-            CXFile f1 = clang_getFile(state.unit, state.filename.c_str());
-            CXFile f2 = clang_getIncludedFile(cursor);
+            if (!clang_Location_isFromMainFile(clang_getCursorLocation(parent)))
+              return CXChildVisit_Continue;
 
             auto &comp = state.components.push_back();
             comp.type = eastl::move(structName);
             comp.name = name.substr(::strlen("@component: "));
+          }
+          else if (name == "@event")
+          {
+            if (!clang_Location_isFromMainFile(clang_getCursorLocation(parent)))
+              return CXChildVisit_Continue;
+
+            auto &comp = state.events.push_back();
+            comp.type = eastl::move(structName);
+            comp.name = comp.type;
           }
           else if (name == "@query")
           {
@@ -416,6 +432,7 @@ int main(int argc, char* argv[])
   state.filename = argv[1];
 
   CXCursor cursor = clang_getTranslationUnitCursor(unit);
+  //dump_cursor(cursor, clang_getNullCursor());
   clang_visitChildren(cursor, visitor, &state);
   CXFile unitFile = clang_getFile(unit, argv[1]);
 
@@ -423,6 +440,7 @@ int main(int argc, char* argv[])
   std::cerr << "  systems: " << state.systems.size() << std::endl;
   std::cerr << "  queries: " << state.queries.size() << std::endl;
   std::cerr << "  components: " << state.components.size() << std::endl;
+  std::cerr << "  events: " << state.events.size() << std::endl;
 
   {
     eastl::string filename = state.filename + ".gen";
@@ -452,6 +470,13 @@ int main(int argc, char* argv[])
     {
       out << "static RegCompSpec<" << comp.type << "> _reg_comp_" << comp.name << "(\"" << comp.name << "\");" << std::endl;
       out << "template <> int RegCompSpec<" << comp.type << ">::ID = -1;" << std::endl;
+      out << std::endl;
+    }
+
+    for (const auto &ev : state.events)
+    {
+      out << "static RegCompSpec<" << ev.type << "> _reg_event_" << ev.name << ";" << std::endl;
+      out << "int RegCompSpec<" << ev.type << ">::ID = -1;" << std::endl;
       out << std::endl;
     }
 

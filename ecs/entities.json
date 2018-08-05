@@ -1,16 +1,106 @@
 {
   "$entities": [
     {
-      "$template": "spawner_ball",
+      "$template": "fox",
       "$components": {
-        "pos": {
-          "x": 10.0,
-          "y": 10.0
-        },
-        "vel": {
-          "x": 50.0,
-          "y": 50.0
-        }
+        "pos": [
+          0.0,
+          -32.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          0.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          32.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          64.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          -32.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          -64.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          -96.0,
+          32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          96.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          128.0,
+          -32.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          -128.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "$template": "brick",
+      "$components": {
+        "pos": [
+          -160.0,
+          -32.0
+        ]
       }
     }
   ]

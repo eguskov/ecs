@@ -6,8 +6,7 @@ struct EventOnSpawn : Event
 {
   int count;
   EventOnSpawn(int _count) : count(_count) {}
-};
-REG_EVENT(EventOnSpawn);
+} DEF_EVENT(EventOnSpawn);
 
 struct EventOnAnotherTest : Event
 {
@@ -15,5 +14,4 @@ struct EventOnAnotherTest : Event
   float y;
   float z;
   EventOnAnotherTest(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
-};
-REG_EVENT(EventOnAnotherTest);
+} DEF_EVENT(EventOnAnotherTest);

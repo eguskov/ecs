@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "color.component.h"
+#include "color.ecs.h"
 
 static RegCompSpec<ColorComponent> _reg_comp_color("color");
 template <> int RegCompSpec<ColorComponent>::ID = -1;

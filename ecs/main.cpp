@@ -8,7 +8,7 @@
 #include "stages/update.stage.h"
 #include "stages/render.stage.h"
 
-#include "systems/update.h"
+#include "systems/update.ecs.h"
 
 template <size_t N>
 void call(const eastl::array<int, N> &offets, uint8_t** compontes)
@@ -37,6 +37,10 @@ int main()
   testFunc<0, 1, 2>(eastl::make_index_sequence<3>{});
 
   std::srand(unsigned(std::time(0)));
+
+  InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
+
+  SetTargetFPS(60);
 
   EntityManager::init();
 
@@ -67,22 +71,23 @@ int main()
     }
   }
 
-  InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
-
-  SetTargetFPS(60);
-
+  float totalTime = 0.f;
   while (!WindowShouldClose())
   {
-    if (IsKeyReleased(KEY_SPACE))
+    /*if (IsKeyReleased(KEY_SPACE))
     {
       eastl::vector<EntityId> eids;
       g_mgr->queryEids(eids, { { "timer", "timer" } });
       g_mgr->sendEvent(eids[0], EventOnSpawn{1000});
-    }
+    }*/
     double t = GetTime();
     g_mgr->tick();
-    g_mgr->tickSoA(UpdateStage{ GetFrameTime() });
+
+    float dt = GetFrameTime();
+    g_mgr->tickSoA(UpdateStage{ dt, totalTime });
     float delta = (float)((GetTime() - t) * 1e3);
+
+    totalTime += dt;
 
     BeginDrawing();
 

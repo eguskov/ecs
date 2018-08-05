@@ -1,124 +1,210 @@
 {
   "$order": [
-    "spawner",
+    "load_texture_handler",
+    "reg_anim_seq_handler",
+    "read_controls",
+    "apply_controls",
+    "apply_gravity",
+    "apply_jump",
     "update_collisions",
-    "update_velocity",
     "update_position",
-    "update_vels",
-    "render",
-    "spawn_handler"
+    "validate_position",
+    "select_current_anim_frame",
+    "update_anim_frame",
+    "render"
   ],
   "$templates": [
     {
-      "$name": "spawner_ball",
+      "$name": "fox",
       "$components": {
-        "damping": {
-          "$type": "float",
-          "$value": 0.0
-        },
-        "mass": {
-          "$type": "float",
-          "$value": 5.0
-        },
-        "pos": {
-          "$type": "vec2",
-          "$value": {
-            "x": 10.0,
-            "y": 10.0
-          }
-        },
-        "pos_copy": {
-          "$type": "vec2",
-          "$value": {
-            "x": 20.0,
-            "y": 20.0
-          }
-        },
-        "vel": {
-          "$type": "vec2",
-          "$value": {
-            "x": 30.0,
-            "y": 30.0
-          }
-        },
-        "color": {
-          "$type": "color",
-          "$value": {
-            "r": 0,
-            "g": 255,
-            "b": 0
-          }
-        },
-        "timer": {
-          "$type": "timer",
-          "$value": {
-            "time": 0.0,
-            "period": 0.1
-          }
+        "user_input": {
+          "$type": "user_input",
+          "$value": {}
         },
         "gravity": {
           "$type": "gravity",
-          "$value": {}
+          "$value": {
+            "mass": 25.0
+          }
         },
-        "vels": {
-          "$type": "vec2[2]",
+        "jump": {
+          "$type": "jump",
+          "$value": {
+            "height": 16.0,
+            "duration": 0.1
+          }
+        },
+        "pos": {
+          "$type": "vec2",
           "$value": [
-            {
-              "x": 1.0,
-              "y": 1.0
-            },
-            {
-              "x": 2.0,
-              "y": 2.0
-            }
+            0.0,
+            0.0
           ]
+        },
+        "vel": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            0.0
+          ]
+        },
+        "collision_rect": {
+          "$type": "vec2",
+          "$value": [
+            32.0,
+            32.0
+          ]
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/atlas/atlas.png"
+          }
+        },
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": { "node": "idle" }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "idle": {
+                "fps": 10.0,
+                "frames": [
+                  {
+                    "x": 105,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 350,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 452,
+                    "y": 0,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 315,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  }
+                ]
+              },
+              "run": {
+                "fps": 10.0,
+                "frames": [
+                  {
+                    "x": 385,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 35,
+                    "y": 68,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 0,
+                    "y": 68,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 420,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 455,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  },
+                  {
+                    "x": 417,
+                    "y": 0,
+                    "w": 33,
+                    "h": 32
+                  }
+                ]
+              },
+              "jump": {
+                "fps": 10.0,
+                "frames": [
+                  {
+                    "x": 35,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  }
+                ]
+              },
+              "fall": {
+                "fps": 10.0,
+                "frames": [
+                  {
+                    "x": 0,
+                    "y": 34,
+                    "w": 33,
+                    "h": 32
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },
     {
-      "$name": "ball",
+      "$name": "brick",
       "$components": {
-        "damping": {
-          "$type": "float",
-          "$value": 0.02
-        },
-        "mass": {
-          "$type": "float",
-          "$value": 1.0
-        },
         "pos": {
           "$type": "vec2",
-          "$value": {
-            "x": 10.0,
-            "y": 10.0
-          }
+          "$value": [
+            0.0,
+            0.0
+          ]
         },
-        "vel": {
+        "collision_rect": {
           "$type": "vec2",
-          "$value": {
-            "x": 30.0,
-            "y": 30.0
-          }
+          "$value": [
+            32.0,
+            32.0
+          ]
         },
-        "color": {
-          "$type": "color",
-          "$value": {
-            "r": 0,
-            "g": 255,
-            "b": 0
-          }
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            2,
+            93,
+            32,
+            32
+          ]
         },
-        "pos_copy": {
-          "$type": "vec2",
+        "texture": {
+          "$type": "texture",
           "$value": {
-            "x": 20.0,
-            "y": 20.0
-          }
-        },
-        "no_hit_timer": {
-          "$type": "no_hit_timer",
-          "$value": {
-            "time": 2.0
+            "path": "../assets/atlas/atlas-props.png"
           }
         }
       }

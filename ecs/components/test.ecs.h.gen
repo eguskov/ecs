@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "test.component.h"
+#include "test.ecs.h"
 
 static RegCompSpec<TestComponent> _reg_comp_test("test");
 template <> int RegCompSpec<TestComponent>::ID = -1;

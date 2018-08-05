@@ -7,15 +7,15 @@
 
 struct EntityManager;
 
-#define __DEF_QUERY() { template <typename C> static void exec(C); }
+#define __DEF_QUERY(name) struct name { template <typename C> static void exec(C); }
 
 #ifdef __CODEGEN__
 #define DEF_SYS() __attribute__((annotate("@system")))
-#define DEF_QUERY() __DEF_QUERY() __attribute__((annotate("@query")))
+#define DEF_QUERY(name) __DEF_QUERY(name) __attribute__((annotate("@query")))
 #define HAS_COMP(name) __attribute__((annotate("@has: " #name)))
 #else
 #define DEF_SYS(...)
-#define DEF_QUERY(...) __DEF_QUERY();
+#define DEF_QUERY(name) __DEF_QUERY(name);
 #define HAS_COMP(...)
 #endif
 

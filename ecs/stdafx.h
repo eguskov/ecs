@@ -26,6 +26,8 @@
 #include <EASTL/sort.h>
 #include <EASTL/tuple.h>
 #include <EASTL/functional.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/string_map.h>
 
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>

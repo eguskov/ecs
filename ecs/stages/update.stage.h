@@ -6,6 +6,7 @@
 struct UpdateStage : Stage
 {
   float dt;
-  UpdateStage(float _dt) : dt(_dt) {}
+  float total;
+  UpdateStage(float _dt, float _total) : dt(_dt), total(_total) {}
 };
 REG_STAGE(UpdateStage, update_stage);

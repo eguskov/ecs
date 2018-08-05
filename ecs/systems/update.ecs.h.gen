@@ -1,0 +1,14 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "update.ecs.h"
+
+static RegCompSpec<EventOnSpawn> _reg_event_EventOnSpawn;
+int RegCompSpec<EventOnSpawn>::ID = -1;
+
+static RegCompSpec<EventOnAnotherTest> _reg_event_EventOnAnotherTest;
+int RegCompSpec<EventOnAnotherTest>::ID = -1;
+
+#endif // __CODEGEN__

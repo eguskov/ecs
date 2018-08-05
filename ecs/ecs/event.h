@@ -1,5 +1,13 @@
 #pragma once
 
+#include "component.h"
+
+#ifdef __CODEGEN__
+#define DEF_EVENT(...) __attribute__((annotate("@event")))
+#else
+#define DEF_EVENT(type) ;REG_EVENT(type)
+#endif
+
 #define REG_EVENT(type) \
   template <> struct Desc<type> { constexpr static char* typeName = #type; constexpr static char* name = #type; }; \
   template <> \
