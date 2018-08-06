@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <regex>
 
 #include <EASTL/vector.h>
@@ -55,6 +56,18 @@ namespace utils
     }
 
     return eastl::string(result.str().c_str());
+  }
+
+  static eastl::vector<eastl::string> split(const eastl::string &str, char delim)
+  {
+    eastl::vector<eastl::string> elems;
+    std::stringstream ss(str.c_str());
+
+    std::string item;
+    while (std::getline(ss, item, delim))
+      elems.emplace_back(item.c_str());
+
+    return elems;
   }
 }
 
@@ -130,6 +143,12 @@ void dump_cursor(CXCursor cursor, CXCursor parent)
 {
   int level = 0;
   dump_cursor_visitor(cursor, parent, &level);
+}
+
+void dump_cursor(CXCursor cursor)
+{
+  int level = 0;
+  dump_cursor_visitor(cursor, clang_getNullCursor(), &level);
 }
 
 eastl::string get_type_ref(CXCursor cursor)
@@ -243,6 +262,8 @@ int main(int argc, char* argv[])
       eastl::string comment;
 
       eastl::vector<Parameter> parameters;
+      eastl::vector<Parameter> have;
+      eastl::vector<Parameter> not_have;
     };
 
     struct System : Function
@@ -323,6 +344,24 @@ int main(int argc, char* argv[])
             auto &q = state.queries.push_back();
             q.name = eastl::move(structName);
           }
+          else if (utils::startsWith(name, "@have: "))
+          {
+            auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
+            if (it != state.queries.end())
+            {
+              auto &p = it->have.emplace_back();
+              p.name = name.substr(::strlen("@have: "));
+            }
+          }
+          else if (utils::startsWith(name, "@not-have: "))
+          {
+            auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
+            if (it != state.queries.end())
+            {
+              auto &p = it->not_have.emplace_back();
+              p.name = name.substr(::strlen("@not-have: "));
+            }
+          }
         }
 
         return CXChildVisit_Continue;
@@ -352,6 +391,24 @@ int main(int argc, char* argv[])
             sys.name = eastl::move(funcName);
 
             read_function_params(parent, sys.parameters);
+          }
+          else if (utils::startsWith(name, "@have: "))
+          {
+            auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
+            if (it != state.systems.end())
+            {
+              auto &p = it->have.emplace_back();
+              p.name = name.substr(::strlen("@have: "));
+            }
+          }
+          else if (utils::startsWith(name, "@not-have: "))
+          {
+            auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
+            if (it != state.systems.end())
+            {
+              auto &p = it->not_have.emplace_back();
+              p.name = name.substr(::strlen("@not-have: "));
+            }
           }
         }
         else if (kind == CXCursor_CompoundStmt)
@@ -396,7 +453,7 @@ int main(int argc, char* argv[])
                   if (kind == CXCursor_LambdaExpr)
                   {
                     auto it = eastl::find_if(parentState.queries.begin(), parentState.queries.end(), [&](const VisitorState::Query &f) { return f.name == state.type; });
-                    if (it != parentState.queries.end())
+                    if (it != parentState.queries.end() && it->parameters.empty())
                       read_function_params(cursor, it->parameters);
                     return CXChildVisit_Continue;
                   }
@@ -554,27 +611,42 @@ int main(int argc, char* argv[])
     for (const auto &sys : state.systems)
     {
       out << "template <> struct Desc<decltype(" << sys.name << ")> { constexpr static char* name = \"" << sys.name << "\"; };" << std::endl;
-      out << "static RegSysSpec<decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name << ", { ";
-
-      out << joinParameterNames(sys.parameters);
-
-      out << " }, true);" << std::endl;
+      out << "static RegSysSpec<decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
+      out << ", { " << joinParameterNames(sys.parameters) << " }";
+      out << ", { " << joinParameterNames(sys.have) << " }";
+      out << ", true); " << std::endl;
       out << std::endl;
     }
 
+    for (auto &q : state.queries)
+      if (q.parameters.empty())
+      {
+        auto &p = q.parameters.emplace_back();
+        p.name = "eid";
+        p.type = "EntityId";
+      }
+
+    eastl::vector<eastl::string> queryParams;
+
     for (const auto &q : state.queries)
     {
+      eastl::string params = joinParameterNames(q.parameters);
+      const bool skipDesc = eastl::find(queryParams.begin(), queryParams.end(), params) != queryParams.end();
+      if (!skipDesc)
+        queryParams.push_back(params);
+
       out << "static __forceinline void exec_" << q.name << "(" << joinParameters(q.parameters) << ") {}\n" << std::endl;
 
-      out << "template <> struct Desc<decltype(exec_" << q.name << ")> { constexpr static char* name = \"exec_" << q.name << "\"; };" << std::endl;
-      out << "static RegSysSpec<decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name << ", { ";
-
-      out << joinParameterNames(q.parameters);
-
-      out << " }, false);" << std::endl;
+      if (!skipDesc)
+        out << "template <> struct Desc<decltype(exec_" << q.name << ")> { constexpr static char* name = \"exec_" << q.name << "\"; };" << std::endl;
+      out << "static RegSysSpec<decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name;
+      out << ", { " << joinParameterNames(q.parameters) << " }";
+      out << ", { " << joinParameterNames(q.have) << " }";
+      out << ", false); " << std::endl;
       out << std::endl;
 
-      out << "template <> template <> __forceinline void RegSysSpec<decltype(exec_" << q.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      if (!skipDesc)
+        out << "template <> template <> __forceinline void RegSysSpec<decltype(exec_" << q.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;

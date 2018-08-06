@@ -11,8 +11,10 @@
 
 #ifdef __CODEGEN__
 #define DEF_COMP(type, name) __attribute__((annotate("@component: " #name)))
+#define DEF_EMPTY_COMP(type, name) { bool set(const JValue&) { return true; }; } __attribute__((annotate("@component: " #name)));
 #else
 #define DEF_COMP(type, name) ;REG_COMP(type, name);
+#define DEF_EMPTY_COMP(type, name) { bool set(const JValue&) { return true; }; };REG_COMP(type, name);
 #endif
 
 #define REG_COMP(type, n) \

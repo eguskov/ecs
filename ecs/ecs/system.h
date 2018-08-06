@@ -10,13 +10,15 @@ struct EntityManager;
 #define __DEF_QUERY(name) struct name { template <typename C> static void exec(C); }
 
 #ifdef __CODEGEN__
-#define DEF_SYS() __attribute__((annotate("@system")))
-#define DEF_QUERY(name) __DEF_QUERY(name) __attribute__((annotate("@query")))
-#define HAS_COMP(name) __attribute__((annotate("@has: " #name)))
+#define DEF_SYS(...) __VA_ARGS__ __attribute__((annotate("@system")))
+#define DEF_QUERY(name, ...) __DEF_QUERY(name) __VA_ARGS__ __attribute__((annotate("@query")))
+#define HAVE_COMP(name) __attribute__((annotate("@have: " #name)))
+#define NOT_HAVE_COMP(name) __attribute__((annotate("@not-have: " #name)))
 #else
 #define DEF_SYS(...)
-#define DEF_QUERY(name) __DEF_QUERY(name);
-#define HAS_COMP(...)
+#define DEF_QUERY(name, ...) __DEF_QUERY(name);
+#define HAVE_COMP(...)
+#define NOT_HAVE_COMP(...)
 #endif
 
 #define REG_SYS_BASE(func, ...) \
@@ -119,6 +121,7 @@ struct RegSys
 
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
+  eastl::vector<CompDesc> haveComponents;
 
   RegSys(const char *_name, int _id, bool need_order = true);
   virtual ~RegSys();
@@ -197,6 +200,7 @@ struct RegSysSpec<R(Args...)> : RegSys
   using SysFuncType = eastl::function<R(Args...)>;
   using Indices = eastl::make_index_sequence<ArgsCount>;
   using StringArray = eastl::array<const char*, ArgsCount>;
+  using StringList = std::initializer_list<const char*>;
   using ReturnType = R;
 
   template <std::size_t N>
@@ -299,17 +303,19 @@ struct RegSysSpec<R(Args...)> : RegSys
     }
   }
 
-  RegSysSpec(const char *name, const SysType &_sys, const StringArray &arr, bool need_order) : RegSys(name, reg_sys_count, need_order), sys(_sys), componentNames(arr)
+  RegSysSpec(const char *name, const SysType &_sys, const StringArray &names, const StringList &have, bool need_order) :
+    RegSys(name, reg_sys_count, need_order),
+    sys(_sys),
+    componentNames(names)
   {
     stageFnSoA = (StageFuncSoA)&RegSysSpec::execStageSoA;
 
     next = reg_sys_head;
     reg_sys_head = this;
     ++reg_sys_count;
-  }
 
-  RegSysSpec(SysFuncType &&_sys, StringArray &&arr) : RegSys(nullptr, -1), sysFunc(eastl::move(_sys)), componentNames(eastl::move(arr))
-  {
+    for (const auto &n : have)
+      haveComponents.emplace_back().name = n;
   }
 
   void init(const EntityManager *mgr) override final
@@ -322,13 +328,11 @@ struct RegSysSpec<R(Args...)> : RegSys
       components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), componentNames[i], desc });
     }
 
-    /*eastl::sort(components.begin(), components.end(),
-      [](const CompDesc &lhs, const CompDesc &rhs)
-      {
-        if (lhs.desc->id == rhs.desc->id)
-          return lhs.name < rhs.name;
-        return lhs.desc->id < rhs.desc->id;
-      });*/
+    for (auto &c : haveComponents)
+    {
+      c.desc = find_comp(c.name.c_str());
+      assert(c.desc != nullptr);
+    }
 
     compMask.resize(reg_comp_count);
     compMask.set(reg_comp_count, false);

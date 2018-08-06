@@ -21,6 +21,17 @@ struct RegCompSpec<EntityId> : RegComp
 };
 
 template <>
+struct Setter<bool>
+{
+  static inline bool set(bool &v, const JValue &value)
+  {
+    assert(value.IsBool());
+    v = value.GetBool();
+    return true;
+  }
+};
+
+template <>
 struct Setter<int>
 {
   static inline bool set(int &v, const JValue &value)
@@ -81,6 +92,7 @@ struct Setter<glm::vec4>
   }
 };
 
+REG_COMP(bool, bool);
 REG_COMP(int, int);
 REG_COMP(float, float);
 REG_COMP(glm::vec2, vec2);

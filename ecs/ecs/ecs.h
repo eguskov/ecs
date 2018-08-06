@@ -43,6 +43,7 @@ struct Template
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
   eastl::vector<RegSys::Remap> remaps;
+  eastl::vector<int> extends;
 
   bool hasCompontent(int id, const char *name) const;
   int getCompontentOffset(int id, const char *name) const;
@@ -145,7 +146,8 @@ struct EntityManager
   int getSystemId(const char *name) const;
   int getComponentNameId(const char *name) const;
 
-  void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names);
+  int getTemplateId(const char *name);
+  void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntitySync(const char *templ_name, const JValue &comps);

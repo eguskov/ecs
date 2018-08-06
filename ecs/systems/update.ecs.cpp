@@ -15,6 +15,9 @@
 extern int screen_width;
 extern int screen_height;
 
+struct Wall DEF_EMPTY_COMP(Wall, wall);
+struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
+
 struct Gravity
 {
   float mass = 0.f;
@@ -58,8 +61,6 @@ struct TextureComp
 {
   eastl::string path;
 
-  bool isFlipped = false;
-
   int width = 0;
 
   Texture2D id;
@@ -92,7 +93,7 @@ struct AnimGraph
       auto &node = nodesMap[it->name.GetString()];
       node.fps = it->value["fps"].GetFloat();
       node.frameDt = 1.f / node.fps;
-      for (int i = 0; i < it->value["frames"].Size(); ++i)
+      for (int i = 0; i < (int)it->value["frames"].Size(); ++i)
       {
         auto &frame = node.frames.emplace_back();
         frame.x = it->value["frames"][i]["x"].GetFloat();
@@ -119,6 +120,15 @@ struct AnimState
 }
 DEF_COMP(AnimState, anim_state);
 
+struct AutoMove
+{
+  bool set(const JValue &value)
+  {
+    return true;
+  }
+}
+DEF_COMP(AutoMove, auto_move);
+
 DEF_SYS()
 static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureComp &texture)
 {
@@ -128,7 +138,6 @@ static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, Te
   ImageFlipHorizontal(&image);
   texture.flippedId = LoadTextureFromImage(image);
   texture.width = texture.id.width;
-  // texture.id = LoadTexture(texture.path.c_str());
 }
 
 DEF_SYS()
@@ -157,39 +166,14 @@ static __forceinline void render(
   const RenderStage &stage,
   const TextureComp &texture,
   const glm::vec4 &frame,
-  const glm::vec2 &pos)
+  const glm::vec2 &pos,
+  bool is_flipped)
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.isFlipped ? texture.flippedId : texture.id, Rectangle{ texture.isFlipped ?  texture.width - frame.x - frame.w : frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(is_flipped ? texture.flippedId : texture.id, Rectangle{ is_flipped ? texture.width - frame.x - frame.z : frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 255, 0, 0, 255 });
 }
-
-//DEF_SYS()
-//static __forceinline void update_vels(
-//  const UpdateStage &stage,
-//  const ArrayComp<glm::vec2, 2> &vels)
-//{
-//  vels[0];
-//}
-
-//DEF_SYS()
-//static __forceinline void update_velocity(
-//  const UpdateStage &stage,
-//  float damping,
-//  const glm::vec2 &pos,
-//  const glm::vec2 &pos_copy,
-//  glm::vec2 &vel)
-//{
-//  const int hw = 10;
-//  const int hh = 10;
-//  if (pos.x < hw || pos.x > screen_width - hw)
-//    vel.x = -vel.x;
-//  if (pos.y < hh || pos.y > screen_height - hh)
-//    vel.y = -vel.y;
-//
-//  vel *= 1.0f / (1.0f + stage.dt * damping);
-//}
 
 DEF_SYS()
 static __forceinline void read_controls(
@@ -212,12 +196,19 @@ static __forceinline void apply_controls(
   const UpdateStage &stage,
   const UserInput &user_input,
   Jump &jump,
-  glm::vec2 &vel)
+  glm::vec2 &vel,
+  bool &is_flipped)
 {
   if (user_input.left)
+  {
     vel.x = -50.f;
+    is_flipped = true;
+  }
   else if (user_input.right)
+  {
     vel.x = 50.f;
+    is_flipped = false;
+  }
   else
     vel.x = 0.f;
 
@@ -254,8 +245,6 @@ static __forceinline void apply_gravity(
   vel.y += gravity.mass * 9.8f * stage.dt;
 }
 
-DEF_QUERY(BricksQuery);
-
 eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec2 &rect_a, const glm::vec2 &pos_b, const glm::vec2 &rect_b)
 {
   const float dx = pos_b.x - pos_a.x;
@@ -287,11 +276,12 @@ eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &po
   return eastl::make_tuple(true, normal, pos);
 }
 
-DEF_SYS()
+DEF_QUERY(BricksQuery, HAVE_COMP(wall));
+
+DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_collisions(
   const UpdateStage &stage,
   const EntityId &eid,
-  const UserInput &user_input,
   const glm::vec2 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel)
@@ -332,10 +322,46 @@ static __forceinline void update_collisions(
   vel = myVel;
 }
 
-DEF_SYS()
+DEF_SYS(HAVE_COMP(auto_move))
+static __forceinline void update_auto_move_collisions(
+  const UpdateStage &stage,
+  const EntityId &eid,
+  const glm::vec2 &collision_rect,
+  glm::vec2 &pos,
+  glm::vec2 &vel,
+  bool &is_flipped)
+{
+  EntityId myEid = eid;
+  glm::vec2 myPos = pos;
+  glm::vec2 myVel = vel;
+  glm::vec2 myCollisionRect = collision_rect;
+
+  BricksQuery::exec([myEid, &is_flipped, &myPos, &myVel, myCollisionRect, &stage](const EntityId &eid, const glm::vec2 &collision_rect, const glm::vec2 &pos)
+  {
+    if (eid == myEid)
+      return;
+
+    bool isHit;
+    glm::vec2 normal;
+    glm::vec2 hitPos;
+    eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
+    if (isHit)
+    {
+      if (normal.x < 0.f || normal.x > 0.f)
+      {
+        myVel.x = normal.x * fabsf(myVel.x);
+        is_flipped = !is_flipped;
+      }
+    }
+  });
+
+  pos = myPos;
+  vel = myVel;
+}
+
+DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void select_current_anim_frame(
   const UpdateStage &stage,
-  const UserInput &user_input,
   const glm::vec2 &vel,
   TextureComp &texture,
   AnimState &anim_state)
@@ -365,8 +391,6 @@ static __forceinline void select_current_anim_frame(
       anim_state.frameNo = 0;
     anim_state.currentNode = "fall";
   }
-
-  texture.isFlipped = vel.x < 0.f;
 }
 
 DEF_SYS()
@@ -383,90 +407,53 @@ static __forceinline void validate_position(
   }
 }
 
-//DEF_QUERY(TestQuery);
+DEF_SYS(HAVE_COMP(auto_move))
+static __forceinline void update_auto_move(
+  const UpdateStage &stage,
+  const AutoMove &auto_move,
+  glm::vec2 &vel)
+{
+  // vel.x = 10.f;
+}
 
-//DEF_SYS() HAS_COMP(gravity)
-//static __forceinline void update_collisions(
-//  const UpdateStage &stage,
-//  EntityId eid,
-//  float mass,
-//  const Gravity &gravity,
-//  glm::vec2 &pos,
-//  glm::vec2 &vel)
-//{
-//  EntityId curEid = eid;
-//  glm::vec2 curPos = pos;
-//  glm::vec2 curVel = vel;
-//  float curMass = mass;
-//
-//  TestQuery::exec([curEid, curPos, &curVel, &stage](EntityId eid, float mass, const glm::vec2 &pos, const glm::vec2 &vel)
-//  {
-//    if (eid == curEid)
-//      return;
-//    const float r = glm::length(curPos - pos);
-//    if (r <= 0.01f || r > 10.f)
-//      return;
-//    const glm::vec2 f = (pos - curPos) * ((r - 10.f) / 10.f);
-//    curVel += f * stage.dt;
-//  });
-//
-//  // vel = curVel;
-//}
+DEF_QUERY(EnemiesQuery, HAVE_COMP(enemy));
 
-//DEF_SYS()
-//static __forceinline void spawner(const UpdateStage &stage, EntityId eid, TimerComponent &timer)
-//{
-//  timer.time += stage.dt;
-//  if (timer.time >= timer.period)
-//  {
-//    timer.time = 0.f;
-//    // g_mgr->sendEvent(eid, EventOnSpawn{});
-//  }
-//}
+DEF_SYS()
+static __forceinline void update_enemies_collisions(
+  const UpdateStage &stage,
+  const EntityId &eid,
+  UserInput &user_input,
+  const glm::vec2 &collision_rect,
+  glm::vec2 &pos,
+  glm::vec2 &vel,
+  bool &is_flipped)
+{
+  EntityId myEid = eid;
+  glm::vec2 myPos = pos;
+  glm::vec2 myVel = vel;
+  glm::vec2 myCollisionRect = collision_rect;
 
-//DEF_SYS()
-//static __forceinline void render(
-//  const RenderStage &stage,
-//  EntityId eid,
-//  const ColorComponent &color,
-//  const glm::vec2 &pos)
-//{
-//  DrawCircleV(Vector2{ pos.x, pos.y }, 10, CLITERAL{ color.r, color.g, color.b, 255 });
-//}
-//
-//DEF_SYS()
-//static __forceinline void spawn_handler(
-//  const EventOnSpawn &ev,
-//  EntityId eid,
-//  const glm::vec2 &vel,
-//  const glm::vec2 &pos)
-//{
-//  for (int i = 0; i < ev.count; ++i)
-//  {
-//    JDocument doc;
-//    auto &a = doc.GetAllocator();
-//
-//    const float sx = (float)GetRandomValue(-50, 50);
-//    const float sy = (float)GetRandomValue(-50, 50);
-//
-//    JValue posValue(rapidjson::kObjectType);
-//    posValue.AddMember("x", pos.x, a);
-//    posValue.AddMember("y", pos.y, a);
-//
-//    JValue velValue(rapidjson::kObjectType);
-//    velValue.AddMember("x", sx, a);
-//    velValue.AddMember("y", sy, a);
-//
-//    JValue colorValue(rapidjson::kObjectType);
-//    colorValue.AddMember("r", std::rand() % 256, a);
-//    colorValue.AddMember("g", std::rand() % 256, a);
-//    colorValue.AddMember("b", std::rand() % 256, a);
-//
-//    JValue value(rapidjson::kObjectType);
-//    value.AddMember("pos", posValue, a);
-//    value.AddMember("vel", velValue, a);
-//    value.AddMember("color", colorValue, a);
-//
-//    g_mgr->createEntity("ball", value);
-//  }
-//}
+  EnemiesQuery::exec([myEid, &is_flipped, &user_input, &myPos, &myVel, myCollisionRect, &stage](const EntityId &eid, const glm::vec2 &collision_rect, const glm::vec2 &pos, AnimState &anim_state)
+  {
+    if (eid == myEid)
+      return;
+
+    bool isHit;
+    glm::vec2 normal;
+    glm::vec2 hitPos;
+    eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
+    if (isHit)
+    {
+      if (normal.y < 0.f)
+      {
+        user_input.jump = true;
+        if (anim_state.currentNode != "death")
+          anim_state.frameNo = 0;
+        anim_state.currentNode = "death";
+      }
+    }
+  });
+
+  pos = myPos;
+  vel = myVel;
+}

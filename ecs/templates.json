@@ -3,9 +3,12 @@
     "load_texture_handler",
     "reg_anim_seq_handler",
     "read_controls",
+    "update_enemies_collisions",
     "apply_controls",
     "apply_gravity",
     "apply_jump",
+    "update_auto_move",
+    "update_auto_move_collisions",
     "update_collisions",
     "update_position",
     "validate_position",
@@ -14,6 +17,136 @@
     "render"
   ],
   "$templates": [
+    {
+      "$name": "enemy",
+      "$components": {
+        "enemy": {
+          "$type": "enemy",
+          "$value": {}
+        },
+        "pos": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            0.0
+          ]
+        },
+        "vel": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            0.0
+          ]
+        },
+        "is_flipped": {
+          "$type": "bool",
+          "$value": false
+        },
+        "is_alive": {
+          "$type": "bool",
+          "$value": true
+        }
+      }
+    },
+    {
+      "$name": "opossum",
+      "$extends": [
+        "enemy"
+      ],
+      "$components": {
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/atlas/atlas.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            368,
+            68,
+            36,
+            28
+          ]
+        },
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": {
+            "node": "run"
+          }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "run": {
+                "fps": 10.0,
+                "frames": [
+                  {
+                    "x": 368,
+                    "y": 68,
+                    "w": 36,
+                    "h": 28
+                  },
+                  {
+                    "x": 292,
+                    "y": 68,
+                    "w": 36,
+                    "h": 28
+                  },
+                  {
+                    "x": 330,
+                    "y": 68,
+                    "w": 36,
+                    "h": 28
+                  },
+                  {
+                    "x": 406,
+                    "y": 68,
+                    "w": 36,
+                    "h": 28
+                  },
+                  {
+                    "x": 0,
+                    "y": 102,
+                    "w": 36,
+                    "h": 28
+                  },
+                  {
+                    "x": 444,
+                    "y": 68,
+                    "w": 36,
+                    "h": 28
+                  }
+                ]
+              },
+              "death": {
+                "fps": 10.0,
+                "frames": [
+                  {"x":248,"y":102,"w":40,"h":41},
+                  {"x":122,"y":102,"w":40,"h":41},
+                  {"x":206,"y":102,"w":40,"h":41},
+                  {"x":164,"y":102,"w":40,"h":41},
+                  {"x":80,"y":102,"w":40,"h":41},
+                  {"x":38,"y":102,"w":40,"h":41}
+                ]
+              }
+            }
+          }
+        },
+        "auto_move": {
+          "$type": "auto_move",
+          "$value": {}
+        },
+        "collision_rect": {
+          "$type": "vec2",
+          "$value": [
+            32.0,
+            20.0
+          ]
+        }
+      }
+    },
     {
       "$name": "fox",
       "$components": {
@@ -55,6 +188,14 @@
             32.0
           ]
         },
+        "is_flipped": {
+          "$type": "bool",
+          "$value": false
+        },
+        "is_alive": {
+          "$type": "bool",
+          "$value": true
+        },
         "frame": {
           "$type": "vec4",
           "$value": [
@@ -72,7 +213,9 @@
         },
         "anim_state": {
           "$type": "anim_state",
-          "$value": { "node": "idle" }
+          "$value": {
+            "node": "idle"
+          }
         },
         "anim_graph": {
           "$type": "anim_graph",
@@ -178,6 +321,10 @@
     {
       "$name": "brick",
       "$components": {
+        "wall": {
+          "$type": "wall",
+          "$value": {}
+        },
         "pos": {
           "$type": "vec2",
           "$value": [
@@ -191,6 +338,14 @@
             32.0,
             32.0
           ]
+        },
+        "is_flipped": {
+          "$type": "bool",
+          "$value": false
+        },
+        "is_alive": {
+          "$type": "bool",
+          "$value": true
         },
         "frame": {
           "$type": "vec4",

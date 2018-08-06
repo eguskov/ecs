@@ -193,6 +193,10 @@ EntityManager::EntityManager()
         const JValue &templ = templatesDoc["$templates"][i];
 
         eastl::vector<eastl::pair<const char*, const char*>> comps;
+        eastl::vector<const char*> extends;
+        if (templ.HasMember("$extends"))
+          for (int j = 0; j < (int)templ["$extends"].Size(); ++j)
+            extends.push_back(templ["$extends"][j].GetString());
 
         const JValue &templComps = templ["$components"];
         for (auto compIter = templComps.MemberBegin(); compIter != templComps.MemberEnd(); ++compIter)
@@ -213,7 +217,7 @@ EntityManager::EntityManager()
           }
         }
 
-        addTemplate(i, templ["$name"].GetString(), comps);
+        addTemplate(i, templ["$name"].GetString(), comps, extends);
       }
     }
   }
@@ -267,7 +271,25 @@ int EntityManager::getComponentNameId(const char *name) const
   return it == componentNames.end() ? -1 : it - componentNames.begin();
 }
 
-void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names)
+static void add_component_to_template(const char *comp_type, const char *comp_name,
+  Template &templ, eastl::vector<eastl::string> &component_names, eastl::vector<Storage> &storages)
+{
+  templ.components.push_back({ 0, add_component_name(component_names, comp_name), comp_name, find_comp(comp_type) });
+
+  if (component_names.size() > storages.size())
+    storages.resize(component_names.size());
+
+  auto &storage = storages[templ.components.back().nameId];
+  if (storage.size <= 0)
+  {
+    storage.name = comp_name;
+    storage.size = templ.components.back().desc->size;
+  }
+
+  assert(storage.size == templ.components.back().desc->size);
+}
+
+void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends)
 {
   templates.emplace_back();
   auto &templ = templates.back();
@@ -276,22 +298,16 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.compMask.resize(reg_comp_count);
   templ.compMask.set(reg_comp_count, false);
 
-  for (const auto &name : comp_names)
+  for (const auto &e : extends)
   {
-    templ.components.push_back({ 0, add_component_name(componentNames, name.second), name.second, find_comp(name.first) });
-
-    if (componentNames.size() > storagesSoA.size())
-      storagesSoA.resize(componentNames.size());
-
-    auto &storage = storagesSoA[templ.components.back().nameId];
-    if (storage.size <= 0)
-    {
-      storage.name = name.second;
-      storage.size = templ.components.back().desc->size;
-    }
-
-    assert(storage.size == templ.components.back().desc->size);
+    const int templateId = getTemplateId(e);
+    templ.extends.push_back(templateId);
+    for (const auto &c : templates[templateId].components)
+      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, storagesSoA);
   }
+
+  for (const auto &name : comp_names)
+    add_component_to_template(name.first, name.second, templ, componentNames, storagesSoA);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)
@@ -350,16 +366,18 @@ void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
   entities[eid2idx(eid)].ready = false;
 }
 
+int EntityManager::getTemplateId(const char *name)
+{
+  for (size_t i = 0; i < templates.size(); ++i)
+    if (templates[i].name == name)
+      return i;
+  assert(false);
+  return -1;
+}
+
 void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
-  int templateId = -1;
-  for (size_t i = 0; i < templates.size(); ++i)
-    if (templates[i].name == templ_name)
-    {
-      templateId = (int)i;
-      break;
-    }
-  assert(templateId >= 0);
+  const int templateId = getTemplateId(templ_name);
 
   // TOOD: Search template by name
   auto &templ = templates[templateId];
@@ -407,6 +425,16 @@ void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &co
   JDocument tmpDoc;
   JValue tmpValue(rapidjson::kObjectType);
   tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
+  for (int id : templ.extends)
+  {
+    const JValue &extendsValue = templatesDoc["$templates"][templates[id].docId];
+    for (auto it = extendsValue["$components"].MemberBegin(); it != extendsValue["$components"].MemberEnd(); ++it)
+    {
+      JValue v(rapidjson::kObjectType);
+      v.CopyFrom(it->value, tmpDoc.GetAllocator());
+      tmpValue.AddMember(rapidjson::StringRef(it->name.GetString()), v, tmpDoc.GetAllocator());
+    }
+  }
 
   if (!comps.IsNull())
     for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
@@ -491,6 +519,16 @@ void EntityManager::invalidateQuery(Query &query)
         ok = false;
         break;
       }
+
+    if (ok)
+    {
+      for (const auto &c : query.sys->haveComponents)
+        if (!templ.hasCompontent(c.desc->id, c.name.c_str()))
+        {
+          ok = false;
+          break;
+        }
+    }
 
     if (ok)
       query.eids.push_back(e.eid);
