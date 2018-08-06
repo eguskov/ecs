@@ -10,6 +10,8 @@
     "update_auto_move",
     "update_auto_move_collisions",
     "update_collisions",
+    "update_death",
+    "update_spawn_timer",
     "update_position",
     "validate_position",
     "select_current_anim_frame",
@@ -45,6 +47,13 @@
         "is_alive": {
           "$type": "bool",
           "$value": true
+        },
+        "spawn_timer": {
+          "$type": "timer",
+          "$value": {
+            "time": 5.0,
+            "period": 5.0
+          }
         }
       }
     },
@@ -81,6 +90,7 @@
             "nodes": {
               "run": {
                 "fps": 10.0,
+                "loop": true,
                 "frames": [
                   {
                     "x": 368,
@@ -122,6 +132,7 @@
               },
               "death": {
                 "fps": 10.0,
+                "loop": false,
                 "frames": [
                   {"x":248,"y":102,"w":40,"h":41},
                   {"x":122,"y":102,"w":40,"h":41},
@@ -223,6 +234,7 @@
             "nodes": {
               "idle": {
                 "fps": 10.0,
+                "loop": true,
                 "frames": [
                   {
                     "x": 105,
@@ -252,6 +264,7 @@
               },
               "run": {
                 "fps": 10.0,
+                "loop": true,
                 "frames": [
                   {
                     "x": 385,
@@ -293,6 +306,7 @@
               },
               "jump": {
                 "fps": 10.0,
+                "loop": true,
                 "frames": [
                   {
                     "x": 35,
@@ -304,6 +318,7 @@
               },
               "fall": {
                 "fps": 10.0,
+                "loop": true,
                 "frames": [
                   {
                     "x": 0,

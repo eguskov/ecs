@@ -14,11 +14,15 @@ struct EntityManager;
 #define DEF_QUERY(name, ...) __DEF_QUERY(name) __VA_ARGS__ __attribute__((annotate("@query")))
 #define HAVE_COMP(name) __attribute__((annotate("@have: " #name)))
 #define NOT_HAVE_COMP(name) __attribute__((annotate("@not-have: " #name)))
+#define IS_TRUE(name) __attribute__((annotate("@is-true: " #name)))
+#define IS_FALSE(name) __attribute__((annotate("@is-false: " #name)))
 #else
 #define DEF_SYS(...)
 #define DEF_QUERY(name, ...) __DEF_QUERY(name);
 #define HAVE_COMP(...)
 #define NOT_HAVE_COMP(...)
+#define IS_TRUE(...)
+#define IS_FALSE(...)
 #endif
 
 #define REG_SYS_BASE(func, ...) \
