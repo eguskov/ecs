@@ -348,9 +348,9 @@ struct RegSysSpec<R(Args...)> : RegSys
       haveComponents.emplace_back().name = n;
     for (const auto &n : not_have)
       notHaveComponents.emplace_back().name = n;
-    for (const auto &n : track_true)
+    for (const auto &n : is_true)
       isTrueComponents.emplace_back().name = n;
-    for (const auto &n : track_false)
+    for (const auto &n : is_false)
       isFalseComponents.emplace_back().name = n;
   }
 
