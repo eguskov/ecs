@@ -73,14 +73,16 @@
     <ClCompile Include="components\core.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="components\core.h.gen" />
-    <ClCompile Include="systems\update.ecs.cpp.gen" />
     <ClCompile Include="**\*.gen">
       <Filter>gen</Filter>
     </ClCompile>
     <ClCompile Include="**\*.gen">
       <Filter>gen</Filter>
     </ClCompile>
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="**\*.gen" />
     <ClCompile Include="**\*.gen" />
     <ClCompile Include="**\*.gen" />
     <ClCompile Include="**\*.gen" />
@@ -104,9 +106,6 @@
     <CustomBuild Include="components\test.ecs.h" />
     <CustomBuild Include="components\timer.ecs.h" />
     <CustomBuild Include="systems\update.ecs.h" />
-    <CustomBuild Include="components\test.ecs.h" />
-    <CustomBuild Include="components\timer.ecs.h" />
-    <CustomBuild Include="systems\update.ecs.h" />
     <CustomBuild Include="**\*.ecs.h">
       <Filter>systems</Filter>
     </CustomBuild>
@@ -119,6 +118,9 @@
     <CustomBuild Include="**\*.ecs.h">
       <Filter>components</Filter>
     </CustomBuild>
+    <CustomBuild Include="**\*.ecs.h" />
+    <CustomBuild Include="**\*.ecs.h" />
+    <CustomBuild Include="**\*.ecs.h" />
     <CustomBuild Include="**\*.ecs.h" />
     <CustomBuild Include="**\*.ecs.h" />
     <CustomBuild Include="**\*.ecs.h" />

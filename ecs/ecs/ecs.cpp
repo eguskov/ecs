@@ -555,6 +555,16 @@ void EntityManager::invalidateQuery(Query &query)
     }
 
     if (ok)
+    {
+      for (const auto &c : query.sys->notHaveComponents)
+        if (templ.hasCompontent(c.desc->id, c.name.c_str()))
+        {
+          ok = false;
+          break;
+        }
+    }
+
+    if (ok)
       query.eids.push_back(e.eid);
   }
 }

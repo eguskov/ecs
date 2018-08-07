@@ -263,7 +263,9 @@ int main(int argc, char* argv[])
 
       eastl::vector<Parameter> parameters;
       eastl::vector<Parameter> have;
-      eastl::vector<Parameter> not_have;
+      eastl::vector<Parameter> notHave;
+      eastl::vector<Parameter> trackTrue;
+      eastl::vector<Parameter> trackFalse;
     };
 
     struct System : Function
@@ -358,8 +360,26 @@ int main(int argc, char* argv[])
             auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
             if (it != state.queries.end())
             {
-              auto &p = it->not_have.emplace_back();
+              auto &p = it->notHave.emplace_back();
               p.name = name.substr(::strlen("@not-have: "));
+            }
+          }
+          else if (utils::startsWith(name, "@is-true: "))
+          {
+            auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
+            if (it != state.queries.end())
+            {
+              auto &p = it->trackTrue.emplace_back();
+              p.name = name.substr(::strlen("@is-true: "));
+            }
+          }
+          else if (utils::startsWith(name, "@is-false: "))
+          {
+            auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
+            if (it != state.queries.end())
+            {
+              auto &p = it->trackFalse.emplace_back();
+              p.name = name.substr(::strlen("@is-false: "));
             }
           }
         }
@@ -406,8 +426,26 @@ int main(int argc, char* argv[])
             auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
             if (it != state.systems.end())
             {
-              auto &p = it->not_have.emplace_back();
+              auto &p = it->notHave.emplace_back();
               p.name = name.substr(::strlen("@not-have: "));
+            }
+          }
+          else if (utils::startsWith(name, "@is-true: "))
+          {
+            auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
+            if (it != state.systems.end())
+            {
+              auto &p = it->trackTrue.emplace_back();
+              p.name = name.substr(::strlen("@is-true: "));
+            }
+          }
+          else if (utils::startsWith(name, "@is-false: "))
+          {
+            auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
+            if (it != state.systems.end())
+            {
+              auto &p = it->trackFalse.emplace_back();
+              p.name = name.substr(::strlen("@is-false: "));
             }
           }
         }
@@ -614,6 +652,9 @@ int main(int argc, char* argv[])
       out << "static RegSysSpec<decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
       out << ", { " << joinParameterNames(sys.parameters) << " }";
       out << ", { " << joinParameterNames(sys.have) << " }";
+      out << ", { " << joinParameterNames(sys.notHave) << " }";
+      out << ", { " << joinParameterNames(sys.trackTrue) << " }";
+      out << ", { " << joinParameterNames(sys.trackFalse) << " }";
       out << ", true); " << std::endl;
       out << std::endl;
     }
@@ -642,6 +683,9 @@ int main(int argc, char* argv[])
       out << "static RegSysSpec<decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name;
       out << ", { " << joinParameterNames(q.parameters) << " }";
       out << ", { " << joinParameterNames(q.have) << " }";
+      out << ", { " << joinParameterNames(q.notHave) << " }";
+      out << ", { " << joinParameterNames(q.trackTrue) << " }";
+      out << ", { " << joinParameterNames(q.trackFalse) << " }";
       out << ", false); " << std::endl;
       out << std::endl;
 

@@ -144,7 +144,7 @@ static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, Te
   texture.width = texture.id.width;
 }
 
-DEF_SYS()
+DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
@@ -430,7 +430,7 @@ static __forceinline void validate_position(
   }
 }
 
-DEF_SYS(HAVE_COMP(auto_move), IS_TRUE(is_alive))
+DEF_SYS(HAVE_COMP(auto_move) IS_TRUE(is_alive))
 static __forceinline void update_auto_move(
   const UpdateStage &stage,
   const AutoMove &auto_move,

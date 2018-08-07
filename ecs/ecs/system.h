@@ -126,6 +126,9 @@ struct RegSys
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
   eastl::vector<CompDesc> haveComponents;
+  eastl::vector<CompDesc> notHaveComponents;
+  eastl::vector<CompDesc> isTrueComponents;
+  eastl::vector<CompDesc> isFalseComponents;
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
 
@@ -323,7 +326,14 @@ struct RegSysSpec<R(Args...)> : RegSys
     }
   }
 
-  RegSysSpec(const char *name, const SysType &_sys, const StringArray &names, const StringList &have, bool need_order) :
+  RegSysSpec(const char *name,
+    const SysType &_sys,
+    const StringArray &names,
+    const StringList &have,
+    const StringList &not_have,
+    const StringList &is_true,
+    const StringList &is_false,
+    bool need_order) :
     RegSys(name, reg_sys_count, need_order),
     sys(_sys),
     componentNames(names)
@@ -336,6 +346,12 @@ struct RegSysSpec<R(Args...)> : RegSys
 
     for (const auto &n : have)
       haveComponents.emplace_back().name = n;
+    for (const auto &n : not_have)
+      notHaveComponents.emplace_back().name = n;
+    for (const auto &n : track_true)
+      isTrueComponents.emplace_back().name = n;
+    for (const auto &n : track_false)
+      isFalseComponents.emplace_back().name = n;
   }
 
   void init(const EntityManager *mgr) override final
@@ -354,6 +370,24 @@ struct RegSysSpec<R(Args...)> : RegSys
     }
 
     for (auto &c : haveComponents)
+    {
+      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      assert(c.desc != nullptr);
+    }
+
+    for (auto &c : notHaveComponents)
+    {
+      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      assert(c.desc != nullptr);
+    }
+
+    for (auto &c : isTrueComponents)
+    {
+      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      assert(c.desc != nullptr);
+    }
+
+    for (auto &c : isFalseComponents)
     {
       c.desc = mgr->getComponentDescByNameId(c.name.c_str());
       assert(c.desc != nullptr);
