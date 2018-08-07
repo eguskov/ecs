@@ -271,15 +271,39 @@ int EntityManager::getComponentNameId(const char *name) const
   return it == componentNames.end() ? -1 : it - componentNames.begin();
 }
 
+const RegComp* EntityManager::getComponentDescByNameId(const char *name) const
+{
+  int nameId = getComponentNameId(name);
+  assert(nameId >= 0);
+  return componentDescByNames[nameId];
+}
+
 static void add_component_to_template(const char *comp_type, const char *comp_name,
-  Template &templ, eastl::vector<eastl::string> &component_names, eastl::vector<Storage> &storages)
+  Template &templ,
+  eastl::vector<eastl::string> &component_names,
+  eastl::vector<const RegComp*> &component_desc_by_names,
+  eastl::vector<Storage> &storages)
 {
   templ.components.push_back({ 0, add_component_name(component_names, comp_name), comp_name, find_comp(comp_type) });
+
+  if (component_desc_by_names.size() < component_names.size())
+  {
+    const int size = component_names.size();
+    component_desc_by_names.resize(component_names.size());
+    for (int i = size; i < (int)component_names.size(); ++i)
+      component_desc_by_names[i] = nullptr;
+  }
+
+  const int nameId = templ.components.back().nameId;
+  const RegComp *desc = templ.components.back().desc;
+  assert(desc != nullptr);
+  assert(component_desc_by_names[nameId] == nullptr || component_desc_by_names[nameId] == desc);
+  component_desc_by_names[nameId] = desc;
 
   if (component_names.size() > storages.size())
     storages.resize(component_names.size());
 
-  auto &storage = storages[templ.components.back().nameId];
+  auto &storage = storages[nameId];
   if (storage.size <= 0)
   {
     storage.name = comp_name;
@@ -303,11 +327,11 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     const int templateId = getTemplateId(e);
     templ.extends.push_back(templateId);
     for (const auto &c : templates[templateId].components)
-      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, storagesSoA);
+      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, componentDescByNames, storagesSoA);
   }
 
   for (const auto &name : comp_names)
-    add_component_to_template(name.first, name.second, templ, componentNames, storagesSoA);
+    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames, storagesSoA);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)

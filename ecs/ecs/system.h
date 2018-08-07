@@ -126,6 +126,8 @@ struct RegSys
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
   eastl::vector<CompDesc> haveComponents;
+  eastl::vector<int> roComponents;
+  eastl::vector<int> rwComponents;
 
   RegSys(const char *_name, int _id, bool need_order = true);
   virtual ~RegSys();
@@ -221,6 +223,7 @@ struct RegSysSpec<R(Args...)> : RegSys
     constexpr static bool isStage = eastl::is_base_of<Stage, PureType>::value;
     constexpr static bool isEvent = eastl::is_base_of<Event, PureType>::value;
     constexpr static bool isComponent = !isEid && !isStage && !isEvent;
+    constexpr static bool isConst = !eastl::is_reference<Type>::value || eastl::is_const<typename eastl::remove_reference<Type>::type>::value;
 
     constexpr static ValueSoAType getValueType()
     {
@@ -234,6 +237,12 @@ struct RegSysSpec<R(Args...)> : RegSys
     constexpr static ValueSoAType valueType = getValueType();
   };
 
+  struct ArgumentDesc
+  {
+    bool isConst;
+    const char *name;
+  };
+
   SysType sys;
   SysFuncType sysFunc;
   StringArray componentNames;
@@ -244,7 +253,14 @@ struct RegSysSpec<R(Args...)> : RegSys
     return StringArray{ {Argument<I>::CompDesc::name...} };
   }
 
+  template <std::size_t... I>
+  constexpr static auto createArguments(eastl::index_sequence<I...>)
+  {
+    return eastl::array<ArgumentDesc, ArgsCount>{ { { Argument<I>::isConst, Argument<I>::CompDesc::name }... } };
+  }
+
   constexpr static StringArray componentTypeNames = createNames(Indices{});
+  constexpr static eastl::array<ArgumentDesc, ArgsCount> arguments = createArguments(Indices{});
 
   template <int N>
   struct Counter
@@ -330,11 +346,16 @@ struct RegSysSpec<R(Args...)> : RegSys
       const RegComp *desc = find_comp(componentTypeNames[i]);
       assert(desc != nullptr);
       components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), componentNames[i], desc });
+
+      if (arguments[i].isConst)
+        roComponents.push_back(i);
+      else
+        rwComponents.push_back(i);
     }
 
     for (auto &c : haveComponents)
     {
-      c.desc = find_comp(c.name.c_str());
+      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
       assert(c.desc != nullptr);
     }
 

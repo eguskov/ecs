@@ -388,6 +388,16 @@ static __forceinline void update_auto_move_collisions(
   vel = myVel;
 }
 
+static void set_anim_node(AnimState &anim_state, const char *node, float start_time)
+{
+  if (anim_state.currentNode != node)
+  {
+    anim_state.frameNo = 0;
+    anim_state.startTime = start_time;
+  }
+  anim_state.currentNode = node;
+}
+
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void select_current_anim_frame(
   const UpdateStage &stage,
@@ -396,42 +406,14 @@ static __forceinline void select_current_anim_frame(
   AnimState &anim_state)
 {
   if (vel.x != 0.f)
-  {
-    if (anim_state.currentNode != "run")
-    {
-      anim_state.frameNo = 0;
-      anim_state.startTime = stage.total;
-    }
-    anim_state.currentNode = "run";
-  }
+    set_anim_node(anim_state, "run", stage.total);
   else
-  {
-    if (anim_state.currentNode != "idle")
-    {
-      anim_state.frameNo = 0;
-      anim_state.startTime = stage.total;
-    }
-    anim_state.currentNode = "idle";
-  }
+    set_anim_node(anim_state, "idle", stage.total);
 
   if (vel.y < 0.f)
-  {
-    if (anim_state.currentNode != "jump")
-    {
-      anim_state.frameNo = 0;
-      anim_state.startTime = stage.total;
-    }
-    anim_state.currentNode = "jump";
-  }
+    set_anim_node(anim_state, "jump", stage.total);
   else if (vel.y > 0.f)
-  {
-    if (anim_state.currentNode != "fall")
-    {
-      anim_state.frameNo = 0;
-      anim_state.startTime = stage.total;
-    }
-    anim_state.currentNode = "fall";
-  }
+    set_anim_node(anim_state, "fall", stage.total);
 }
 
 DEF_SYS()
@@ -448,7 +430,7 @@ static __forceinline void validate_position(
   }
 }
 
-DEF_SYS(HAVE_COMP(auto_move))
+DEF_SYS(HAVE_COMP(auto_move), IS_TRUE(is_alive))
 static __forceinline void update_auto_move(
   const UpdateStage &stage,
   const AutoMove &auto_move,
@@ -499,13 +481,9 @@ static __forceinline void update_enemies_collisions(
     {
       if (normal.y < 0.f)
       {
+        set_anim_node(anim_state, "death", stage.total);
+
         user_input.jump = true;
-        if (anim_state.currentNode != "death")
-        {
-          anim_state.frameNo = 0;
-          anim_state.startTime = stage.total;
-        }
-        anim_state.currentNode = "death";
         vel = glm::vec2(0.f, 0.f);
       }
     }

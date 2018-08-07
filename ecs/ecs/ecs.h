@@ -130,6 +130,7 @@ struct EntityManager
   eastl::vector<Entity> entities;
   eastl::vector<EntitySoA> entitiesSoA;
   eastl::vector<eastl::string> componentNames;
+  eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
@@ -145,6 +146,7 @@ struct EntityManager
 
   int getSystemId(const char *name) const;
   int getComponentNameId(const char *name) const;
+  const RegComp* getComponentDescByNameId(const char *name) const;
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
