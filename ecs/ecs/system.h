@@ -102,6 +102,12 @@ struct Storage
   {
     return &data[0];
   }
+
+  template <typename T>
+  const T& get(int offset) const
+  {
+    return *(T*)&data[offset];
+  }
 };
 
 DEF_HAS_METHOD(require);
@@ -194,15 +200,16 @@ struct ValueSoA<T, ValueSoAType::kEid>
   }
 };
 
-template <typename T>
+template <size_t D, typename T>
 struct RegSysSpec;
 
-template<class R, class... Args>
-struct RegSysSpec<R(*)(Args...)> : RegSysSpec<R(Args...)> {};
+template<size_t D, class R, class... Args>
+struct RegSysSpec<D, R(*)(Args...)> : RegSysSpec<D, R(Args...)> {};
 
-template<class R, class... Args>
-struct RegSysSpec<R(Args...)> : RegSys
+template<size_t D, class R, class... Args>
+struct RegSysSpec<D, R(Args...)> : RegSys
 {
+  static constexpr std::size_t Hash = D;
   static constexpr std::size_t ArgsCount = sizeof...(Args);
 
   using SysType = R(*)(Args...);
@@ -371,25 +378,29 @@ struct RegSysSpec<R(Args...)> : RegSys
 
     for (auto &c : haveComponents)
     {
-      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      c.desc = mgr->getComponentDescByName(c.name.c_str());
+      c.nameId = mgr->getComponentNameId(c.name.c_str());
       assert(c.desc != nullptr);
     }
 
     for (auto &c : notHaveComponents)
     {
-      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      c.desc = mgr->getComponentDescByName(c.name.c_str());
+      c.nameId = mgr->getComponentNameId(c.name.c_str());
       assert(c.desc != nullptr);
     }
 
     for (auto &c : isTrueComponents)
     {
-      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      c.desc = mgr->getComponentDescByName(c.name.c_str());
+      c.nameId = mgr->getComponentNameId(c.name.c_str());
       assert(c.desc != nullptr);
     }
 
     for (auto &c : isFalseComponents)
     {
-      c.desc = mgr->getComponentDescByNameId(c.name.c_str());
+      c.desc = mgr->getComponentDescByName(c.name.c_str());
+      c.nameId = mgr->getComponentNameId(c.name.c_str());
       assert(c.desc != nullptr);
     }
 

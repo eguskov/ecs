@@ -17,6 +17,35 @@
 #include <EASTL/string.h>
 #include <EASTL/functional.h>
 
+namespace hash 
+{
+	template <typename S> struct fnv_internal;
+	template <typename S> struct fnv1;
+	template <typename S> struct fnv1a;
+
+	template <> struct fnv_internal<uint32_t>
+	{
+		constexpr static uint32_t default_offset_basis = 0x811C9DC5;
+		constexpr static uint32_t prime                = 0x01000193;
+	};
+
+	template <> struct fnv1<uint32_t> : public fnv_internal<uint32_t>
+	{
+		constexpr static inline uint32_t hash(char const*const aString, const uint32_t val = default_offset_basis)
+		{
+			return (aString[0] == '\0') ? val : hash( &aString[1], ( val * prime ) ^ uint32_t(aString[0]) );
+		}
+	};
+
+	template <> struct fnv1a<uint32_t> : public fnv_internal<uint32_t>
+	{
+		constexpr static inline uint32_t hash(char const*const aString, const uint32_t val = default_offset_basis)
+		{
+			return (aString[0] == '\0') ? val : hash( &aString[1], ( val ^ uint32_t(aString[0]) ) * prime);
+		}
+	};
+}
+
 namespace utils
 {
   static bool startsWith(const eastl::string &str, const eastl::string &prefix)
@@ -648,16 +677,17 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> struct Desc<decltype(" << sys.name << ")> { constexpr static char* name = \"" << sys.name << "\"; };" << std::endl;
-      out << "static RegSysSpec<decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
+      out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
       out << ", { " << joinParameterNames(sys.parameters) << " }";
       out << ", { " << joinParameterNames(sys.have) << " }";
       out << ", { " << joinParameterNames(sys.notHave) << " }";
       out << ", { " << joinParameterNames(sys.trackTrue) << " }";
       out << ", { " << joinParameterNames(sys.trackFalse) << " }";
       out << ", true); " << std::endl;
-      out << std::endl;
     }
+
+    if (!state.systems.empty())
+      out << std::endl;
 
     for (auto &q : state.queries)
       if (q.parameters.empty())
@@ -667,20 +697,11 @@ int main(int argc, char* argv[])
         p.type = "EntityId";
       }
 
-    eastl::vector<eastl::string> queryParams;
-
     for (const auto &q : state.queries)
     {
-      eastl::string params = joinParameterNames(q.parameters);
-      const bool skipDesc = eastl::find(queryParams.begin(), queryParams.end(), params) != queryParams.end();
-      if (!skipDesc)
-        queryParams.push_back(params);
-
       out << "static __forceinline void exec_" << q.name << "(" << joinParameters(q.parameters) << ") {}\n" << std::endl;
 
-      if (!skipDesc)
-        out << "template <> struct Desc<decltype(exec_" << q.name << ")> { constexpr static char* name = \"exec_" << q.name << "\"; };" << std::endl;
-      out << "static RegSysSpec<decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name;
+      out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name;
       out << ", { " << joinParameterNames(q.parameters) << " }";
       out << ", { " << joinParameterNames(q.have) << " }";
       out << ", { " << joinParameterNames(q.notHave) << " }";
@@ -689,12 +710,11 @@ int main(int argc, char* argv[])
       out << ", false); " << std::endl;
       out << std::endl;
 
-      if (!skipDesc)
-        out << "template <> template <> __forceinline void RegSysSpec<decltype(exec_" << q.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
-      out << "  using SysType = RegSysSpec<decltype(exec_" << q.name << ")>;" << std::endl;
+      out << "  using SysType = RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>;" << std::endl;
       out << "  const auto &sys = _reg_sys_exec_" << q.name << ";" << std::endl;
       out << "  const auto &components = sys.components;" << std::endl;
       out << "  const auto &query = g_mgr->queries[sys.id];" << std::endl;
@@ -722,7 +742,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<decltype(" << sys.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
       out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;

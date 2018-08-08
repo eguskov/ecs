@@ -226,10 +226,10 @@ EntityManager::EntityManager()
     const_cast<RegSys*>(sys)->init(this);
 
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    systems.push_back({ sys->needOrder ? getSystemId(sys->name) : -1, sys });
+    systems.push_back({ sys->needOrder ? getSystemWeight(sys->name) : -1, sys });
 
   eastl::sort(systems.begin(), systems.end(),
-    [](const System &lhs, const System &rhs) { return lhs.id < rhs.id; });
+    [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
 
   queries.resize(reg_sys_count);
   for (const auto &sys : systems)
@@ -237,6 +237,30 @@ EntityManager::EntityManager()
     auto &q = queries[sys.desc->id];
     q.stageId = sys.desc->stageId;
     q.sys = sys.desc;
+  }
+
+  for (const auto &sys : systems)
+  {
+    for (const auto &c : sys.desc->isTrueComponents)
+      trackComponents.insert(c.nameId);
+    for (const auto &c : sys.desc->isFalseComponents)
+      trackComponents.insert(c.nameId);
+  }
+
+  for (const auto &sys : systems)
+  {
+    for (int nameId : trackComponents)
+    {
+      auto it = eastl::find_if(sys.desc->rwComponents.begin(), sys.desc->rwComponents.end(), [&](int id)
+      {
+        return sys.desc->components[id].nameId == nameId;
+      });
+
+      if (it != sys.desc->rwComponents.end())
+      {
+
+      }
+    }
   }
 
   eidCompId = find_comp("eid")->id;
@@ -247,7 +271,7 @@ EntityManager::~EntityManager()
   // TODO: Call dtors for components
 }
 
-int EntityManager::getSystemId(const char *name) const
+int EntityManager::getSystemWeight(const char *name) const
 {
   auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name; });
   assert(res != order.end());
@@ -271,7 +295,7 @@ int EntityManager::getComponentNameId(const char *name) const
   return it == componentNames.end() ? -1 : it - componentNames.begin();
 }
 
-const RegComp* EntityManager::getComponentDescByNameId(const char *name) const
+const RegComp* EntityManager::getComponentDescByName(const char *name) const
 {
   int nameId = getComponentNameId(name);
   assert(nameId >= 0);
@@ -511,6 +535,12 @@ void EntityManager::tick()
   if (shouldInvalidateQueries)
     for (auto &q : queries)
       invalidateQuery(q);
+  else
+  {
+    for (auto &q : queries)
+      if (q.dirty)
+        invalidateQuery(q);
+  }
 
   while (events.count)
   {
@@ -524,6 +554,8 @@ void EntityManager::tick()
 
 void EntityManager::invalidateQuery(Query &query)
 {
+  query.dirty = false;
+
   if (query.stageId < 0 && query.sys->eventId >= 0)
     return;
 
@@ -565,18 +597,68 @@ void EntityManager::invalidateQuery(Query &query)
     }
 
     if (ok)
+    {
+      for (const auto &c : query.sys->isTrueComponents)
+      {
+        const auto &entity = entitiesSoA[eid2idx(e.eid)];
+        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
+
+        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || !storagesSoA[c.nameId].get<bool>(offset))
+        {
+          ok = false;
+          break;
+        }
+      }
+    }
+
+    if (ok)
+    {
+      for (const auto &c : query.sys->isFalseComponents)
+      {
+        const auto &entity = entitiesSoA[eid2idx(e.eid)];
+        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
+
+        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || storagesSoA[c.nameId].get<bool>(offset))
+        {
+          ok = false;
+          break;
+        }
+      }
+    }
+
+    if (ok)
       query.eids.push_back(e.eid);
   }
 }
 
 void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
 {
+  // TODO: Fast stack allocator
+  eastl::vector<Storage> tmpCopy;
+  for (int nameId : trackComponents)
+    tmpCopy.emplace_back() = storagesSoA[nameId];
+
   for (const auto &sys : systems)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
       (sys.desc->*sys.desc->stageFnSoA)(query.eids.size(), query.eids.data(), stage, &storagesSoA[0]);
     }
+
+  bool changed = false;
+
+  int i = 0;
+  for (int nameId : trackComponents)
+    if (::memcmp(tmpCopy[i++].data.data(), storagesSoA[nameId].data.data(), storagesSoA[nameId].data.size()))
+    {
+      changed = true;
+      break;
+    }
+
+  // Invalidate only "is-true" "is-false" queries
+  if (changed)
+    for (auto &q : queries)
+      q.dirty = true;
 }
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)

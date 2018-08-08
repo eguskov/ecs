@@ -148,11 +148,8 @@ DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_position(
   const UpdateStage &stage,
   const glm::vec2 &vel,
-  glm::vec2 &pos,
-  bool is_alive)
+  glm::vec2 &pos)
 {
-  if (!is_alive)
-    return;
   pos += vel * stage.dt;
 }
 
@@ -179,21 +176,42 @@ static __forceinline void update_anim_frame(
   frame = node.frames[anim_state.frameNo];
 }
 
-DEF_SYS()
-static __forceinline void render(
+DEF_SYS(HAVE_COMP(wall) IS_TRUE(is_alive))
+static __forceinline void render_walls(
   const RenderStage &stage,
   const TextureComp &texture,
   const glm::vec4 &frame,
-  const glm::vec2 &pos,
-  bool is_flipped,
-  bool is_alive)
+  const glm::vec2 &pos)
 {
-  if (!is_alive)
-    return;
-
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(is_flipped ? texture.flippedId : texture.id, Rectangle{ is_flipped ? texture.width - frame.x - frame.z : frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+}
+
+
+DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive) IS_TRUE(is_flipped))
+static __forceinline void render_flipped(
+  const RenderStage &stage,
+  const TextureComp &texture,
+  const glm::vec4 &frame,
+  const glm::vec2 &pos)
+{
+  const float hw = screen_width * 0.5f;
+  const float hh = screen_height * 0.5f;
+  DrawTextureRec(texture.flippedId, Rectangle{ texture.width - frame.x - frame.z, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 0, 255, 0, 255 });
+}
+
+DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive) IS_FALSE(is_flipped))
+static __forceinline void render_normal(
+  const RenderStage &stage,
+  const TextureComp &texture,
+  const glm::vec4 &frame,
+  const glm::vec2 &pos)
+{
+  const float hw = screen_width * 0.5f;
+  const float hh = screen_height * 0.5f;
+  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 255, 0, 0, 255 });
 }
 
@@ -258,15 +276,12 @@ static __forceinline void apply_jump(
     jump.acitve = false;
 }
 
-DEF_SYS()
+DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void apply_gravity(
   const UpdateStage &stage,
   const Gravity &gravity,
-  glm::vec2 &vel,
-  bool is_alive)
+  glm::vec2 &vel)
 {
-  if (!is_alive)
-    return;
   vel.y += gravity.mass * 9.8f * stage.dt;
 }
 
@@ -347,19 +362,15 @@ static __forceinline void update_collisions(
   vel = myVel;
 }
 
-DEF_SYS(HAVE_COMP(auto_move))
+DEF_SYS(HAVE_COMP(auto_move) IS_TRUE(is_alive))
 static __forceinline void update_auto_move_collisions(
   const UpdateStage &stage,
   const EntityId &eid,
   const glm::vec2 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
-  bool &is_flipped,
-  bool is_alive)
+  bool &is_flipped)
 {
-  if (!is_alive)
-    return;
-
   EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
@@ -438,9 +449,9 @@ static __forceinline void update_auto_move(
 {
 }
 
-DEF_QUERY(EnemiesQuery, HAVE_COMP(enemy));
+DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
 
-DEF_SYS()
+DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_enemies_collisions(
   const UpdateStage &stage,
   const EntityId &eid,
@@ -448,29 +459,21 @@ static __forceinline void update_enemies_collisions(
   const glm::vec2 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
-  bool &is_flipped,
-  bool is_alive)
+  bool &is_flipped)
 {
-  if (!is_alive)
-    return;
-
   EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec2 myCollisionRect = collision_rect;
 
-  EnemiesQuery::exec([myEid, &is_flipped, &user_input, &myPos, &myVel, myCollisionRect, &stage](
+  AliveEnemiesQuery::exec([myEid, &is_flipped, &user_input, &myPos, &myVel, myCollisionRect, &stage](
     const EntityId &eid,
     const glm::vec2 &collision_rect,
     const glm::vec2 &pos,
     glm::vec2 &vel,
-    AnimState &anim_state,
-    bool is_alive)
+    AnimState &anim_state)
   {
     if (eid == myEid)
-      return;
-
-    if (!is_alive)
       return;
 
     bool isHit;
@@ -493,15 +496,12 @@ static __forceinline void update_enemies_collisions(
   vel = myVel;
 }
 
-DEF_SYS()
+DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_death(
   const UpdateStage &stage,
   const AnimState &anim_state,
   bool &is_alive)
 {
-  if (!is_alive)
-    return;
-
   if (anim_state.currentNode == "death" && anim_state.done)
     is_alive = false;
 }
@@ -515,9 +515,6 @@ static __forceinline void update_spawn_timer(
   bool &is_alive,
   bool &is_flipped)
 {
-  if (is_alive)
-    return;
-
   spawn_timer.time -= stage.dt;
   if (spawn_timer.time < 0.f)
   {

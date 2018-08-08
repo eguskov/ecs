@@ -76,7 +76,7 @@ struct EntitySoA
 
 struct System
 {
-  int id;
+  int weight;
   const RegSys *desc;
 };
 
@@ -112,6 +112,7 @@ struct AsyncValue
 
 struct Query
 {
+  bool dirty = false;
   int stageId = -1;
   const RegSys *sys = nullptr;
   EntityVector eids;
@@ -136,6 +137,8 @@ struct EntityManager
   eastl::vector<Query> queries;
   eastl::queue<CreateQueueData> createQueue;
 
+  eastl::set<int> trackComponents;
+
   EventStream events;
 
   static void init();
@@ -144,9 +147,9 @@ struct EntityManager
   EntityManager();
   ~EntityManager();
 
-  int getSystemId(const char *name) const;
+  int getSystemWeight(const char *name) const;
   int getComponentNameId(const char *name) const;
-  const RegComp* getComponentDescByNameId(const char *name) const;
+  const RegComp* getComponentDescByName(const char *name) const;
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);

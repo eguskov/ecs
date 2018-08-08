@@ -15,8 +15,11 @@
 #include <tchar.h>
 #include <stdint.h>
 
+#include <iostream>
+
 #include <EASTL/vector.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/set.h>
 #include <EASTL/array.h>
 #include <EASTL/string.h>
 #include <EASTL/bitset.h>

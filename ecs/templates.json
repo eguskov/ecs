@@ -16,7 +16,9 @@
     "validate_position",
     "select_current_anim_frame",
     "update_anim_frame",
-    "render"
+    "render_walls",
+    "render_normal",
+    "render_flipped"
   ],
   "$templates": [
     {
