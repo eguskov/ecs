@@ -1,6 +1,10 @@
 {
   "$entities": [
     {
+      "$template": "enemy_spawner",
+      "$components": {}
+    },
+    {
       "$template": "fox",
       "$components": {
         "pos": [
@@ -23,6 +27,19 @@
         "vel": [
           -20.0,
           0.0
+        ]
+      }
+    },
+    {
+      "$template": "eagle",
+      "$components": {
+        "pos": [
+          128.0,
+          -80.0
+        ],
+        "vel": [
+          0.0,
+          -1.0
         ]
       }
     },

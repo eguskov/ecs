@@ -2,6 +2,8 @@
 
 #include "stdafx.h"
 
+#include "ecs/storage.h"
+
 #include "io/json.h"
 
 #define __S(a) #a
@@ -51,6 +53,8 @@ struct RegComp
   virtual ~RegComp();
 
   virtual bool init(uint8_t *mem, const JValue &value) const = 0;
+
+  virtual Storage* createStorage() const { return nullptr; }
 };
 
 template <typename T>
@@ -130,8 +134,12 @@ struct RegCompSpec : RegComp
 
   bool init(uint8_t *mem, const JValue &value) const override final
   {
-    CompType *comp = new (mem) CompType;
-    return CompSetter<CompType>::set(comp, value["$value"]);
+    return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
+  }
+
+  Storage* createStorage() const override final
+  {
+    return new StorageSpec<CompType>;
   }
 
   RegCompSpec(const char *name) : RegComp(name, CompDesc::Size)

@@ -117,14 +117,17 @@ struct EntityManager
 
   eastl::vector<eastl::string> order;
   eastl::vector<Template> templates;
-  eastl::vector<Storage> storages;
+  eastl::vector<Storage*> storages;
   eastl::vector<Entity> entities;
   eastl::vector<eastl::string> componentNames;
   eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
+
   eastl::queue<CreateQueueData> createQueue;
+  eastl::queue<EntityId> deleteQueue;
+  eastl::queue<int> freeEntityQueue;
 
   eastl::set<int> trackComponents;
 
@@ -145,6 +148,8 @@ struct EntityManager
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntitySync(const char *templ_name, const JValue &comps);
+
+  void deleteEntity(EntityId eid);
 
   void waitFor(EntityId eid, std::future<bool> && value);
 

@@ -303,6 +303,7 @@ int main(int argc, char* argv[])
 
     struct Query : Function
     {
+      bool empty = false;
       CXCursor cursor;
       eastl::string components;
     };
@@ -692,6 +693,7 @@ int main(int argc, char* argv[])
     for (auto &q : state.queries)
       if (q.parameters.empty())
       {
+        q.empty = true;
         auto &p = q.parameters.emplace_back();
         p.name = "eid";
         p.type = "EntityId";
@@ -710,7 +712,7 @@ int main(int argc, char* argv[])
       out << ", false); " << std::endl;
       out << std::endl;
 
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
@@ -722,19 +724,24 @@ int main(int argc, char* argv[])
       out << "  ExtraArguments args;" << std::endl;
       out << "  for (int i = 0; i < (int)query.eids.size(); ++i)" << std::endl;
       out << "  {" << std::endl;
-      out << "    EntityId eid = query.eids[i];" << std::endl;
+      if (q.empty)
+        out << "    callback();" << std::endl;
+      else
+      {
+        out << "    EntityId eid = query.eids[i];" << std::endl;
 
-      out << "    args.eid = eid;" << std::endl;
+        out << "    args.eid = eid;" << std::endl;
 
-      out << "    const auto &entity = g_mgr->entities[eid2idx(eid)];" << std::endl;
-      out << "    const auto &templ = g_mgr->templates[entity.templateId];" << std::endl;
-      out << "    const auto &remap = templ.remaps[sys.id];" << std::endl;
-      out << "    const int *offsets = entity.componentOffsets.data();" << std::endl;
+        out << "    const auto &entity = g_mgr->entities[eid2idx(eid)];" << std::endl;
+        out << "    const auto &templ = g_mgr->templates[entity.templateId];" << std::endl;
+        out << "    const auto &remap = templ.remaps[sys.id];" << std::endl;
+        out << "    const int *offsets = entity.componentOffsets.data();" << std::endl;
 
-      out << "    const int argId[] = { " << argIdSeq(q.parameters.size()) << " };" << std::endl;
-      out << "    const int argOffset[] = { " << argOffsetSeq(q.parameters.size()) << " };" << std::endl;
+        out << "    const int argId[] = { " << argIdSeq(q.parameters.size()) << " };" << std::endl;
+        out << "    const int argOffset[] = { " << argOffsetSeq(q.parameters.size()) << " };" << std::endl;
 
-      out << "    callback(" << valuesSeq(q.parameters.size(), "SysType::") << ");" << std::endl;
+        out << "    callback(" << valuesSeq(q.parameters.size(), "SysType::") << ");" << std::endl;
+      }
 
       out << "  }" << std::endl;
       out << "}\n" << std::endl;
@@ -742,7 +749,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
       out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;

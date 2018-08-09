@@ -4,7 +4,16 @@
 
 struct EntityId
 {
-  uint32_t handle = 0;
+  union 
+  {
+    struct
+    {
+      uint32_t index : 16;
+      uint32_t generation : 16;
+    };
+    uint32_t handle = 0;
+  };
+
   EntityId(uint32_t h = 0) : handle(h) {}
   bool operator==(const EntityId &rhs) const { return handle == rhs.handle; }
 };

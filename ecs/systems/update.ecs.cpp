@@ -17,6 +17,7 @@ extern int screen_height;
 
 struct Wall DEF_EMPTY_COMP(Wall, wall);
 struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
+struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
 
 struct Gravity
 {
@@ -57,14 +58,24 @@ struct Jump
 }
 DEF_COMP(Jump, jump);
 
-struct TextureComp
+struct TextureAtlas
 {
   eastl::string path;
-
-  int width = 0;
-
   Texture2D id;
-  Texture2D flippedId;
+
+  TextureAtlas() = default;
+  TextureAtlas(TextureAtlas &&other) : path(eastl::move(other.path)), id(other.id)
+  {
+    other.id = Texture2D();
+  }
+
+  ~TextureAtlas()
+  {
+    UnloadTexture(id);
+  }
+
+  TextureAtlas(const TextureAtlas&) { assert(false); }
+  void operator=(const TextureAtlas&) { assert(false); }
 
   bool set(const JValue &value)
   {
@@ -73,7 +84,7 @@ struct TextureComp
     return true;
   };
 }
-DEF_COMP(TextureComp, texture);
+DEF_COMP(TextureAtlas, texture);
 
 struct AnimGraph
 {
@@ -113,7 +124,7 @@ struct AnimState
 {
   bool done = false;
   int frameNo = 0;
-  float startTime = 0.f;
+  float startTime = -1.f;
   eastl::string currentNode;
 
   bool set(const JValue &value)
@@ -126,22 +137,24 @@ DEF_COMP(AnimState, anim_state);
 
 struct AutoMove
 {
+  float time = 0.f;
+  float duration = 0.f;
+  float length = 0.f;
+
   bool set(const JValue &value)
   {
+    duration = value["duration"].GetFloat();
+    length = value["length"].GetFloat();
+    time = duration;
     return true;
   }
 }
 DEF_COMP(AutoMove, auto_move);
 
 DEF_SYS()
-static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureComp &texture)
+static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureAtlas &texture)
 {
-  Image image = LoadImage(texture.path.c_str());
-  ImageFormat(&image, UNCOMPRESSED_R8G8B8A8);
-  texture.id = LoadTextureFromImage(image);
-  ImageFlipHorizontal(&image);
-  texture.flippedId = LoadTextureFromImage(image);
-  texture.width = texture.id.width;
+  texture.id = LoadTexture(texture.path.c_str()); 
 }
 
 DEF_SYS(IS_TRUE(is_alive))
@@ -160,6 +173,9 @@ static __forceinline void update_anim_frame(
   AnimState &anim_state,
   glm::vec4 &frame)
 {
+  if (anim_state.startTime < 0.f)
+    anim_state.startTime = stage.total;
+
   const auto &node = anim_graph.nodesMap.at(anim_state.currentNode.c_str());
 
   const int frameNo = (int)floorf((stage.total - anim_state.startTime) / node.frameDt);
@@ -179,7 +195,7 @@ static __forceinline void update_anim_frame(
 DEF_SYS(HAVE_COMP(wall) IS_TRUE(is_alive))
 static __forceinline void render_walls(
   const RenderStage &stage,
-  const TextureComp &texture,
+  const TextureAtlas &texture,
   const glm::vec4 &frame,
   const glm::vec2 &pos)
 {
@@ -188,30 +204,17 @@ static __forceinline void render_walls(
   DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
-
-DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive) IS_TRUE(is_flipped))
-static __forceinline void render_flipped(
-  const RenderStage &stage,
-  const TextureComp &texture,
-  const glm::vec4 &frame,
-  const glm::vec2 &pos)
-{
-  const float hw = screen_width * 0.5f;
-  const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.flippedId, Rectangle{ texture.width - frame.x - frame.z, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
-  DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 0, 255, 0, 255 });
-}
-
-DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive) IS_FALSE(is_flipped))
+DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive))
 static __forceinline void render_normal(
   const RenderStage &stage,
-  const TextureComp &texture,
+  const TextureAtlas &texture,
   const glm::vec4 &frame,
-  const glm::vec2 &pos)
+  const glm::vec2 &pos,
+  float dir)
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 255, 0, 0, 255 });
 }
 
@@ -227,7 +230,7 @@ static __forceinline void read_controls(
     user_input.left = true;
   else if (IsKeyDown(KEY_RIGHT))
     user_input.right = true;
-  if (IsKeyReleased(KEY_SPACE))
+  if (IsKeyPressed(KEY_SPACE))
     user_input.jump = true;
 }
 
@@ -235,24 +238,25 @@ DEF_SYS()
 static __forceinline void apply_controls(
   const UpdateStage &stage,
   const UserInput &user_input,
+  bool is_on_ground,
   Jump &jump,
   glm::vec2 &vel,
-  bool &is_flipped)
+  float &dir)
 {
   if (user_input.left)
   {
     vel.x = -50.f;
-    is_flipped = true;
+    dir = -1.f;
   }
   else if (user_input.right)
   {
     vel.x = 50.f;
-    is_flipped = false;
+    dir = 1.f;
   }
   else
     vel.x = 0.f;
 
-  if (user_input.jump && !jump.acitve)
+  if (user_input.jump && !jump.acitve && is_on_ground)
   {
     jump.acitve = true;
     jump.startTime = stage.total;
@@ -263,17 +267,23 @@ DEF_SYS()
 static __forceinline void apply_jump(
   const UpdateStage &stage,
   Jump &jump,
+  bool &is_on_ground,
   glm::vec2 &vel)
 {
   if (!jump.acitve)
     return;
+
+  is_on_ground = false;
 
   const float k = glm::clamp((stage.total - jump.startTime) / jump.duration, 0.f, 1.f);
   const float v = jump.height / jump.duration;
   vel.y = -v;
 
   if (k >= 1.f)
+  {
+    vel.y *= 0.5f;
     jump.acitve = false;
+  }
 }
 
 DEF_SYS(IS_TRUE(is_alive))
@@ -321,21 +331,17 @@ DEF_QUERY(BricksQuery, HAVE_COMP(wall));
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_collisions(
   const UpdateStage &stage,
-  const EntityId &eid,
   const glm::vec2 &collision_rect,
+  bool &is_on_ground,
   glm::vec2 &pos,
   glm::vec2 &vel)
 {
-  EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec2 myCollisionRect = collision_rect;
 
-  BricksQuery::exec([myEid, &myPos, &myVel, myCollisionRect, &stage](const EntityId &eid, const glm::vec2 &collision_rect, const glm::vec2 &pos)
+  BricksQuery::exec([&myPos, &myVel, &is_on_ground, myCollisionRect, &stage](const glm::vec2 &collision_rect, const glm::vec2 &pos)
   {
-    if (eid == myEid)
-      return;
-
     bool isHit;
     glm::vec2 normal;
     glm::vec2 hitPos;
@@ -344,7 +350,10 @@ static __forceinline void update_collisions(
     {
       float d = 0.f;
       if (normal.y < 0.f)
+      {
+        is_on_ground = true;
         d = myCollisionRect.y - (pos.y - myPos.y);
+      }
       else if (normal.y > 0.f)
         d = pos.y + collision_rect.y - myPos.y;
       else if (normal.x < 0.f)
@@ -362,25 +371,20 @@ static __forceinline void update_collisions(
   vel = myVel;
 }
 
-DEF_SYS(HAVE_COMP(auto_move) IS_TRUE(is_alive))
+DEF_SYS(HAVE_COMP(enemy) IS_TRUE(is_alive))
 static __forceinline void update_auto_move_collisions(
   const UpdateStage &stage,
-  const EntityId &eid,
   const glm::vec2 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
-  bool &is_flipped)
+  float &dir)
 {
-  EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec2 myCollisionRect = collision_rect;
 
-  BricksQuery::exec([myEid, &is_flipped, &myPos, &myVel, myCollisionRect, &stage](const EntityId &eid, const glm::vec2 &collision_rect, const glm::vec2 &pos)
+  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, &stage](const glm::vec2 &collision_rect, const glm::vec2 &pos)
   {
-    if (eid == myEid)
-      return;
-
     bool isHit;
     glm::vec2 normal;
     glm::vec2 hitPos;
@@ -390,7 +394,7 @@ static __forceinline void update_auto_move_collisions(
       if (normal.x < 0.f || normal.x > 0.f)
       {
         myVel.x = normal.x * fabsf(myVel.x);
-        is_flipped = !is_flipped;
+        dir = -dir;
       }
     }
   });
@@ -413,7 +417,7 @@ DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void select_current_anim_frame(
   const UpdateStage &stage,
   const glm::vec2 &vel,
-  TextureComp &texture,
+  TextureAtlas &texture,
   AnimState &anim_state)
 {
   if (vel.x != 0.f)
@@ -441,41 +445,46 @@ static __forceinline void validate_position(
   }
 }
 
-DEF_SYS(HAVE_COMP(auto_move) IS_TRUE(is_alive))
+DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_auto_move(
   const UpdateStage &stage,
-  const AutoMove &auto_move,
+  AutoMove &auto_move,
   glm::vec2 &vel)
 {
+  if (vel.length() > 0.f)
+    vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
+
+  auto_move.time -= stage.dt;
+  if (auto_move.time < 0.f)
+  {
+    auto_move.time = auto_move.duration;
+    vel = -vel;
+  }
 }
 
 DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
 
-DEF_SYS(IS_TRUE(is_alive))
+DEF_SYS(HAVE_COMP(user_input) IS_TRUE(is_alive))
 static __forceinline void update_enemies_collisions(
   const UpdateStage &stage,
-  const EntityId &eid,
-  UserInput &user_input,
+  Jump &jump,
   const glm::vec2 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
-  bool &is_flipped)
+  float &dir)
 {
-  EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec2 myCollisionRect = collision_rect;
 
-  AliveEnemiesQuery::exec([myEid, &is_flipped, &user_input, &myPos, &myVel, myCollisionRect, &stage](
-    const EntityId &eid,
+  AliveEnemiesQuery::exec([&jump, &myPos, &myVel, myCollisionRect, &stage](
+    EntityId eid,
     const glm::vec2 &collision_rect,
     const glm::vec2 &pos,
+    bool &is_alive,
     glm::vec2 &vel,
     AnimState &anim_state)
   {
-    if (eid == myEid)
-      return;
-
     bool isHit;
     glm::vec2 normal;
     glm::vec2 hitPos;
@@ -484,10 +493,25 @@ static __forceinline void update_enemies_collisions(
     {
       if (normal.y < 0.f)
       {
-        set_anim_node(anim_state, "death", stage.total);
+        g_mgr->deleteEntity(eid);
 
-        user_input.jump = true;
+        is_alive = false;
+
+        // user_input.jump = true;
+
+        jump.acitve = true;
+        jump.startTime = stage.total;
+
         vel = glm::vec2(0.f, 0.f);
+
+        JDocument doc;
+        auto &a = doc.GetAllocator();
+        JValue posValue(rapidjson::kArrayType);
+        posValue.PushBack(pos.x, a);
+        posValue.PushBack(pos.y, a);
+        JValue value(rapidjson::kObjectType);
+        value.AddMember("pos", posValue, a);
+        g_mgr->createEntity("death_fx", value);
       }
     }
   });
@@ -497,32 +521,46 @@ static __forceinline void update_enemies_collisions(
 }
 
 DEF_SYS(IS_TRUE(is_alive))
-static __forceinline void update_death(
+static __forceinline void remove_death_fx(
   const UpdateStage &stage,
+  EntityId eid,
   const AnimState &anim_state,
   bool &is_alive)
 {
   if (anim_state.currentNode == "death" && anim_state.done)
+  {
     is_alive = false;
+    g_mgr->deleteEntity(eid);
+  }
 }
 
-DEF_SYS(IS_FALSE(is_alive))
-static __forceinline void update_spawn_timer(
-  const UpdateStage &stage,
-  TimerComponent &spawn_timer,
-  AnimState &anim_state,
-  glm::vec2 &vel,
-  bool &is_alive,
-  bool &is_flipped)
+DEF_QUERY(AliveEnemiesCountQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
+
+DEF_SYS(HAVE_COMP(spawner))
+static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer)
 {
-  spawn_timer.time -= stage.dt;
-  if (spawn_timer.time < 0.f)
+  int count = 0;
+  AliveEnemiesCountQuery::exec([&count]() { ++count; });
+
+  if (count == 0)
   {
-    spawn_timer.time = spawn_timer.period;
-    anim_state.frameNo = 0;
-    anim_state.currentNode = "run";
-    is_alive = true;
-    is_flipped = false;
-    vel = glm::vec2(-20.f, 0.f);
+    spawn_timer.time -= stage.dt;
+    if (spawn_timer.time < 0.f)
+    {
+      spawn_timer.time = spawn_timer.period;
+
+      JDocument doc;
+      auto &a = doc.GetAllocator();
+      JValue posValue(rapidjson::kArrayType);
+      posValue.PushBack(0.f, a);
+      posValue.PushBack(4.f, a);
+      JValue velValue(rapidjson::kArrayType);
+      velValue.PushBack(-20.f, a);
+      velValue.PushBack(0.f, a);
+      JValue value(rapidjson::kObjectType);
+      value.AddMember("pos", posValue, a);
+      value.AddMember("vel", velValue, a);
+      g_mgr->createEntity("opossum", value);
+    }
   }
 }

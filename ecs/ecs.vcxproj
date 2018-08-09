@@ -183,6 +183,7 @@
     <ClInclude Include="ecs\entity.h" />
     <ClInclude Include="ecs\event.h" />
     <ClInclude Include="ecs\stage.h" />
+    <ClInclude Include="ecs\storage.h" />
     <ClInclude Include="io\json.h" />
     <ClInclude Include="stages\render.stage.h" />
     <ClInclude Include="stdafx.h" />

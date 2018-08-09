@@ -67,7 +67,7 @@ int main()
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JValue &ent = doc["$entities"][i];
-      g_mgr->createEntitySync(ent["$template"].GetString(), ent["$components"]);
+      g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
     }
   }
 
@@ -83,9 +83,9 @@ int main()
     double t = GetTime();
     g_mgr->tick();
 
-    float dt = GetFrameTime();
+    const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f/60.f);
     g_mgr->tick(UpdateStage{ dt, totalTime });
-    float delta = (float)((GetTime() - t) * 1e3);
+    const float delta = (float)((GetTime() - t) * 1e3);
 
     totalTime += dt;
 

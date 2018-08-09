@@ -10,17 +10,129 @@
     "update_auto_move",
     "update_auto_move_collisions",
     "update_collisions",
-    "update_death",
-    "update_spawn_timer",
+    "remove_death_fx",
+    "update_spawner",
     "update_position",
     "validate_position",
     "select_current_anim_frame",
     "update_anim_frame",
     "render_walls",
-    "render_normal",
-    "render_flipped"
+    "render_normal"
   ],
   "$templates": [
+    {
+      "$name": "death_fx",
+      "$components": {
+        "pos": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            0.0
+          ]
+        },
+        "dir": {
+          "$type": "float",
+          "$value": 1.0
+        },
+        "is_alive": {
+          "$type": "bool",
+          "$value": true
+        },
+        "alive_timer": {
+          "$type": "timer",
+          "$value": {
+            "time": 5.0,
+            "period": 5.0
+          }
+        },
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/atlas/atlas.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            368,
+            68,
+            36,
+            28
+          ]
+        },
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": {
+            "node": "death"
+          }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "death": {
+                "fps": 10.0,
+                "loop": false,
+                "frames": [
+                  {
+                    "x": 248,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 122,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 206,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 164,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 80,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 38,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$name": "enemy_spawner",
+      "$components": {
+        "spawner": {
+          "$type": "spawner",
+          "$value": {}
+        },
+        "spawn_timer": {
+          "$type": "timer",
+          "$value": {
+            "time": 5.0,
+            "period": 5.0
+          }
+        }
+      }
+    },
     {
       "$name": "enemy",
       "$components": {
@@ -42,20 +154,13 @@
             0.0
           ]
         },
-        "is_flipped": {
-          "$type": "bool",
-          "$value": false
+        "dir": {
+          "$type": "float",
+          "$value": 1.0
         },
         "is_alive": {
           "$type": "bool",
           "$value": true
-        },
-        "spawn_timer": {
-          "$type": "timer",
-          "$value": {
-            "time": 5.0,
-            "period": 5.0
-          }
         }
       }
     },
@@ -131,17 +236,78 @@
                     "h": 28
                   }
                 ]
-              },
-              "death": {
+              }
+            }
+          }
+        },
+        "collision_rect": {
+          "$type": "vec2",
+          "$value": [
+            32.0,
+            20.0
+          ]
+        }
+      }
+    },
+    {
+      "$name": "eagle",
+      "$extends": [
+        "enemy"
+      ],
+      "$components": {
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/atlas/atlas.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            368,
+            68,
+            36,
+            28
+          ]
+        },
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": {
+            "node": "run"
+          }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "run": {
                 "fps": 10.0,
-                "loop": false,
+                "loop": true,
                 "frames": [
-                  {"x":248,"y":102,"w":40,"h":41},
-                  {"x":122,"y":102,"w":40,"h":41},
-                  {"x":206,"y":102,"w":40,"h":41},
-                  {"x":164,"y":102,"w":40,"h":41},
-                  {"x":80,"y":102,"w":40,"h":41},
-                  {"x":38,"y":102,"w":40,"h":41}
+                  {
+                    "x": 332,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 416,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 374,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 290,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  }
                 ]
               }
             }
@@ -149,7 +315,10 @@
         },
         "auto_move": {
           "$type": "auto_move",
-          "$value": {}
+          "$value": {
+            "duration": 2.0,
+            "length": 64
+          }
         },
         "collision_rect": {
           "$type": "vec2",
@@ -176,7 +345,7 @@
         "jump": {
           "$type": "jump",
           "$value": {
-            "height": 16.0,
+            "height": 25.0,
             "duration": 0.1
           }
         },
@@ -201,11 +370,15 @@
             32.0
           ]
         },
-        "is_flipped": {
-          "$type": "bool",
-          "$value": false
+        "dir": {
+          "$type": "float",
+          "$value": 1.0
         },
         "is_alive": {
+          "$type": "bool",
+          "$value": true
+        },
+        "is_on_ground": {
           "$type": "bool",
           "$value": true
         },
@@ -356,9 +529,9 @@
             32.0
           ]
         },
-        "is_flipped": {
-          "$type": "bool",
-          "$value": false
+        "dir": {
+          "$type": "float",
+          "$value": 1.0
         },
         "is_alive": {
           "$type": "bool",

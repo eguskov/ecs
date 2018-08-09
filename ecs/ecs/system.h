@@ -4,6 +4,7 @@
 
 #include "ecs/stage.h"
 #include "ecs/event.h"
+#include "ecs/storage.h"
 
 struct EntityManager;
 
@@ -82,40 +83,12 @@ struct CompDesc
   const RegComp* desc;
 };
 
-struct Storage
-{
-  eastl::string name;
-
-  int count = 0;
-  int size = 0;
-
-  eastl::vector<uint8_t> data;
-
-  uint8_t* allocate()
-  {
-    ++count;
-    data.resize(count * size);
-    return &data[(count - 1) * size];
-  }
-
-  operator uint8_t*()
-  {
-    return &data[0];
-  }
-
-  template <typename T>
-  const T& get(int offset) const
-  {
-    return *(T*)&data[offset];
-  }
-};
-
 DEF_HAS_METHOD(require);
 
 struct RegSys
 {
   using Remap = eastl::fixed_vector<int, 32>;
-  using StageFunc = void(RegSys::*)(int count, const EntityId *eids, const RawArg&, Storage*) const;
+  using StageFunc = void(RegSys::*)(int count, const EntityId *eids, const RawArg&, Storage**) const;
 
   char *name = nullptr;
 
@@ -167,16 +140,16 @@ struct Value;
 template <typename T>
 struct Value<T, ValueType::kComponent>
 {
-  static inline T get(const ExtraArguments &, Storage *storage, int comp_id, int offset)
+  static inline T get(const ExtraArguments &, Storage **storage, int comp_id, int offset)
   {
-    return *(typename eastl::remove_reference<T>::type *)&storage[comp_id][offset];
+    return storage[comp_id]->get<typename eastl::remove_reference<T>::type>(offset);
   }
 };
 
 template <typename T>
 struct Value<T, ValueType::kStage>
 {
-  static inline T get(const ExtraArguments &args, Storage*, int, int)
+  static inline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
   }
@@ -185,7 +158,7 @@ struct Value<T, ValueType::kStage>
 template <typename T>
 struct Value<T, ValueType::kEvent>
 {
-  static inline T get(const ExtraArguments &args, Storage*, int, int)
+  static inline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
   }
@@ -194,7 +167,7 @@ struct Value<T, ValueType::kEvent>
 template <typename T>
 struct Value<T, ValueType::kEid>
 {
-  static inline T get(const ExtraArguments &args, Storage *, int, int)
+  static inline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)&args.eid;
   }
@@ -290,9 +263,9 @@ struct RegSysSpec<D, R(Args...)> : RegSys
   constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
 
   template <size_t... I>
-  __forceinline void execImpl(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<I...>) const;
+  __forceinline void execImpl(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<I...>) const;
 
-  inline void operator()(const EntityVector &eids, const RawArg &stage, Storage *storage) const
+  inline void operator()(const EntityVector &eids, const RawArg &stage, Storage **storage) const
   {
     buffer.eid = eid;
     buffer.stage = stage;
@@ -300,13 +273,13 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     execImpl(remap, offsets, storage, Indices{});
   }
 
-  inline void operator()(const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage *storage) const
+  inline void operator()(const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage **storage) const
   {
     buffer.eid = eid;
     execImpl(remap, offsets, storage, Indices{});
   }
 
-  void execEid(const EntityVector &eids, const RegSys::Remap &remap, const int *offsets, Storage *storage) const
+  void execEid(const EntityVector &eids, const RegSys::Remap &remap, const int *offsets, Storage **storage) const
   {
     ExtraArguments args;
     args.eid = eid;
@@ -314,7 +287,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     execImpl(args, remap, offsets, storage, Indices{});
   }
 
-  void execStage(int count, const EntityId *eids, const RawArg &stage_or_event, Storage *storage) const
+  void execStage(int count, const EntityId *eids, const RawArg &stage_or_event, Storage **storage) const
   {
     ExtraArguments args;
     args.stageOrEvent = stage_or_event;
