@@ -55,7 +55,7 @@ static __forceinline void exec_BricksQuery(const EntityId & eid, const glm::vec2
 
 static RegSysSpec<1315101757, decltype(exec_BricksQuery)> _reg_sys_exec_BricksQuery("exec_BricksQuery", exec_BricksQuery, { "eid", "collision_rect", "pos" }, { "wall" }, {  }, {  }, {  }, false); 
 
-template <> template <> __forceinline void RegSysSpec<1315101757, decltype(exec_BricksQuery)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const {}
+template <> template <> __forceinline void RegSysSpec<1315101757, decltype(exec_BricksQuery)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const {}
 
 template <typename C> void BricksQuery::exec(C callback)
 {
@@ -63,19 +63,19 @@ template <typename C> void BricksQuery::exec(C callback)
   const auto &sys = _reg_sys_exec_BricksQuery;
   const auto &components = sys.components;
   const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storagesSoA[0];
+  auto *storage = &g_mgr->storages[0];
   ExtraArguments args;
   for (int i = 0; i < (int)query.eids.size(); ++i)
   {
     EntityId eid = query.eids[i];
     args.eid = eid;
-    const auto &entity = g_mgr->entitiesSoA[eid2idx(eid)];
+    const auto &entity = g_mgr->entities[eid2idx(eid)];
     const auto &templ = g_mgr->templates[entity.templateId];
     const auto &remap = templ.remaps[sys.id];
     const int *offsets = entity.componentOffsets.data();
     const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
     const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-    callback(ValueSoA<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
   }
 }
 
@@ -83,7 +83,7 @@ static __forceinline void exec_AliveEnemiesQuery(const EntityId & eid, const glm
 
 static RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)> _reg_sys_exec_AliveEnemiesQuery("exec_AliveEnemiesQuery", exec_AliveEnemiesQuery, { "eid", "collision_rect", "pos", "vel", "anim_state" }, { "enemy" }, {  }, { "is_alive" }, {  }, false); 
 
-template <> template <> __forceinline void RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const {}
+template <> template <> __forceinline void RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const {}
 
 template <typename C> void AliveEnemiesQuery::exec(C callback)
 {
@@ -91,146 +91,146 @@ template <typename C> void AliveEnemiesQuery::exec(C callback)
   const auto &sys = _reg_sys_exec_AliveEnemiesQuery;
   const auto &components = sys.components;
   const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storagesSoA[0];
+  auto *storage = &g_mgr->storages[0];
   ExtraArguments args;
   for (int i = 0; i < (int)query.eids.size(); ++i)
   {
     EntityId eid = query.eids[i];
     args.eid = eid;
-    const auto &entity = g_mgr->entitiesSoA[eid2idx(eid)];
+    const auto &entity = g_mgr->entities[eid2idx(eid)];
     const auto &templ = g_mgr->templates[entity.templateId];
     const auto &remap = templ.remaps[sys.id];
     const int *offsets = entity.componentOffsets.data();
     const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId };
     const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets) };
-    callback(ValueSoA<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<SysType::Argument<3>::Type, SysType::Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<SysType::Argument<4>::Type, SysType::Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
+    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<SysType::Argument<3>::Type, SysType::Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<SysType::Argument<4>::Type, SysType::Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  load_texture_handler(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  load_texture_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  update_position(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  update_position(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  update_anim_frame(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  update_anim_frame(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1007297635, decltype(render_walls)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<1007297635, decltype(render_walls)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  render_walls(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  render_walls(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1227836588, decltype(render_flipped)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<1227836588, decltype(render_flipped)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  render_flipped(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  render_flipped(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
 }
 
-template <> template <> __forceinline void RegSysSpec<2012399197, decltype(render_normal)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<2012399197, decltype(render_normal)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  render_normal(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  render_normal(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
 }
 
-template <> template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  read_controls(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  read_controls(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1920783676, decltype(apply_controls)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const
+template <> template <> __forceinline void RegSysSpec<1920783676, decltype(apply_controls)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets) };
-  apply_controls(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
+  apply_controls(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3949714102, decltype(apply_jump)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<3949714102, decltype(apply_jump)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  apply_jump(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  apply_jump(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3962763712, decltype(apply_gravity)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<3962763712, decltype(apply_gravity)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  apply_gravity(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  apply_gravity(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3962250550, decltype(update_collisions)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const
+template <> template <> __forceinline void RegSysSpec<3962250550, decltype(update_collisions)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets) };
-  update_collisions(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
+  update_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
+template <> template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets) };
-  update_auto_move_collisions(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), ValueSoA<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
+  update_auto_move_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
 }
 
-template <> template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  select_current_anim_frame(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  select_current_anim_frame(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3007763911, decltype(validate_position)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<3007763911, decltype(validate_position)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  validate_position(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  validate_position(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3164460028, decltype(update_auto_move)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<3164460028, decltype(update_auto_move)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  update_auto_move(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  update_auto_move(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<917788925, decltype(update_enemies_collisions)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
+template <> template <> __forceinline void RegSysSpec<917788925, decltype(update_enemies_collisions)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId, components[6].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets), get_offset(remap[6], offsets) };
-  update_enemies_collisions(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), ValueSoA<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]), ValueSoA<Argument<6>::Type, Argument<6>::valueType>::get(args, storage, argId[6], argOffset[6]));
+  update_enemies_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]), Value<Argument<6>::Type, Argument<6>::valueType>::get(args, storage, argId[6], argOffset[6]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3441942189, decltype(update_death)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<3441942189, decltype(update_death)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  update_death(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  update_death(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
-template <> template <> __forceinline void RegSysSpec<3065729344, decltype(update_spawn_timer)>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
+template <> template <> __forceinline void RegSysSpec<3065729344, decltype(update_spawn_timer)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets) };
-  update_spawn_timer(ValueSoA<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), ValueSoA<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), ValueSoA<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), ValueSoA<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), ValueSoA<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), ValueSoA<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
+  update_spawn_timer(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
 }
 
 #endif // __CODEGEN__

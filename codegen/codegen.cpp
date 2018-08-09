@@ -668,7 +668,7 @@ int main(int argc, char* argv[])
       for (int i = 0; i < count; ++i)
       {
         std::ostringstream oss;
-        oss << "ValueSoA<" << prefix << "Argument<" << i << ">::Type, " << prefix << "Argument<" << i << ">::valueType>::get(args, storage, argId[" << i << "], argOffset[" << i << "])";
+        oss << "Value<" << prefix << "Argument<" << i << ">::Type, " << prefix << "Argument<" << i << ">::valueType>::get(args, storage, argId[" << i << "], argOffset[" << i << "])";
         vec[i].assign(oss.str().c_str());
       }
 
@@ -710,7 +710,7 @@ int main(int argc, char* argv[])
       out << ", false); " << std::endl;
       out << std::endl;
 
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
@@ -718,7 +718,7 @@ int main(int argc, char* argv[])
       out << "  const auto &sys = _reg_sys_exec_" << q.name << ";" << std::endl;
       out << "  const auto &components = sys.components;" << std::endl;
       out << "  const auto &query = g_mgr->queries[sys.id];" << std::endl;
-      out << "  auto *storage = &g_mgr->storagesSoA[0];" << std::endl;
+      out << "  auto *storage = &g_mgr->storages[0];" << std::endl;
       out << "  ExtraArguments args;" << std::endl;
       out << "  for (int i = 0; i < (int)query.eids.size(); ++i)" << std::endl;
       out << "  {" << std::endl;
@@ -726,7 +726,7 @@ int main(int argc, char* argv[])
 
       out << "    args.eid = eid;" << std::endl;
 
-      out << "    const auto &entity = g_mgr->entitiesSoA[eid2idx(eid)];" << std::endl;
+      out << "    const auto &entity = g_mgr->entities[eid2idx(eid)];" << std::endl;
       out << "    const auto &templ = g_mgr->templates[entity.templateId];" << std::endl;
       out << "    const auto &remap = templ.remaps[sys.id];" << std::endl;
       out << "    const int *offsets = entity.componentOffsets.data();" << std::endl;
@@ -742,7 +742,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImplSoA<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage *storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
       out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;

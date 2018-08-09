@@ -67,7 +67,7 @@ int main()
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JValue &ent = doc["$entities"][i];
-      g_mgr->createEntitySyncSoA(ent["$template"].GetString(), ent["$components"]);
+      g_mgr->createEntitySync(ent["$template"].GetString(), ent["$components"]);
     }
   }
 
@@ -84,7 +84,7 @@ int main()
     g_mgr->tick();
 
     float dt = GetFrameTime();
-    g_mgr->tickSoA(UpdateStage{ dt, totalTime });
+    g_mgr->tick(UpdateStage{ dt, totalTime });
     float delta = (float)((GetTime() - t) * 1e3);
 
     totalTime += dt;
@@ -93,10 +93,10 @@ int main()
 
     ClearBackground(RAYWHITE);
 
-    g_mgr->tickSoA(RenderStage{});
+    g_mgr->tick(RenderStage{});
 
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
-    DrawText(FormatText("ECS count: %d", g_mgr->entitiesSoA.size()), 10, 50, 20, LIME);
+    DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawFPS(10, 10);
 
     EndDrawing();

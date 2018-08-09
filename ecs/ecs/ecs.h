@@ -36,7 +36,6 @@ REG_EVENT(EventOnEntityReady);
 struct Template
 {
   int size = 0;
-  int storageId = -1;
   int docId = -1;
 
   eastl::string name;
@@ -56,14 +55,6 @@ struct Cleanup
 };
 
 struct Entity
-{
-  bool ready = false;
-  EntityId eid;
-  int templateId = -1;
-  int memId = -1;
-};
-
-struct EntitySoA
 {
   bool ready = false;
 
@@ -127,9 +118,7 @@ struct EntityManager
   eastl::vector<eastl::string> order;
   eastl::vector<Template> templates;
   eastl::vector<Storage> storages;
-  eastl::vector<Storage> storagesSoA;
   eastl::vector<Entity> entities;
-  eastl::vector<EntitySoA> entitiesSoA;
   eastl::vector<eastl::string> componentNames;
   eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
@@ -156,7 +145,6 @@ struct EntityManager
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntitySync(const char *templ_name, const JValue &comps);
-  void createEntitySyncSoA(const char *templ_name, const JValue &comps);
 
   void waitFor(EntityId eid, std::future<bool> && value);
 
@@ -178,17 +166,17 @@ struct EntityManager
   }
 
   void tick();
-  void tickStageSoA(int stage_id, const RawArg &stage);
+  void tickStage(int stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
-  void sendEventSyncSoA(EntityId eid, int event_id, const RawArg &ev);
+  void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
 
   template <typename S>
-  void tickSoA(const S &stage)
+  void tick(const S &stage)
   {
     RawArgSpec<sizeof(S)> arg0;
     new (arg0.mem) S(stage);
 
-    tickStageSoA(RegCompSpec<S>::ID, arg0);
+    tickStage(RegCompSpec<S>::ID, arg0);
   }
 
   template <typename E>
@@ -201,58 +189,19 @@ struct EntityManager
   }
 
   template <typename E>
-  void sendEventSyncSoA(EntityId eid, const E &ev)
+  void sendEventSync(EntityId eid, const E &ev)
   {
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventSyncSoA(eid, RegCompSpec<E>::ID, arg0);
+    sendEventSync(eid, RegCompSpec<E>::ID, arg0);
   }
-
-  // TODO: cache components descs
-  // Query createQuery(...)
-
-  /*template <typename SysT, typename C>
-  void query(const C &callback, std::initializer_list<const char*> comp_names)
-  {
-    using T = RegSysSpec<SysT>;
-    T::StringArray names;
-
-    eastl::copy(comp_names.begin(), comp_names.end(), names.begin());
-
-    T sys(eastl::move(eastl::function<SysT>(callback)), eastl::move(names));
-    sys.init();
-
-    RegSys::Remap remap;
-    for (auto &e : entitiesSoA)
-    {
-      if (!e.ready)
-        continue;
-
-      const auto &templ = templates[e.templateId];
-
-      bool ok = true;
-      for (const auto &c : sys.components)
-        if (c.desc->id != eidCompId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
-        {
-          ok = false;
-          break;
-        }
-
-      if (ok)
-      {
-        sys.initRemap(templ.components, remap);
-        sys(e.eid, remap, &e.componentOffsets[0], &storagesSoA[0]);
-      }
-    }
-  }*/
 
   void queryEids(EntityVector &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
   {
-    for (auto &e : entitiesSoA)
+    for (auto &e : entities)
     {
       const auto &templ = templates[e.templateId];
-      auto &storage = storages[templ.storageId];
 
       bool ok = true;
       for (const auto &c : comps)

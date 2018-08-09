@@ -351,11 +351,11 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     const int templateId = getTemplateId(e);
     templ.extends.push_back(templateId);
     for (const auto &c : templates[templateId].components)
-      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, componentDescByNames, storagesSoA);
+      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, componentDescByNames, storages);
   }
 
   for (const auto &name : comp_names)
-    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames, storagesSoA);
+    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames, storages);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)
@@ -379,21 +379,6 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.remaps.resize(reg_sys_count);
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
     sys->initRemap(templ.components, templ.remaps[sys->id]);
-
-  for (size_t i = 0; i < storages.size(); ++i)
-    if (storages[i].size == templ.size)
-    {
-      templ.storageId = (int)i;
-      break;
-    }
-
-  if (templ.storageId < 0)
-  {
-    storages.emplace_back();
-    auto &s = storages.back();
-    s.size = templ.size;
-    templ.storageId = (int)storages.size() - 1;
-  }
 }
 
 void EntityManager::createEntity(const char *templ_name, const JValue &comps)
@@ -424,38 +409,6 @@ int EntityManager::getTemplateId(const char *name)
 }
 
 void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
-{
-  const int templateId = getTemplateId(templ_name);
-
-  // TOOD: Search template by name
-  auto &templ = templates[templateId];
-  auto &storage = storages[templ.storageId];
-
-  const JValue &value = templatesDoc["$templates"][templ.docId];
-
-  JDocument tmpDoc;
-  JValue tmpValue(rapidjson::kObjectType);
-  tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
-
-  if (!comps.IsNull())
-    for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-      tmpValue[compIter->name.GetString()].CopyFrom(compIter->value, tmpDoc.GetAllocator());
-
-  uint8_t *mem = storage.allocate();
-  for (const auto &c : templ.components)
-    c.desc->init(mem + c.offset, tmpValue[c.name.c_str()]);
-
-  entities.emplace_back();
-  auto &e = entities.back();
-  e.eid = make_eid(1, (uint16_t)entities.size() - 1);
-  e.templateId = templateId;
-  e.memId = storage.count - 1;
-  e.ready = true;
-
-  sendEventSyncSoA(e.eid, EventOnEntityCreate{});
-}
-
-void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
   for (size_t i = 0; i < templates.size(); ++i)
@@ -488,21 +441,21 @@ void EntityManager::createEntitySyncSoA(const char *templ_name, const JValue &co
     for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
       tmpValue[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, tmpDoc.GetAllocator());
 
-  auto &e = entitiesSoA.emplace_back();
-  e.eid = make_eid(1, (uint16_t)entitiesSoA.size() - 1);
+  auto &e = entities.emplace_back();
+  e.eid = make_eid(1, (uint16_t)entities.size() - 1);
   e.templateId = templateId;
   e.ready = true;
 
   for (const auto &c : templ.components)
   {
-    auto &storage = storagesSoA[c.nameId];
+    auto &storage = storages[c.nameId];
 
     e.componentOffsets.push_back(storage.count * storage.size);
 
     c.desc->init(storage.allocate(), tmpValue[c.name.c_str()]);
   }
 
-  sendEventSyncSoA(e.eid, EventOnEntityCreate{});
+  sendEventSync(e.eid, EventOnEntityCreate{});
 
   for (auto &q : queries)
     invalidateQuery(q);
@@ -513,7 +466,7 @@ void EntityManager::tick()
   while (!createQueue.empty())
   {
     const auto &q = createQueue.front();
-    createEntitySyncSoA(q.templanemName.c_str(), q.components);
+    createEntitySync(q.templanemName.c_str(), q.components);
     createQueue.pop();
   }
 
@@ -524,8 +477,8 @@ void EntityManager::tick()
     if (ready)
     {
       shouldInvalidateQueries = true;
-      entitiesSoA[eid2idx(v.eid)].ready = ready;
-      sendEventSyncSoA(v.eid, EventOnEntityReady{});
+      entities[eid2idx(v.eid)].ready = ready;
+      sendEventSync(v.eid, EventOnEntityReady{});
     }
   }
 
@@ -548,7 +501,7 @@ void EntityManager::tick()
     int event_id = -1;
     RawArg ev;
     eastl::tie(eid, event_id, ev) = events.pop();
-    sendEventSyncSoA(eid, event_id, ev);
+    sendEventSync(eid, event_id, ev);
   }
 }
 
@@ -561,7 +514,7 @@ void EntityManager::invalidateQuery(Query &query)
 
   query.eids.clear();
 
-  for (auto &e : entitiesSoA)
+  for (auto &e : entities)
   {
     if (!e.ready)
       continue;
@@ -600,10 +553,10 @@ void EntityManager::invalidateQuery(Query &query)
     {
       for (const auto &c : query.sys->isTrueComponents)
       {
-        const auto &entity = entitiesSoA[eid2idx(e.eid)];
+        const auto &entity = entities[eid2idx(e.eid)];
         const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
 
-        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || !storagesSoA[c.nameId].get<bool>(offset))
+        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || !storages[c.nameId].get<bool>(offset))
         {
           ok = false;
           break;
@@ -615,10 +568,10 @@ void EntityManager::invalidateQuery(Query &query)
     {
       for (const auto &c : query.sys->isFalseComponents)
       {
-        const auto &entity = entitiesSoA[eid2idx(e.eid)];
+        const auto &entity = entities[eid2idx(e.eid)];
         const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
 
-        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || storagesSoA[c.nameId].get<bool>(offset))
+        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || storages[c.nameId].get<bool>(offset))
         {
           ok = false;
           break;
@@ -631,25 +584,25 @@ void EntityManager::invalidateQuery(Query &query)
   }
 }
 
-void EntityManager::tickStageSoA(int stage_id, const RawArg &stage)
+void EntityManager::tickStage(int stage_id, const RawArg &stage)
 {
   // TODO: Fast stack allocator
   eastl::vector<Storage> tmpCopy;
   for (int nameId : trackComponents)
-    tmpCopy.emplace_back() = storagesSoA[nameId];
+    tmpCopy.emplace_back() = storages[nameId];
 
   for (const auto &sys : systems)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      (sys.desc->*sys.desc->stageFnSoA)(query.eids.size(), query.eids.data(), stage, &storagesSoA[0]);
+      (sys.desc->*sys.desc->stageFn)(query.eids.size(), query.eids.data(), stage, &storages[0]);
     }
 
   bool changed = false;
 
   int i = 0;
   for (int nameId : trackComponents)
-    if (::memcmp(tmpCopy[i++].data.data(), storagesSoA[nameId].data.data(), storagesSoA[nameId].data.size()))
+    if (::memcmp(tmpCopy[i++].data.data(), storages[nameId].data.data(), storages[nameId].data.size()))
     {
       changed = true;
       break;
@@ -666,9 +619,9 @@ void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
   events.push(eid, event_id, ev);
 }
 
-void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &ev)
+void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
-  auto &e = entitiesSoA[eid2idx(eid)];
+  auto &e = entities[eid2idx(eid)];
 
   const auto &templ = templates[e.templateId];
 
@@ -684,7 +637,7 @@ void EntityManager::sendEventSyncSoA(EntityId eid, int event_id, const RawArg &e
         }
 
       if (ok)
-        (sys.desc->*sys.desc->stageFnSoA)(1, &eid, ev, &storagesSoA[0]);
+        (sys.desc->*sys.desc->stageFn)(1, &eid, ev, &storages[0]);
     }
 }
 
