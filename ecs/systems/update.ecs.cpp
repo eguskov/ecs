@@ -12,12 +12,38 @@
 #include "components/timer.ecs.h"
 #include "components/color.ecs.h"
 
+extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
 
 struct Wall DEF_EMPTY_COMP(Wall, wall);
 struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
 struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
+
+struct SpawnList
+{
+  struct Data
+  {
+    eastl::string templ;
+    glm::vec2 pos;
+    glm::vec2 vel;
+  };
+
+  eastl::vector<Data> data;
+
+  bool set(const JValue &value)
+  {
+    for (int i = 0; i < (int)value["data"].Size(); ++i)
+    {
+      auto &d = data.emplace_back();
+      d.templ = value["data"][i]["template"].GetString();
+      Setter<glm::vec2>::set(d.pos, value["data"][i]["pos"]);
+      Setter<glm::vec2>::set(d.vel, value["data"][i]["vel"]);
+    }
+    return true;
+  };
+}
+DEF_COMP(SpawnList, spawn_list);
 
 struct Gravity
 {
@@ -215,7 +241,6 @@ static __forceinline void render_normal(
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
   DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
-  DrawCircleV(Vector2{ hw + pos.x, hh + pos.y }, 2, CLITERAL{ 255, 0, 0, 255 });
 }
 
 DEF_SYS()
@@ -295,15 +320,17 @@ static __forceinline void apply_gravity(
   vel.y += gravity.mass * 9.8f * stage.dt;
 }
 
-eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec2 &rect_a, const glm::vec2 &pos_b, const glm::vec2 &rect_b)
+eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec4 &rect_a, const glm::vec2 &pos_b, const glm::vec4 &rect_b)
 {
-  const float dx = pos_b.x - pos_a.x;
-  const float px = 0.5f * (rect_b.x + rect_a.x) - fabsf(dx);
+  glm::vec2 pa = pos_a + 0.5f * glm::vec2(rect_a.z, rect_a.w) + glm::vec2(rect_a.x, rect_a.y);
+  glm::vec2 pb = pos_b + 0.5f * glm::vec2(rect_b.z, rect_b.w) + glm::vec2(rect_b.x, rect_b.y);
+  const float dx = pb.x - pa.x;
+  const float px = 0.5f * (rect_b.z + rect_a.z) - fabsf(dx);
   if (px < 0)
     return eastl::make_tuple(false, glm::vec2(0.f, 0.f), glm::vec2(0.f, 0.f));
 
-  const float dy = pos_b.y - pos_a.y;
-  const float py = 0.5f * (rect_b.y + rect_a.y) - fabsf(dy);
+  const float dy = pb.y - pa.y;
+  const float py = 0.5f * (rect_b.w + rect_a.w) - fabsf(dy);
   if (py < 0)
     return eastl::make_tuple(false, glm::vec2(0.f, 0.f), glm::vec2(0.f, 0.f));
 
@@ -313,15 +340,15 @@ eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &po
   {
     const float sx = dx > 0.f ? 1.f : dx < 0.f ? -1.f : 0.f;
     normal.x = sx;
-    pos.x = pos_a.x + 0.5f * (rect_a.x * sx);
-    pos.y = pos_b.y;
+    pos.x = pa.x + 0.5f * (rect_a.z * sx);
+    pos.y = pb.y;
   }
   else
   {
     const float sy = dy > 0.f ? 1.f : dy < 0.f ? -1.f : 0.f;
     normal.y = sy;
-    pos.x = pos_b.x;
-    pos.y = pos_a.y + 0.5f * (rect_a.y * sy);
+    pos.x = pb.x;
+    pos.y = pa.y + 0.5f * (rect_a.w * sy);
   }
   return eastl::make_tuple(true, normal, pos);
 }
@@ -331,16 +358,16 @@ DEF_QUERY(BricksQuery, HAVE_COMP(wall));
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_collisions(
   const UpdateStage &stage,
-  const glm::vec2 &collision_rect,
+  const glm::vec4 &collision_rect,
   bool &is_on_ground,
   glm::vec2 &pos,
   glm::vec2 &vel)
 {
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
-  glm::vec2 myCollisionRect = collision_rect;
+  glm::vec4 myCollisionRect = collision_rect;
 
-  BricksQuery::exec([&myPos, &myVel, &is_on_ground, myCollisionRect, &stage](const glm::vec2 &collision_rect, const glm::vec2 &pos)
+  BricksQuery::exec([&myPos, &myVel, &is_on_ground, myCollisionRect, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
   {
     bool isHit;
     glm::vec2 normal;
@@ -352,14 +379,14 @@ static __forceinline void update_collisions(
       if (normal.y < 0.f)
       {
         is_on_ground = true;
-        d = myCollisionRect.y - (pos.y - myPos.y);
+        d = myCollisionRect.w - (pos.y - myPos.y);
       }
       else if (normal.y > 0.f)
-        d = pos.y + collision_rect.y - myPos.y;
+        d = pos.y + collision_rect.w - myPos.y;
       else if (normal.x < 0.f)
-        d = myCollisionRect.x - (pos.x - myPos.x);
+        d = myCollisionRect.z + myCollisionRect.x - (pos.x - myPos.x);
       else if (normal.x > 0.f)
-        d = pos.x + collision_rect.x - myPos.x;
+        d = pos.x - myCollisionRect.x + collision_rect.z - myPos.x;
       const float proj = glm::dot(myVel, normal);
       if (proj < 0.f)
         myVel += fabsf(proj) * normal;
@@ -374,16 +401,16 @@ static __forceinline void update_collisions(
 DEF_SYS(HAVE_COMP(enemy) IS_TRUE(is_alive))
 static __forceinline void update_auto_move_collisions(
   const UpdateStage &stage,
-  const glm::vec2 &collision_rect,
+  const glm::vec4 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
   float &dir)
 {
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
-  glm::vec2 myCollisionRect = collision_rect;
+  glm::vec4 myCollisionRect = collision_rect;
 
-  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, &stage](const glm::vec2 &collision_rect, const glm::vec2 &pos)
+  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
   {
     bool isHit;
     glm::vec2 normal;
@@ -449,7 +476,8 @@ DEF_SYS(IS_TRUE(is_alive))
 static __forceinline void update_auto_move(
   const UpdateStage &stage,
   AutoMove &auto_move,
-  glm::vec2 &vel)
+  glm::vec2 &vel,
+  float &dir)
 {
   if (vel.length() > 0.f)
     vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
@@ -460,6 +488,11 @@ static __forceinline void update_auto_move(
     auto_move.time = auto_move.duration;
     vel = -vel;
   }
+
+  if (vel.x < 0.f)
+    dir = 1.f;
+  else if (vel.x > 0.f)
+    dir = -1.f;
 }
 
 DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
@@ -468,18 +501,18 @@ DEF_SYS(HAVE_COMP(user_input) IS_TRUE(is_alive))
 static __forceinline void update_enemies_collisions(
   const UpdateStage &stage,
   Jump &jump,
-  const glm::vec2 &collision_rect,
+  const glm::vec4 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
   float &dir)
 {
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
-  glm::vec2 myCollisionRect = collision_rect;
+  glm::vec4 myCollisionRect = collision_rect;
 
   AliveEnemiesQuery::exec([&jump, &myPos, &myVel, myCollisionRect, &stage](
     EntityId eid,
-    const glm::vec2 &collision_rect,
+    const glm::vec4 &collision_rect,
     const glm::vec2 &pos,
     bool &is_alive,
     glm::vec2 &vel,
@@ -537,7 +570,7 @@ static __forceinline void remove_death_fx(
 DEF_QUERY(AliveEnemiesCountQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
 
 DEF_SYS(HAVE_COMP(spawner))
-static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer)
+static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer, const SpawnList &spawn_list)
 {
   int count = 0;
   AliveEnemiesCountQuery::exec([&count]() { ++count; });
@@ -549,18 +582,30 @@ static __forceinline void update_spawner(const UpdateStage &stage, TimerComponen
     {
       spawn_timer.time = spawn_timer.period;
 
-      JDocument doc;
-      auto &a = doc.GetAllocator();
-      JValue posValue(rapidjson::kArrayType);
-      posValue.PushBack(0.f, a);
-      posValue.PushBack(4.f, a);
-      JValue velValue(rapidjson::kArrayType);
-      velValue.PushBack(-20.f, a);
-      velValue.PushBack(0.f, a);
-      JValue value(rapidjson::kObjectType);
-      value.AddMember("pos", posValue, a);
-      value.AddMember("vel", velValue, a);
-      g_mgr->createEntity("opossum", value);
+      for (const auto &d : spawn_list.data)
+      {
+        JDocument doc;
+        auto &a = doc.GetAllocator();
+        JValue posValue(rapidjson::kArrayType);
+        posValue.PushBack(d.pos.x, a);
+        posValue.PushBack(d.pos.y, a);
+        JValue velValue(rapidjson::kArrayType);
+        velValue.PushBack(d.vel.x, a);
+        velValue.PushBack(d.vel.y, a);
+        JValue value(rapidjson::kObjectType);
+        value.AddMember("pos", posValue, a);
+        value.AddMember("vel", velValue, a);
+        g_mgr->createEntity(d.templ.c_str(), value);
+      }
     }
   }
+}
+
+DEF_SYS(HAVE_COMP(user_input))
+static __forceinline void update_camera(const UpdateStage &stage, const glm::vec2 &pos)
+{
+  const float hw = 0.5f * screen_width;
+  const float hh = 0.5f * screen_width;
+  camera.target = Vector2{ hw, hh };
+  camera.offset = Vector2{ -pos.x, -pos.y };
 }

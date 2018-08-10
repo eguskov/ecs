@@ -16,8 +16,89 @@
     "validate_position",
     "select_current_anim_frame",
     "update_anim_frame",
+    "update_camera",
     "render_walls",
     "render_normal"
+  ],
+  "$templates$v1": [
+    {
+      "death_fx": {
+        "pos:vec2": [
+          0.0,
+          0.0
+        ],
+        "dir:float": 1.0,
+        "is_alive:bool": true,
+        "alive_timer:timer": {
+          "time": 5.0,
+          "period": 5.0
+        },
+        "texture:texture": {
+          "path": "../assets/atlas/atlas.png"
+        },
+        "frame:vec4": [
+          368,
+          68,
+          36,
+          28
+        ],
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": {
+            "node": "death"
+          }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "death": {
+                "fps": 10.0,
+                "loop": false,
+                "frames": [
+                  {
+                    "x": 248,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 122,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 206,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 164,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 80,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  },
+                  {
+                    "x": 38,
+                    "y": 102,
+                    "w": 40,
+                    "h": 41
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
   ],
   "$templates": [
     {
@@ -130,6 +211,46 @@
             "time": 5.0,
             "period": 5.0
           }
+        },
+        "spawn_list": {
+          "$type": "spawn_list",
+          "$value": {
+            "data": [
+              {
+                "template": "opossum",
+                "pos": [
+                  0.0,
+                  4.0
+                ],
+                "vel": [
+                  -20.0,
+                  0.0
+                ]
+              },
+              {
+                "template": "eagle",
+                "pos": [
+                  128.0,
+                  -80.0
+                ],
+                "vel": [
+                  0.0,
+                  -1.0
+                ]
+              },
+              {
+                "template": "eagle",
+                "pos": [
+                  -64.0,
+                  -96.0
+                ],
+                "vel": [
+                  -1.0,
+                  0.0
+                ]
+              }
+            ]
+          }
         }
       }
     },
@@ -241,8 +362,10 @@
           }
         },
         "collision_rect": {
-          "$type": "vec2",
+          "$type": "vec4",
           "$value": [
+            0.0,
+            0.0,
             32.0,
             20.0
           ]
@@ -321,8 +444,10 @@
           }
         },
         "collision_rect": {
-          "$type": "vec2",
+          "$type": "vec4",
           "$value": [
+            0.0,
+            0.0,
             32.0,
             20.0
           ]
@@ -364,9 +489,11 @@
           ]
         },
         "collision_rect": {
-          "$type": "vec2",
+          "$type": "vec4",
           "$value": [
-            32.0,
+            6.0,
+            0.0,
+            20.0,
             32.0
           ]
         },
@@ -509,7 +636,7 @@
       }
     },
     {
-      "$name": "brick",
+      "$name": "base-block",
       "$components": {
         "wall": {
           "$type": "wall",
@@ -523,8 +650,10 @@
           ]
         },
         "collision_rect": {
-          "$type": "vec2",
+          "$type": "vec4",
           "$value": [
+            0.0,
+            0.0,
             32.0,
             32.0
           ]
@@ -540,10 +669,10 @@
         "frame": {
           "$type": "vec4",
           "$value": [
-            2,
-            93,
-            32,
-            32
+            0,
+            0,
+            0,
+            0
           ]
         },
         "texture": {
@@ -551,6 +680,90 @@
           "$value": {
             "path": "../assets/atlas/atlas-props.png"
           }
+        }
+      }
+    },
+    {
+      "$name": "block-big",
+      "$extends": [
+        "base-block"
+      ],
+      "$components": {
+        "collision_rect": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            0.0,
+            32.0,
+            32.0
+          ]
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            2,
+            93,
+            32,
+            32
+          ]
+        }
+      }
+    },
+    {
+      "$name": "block",
+      "$extends": [
+        "base-block"
+      ],
+      "$components": {
+        "collision_rect": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            84,
+            19,
+            16,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "$name": "ground-block",
+      "$extends": [
+        "base-block"
+      ],
+      "$components": {
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/environment/tileset.png"
+          }
+        },
+        "collision_rect": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            16,
+            16,
+            16,
+            16
+          ]
         }
       }
     }

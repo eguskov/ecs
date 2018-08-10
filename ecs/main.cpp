@@ -20,6 +20,7 @@ void call(const eastl::array<int, N> &offets, uint8_t** compontes)
   }
 }
 
+Camera2D camera;
 int screen_width = 800;
 int screen_height = 450;
 
@@ -41,6 +42,11 @@ int main()
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
   SetTargetFPS(60);
+
+  camera.target = Vector2{ 0.f, 0.f };
+  camera.offset = Vector2{ 0.f, 0.f };
+  camera.rotation = 0.0f;
+  camera.zoom = 1.5f;
 
   EntityManager::init();
 
@@ -93,7 +99,9 @@ int main()
 
     ClearBackground(RAYWHITE);
 
+    BeginMode2D(camera);
     g_mgr->tick(RenderStage{});
+    EndMode2D();
 
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);

@@ -18,33 +18,7 @@
       }
     },
     {
-      "$template": "opossum",
-      "$components": {
-        "pos": [
-          0.0,
-          4.0
-        ],
-        "vel": [
-          -20.0,
-          0.0
-        ]
-      }
-    },
-    {
-      "$template": "eagle",
-      "$components": {
-        "pos": [
-          128.0,
-          -80.0
-        ],
-        "vel": [
-          0.0,
-          -1.0
-        ]
-      }
-    },
-    {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           0.0,
@@ -53,7 +27,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           32.0,
@@ -62,7 +36,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           64.0,
@@ -71,7 +45,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           -32.0,
@@ -80,7 +54,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           -64.0,
@@ -89,7 +63,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           -96.0,
@@ -98,7 +72,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           96.0,
@@ -107,7 +81,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           128.0,
@@ -116,7 +90,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           -128.0,
@@ -125,7 +99,7 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           -160.0,
@@ -134,10 +108,28 @@
       }
     },
     {
-      "$template": "brick",
+      "$template": "block-big",
       "$components": {
         "pos": [
           0.0,
+          -96.0
+        ]
+      }
+    },
+    {
+      "$template": "ground-block",
+      "$components": {
+        "pos": [
+          64.0,
+          -96.0
+        ]
+      }
+    },
+    {
+      "$template": "ground-block",
+      "$components": {
+        "pos": [
+          80.0,
           -96.0
         ]
       }
