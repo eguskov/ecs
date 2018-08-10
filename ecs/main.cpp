@@ -3,6 +3,12 @@
 #include <random>
 #include <ctime>
 
+extern "C" {
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+}
+
 #include "ecs/ecs.h"
 
 #include "stages/update.stage.h"
@@ -35,6 +41,43 @@ void testFunc<>(eastl::index_sequence<0, 1, 2>)
 
 int main()
 {
+  {
+    lua_State *L = luaL_newstate();
+    luaL_openlibs(L);
+
+    int status = luaL_loadfile(L, "script.lua");
+    if (status)
+    {
+      fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(L, -1));
+      // exit(1);
+    }
+
+    lua_newtable(L);
+
+    for (int i = 1; i <= 5; i++)
+    {
+      lua_pushnumber(L, i);
+      lua_pushnumber(L, i * 2);
+      lua_rawset(L, -3);
+    }
+
+    lua_setglobal(L, "foo");
+
+    int result = lua_pcall(L, 0, LUA_MULTRET, 0);
+    if (result)
+    {
+      fprintf(stderr, "Failed to run script: %s\n", lua_tostring(L, -1));
+      // exit(1);
+    }
+
+    double sum = lua_tonumber(L, -1);
+
+    printf("Script returned: %.0f\n", sum);
+
+    lua_pop(L, 1);
+    lua_close(L);
+  }
+
   testFunc<0, 1, 2>(eastl::make_index_sequence<3>{});
 
   std::srand(unsigned(std::time(0)));
@@ -89,7 +132,7 @@ int main()
     double t = GetTime();
     g_mgr->tick();
 
-    const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f/60.f);
+    const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f / 60.f);
     g_mgr->tick(UpdateStage{ dt, totalTime });
     const float delta = (float)((GetTime() - t) * 1e3);
 
@@ -107,9 +150,11 @@ int main()
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawFPS(10, 10);
 
+    g_mgr->tick(RenderHUDStage{});
+
     EndDrawing();
   }
-  
+
   CloseWindow();
 
   return 0;

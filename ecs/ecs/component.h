@@ -19,6 +19,8 @@
 #define DEF_EMPTY_COMP(type, name) { bool set(const JValue&) { return true; }; };REG_COMP(type, name);
 #endif
 
+#define DEF_SET() bool set(const JValue&) { return true; }
+
 #define REG_COMP(type, n) \
   template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char* typeName = #type; constexpr static char* name = #n; }; \
 

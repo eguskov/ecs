@@ -20,6 +20,14 @@ struct Wall DEF_EMPTY_COMP(Wall, wall);
 struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
 struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
 
+struct HUD
+{
+  int killCount = 0;
+
+  DEF_SET();
+}
+DEF_COMP(HUD, hud);
+
 struct SpawnList
 {
   struct Data
@@ -83,6 +91,12 @@ struct Jump
   };
 }
 DEF_COMP(Jump, jump);
+
+struct EventOnKillEnemy : Event
+{
+
+}
+DEF_EVENT(EventOnKillEnemy);
 
 struct TextureAtlas
 {
@@ -241,6 +255,11 @@ static __forceinline void render_normal(
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
   DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+}
+
+DEF_SYS()
+static __forceinline void render_hud(const RenderHUDStage &stage, const HUD &hud)
+{
 }
 
 DEF_SYS()
@@ -500,17 +519,19 @@ DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
 DEF_SYS(HAVE_COMP(user_input) IS_TRUE(is_alive))
 static __forceinline void update_enemies_collisions(
   const UpdateStage &stage,
+  EntityId eid,
   Jump &jump,
   const glm::vec4 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
   float &dir)
 {
+  EntityId myEid = eid;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec4 myCollisionRect = collision_rect;
 
-  AliveEnemiesQuery::exec([&jump, &myPos, &myVel, myCollisionRect, &stage](
+  AliveEnemiesQuery::exec([&](
     EntityId eid,
     const glm::vec4 &collision_rect,
     const glm::vec2 &pos,
@@ -527,6 +548,7 @@ static __forceinline void update_enemies_collisions(
       if (normal.y < 0.f)
       {
         g_mgr->deleteEntity(eid);
+        g_mgr->sendEvent(myEid, EventOnKillEnemy{});
 
         is_alive = false;
 
@@ -608,4 +630,10 @@ static __forceinline void update_camera(const UpdateStage &stage, const glm::vec
   const float hh = 0.5f * screen_width;
   camera.target = Vector2{ hw, hh };
   camera.offset = Vector2{ -pos.x, -pos.y };
+}
+
+DEF_SYS()
+static __forceinline void process_on_kill_event(const EventOnKillEnemy &ev, HUD &hud)
+{
+  ++hud.killCount;
 }

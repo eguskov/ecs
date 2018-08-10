@@ -13,7 +13,7 @@
   }; \
 
 #define REG_STAGE_INIT(type) \
-  static RegCompSpec<type> _##n; \
+  static RegCompSpec<type> _##type; \
   int RegCompSpec<type>::ID = -1; \
 
 #define REG_STAGE_AND_INIT(type, n) \

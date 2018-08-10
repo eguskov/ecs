@@ -131,7 +131,8 @@ struct EntityManager
 
   eastl::set<int> trackComponents;
 
-  EventStream events;
+  int currentEventStream = 0;
+  eastl::array<EventStream, 2> events;
 
   static void init();
   static void release();

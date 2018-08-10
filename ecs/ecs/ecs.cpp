@@ -558,12 +558,16 @@ void EntityManager::tick()
         invalidateQuery(q);
   }
 
-  while (events.count)
+  const int streamIndex = currentEventStream;
+  currentEventStream = (currentEventStream + 1) % events.size();
+  assert(currentEventStream != streamIndex);
+
+  while (events[streamIndex].count)
   {
     EntityId eid;
     int event_id = -1;
     RawArg ev;
-    eastl::tie(eid, event_id, ev) = events.pop();
+    eastl::tie(eid, event_id, ev) = events[streamIndex].pop();
     sendEventSync(eid, event_id, ev);
   }
 }
@@ -685,7 +689,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
-  events.push(eid, event_id, ev);
+  events[currentEventStream].push(eid, event_id, ev);
 }
 
 void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)

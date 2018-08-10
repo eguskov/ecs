@@ -1,5 +1,6 @@
 {
   "$order": [
+    "process_on_kill_event",
     "load_texture_handler",
     "reg_anim_seq_handler",
     "read_controls",
@@ -457,6 +458,10 @@
     {
       "$name": "fox",
       "$components": {
+        "hud": {
+          "$type": "hud",
+          "$value": {}
+        },
         "user_input": {
           "$type": "user_input",
           "$value": {}
