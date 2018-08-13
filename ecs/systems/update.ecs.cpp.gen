@@ -49,7 +49,6 @@ static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_positio
 static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame, { "stage", "anim_graph", "anim_state", "frame" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<1007297635, decltype(render_walls)> _reg_sys_render_walls("render_walls", render_walls, { "stage", "texture", "frame", "pos" }, { "wall" }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<2012399197, decltype(render_normal)> _reg_sys_render_normal("render_normal", render_normal, { "stage", "texture", "frame", "pos", "dir" }, {  }, { "wall" }, { "is_alive" }, {  }, true); 
-static RegSysSpec<2273470951, decltype(render_hud)> _reg_sys_render_hud("render_hud", render_hud, { "stage", "hud" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<484250714, decltype(read_controls)> _reg_sys_read_controls("read_controls", read_controls, { "stage", "user_input", "vel" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<1920783676, decltype(apply_controls)> _reg_sys_apply_controls("apply_controls", apply_controls, { "stage", "user_input", "is_on_ground", "jump", "vel", "dir" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<3949714102, decltype(apply_jump)> _reg_sys_apply_jump("apply_jump", apply_jump, { "stage", "jump", "is_on_ground", "vel" }, {  }, {  }, {  }, {  }, true); 
@@ -174,13 +173,6 @@ template <> template <> __forceinline void RegSysSpec<2012399197, decltype(rende
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets) };
   render_normal(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
-}
-
-template <> template <> __forceinline void RegSysSpec<2273470951, decltype(render_hud)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
-{
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  render_hud(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
 }
 
 template <> template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const

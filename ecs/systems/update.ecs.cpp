@@ -257,10 +257,10 @@ static __forceinline void render_normal(
   DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
-DEF_SYS()
-static __forceinline void render_hud(const RenderHUDStage &stage, const HUD &hud)
-{
-}
+//DEF_SYS()
+//static __forceinline void render_hud(const RenderHUDStage &stage, const HUD &hud)
+//{
+//}
 
 DEF_SYS()
 static __forceinline void read_controls(

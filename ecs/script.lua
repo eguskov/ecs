@@ -4,8 +4,12 @@ local dump = require("dump")
 
 io.write("The table the script received has:\n")
 
-function my_script_system(update_stage)
-  print("my_script_system", update_stage.dt)
+function my_script_system1(update_stage, pos, vel)
+  print("my_script_system1", update_stage.dt)
+end
+
+function my_script_system2(update_stage, components)
+  print("my_script_system2", update_stage.dt)
 end
 
 dump(foo)
