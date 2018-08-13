@@ -6,6 +6,7 @@
 #include <string>
 
 #include "scriptarray.h"
+#include "as_objecttype.h"
 
 using namespace std;
 
@@ -555,8 +556,13 @@ void CScriptArray::SetValue(asUINT index, void *value)
 	void *ptr = At(index);
 	if( ptr == 0 ) return;
 
-	if( (subTypeId & ~asTYPEID_MASK_SEQNBR) && !(subTypeId & asTYPEID_OBJHANDLE) )
-		objType->GetEngine()->AssignScriptObject(ptr, value, objType->GetSubType());
+  if ((subTypeId & ~asTYPEID_MASK_SEQNBR) && !(subTypeId & asTYPEID_OBJHANDLE))
+  {
+    objType->GetEngine()->AssignScriptObject(ptr, value, objType->GetSubType());
+    auto objSubType = (const asCObjectType*)objType->GetSubType();
+    if (!objSubType->beh.copy && objSubType->size && !(objSubType->flags & asOBJ_POD) && (objSubType->flags & asOBJ_VALUE))
+      memcpy(ptr, value, objSubType->size);
+  }
 	else if( subTypeId & asTYPEID_OBJHANDLE )
 	{
 		void *tmp = *(void**)ptr;

@@ -146,7 +146,8 @@ int main()
 
   sysCtx->Release();
 
-  mainCtx->Release();
+  //FIME: Fix crash
+  //mainCtx->Release();
 
   camera.target = Vector2{ 0.f, 0.f };
   camera.offset = Vector2{ 0.f, 0.f };

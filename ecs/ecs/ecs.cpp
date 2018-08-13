@@ -86,7 +86,7 @@ int Template::getCompontentOffset(int id, const char *name) const
     return -1;
   for (const auto &c : components)
     if (c.desc->id == id && c.name == name)
-      return c.offset;
+      return c.id;
   return -1;
 }
 
@@ -382,7 +382,7 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   for (size_t i = 0; i < templ.components.size(); ++i)
   {
     auto &c = templ.components[i];
-    c.offset = offset;
+    c.id = i;
     offset += c.desc->size;
 
     templ.compMask[c.desc->id] = true;

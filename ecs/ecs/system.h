@@ -77,7 +77,7 @@ struct RawArgSpec : RawArg
 
 struct CompDesc
 {
-  int offset;
+  int id;
   int nameId;
   eastl::string name;
   const RegComp* desc;
