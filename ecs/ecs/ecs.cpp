@@ -534,6 +534,10 @@ void EntityManager::tick()
     createQueue.pop();
   }
 
+  if (shouldInvalidateQueries)
+    for (auto &s : storages)
+      s->invalidate();
+
   for (const auto &v : asyncValues)
   {
     const bool ready = v.isReady();
@@ -580,6 +584,10 @@ void EntityManager::invalidateQuery(Query &query)
     return;
 
   query.eids.clear();
+
+#ifdef ECS_PACK_QUERY_DATA
+  query.data.clear();
+#endif
 
   for (auto &e : entities)
   {
@@ -647,7 +655,18 @@ void EntityManager::invalidateQuery(Query &query)
     }
 
     if (ok)
+    {
       query.eids.push_back(e.eid);
+
+#ifdef ECS_PACK_QUERY_DATA
+      size_t sz = query.data.size();
+      size_t remapSz = templ.remaps[query.sys->id].size();
+      query.data.resize(sz + 1 + remapSz + e.componentOffsets.size());
+      eastl::copy(templ.remaps[query.sys->id].begin(), templ.remaps[query.sys->id].end(), query.data.begin() + sz);
+      query.data[sz + remapSz] = e.componentOffsets.size();
+      eastl::copy(e.componentOffsets.begin(), e.componentOffsets.end(), query.data.begin() + sz + 1 + remapSz);
+#endif
+    }
   }
 }
 

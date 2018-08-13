@@ -1,0 +1,8 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "update.ecs.h"
+
+#endif // __CODEGEN__

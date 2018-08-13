@@ -1,0 +1,23 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "update.ecs.h"
+
+static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
+template <> int RegCompSpec<TimerComponent>::ID = -1;
+
+static RegCompSpec<NoHitTimerComponent> _reg_comp_no_hit_timer("no_hit_timer");
+template <> int RegCompSpec<NoHitTimerComponent>::ID = -1;
+
+static RegCompSpec<ColorComponent> _reg_comp_color("color");
+template <> int RegCompSpec<ColorComponent>::ID = -1;
+
+static RegCompSpec<EventOnSpawn> _reg_event_EventOnSpawn;
+int RegCompSpec<EventOnSpawn>::ID = -1;
+
+static RegCompSpec<EventOnAnotherTest> _reg_event_EventOnAnotherTest;
+int RegCompSpec<EventOnAnotherTest>::ID = -1;
+
+#endif // __CODEGEN__

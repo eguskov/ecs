@@ -1,7 +1,7 @@
 #pragma once
 
 #define REG_STAGE(type, n) \
-  template <> struct Desc<type> { constexpr static char* typeName = #type; constexpr static char* name = #n; }; \
+  template <> struct Desc<type> { constexpr static char const* typeName = #type; constexpr static char const* name = #n; }; \
   template <> \
   struct RegCompSpec<type> : RegComp \
   { \

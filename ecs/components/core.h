@@ -3,7 +3,7 @@
 #include "ecs/component.h"
 #include "ecs/entity.h"
 
-template <> struct Desc<EntityId> { constexpr static char* typeName = "EntityId"; constexpr static char* name = "eid"; };
+template <> struct Desc<EntityId> { constexpr static char const* typeName = "EntityId"; constexpr static char const* name = "eid"; };
 template <>
 struct RegCompSpec<EntityId> : RegComp
 {

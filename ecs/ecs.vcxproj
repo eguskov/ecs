@@ -26,13 +26,13 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -90,9 +90,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\jemalloc\include;$(ProjectDir)..\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -100,26 +101,13 @@
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Debug;$(ProjectDir)..\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>raylibd.lib;EASTL.lib;lua.lib;angelscriptd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep>
-      <Command>
-      </Command>
-      <Inputs>
-      </Inputs>
-      <Outputs>
-      </Outputs>
-    </CustomBuildStep>
-    <CustomBuild>
-      <Command>
-      </Command>
-    </CustomBuild>
-    <CustomBuild>
-      <Outputs>
-      </Outputs>
-    </CustomBuild>
-    <CustomBuild>
-      <AdditionalInputs>
-      </AdditionalInputs>
-    </CustomBuild>
+    <Lib>
+      <ForceSymbolReferences>
+      </ForceSymbolReferences>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -146,7 +134,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\jemalloc\include;$(ProjectDir)..\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
@@ -183,6 +171,7 @@
     <ClInclude Include="ecs\ecs.h" />
     <ClInclude Include="ecs\entity.h" />
     <ClInclude Include="ecs\event.h" />
+    <ClInclude Include="ecs\perf.h" />
     <ClInclude Include="ecs\stage.h" />
     <ClInclude Include="ecs\storage.h" />
     <ClInclude Include="io\json.h" />
@@ -191,28 +180,13 @@
     <ClInclude Include="ecs\system.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="stages\update.stage.h" />
-    <CustomBuild Include="**\*.ecs.h">
-      <Message>
-      </Message>
-      <Command>"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs>$(ProjectDir)%(Identity).gen</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="components\core.cpp" />
     <ClCompile Include="ecs\ecs.cpp" />
     <ClCompile Include="ecs\memory.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="stages\render.stage.cpp" />
-    <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="stages\update.stage.cpp" />
-    <CustomBuild Include="**\*.ecs.cpp">
-      <Message>
-      </Message>
-      <Command>"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs>$(ProjectDir)%(Identity).gen</Outputs>
-    </CustomBuild>
-    <ClCompile Include="**\*.gen" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />

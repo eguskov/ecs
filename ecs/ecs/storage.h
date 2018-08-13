@@ -12,7 +12,16 @@ struct Storage
   int lastFreeIndex = -1;
   int nextAllocIndex = 0;
 
+  uint8_t* dataCached = nullptr;
+  int sizeCached = 0;
+
   eastl::bitvector<> freeMask;
+
+  void invalidate()
+  {
+    dataCached = data();
+    sizeCached = size();
+  }
 
   virtual eastl::tuple<uint8_t*, int> allocate() = 0;
   virtual void deallocate(int offset) = 0;
@@ -25,17 +34,18 @@ struct Storage
   template <typename T>
   const T& get(int offset) const
   {
-    assert((offset % elemSize) == 0);
-    assert(freeMask[offset / elemSize] == false);
-    return *(T*)&data()[offset];
+    //assert(dataCached == data());
+    //assert((offset % elemSize) == 0);
+    //assert(freeMask[offset / elemSize] == false);
+    return *(T*)&dataCached[offset];
   }
 
   template <typename T>
   T& get(int offset)
   {
-    assert((offset % elemSize) == 0);
-    assert(freeMask[offset / elemSize] == false);
-    return *(T*)&data()[offset];
+    //assert((offset % elemSize) == 0);
+    //assert(freeMask[offset / elemSize] == false);
+    return *(T*)&dataCached[offset];
   }
 };
 
@@ -91,7 +101,7 @@ struct StorageSpec : Storage
     if (nextAllocIndex++ >= totalCount)
     {
       ++totalCount;
-      items.resize(totalCount * elemSize);
+      items.resize(totalCount);
       freeMask.resize(totalCount);
     }
     else

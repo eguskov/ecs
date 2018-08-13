@@ -7,17 +7,11 @@
     <Filter Include="ecs">
       <UniqueIdentifier>{76a3ba95-abb4-4b16-8f48-43f1a68ae057}</UniqueIdentifier>
     </Filter>
-    <Filter Include="systems">
-      <UniqueIdentifier>{d0cd0d7b-76f2-4577-9487-14f004d30b80}</UniqueIdentifier>
-    </Filter>
     <Filter Include="stages">
       <UniqueIdentifier>{34d81510-4e28-4fc2-ad92-bfc6d5dfcd80}</UniqueIdentifier>
     </Filter>
     <Filter Include="io">
       <UniqueIdentifier>{43adfa92-589d-4520-a12f-904bb7ddfc3c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="gen">
-      <UniqueIdentifier>{f7dff4da-c64a-4095-b647-b0a609a259e4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -56,6 +50,9 @@
     <ClInclude Include="ecs\storage.h">
       <Filter>ecs</Filter>
     </ClInclude>
+    <ClInclude Include="ecs\perf.h">
+      <Filter>ecs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stages\update.stage.cpp">
@@ -64,76 +61,22 @@
     <ClCompile Include="ecs\ecs.cpp">
       <Filter>ecs</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="stages\render.stage.cpp">
       <Filter>stages</Filter>
     </ClCompile>
     <ClCompile Include="ecs\memory.cpp">
       <Filter>ecs</Filter>
     </ClCompile>
-    <ClCompile Include="**\*.gen" />
     <ClCompile Include="components\core.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="**\*.gen">
-      <Filter>gen</Filter>
-    </ClCompile>
-    <ClCompile Include="**\*.gen">
-      <Filter>gen</Filter>
-    </ClCompile>
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
-    <ClCompile Include="**\*.gen" />
+    <ClCompile Include="components\test.ecs.h.gen" />
+    <ClCompile Include="components\timer.ecs.h.gen" />
+    <ClCompile Include="systems\update.ecs.cpp.gen" />
+    <ClCompile Include="systems\update.ecs.h.gen" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\rapidjson\contrib\natvis\rapidjson.natvis" />
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="**\*.ecs.cpp">
-      <Filter>systems</Filter>
-    </CustomBuild>
-    <CustomBuild Include="**\*.ecs.h">
-      <Filter>systems</Filter>
-    </CustomBuild>
-    <CustomBuild Include="**\*.ecs.h">
-      <Filter>components</Filter>
-    </CustomBuild>
-    <CustomBuild Include="**\*.ecs.h">
-      <Filter>components</Filter>
-    </CustomBuild>
-    <CustomBuild Include="**\*.ecs.h">
-      <Filter>components</Filter>
-    </CustomBuild>
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
-    <CustomBuild Include="**\*.ecs.h" />
   </ItemGroup>
 </Project>

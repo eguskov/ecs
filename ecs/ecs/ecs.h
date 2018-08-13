@@ -15,6 +15,9 @@
 
 #include "components/core.h"
 
+#define ECS_PULL(type) static int pull_##type = RegCompSpec<type>::ID;
+#define PULL_ESC_CORE ECS_PULL(bool);
+
 struct RegSys;
 extern RegSys *reg_sys_head;
 extern int reg_sys_count;
@@ -49,7 +52,7 @@ struct Template
 };
 
 template <typename T>
-struct Cleanup
+struct CleanupType
 {
   using Type = typename eastl::remove_const<typename eastl::remove_reference<T>::type>::type;
 };
@@ -59,10 +62,8 @@ struct Entity
   bool ready = false;
 
   EntityId eid;
-
   int templateId = -1;
-
-  eastl::fixed_vector<int, 256, false> componentOffsets;
+  eastl::vector<int> componentOffsets;
 };
 
 struct System
@@ -107,6 +108,10 @@ struct Query
   int stageId = -1;
   const RegSys *sys = nullptr;
   EntityVector eids;
+
+#ifdef ECS_PACK_QUERY_DATA
+  eastl::vector<int> data;
+#endif
 };
 
 struct EntityManager

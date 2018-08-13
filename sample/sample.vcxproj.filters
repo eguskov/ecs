@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="update.ecs.cpp.gen">
+      <Filter>gen</Filter>
+    </ClCompile>
+    <ClCompile Include="update.ecs.h.gen">
+      <Filter>gen</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="gen">
+      <UniqueIdentifier>{48057ca6-9e13-4707-90d5-ff35b7a42720}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="update.ecs.cpp" />
+    <CustomBuild Include="update.ecs.h" />
+  </ItemGroup>
+</Project>

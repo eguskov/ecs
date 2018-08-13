@@ -22,10 +22,10 @@
 #define DEF_SET() bool set(const JValue&) { return true; }
 
 #define REG_COMP(type, n) \
-  template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char* typeName = #type; constexpr static char* name = #n; }; \
+  template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #n; }; \
 
 #define REG_COMP_ARR(type, n, sz) \
-  template <> struct Desc<ArrayComp<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char* typeName = #type; constexpr static char* name = __C4(n, [, sz, ]); }; \
+  template <> struct Desc<ArrayComp<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
 
 #define REG_COMP_INIT(type, n) \
   static RegCompSpec<type> _##n(#n); \

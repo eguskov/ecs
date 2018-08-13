@@ -9,7 +9,7 @@
 #endif
 
 #define REG_EVENT(type) \
-  template <> struct Desc<type> { constexpr static char* typeName = #type; constexpr static char* name = #type; }; \
+  template <> struct Desc<type> { constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
   template <> \
   struct RegCompSpec<type> : RegComp \
   { \

@@ -585,6 +585,8 @@ int main(int argc, char* argv[])
     std::regex_search(state.filename.cbegin(), state.filename.cend(), match, re);
     if (!match.empty())
       basename.assign((match[1].str() + "." + match[2].str()).c_str());
+    else
+      basename = state.filename;
 
     out << "//! GENERATED FILE\n\n" << std::endl;
     out << "#ifndef __CODEGEN__\n" << std::endl;
@@ -712,7 +714,7 @@ int main(int argc, char* argv[])
       out << ", false); " << std::endl;
       out << std::endl;
 
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
@@ -749,7 +751,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
       out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;

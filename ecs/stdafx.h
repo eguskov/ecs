@@ -9,6 +9,15 @@
 
 #include "targetver.h"
 
+#include <new>
+
+void* operator new(std::size_t s);
+void* operator new[](std::size_t s);
+void operator delete(void*p);
+void operator delete[](void*p);
+void operator delete(void *p, size_t);
+void operator delete[](void *p, size_t);
+
 #include <assert.h> 
 
 #include <stdio.h>
@@ -37,5 +46,3 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-
-#include "raylib.h"

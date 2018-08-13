@@ -27,7 +27,7 @@ struct EntityManager;
 #endif
 
 #define REG_SYS_BASE(func, ...) \
-  template <> struct Desc<decltype(func)> { constexpr static char* name = #func; }; \
+  template <> struct Desc<decltype(func)> { constexpr static char const* name = #func; }; \
   static RegSysSpec<decltype(func)> _##func(#func, &func, {__VA_ARGS__}); \
 
 #define REG_SYS(func, ...) \
@@ -140,7 +140,7 @@ struct Value;
 template <typename T>
 struct Value<T, ValueType::kComponent>
 {
-  static inline T get(const ExtraArguments &, Storage **storage, int comp_id, int offset)
+  static __forceinline T get(const ExtraArguments &, Storage **storage, int comp_id, int offset)
   {
     return storage[comp_id]->get<typename eastl::remove_reference<T>::type>(offset);
   }
@@ -149,7 +149,7 @@ struct Value<T, ValueType::kComponent>
 template <typename T>
 struct Value<T, ValueType::kStage>
 {
-  static inline T get(const ExtraArguments &args, Storage**, int, int)
+  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
   }
@@ -158,7 +158,7 @@ struct Value<T, ValueType::kStage>
 template <typename T>
 struct Value<T, ValueType::kEvent>
 {
-  static inline T get(const ExtraArguments &args, Storage**, int, int)
+  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
   }
@@ -167,7 +167,7 @@ struct Value<T, ValueType::kEvent>
 template <typename T>
 struct Value<T, ValueType::kEid>
 {
-  static inline T get(const ExtraArguments &args, Storage**, int, int)
+  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
   {
     return *(typename eastl::remove_reference<T>::type *)&args.eid;
   }
@@ -263,7 +263,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
   constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
 
   template <size_t... I>
-  __forceinline void execImpl(const ExtraArguments &args, const RegSys::Remap &remap, const int *offsets, Storage **storage, eastl::index_sequence<I...>) const;
+  __forceinline void execImpl(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<I...>) const;
 
   inline void operator()(const EntityVector &eids, const RawArg &stage, Storage **storage) const
   {
@@ -289,20 +289,30 @@ struct RegSysSpec<D, R(Args...)> : RegSys
 
   void execStage(int count, const EntityId *eids, const RawArg &stage_or_event, Storage **storage) const
   {
+#ifdef ECS_PACK_QUERY_DATA
+    const auto &query = g_mgr->queries[id];
+    const int *queryData = query.data.data();
+#endif
+
     ExtraArguments args;
     args.stageOrEvent = stage_or_event;
 
     for (int i = 0; i < count; ++i)
     {
       EntityId eid = eids[i];
-
-      const auto &entity = g_mgr->entities[eid2idx(eid)];
+      args.eid = eid;
+#ifdef ECS_PACK_QUERY_DATA
+      const int *remapData = queryData;
+      const int offsetCount = queryData[ArgsCount];
+      const int *offsets = &queryData[ArgsCount + 1];
+      queryData += ArgsCount + offsetCount + 1;
+      execImpl(args, remapData, offsets, storage, Indices{});
+#else
+      const auto &entity = g_mgr->entities[eid.index];
       const auto &templ = g_mgr->templates[entity.templateId];
       const auto &remap = templ.remaps[id];
-
-      args.eid = eid;
-
-      execImpl(args, remap, entity.componentOffsets.data(), storage, Indices{});
+      execImpl(args, remap.data(), entity.componentOffsets.data(), storage, Indices{});
+#endif
     }
   }
 
