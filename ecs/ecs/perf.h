@@ -28,3 +28,5 @@ struct ScopeTime
     std::cout << "[" << name.c_str() << "]: " << _d << " ms (" << _d * 1e3 << " us" << ")" << std::endl;
   }
 };
+
+#define PERF_TIME(name) ScopeTime __timer__##name(#name);

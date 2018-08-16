@@ -36,7 +36,7 @@ struct EventOnEntityReady : Event
 };
 REG_EVENT(EventOnEntityReady);
 
-struct Template
+struct EntityTemplate
 {
   int size = 0;
   int docId = -1;
@@ -63,6 +63,8 @@ struct Entity
 
   EntityId eid;
   int templateId = -1;
+
+  // TODO: Store as SoA in one array???
   eastl::vector<int> componentOffsets;
 };
 
@@ -114,14 +116,25 @@ struct Query
 #endif
 };
 
+enum EntityManagerStatus
+{
+  kStatusNone = 0,
+  kStatusEntityCreated = 1 << 0,
+  kStatusEntityDeleted = 1 << 1,
+  kStatusEntityReady = 1 << 2,
+};
+
 struct EntityManager
 {
+  using EventProcessCallback = eastl::function<void (EntityId, int, const RawArg &)>;
+
   int eidCompId = -1;
+  uint32_t status = kStatusNone;
 
   JDocument templatesDoc;
 
   eastl::vector<eastl::string> order;
-  eastl::vector<Template> templates;
+  eastl::vector<EntityTemplate> templates;
   eastl::vector<Storage*> storages;
   eastl::vector<Entity> entities;
   eastl::vector<eastl::string> componentNames;
@@ -138,6 +151,8 @@ struct EntityManager
 
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
+
+  EventProcessCallback eventProcessCallback = nullptr;
 
   static void init();
   static void release();

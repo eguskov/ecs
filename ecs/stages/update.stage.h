@@ -9,4 +9,4 @@ struct UpdateStage : Stage
   float total;
   UpdateStage(float _dt, float _total) : dt(_dt), total(_total) {}
 };
-REG_STAGE(UpdateStage, update_stage);
+REG_STAGE(UpdateStage);

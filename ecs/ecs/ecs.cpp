@@ -70,7 +70,7 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
-bool Template::hasCompontent(int id, const char *name) const
+bool EntityTemplate::hasCompontent(int id, const char *name) const
 {
   if (!name || !name[0])
     return compMask[id];
@@ -80,7 +80,7 @@ bool Template::hasCompontent(int id, const char *name) const
   return false;
 }
 
-int Template::getCompontentOffset(int id, const char *name) const
+int EntityTemplate::getCompontentOffset(int id, const char *name) const
 {
   if (!name || !name[0])
     return -1;
@@ -305,7 +305,7 @@ const RegComp* EntityManager::getComponentDescByName(const char *name) const
 }
 
 static void add_component_to_template(const char *comp_type, const char *comp_name,
-  Template &templ,
+  EntityTemplate &templ,
   eastl::vector<eastl::string> &component_names,
   eastl::vector<const RegComp*> &component_desc_by_names,
   eastl::vector<Storage*> &storages)
@@ -494,6 +494,8 @@ void EntityManager::tick()
 {
   bool shouldInvalidateQueries = false;
 
+  status = kStatusNone;
+
   while (!deleteQueue.empty())
   {
     EntityId eid = deleteQueue.front();
@@ -502,6 +504,7 @@ void EntityManager::tick()
     if (eid.generation == entity.eid.generation)
     {
       shouldInvalidateQueries = true;
+      status |= kStatusEntityDeleted;
 
       const auto &templ = templates[entity.templateId];
 
@@ -528,6 +531,7 @@ void EntityManager::tick()
   while (!createQueue.empty())
   {
     shouldInvalidateQueries = true;
+    status |= kStatusEntityCreated;
 
     const auto &q = createQueue.front();
     createEntitySync(q.templanemName.c_str(), q.components);
@@ -544,6 +548,8 @@ void EntityManager::tick()
     if (ready)
     {
       shouldInvalidateQueries = true;
+      status |= kStatusEntityReady;
+
       entities[eid2idx(v.eid)].ready = ready;
       sendEventSync(v.eid, EventOnEntityReady{});
     }
@@ -573,6 +579,9 @@ void EntityManager::tick()
     RawArg ev;
     eastl::tie(eid, event_id, ev) = events[streamIndex].pop();
     sendEventSync(eid, event_id, ev);
+
+    if (eventProcessCallback)
+      eventProcessCallback(eid, event_id, ev);
   }
 }
 

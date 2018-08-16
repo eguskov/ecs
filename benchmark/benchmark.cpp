@@ -52,7 +52,7 @@ int main()
   }
 
   {
-    ScopeTime timer("Create");
+    PERF_TIME(Create);
     for (int i = 0; i < count; ++i)
       g_mgr->createEntity("test", JValue());
     g_mgr->tick();
@@ -61,13 +61,13 @@ int main()
   const float dt = 1.f / 60.f;
 
   {
-    ScopeTime timer("Native");
+    PERF_TIME(Native);
     for (auto &v : test)
       v.pos += v.vel * dt;
   }
 
   {
-    ScopeTime timer("Native SoA");
+    PERF_TIME(Native_SoA);
     for (int i = 0; i < count; ++i)
     {
       testSoA.pos[i] += testSoA.vel[i] * dt;
@@ -77,7 +77,7 @@ int main()
   {
     uint8_t *posRaw = (uint8_t *)testSoARaw.pos.data();
     uint8_t *velRaw = (uint8_t *)testSoARaw.vel.data();
-    ScopeTime timer("Native SoA RAW");
+    PERF_TIME(Native_SoA_RAW);
     for (int i = 0; i < count; ++i)
     {
       *(glm::vec2*)(posRaw + i * sizeof(glm::vec2)) += (*(glm::vec2*)(velRaw + i * sizeof(glm::vec2))) * dt;
@@ -85,7 +85,7 @@ int main()
   }
 
   {
-    ScopeTime timer("ECS");
+    PERF_TIME(ECS);
     g_mgr->tick(UpdateStage{ dt, 10.f });
   }
 

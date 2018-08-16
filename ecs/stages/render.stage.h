@@ -6,9 +6,9 @@
 struct RenderStage : Stage
 {
 };
-REG_STAGE(RenderStage, render_stage);
+REG_STAGE(RenderStage);
 
 struct RenderHUDStage : Stage
 {
 };
-REG_STAGE(RenderHUDStage, render_hud_stage);
+REG_STAGE(RenderHUDStage);

@@ -2,6 +2,12 @@
 
 #include "stdafx.h"
 
+#ifdef _DEBUG
+#define sassert(...) assert(__VA_ARGS__)
+#else
+#define sassert(...)
+#endif
+
 struct Storage
 {
   eastl::string name;
@@ -31,21 +37,29 @@ struct Storage
 
   virtual void copyTo(Storage *dst) = 0;
 
+  uint8_t* getRaw(int offset)
+  {
+    sassert(dataCached == data());
+    sassert((offset % elemSize) == 0);
+    sassert(freeMask[offset / elemSize] == false);
+    return &dataCached[offset];
+  }
+
   template <typename T>
   const T& get(int offset) const
   {
-    assert(dataCached == data());
-    assert((offset % elemSize) == 0);
-    assert(freeMask[offset / elemSize] == false);
+    sassert(dataCached == data());
+    sassert((offset % elemSize) == 0);
+    sassert(freeMask[offset / elemSize] == false);
     return *(T*)&dataCached[offset];
   }
 
   template <typename T>
   T& get(int offset)
   {
-    assert(dataCached == data());
-    assert((offset % elemSize) == 0);
-    assert(freeMask[offset / elemSize] == false);
+    sassert(dataCached == data());
+    sassert((offset % elemSize) == 0);
+    sassert(freeMask[offset / elemSize] == false);
     return *(T*)&dataCached[offset];
   }
 };
@@ -74,7 +88,7 @@ struct StorageSpec : Storage
   {
     if (lastFreeIndex >= 0)
     {
-      assert(freeCount > 0);
+      sassert(freeCount > 0);
       --freeCount;
       const int i = lastFreeIndex;
       lastFreeIndex = -1;
@@ -95,7 +109,7 @@ struct StorageSpec : Storage
           return eastl::make_tuple(mem, i * elemSize);
         }
 
-      assert(false);
+      sassert(false);
     }
 
     const int i = nextAllocIndex;
@@ -122,9 +136,9 @@ struct StorageSpec : Storage
   {
     const int i = offset / elemSize;
 
-    assert((offset % elemSize) == 0);
-    assert(i >= 0 && i < totalCount);
-    assert(freeMask[i] == false);
+    sassert((offset % elemSize) == 0);
+    sassert(i >= 0 && i < totalCount);
+    sassert(freeMask[i] == false);
 
     if (i == totalCount - 1)
       nextAllocIndex = i;
