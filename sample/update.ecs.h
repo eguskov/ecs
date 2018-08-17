@@ -21,6 +21,11 @@ struct EventOnAnotherTest : Event
 }
 DEF_EVENT(EventOnAnotherTest);
 
+struct EventOnKillEnemy : Event
+{
+}
+DEF_EVENT(EventOnKillEnemy);
+
 struct TimerComponent
 {
   float time = 0.f;

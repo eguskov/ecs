@@ -20,4 +20,7 @@ int RegCompSpec<EventOnSpawn>::ID = -1;
 static RegCompSpec<EventOnAnotherTest> _reg_event_EventOnAnotherTest;
 int RegCompSpec<EventOnAnotherTest>::ID = -1;
 
+static RegCompSpec<EventOnKillEnemy> _reg_event_EventOnKillEnemy;
+int RegCompSpec<EventOnKillEnemy>::ID = -1;
+
 #endif // __CODEGEN__

@@ -55,9 +55,11 @@ struct ScriptSys : RegSys
 
   void init(const EntityManager *mgr) override final
   {
-    // TODO: Events
+    const RegComp *comp = find_comp(params[0].type.c_str());
+    assert(comp != nullptr);
+
     eventId = -1;
-    stageId = find_comp(params[0].type.c_str())->id;
+    stageId = comp ? comp->id : -1;
 
     for (size_t i = 0; i < params.size(); ++i)
     {
@@ -95,6 +97,15 @@ struct ScriptSys : RegSys
   }
 };
 
+static glm::vec2 opAssign(const glm::vec2& v1)
+{
+}
+
+static glm::vec2 opAdd(const glm::vec2& v1, const glm::vec2& v2)
+{
+  return v1 + v2;
+}
+
 struct ScriptECS
 {
   eastl::vector<ScriptSys> systems;
@@ -103,15 +114,27 @@ struct ScriptECS
 
   bool init(const char *path)
   {
+    g_mgr->eventProcessCallback = [this](EntityId eid, int event_id, const RawArg &ev)
+    {
+      return sendEventSync(eid, event_id, ev);
+    };
+
     script::init();
 
-    script::register_struct<UpdateStage>("UpdateStage");
+    script::register_struct<UpdateStage, 1>("UpdateStage");
     script::register_struct_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
     script::register_struct_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
-    script::register_struct<glm::vec2>("vec2");
+    script::register_struct<EventOnKillEnemy, 1>("EventOnKillEnemy");
+
+    glm::vec2 a, b;
+    a + b;
+
+    script::register_struct<glm::vec2, 256>("vec2");
     script::register_struct_property("vec2", "float x", offsetof(glm::vec2, x));
     script::register_struct_property("vec2", "float y", offsetof(glm::vec2, y));
+    script::register_struct_method("vec2", "vec2& opAssign(const vec2&in)", asMETHODPR(glm::vec2, operator=, (const glm::vec2&), glm::vec2&));
+    script::register_function("vec2", "vec2 opAdd(const vec2&in) const", asFUNCTIONPR(opAdd, (const glm::vec2&, const glm::vec2&), glm::vec2));
 
     asIScriptModule *moudle = script::build_module(nullptr, path);
     asIScriptFunction *func = script::find_function_by_decl(moudle, "ref@ main()");
@@ -178,9 +201,42 @@ struct ScriptECS
     }
   }
 
+  void sendEventSync(EntityId eid, int event_id, const RawArg &ev)
+  {
+    // TODO: Create context once
+    script::ScopeContext ctx;
+
+    auto &entity = g_mgr->entities[eid2idx(eid)];
+    const auto &templ = g_mgr->templates[entity.templateId];
+
+    for (const auto &sys : systems)
+      if (sys.stageId == event_id)
+      {
+        bool ok = true;
+        for (const auto &c : sys.components)
+          if (c.desc->id != g_mgr->eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+          {
+            ok = false;
+            break;
+          }
+
+        if (ok)
+        {
+          const auto &remap = remaps[entity.templateId][sys.id];
+
+          ctx->Prepare(sys.fn);
+          ctx->SetArgAddress(0, (void*)ev.mem);
+          for (int i = 1; i < (int)remap.size(); ++i)
+            ctx->SetArgAddress(i, g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]));
+          ctx->Execute();
+        }
+      }
+  }
+
   template <typename S>
   void tick(const S &stage)
   {
+    // TODO: Create context once
     script::ScopeContext ctx;
     for (const auto &query : queries)
     {

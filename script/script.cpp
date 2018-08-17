@@ -36,7 +36,6 @@ namespace script
   bool init()
   {
     engine = asCreateScriptEngine();
-    engine->AddRef();
 
     engine->SetMessageCallback(asFUNCTION(message), 0, asCALL_CDECL);
 
@@ -120,7 +119,21 @@ namespace script
   {
     int r = engine->RegisterObjectProperty(type, decl, offset);
     assert(r >= 0);
-    return true;
+    return r >= 0;
+  }
+
+  bool register_struct_method(const char *type, const char *decl, const asSFuncPtr &f)
+  {
+    int r = engine->RegisterObjectMethod(type, decl, f, asCALL_THISCALL);
+    assert(r >= 0);
+    return r >= 0;
+  }
+
+  bool register_function(const char *type, const char *decl, const asSFuncPtr &f)
+  {
+    int r = engine->RegisterObjectMethod(type, decl, f, asCALL_CDECL_OBJLAST);
+    assert(r >= 0);
+    return r >= 0;
   }
 
   ParamDesc get_param_desc(asIScriptFunction *fn, int i)
@@ -142,18 +155,17 @@ namespace script
   ParamDescVector get_all_param_desc(asIScriptFunction *fn)
   {
     eastl::vector<ParamDesc> res;
-    for (int i = 0; i < fn->GetParamCount(); ++i)
+    for (int i = 0; i < (int)fn->GetParamCount(); ++i)
       res.push_back(eastl::move(get_param_desc(fn, i)));
     return eastl::move(res);
   }
 
   namespace internal
   {
-    bool register_struct(const char *type, int size, uint32_t flags)
+    asIScriptEngine *get_engine()
     {
-      int r = engine->RegisterObjectType(type, size, asOBJ_VALUE | asOBJ_POD | flags);
-      assert(r >= 0);
-      return true;
+      assert(engine != nullptr);
+      return engine;
     }
 
     void set_arg(asIScriptContext *ctx, size_t i, void *arg)

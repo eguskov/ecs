@@ -1,11 +1,15 @@
-void script_system(const UpdateStage&in stage, const vec2&in pos, const vec2&in vel)
+void script_system(const UpdateStage& stage, const vec2& pos, const vec2& vel)
 {
-  vec2 res;
-  res.x = pos.x + vel.x * stage.dt;
-  res.y = pos.y + vel.y * stage.dt;
+  vec2 res = pos + vel;// * stage.dt;
 
-  print("script_system: pos: ("+pos.x+", "+pos.y+")");
-  print("script_system: vel: ("+vel.x+", "+vel.y+")");
+  // print("script_system: pos: ("+pos.x+", "+pos.y+")");
+  // print("script_system: vel: ("+vel.x+", "+vel.y+")");
+}
+
+void on_enenmy_kill_handler(const EventOnKillEnemy& ev, const vec2& pos)
+{
+  print("on_enenmy_kill_handler");
+  print("on_enenmy_kill_handler: pos: ("+pos.x+", "+pos.y+")");
 }
 
 ref@ main()
@@ -14,5 +18,6 @@ ref@ main()
 
   array<ref@> systems;
   systems.insertLast(@script_system);
+  systems.insertLast(@on_enenmy_kill_handler);
   return systems;
 }

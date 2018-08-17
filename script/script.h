@@ -1,6 +1,12 @@
 #pragma once
 
+#include <assert.h>
+
 #include <EASTL/vector.h>
+#include <EASTL/array.h>
+#include <EASTL/bitset.h>
+#include <EASTL/fixed_vector.h>
+
 #include <EASTL/string.h>
 
 #include <angelscript.h>
@@ -27,9 +33,8 @@ namespace script
       set_args<0>(ctx, eastl::make_index_sequence<sizeof...(Args)>{}, eastl::forward<Args>(args)...);
     }
 
+    asIScriptEngine *get_engine();
     asIScriptContext* create_context();
-
-    bool register_struct(const char *type, int size, uint32_t flags);
   }
 
   struct ScopeContext
@@ -80,13 +85,99 @@ namespace script
     callback((R*)ctx->GetReturnAddress());
   }
 
-  template <typename T>
+  template <typename T, size_t MaxInstanceCount>
+  struct ScriptHelper
+  {
+    using Self = ScriptHelper<T, MaxInstanceCount>;
+
+    struct Wrapper
+    {
+      // Must be the first, because it is written from script
+      T object;
+
+      int id = 0;
+      int refCount = 1;
+
+      Self *helper = nullptr;
+
+      void addRef()
+      {
+        ++refCount;
+      }
+
+      void release()
+      {
+        if (--refCount == 0)
+        {
+          assert(refCount >= 0);
+          helper->release(this);
+        }
+      }
+    };
+
+    eastl::bitset<MaxInstanceCount> freeMask;
+    eastl::array<Wrapper, MaxInstanceCount> storage;
+
+    ScriptHelper()
+    {
+      freeMask.set();
+    }
+
+    void release(Wrapper *w)
+    {
+      freeMask.set(w->id);
+    }
+
+    static Wrapper* create()
+    {
+      static Self helper;
+
+      int id = -1;
+      Wrapper *w = nullptr;
+      for (int i = 0; i < MaxInstanceCount; ++i)
+        if (helper.freeMask[i])
+        {
+          id = i;
+          w = &helper.storage[i];
+          break;
+        }
+
+      assert(w != nullptr && id >= 0);
+      assert(w->refCount <= 1);
+
+      helper.freeMask.reset(id);
+
+      w->id = id;
+      w->refCount = 1;
+      w->helper = &helper;
+      new (&w->object) T();
+      return w;
+    }
+  };
+
+  template <typename T, size_t MaxInstanceCount>
   bool register_struct(const char *type)
   {
-    return internal::register_struct(type, sizeof(T), asGetTypeTraits<T>());
+    using ScriptHelperT = ScriptHelper<T, MaxInstanceCount>;
+
+    eastl::string factoryDecl = type;
+    factoryDecl += "@ f()";
+
+    int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF);
+    assert(r >= 0);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::create), asCALL_CDECL);
+    assert(r >= 0);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
+    assert(r >= 0);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptHelperT::Wrapper, release), asCALL_THISCALL); assert(r >= 0);
+    assert(r >= 0);
+
+    return true;
   }
 
   bool register_struct_property(const char *type, const char *decl, size_t offset);
+  bool register_function(const char *type, const char *decl, const asSFuncPtr &f);
+  bool register_struct_method(const char *type, const char *decl, const asSFuncPtr &f);
 
   ParamDesc get_param_desc(asIScriptFunction *fn, int i);
   ParamDescVector get_all_param_desc(asIScriptFunction *fn);

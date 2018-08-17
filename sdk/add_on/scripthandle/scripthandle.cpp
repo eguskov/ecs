@@ -55,7 +55,8 @@ void CScriptHandle::ReleaseHandle()
 		asIScriptEngine *engine = m_type->GetEngine();
 		engine->ReleaseScriptObject(m_ref, m_type);
 
-		engine->Release();
+    // WTF???
+		// engine->Release();
 
 		m_ref  = 0;
 		m_type = 0;
@@ -71,7 +72,8 @@ void CScriptHandle::AddRefHandle()
 
 		// Hold on to the engine so it isn't destroyed while
 		// a reference to a script object is still held
-		engine->AddRef();
+    // WTF???
+		// engine->AddRef();
 	}
 }
 

@@ -85,12 +85,6 @@ struct Jump
 }
 DEF_COMP(Jump, jump);
 
-struct EventOnKillEnemy : Event
-{
-
-}
-DEF_EVENT(EventOnKillEnemy);
-
 struct TextureAtlas
 {
   eastl::string path;
