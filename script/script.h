@@ -85,20 +85,33 @@ namespace script
     callback((R*)ctx->GetReturnAddress());
   }
 
-  template <typename T, size_t MaxInstanceCount>
+  template <typename Desc, size_t MaxInstanceCount> struct ScriptHelper;
+
+  template <typename T, size_t _MaxInstanceCount>
+  struct ScriptHelperDesc
+  {
+    using Self = ScriptHelperDesc<T, _MaxInstanceCount>;
+    using Object = T;
+    using Helper = ScriptHelper<Self, _MaxInstanceCount>;
+    using Wrapper = typename eastl::add_pointer<typename Helper::Wrapper>::type;
+
+    constexpr static size_t MaxInstanceCount = _MaxInstanceCount;
+  };
+
+  template <typename Desc, size_t MaxInstanceCount>
   struct ScriptHelper
   {
-    using Self = ScriptHelper<T, MaxInstanceCount>;
+    using Helper = ScriptHelper<Desc, MaxInstanceCount>;
 
     struct Wrapper
     {
       // Must be the first, because it is written from script
-      T object;
+      typename Desc::Object object;
 
       int id = 0;
       int refCount = 1;
 
-      Self *helper = nullptr;
+      Helper* helper = nullptr;
 
       void addRef()
       {
@@ -130,7 +143,7 @@ namespace script
 
     static Wrapper* create()
     {
-      static Self helper;
+      static Helper helper;
 
       int id = -1;
       Wrapper *w = nullptr;
@@ -150,15 +163,15 @@ namespace script
       w->id = id;
       w->refCount = 1;
       w->helper = &helper;
-      new (&w->object) T();
+      new (&w->object) typename Desc::Object();
       return w;
     }
   };
 
-  template <typename T, size_t MaxInstanceCount>
+  template <typename Desc>
   bool register_struct(const char *type)
   {
-    using ScriptHelperT = ScriptHelper<T, MaxInstanceCount>;
+    using ScriptHelperT = ScriptHelper<Desc, Desc::MaxInstanceCount>;
 
     eastl::string factoryDecl = type;
     factoryDecl += "@ f()";

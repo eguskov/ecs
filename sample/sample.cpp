@@ -101,9 +101,26 @@ static glm::vec2 opAssign(const glm::vec2& v1)
 {
 }
 
-static glm::vec2 opAdd(const glm::vec2& v1, const glm::vec2& v2)
+using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
+using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
+
+using SVec2 = script::ScriptHelperDesc<glm::vec2, 1024>;
+using SVec3 = script::ScriptHelperDesc<glm::vec3, 1024>;
+
+template<typename D, typename T>
+static typename D::Wrapper opAdd(const T& v1, const T& v2)
 {
-  return v1 + v2;
+  typename D::Wrapper w = D::Helper::create();
+  w->object = v1 + v2;
+  return w;
+}
+
+template<typename D, typename T>
+static typename D::Wrapper opSub(const T& v1, const T& v2)
+{
+  typename D::Wrapper w = D::Helper::create();
+  w->object = v1 - v2;
+  return w;
 }
 
 struct ScriptECS
@@ -121,20 +138,18 @@ struct ScriptECS
 
     script::init();
 
-    script::register_struct<UpdateStage, 1>("UpdateStage");
+    script::register_struct<SUpdateStage>("UpdateStage");
     script::register_struct_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
     script::register_struct_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
-    script::register_struct<EventOnKillEnemy, 1>("EventOnKillEnemy");
+    script::register_struct<SEventOnKillEnemy>("EventOnKillEnemy");
 
-    glm::vec2 a, b;
-    a + b;
-
-    script::register_struct<glm::vec2, 256>("vec2");
+    script::register_struct<SVec2>("vec2");
     script::register_struct_property("vec2", "float x", offsetof(glm::vec2, x));
     script::register_struct_property("vec2", "float y", offsetof(glm::vec2, y));
     script::register_struct_method("vec2", "vec2& opAssign(const vec2&in)", asMETHODPR(glm::vec2, operator=, (const glm::vec2&), glm::vec2&));
-    script::register_function("vec2", "vec2 opAdd(const vec2&in) const", asFUNCTIONPR(opAdd, (const glm::vec2&, const glm::vec2&), glm::vec2));
+    script::register_function("vec2", "vec2@ opAdd(const vec2@) const", asFUNCTIONPR((opAdd<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
+    script::register_function("vec2", "vec2@ opSub(const vec2@) const", asFUNCTIONPR((opSub<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
 
     asIScriptModule *moudle = script::build_module(nullptr, path);
     asIScriptFunction *func = script::find_function_by_decl(moudle, "ref@ main()");
@@ -325,7 +340,9 @@ int main()
     g_mgr->tick(UpdateStage{ dt, totalTime });
     const float delta = (float)((GetTime() - t) * 1e3);
 
+    // TODO: Before script stage ???
     scriptECS.tick(UpdateStage{ dt, totalTime });
+    // TODO: After script stage ???
 
     totalTime += dt;
 

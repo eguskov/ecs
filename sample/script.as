@@ -1,6 +1,8 @@
-void script_system(const UpdateStage& stage, const vec2& pos, const vec2& vel)
+void script_system(const UpdateStage& stage, const vec2& pos, vec2& vel)
 {
-  vec2 res = pos + vel;// * stage.dt;
+  vel.x += 0.5;
+  // pos + vel;
+  // vec2 res = pos + vel;// * stage.dt;
 
   // print("script_system: pos: ("+pos.x+", "+pos.y+")");
   // print("script_system: vel: ("+vel.x+", "+vel.y+")");

@@ -78,6 +78,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\script;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Debug;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

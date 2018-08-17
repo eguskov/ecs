@@ -131,7 +131,7 @@ namespace script
 
   bool register_function(const char *type, const char *decl, const asSFuncPtr &f)
   {
-    int r = engine->RegisterObjectMethod(type, decl, f, asCALL_CDECL_OBJLAST);
+    int r = engine->RegisterObjectMethod(type, decl, f, asCALL_CDECL_OBJFIRST);
     assert(r >= 0);
     return r >= 0;
   }
