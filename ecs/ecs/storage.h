@@ -23,6 +23,8 @@ struct Storage
 
   eastl::bitvector<> freeMask;
 
+  virtual ~Storage() {}
+
   void invalidate()
   {
     dataCached = data();
@@ -68,6 +70,11 @@ template <typename T>
 struct StorageSpec : Storage
 {
   eastl::vector<T> items;
+
+  virtual ~StorageSpec()
+  {
+    items.clear();
+  }
 
   uint8_t* data() override final
   {

@@ -152,7 +152,7 @@ struct EntityManager
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
 
-  EventProcessCallback eventProcessCallback = nullptr;
+  eastl::vector<EventProcessCallback> eventProcessCallbacks;
 
   static void init();
   static void release();

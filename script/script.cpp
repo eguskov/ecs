@@ -8,10 +8,15 @@
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 
+#include <glm/glm.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+
 #include <angelscript.h>
 #include <scriptarray/scriptarray.h>
 #include <scripthandle/scripthandle.h>
 #include <scriptstdstring/scriptstdstring.h>
+#include <scriptmath/scriptmath.h>
 
 namespace script
 {
@@ -33,6 +38,45 @@ namespace script
 
   static asIScriptEngine *engine = nullptr;
 
+  using SFloat = ScriptHelperDesc<float, 1024>;
+  using SVec2 = ScriptHelperDesc<glm::vec2, 1024>;
+  using SVec3 = ScriptHelperDesc<glm::vec3, 1024>;
+
+  template<typename D, typename T>
+  static typename D::Wrapper opAdd(const T& v1, const T& v2)
+  {
+    return D::Helper::create(v1 + v2);
+  }
+
+  template<typename D, typename T>
+  static typename D::Wrapper opSub(const T& v1, const T& v2)
+  {
+    return D::Helper::create(v1 - v2);
+  }
+
+  template<typename D, typename T>
+  static float opMul(const T& v1, const T& v2)
+  {
+    return glm::dot(v1, v2);
+  }
+
+  template<typename D, typename T>
+  static typename D::Wrapper opMulScalar(const T& v1, float s)
+  {
+    return D::Helper::create(v1 * s);
+  }
+
+  typename float& opAssign(float &v1, const float &v2)
+  {
+    v1 = v2;
+    return v1;
+  }
+
+  typename SFloat::Wrapper opNeg(const float &v1)
+  {
+    return SFloat::Helper::create(-v1);
+  }
+
   bool init()
   {
     engine = asCreateScriptEngine();
@@ -43,6 +87,23 @@ namespace script
     RegisterScriptArray(engine, true);
     RegisterStdString(engine);
     RegisterStdStringUtils(engine);
+    RegisterScriptMath(engine);
+
+    register_struct<SFloat>("real");
+    register_struct_property("real", "float v", 0);
+    register_struct_function("real", "real@ opAssign(const real&in)", asFUNCTIONPR(opAssign, (float&, const float&), float&));
+    register_struct_function("real", "real@ opNeg()", asFUNCTIONPR(opNeg, (const float&), SFloat::Wrapper));
+
+    register_struct<SVec2>("vec2");
+    register_struct_property("vec2", "float x", offsetof(glm::vec2, x));
+    register_struct_property("vec2", "float y", offsetof(glm::vec2, y));
+    register_struct_method("vec2", "vec2@ opAssign(const vec2&in)", asMETHODPR(glm::vec2, operator=, (const glm::vec2&), glm::vec2&));
+    register_struct_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTIONPR((opAdd<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
+    register_struct_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTIONPR((opSub<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
+    register_struct_function("vec2", "float opMul(const vec2&in) const", asFUNCTIONPR((opMul<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
+    register_struct_function("vec2", "vec2@ opMul(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
+    register_struct_function("vec2", "vec2@ opMul_r(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
+    register_function("float dot(const vec2@, const vec2@)", asFUNCTIONPR((opMul<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
@@ -129,9 +190,16 @@ namespace script
     return r >= 0;
   }
 
-  bool register_function(const char *type, const char *decl, const asSFuncPtr &f)
+  bool register_struct_function(const char *type, const char *decl, const asSFuncPtr &f)
   {
     int r = engine->RegisterObjectMethod(type, decl, f, asCALL_CDECL_OBJFIRST);
+    assert(r >= 0);
+    return r >= 0;
+  }
+
+  bool register_function(const char *decl, const asSFuncPtr &f)
+  {
+    int r = engine->RegisterGlobalFunction(decl, f, asCALL_CDECL);
     assert(r >= 0);
     return r >= 0;
   }

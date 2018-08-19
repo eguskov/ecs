@@ -580,8 +580,9 @@ void EntityManager::tick()
     eastl::tie(eid, event_id, ev) = events[streamIndex].pop();
     sendEventSync(eid, event_id, ev);
 
-    if (eventProcessCallback)
-      eventProcessCallback(eid, event_id, ev);
+    for (const auto &cb : eventProcessCallbacks)
+      if (cb)
+        cb(eid, event_id, ev);
   }
 }
 

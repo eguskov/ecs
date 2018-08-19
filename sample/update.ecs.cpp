@@ -1,5 +1,7 @@
 #include <ecs/ecs.h>
 
+#include <scriptECS.h>
+
 #include "update.ecs.h"
 
 #include <stages/update.stage.h>
@@ -177,6 +179,25 @@ struct AutoMove
   }
 }
 DEF_COMP(AutoMove, auto_move);
+
+DEF_SYS()
+static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
+{
+  script.scriptECS.build(script.path.c_str());
+}
+
+DEF_SYS()
+static __forceinline void update_script_query(const UpdateStage &stage, script::ScriptComponent &script)
+{
+  if (g_mgr->status != kStatusNone)
+    script.scriptECS.invalidateQueries();
+}
+
+DEF_SYS()
+static __forceinline void update_script(const UpdateStage &stage, script::ScriptComponent &script)
+{
+  script.scriptECS.tick(stage);
+}
 
 DEF_SYS()
 static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureAtlas &texture)
@@ -407,6 +428,7 @@ static __forceinline void update_collisions(
 DEF_SYS(HAVE_COMP(enemy) IS_TRUE(is_alive))
 static __forceinline void update_auto_move_collisions(
   const UpdateStage &stage,
+  const EntityId &eid,
   const glm::vec4 &collision_rect,
   glm::vec2 &pos,
   glm::vec2 &vel,
@@ -416,7 +438,7 @@ static __forceinline void update_auto_move_collisions(
   glm::vec2 myVel = vel;
   glm::vec4 myCollisionRect = collision_rect;
 
-  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
+  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, eid, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
   {
     bool isHit;
     glm::vec2 normal;
@@ -424,11 +446,12 @@ static __forceinline void update_auto_move_collisions(
     eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
     if (isHit)
     {
-      if (normal.x < 0.f || normal.x > 0.f)
+      g_mgr->sendEvent(eid, EventOnWallHit{ normal });
+      /*if (normal.x < 0.f || normal.x > 0.f)
       {
         myVel.x = normal.x * fabsf(myVel.x);
         dir = -dir;
-      }
+      }*/
     }
   });
 

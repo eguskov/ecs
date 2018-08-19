@@ -21,12 +21,14 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\add_on\scriptarray\scriptarray.cpp" />
     <ClCompile Include="..\..\..\..\add_on\scripthandle\scripthandle.cpp" />
+    <ClCompile Include="..\..\..\..\add_on\scriptmath\scriptmath.cpp" />
     <ClCompile Include="..\..\..\..\add_on\scriptstdstring\scriptstdstring.cpp" />
     <ClCompile Include="..\..\..\..\add_on\scriptstdstring\scriptstdstring_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\add_on\scriptarray\scriptarray.h" />
     <ClInclude Include="..\..\..\..\add_on\scripthandle\scripthandle.h" />
+    <ClInclude Include="..\..\..\..\add_on\scriptmath\scriptmath.h" />
     <ClInclude Include="..\..\..\..\add_on\scriptstdstring\scriptstdstring.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

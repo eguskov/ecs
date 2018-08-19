@@ -1,5 +1,7 @@
 {
   "$order": [
+    "update_script_query",
+    "build_script_handler",
     "process_on_kill_event",
     "load_texture_handler",
     "reg_anim_seq_handler",
@@ -8,6 +10,7 @@
     "apply_controls",
     "apply_gravity",
     "apply_jump",
+    "update_script",
     "update_auto_move",
     "update_auto_move_collisions",
     "update_collisions",
@@ -102,6 +105,17 @@
     }
   ],
   "$templates": [
+    {
+      "$name": "script",
+      "$components": {
+        "script": {
+          "$type": "script",
+          "$value": {
+            "path": ""
+          }
+        }
+      }
+    },
     {
       "$name": "death_fx",
       "$components": {

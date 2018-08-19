@@ -141,7 +141,7 @@ namespace script
       freeMask.set(w->id);
     }
 
-    static Wrapper* create()
+    static Wrapper* newInstance()
     {
       static Helper helper;
 
@@ -166,6 +166,13 @@ namespace script
       new (&w->object) typename Desc::Object();
       return w;
     }
+
+    static Wrapper* create(const typename Desc::Object &v)
+    {
+      Wrapper *w = newInstance();
+      w->object = v;
+      return w;
+    }
   };
 
   template <typename Desc>
@@ -178,7 +185,7 @@ namespace script
 
     int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF);
     assert(r >= 0);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::create), asCALL_CDECL);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::newInstance), asCALL_CDECL);
     assert(r >= 0);
     r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
     assert(r >= 0);
@@ -189,8 +196,9 @@ namespace script
   }
 
   bool register_struct_property(const char *type, const char *decl, size_t offset);
-  bool register_function(const char *type, const char *decl, const asSFuncPtr &f);
+  bool register_struct_function(const char *type, const char *decl, const asSFuncPtr &f);
   bool register_struct_method(const char *type, const char *decl, const asSFuncPtr &f);
+  bool register_function(const char *decl, const asSFuncPtr &f);
 
   ParamDesc get_param_desc(asIScriptFunction *fn, int i);
   ParamDescVector get_all_param_desc(asIScriptFunction *fn);

@@ -41,6 +41,9 @@ template <> int RegCompSpec<AnimState>::ID = -1;
 static RegCompSpec<AutoMove> _reg_comp_auto_move("auto_move");
 template <> int RegCompSpec<AutoMove>::ID = -1;
 
+static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler, { "ev", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler, { "ev", "texture" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "stage", "vel", "pos" }, {  }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame, { "stage", "anim_graph", "anim_state", "frame" }, {  }, {  }, {  }, {  }, true); 
@@ -51,7 +54,7 @@ static RegSysSpec<1920783676, decltype(apply_controls)> _reg_sys_apply_controls(
 static RegSysSpec<3949714102, decltype(apply_jump)> _reg_sys_apply_jump("apply_jump", apply_jump, { "stage", "jump", "is_on_ground", "vel" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<3962763712, decltype(apply_gravity)> _reg_sys_apply_gravity("apply_gravity", apply_gravity, { "stage", "gravity", "vel" }, {  }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<3962250550, decltype(update_collisions)> _reg_sys_update_collisions("update_collisions", update_collisions, { "stage", "collision_rect", "is_on_ground", "pos", "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
-static RegSysSpec<1590712904, decltype(update_auto_move_collisions)> _reg_sys_update_auto_move_collisions("update_auto_move_collisions", update_auto_move_collisions, { "stage", "collision_rect", "pos", "vel", "dir" }, { "enemy" }, {  }, { "is_alive" }, {  }, true); 
+static RegSysSpec<1590712904, decltype(update_auto_move_collisions)> _reg_sys_update_auto_move_collisions("update_auto_move_collisions", update_auto_move_collisions, { "stage", "eid", "collision_rect", "pos", "vel", "dir" }, { "enemy" }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<2354991095, decltype(select_current_anim_frame)> _reg_sys_select_current_anim_frame("select_current_anim_frame", select_current_anim_frame, { "stage", "vel", "texture", "anim_state" }, { "user_input" }, {  }, {  }, {  }, true); 
 static RegSysSpec<3007763911, decltype(validate_position)> _reg_sys_validate_position("validate_position", validate_position, { "stage", "pos" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<3164460028, decltype(update_auto_move)> _reg_sys_update_auto_move("update_auto_move", update_auto_move, { "stage", "auto_move", "vel", "dir" }, {  }, {  }, { "is_alive" }, {  }, true); 
@@ -137,6 +140,27 @@ template <typename C> void AliveEnemiesCountQuery::exec(C callback)
   }
 }
 
+template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  build_script_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+template <> template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  update_script_query(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+template <> template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  update_script(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
 template <> template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId };
@@ -207,11 +231,11 @@ template <> template <> __forceinline void RegSysSpec<3962250550, decltype(updat
   update_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
 }
 
-template <> template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3, 4>) const
+template <> template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
 {
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets) };
-  update_auto_move_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]));
+  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets) };
+  update_auto_move_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
 }
 
 template <> template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const

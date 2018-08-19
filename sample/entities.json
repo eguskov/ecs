@@ -1,6 +1,14 @@
 {
   "$entities": [
     {
+      "$template": "script",
+      "$components": {
+        "script": {
+          "path": "script.as"
+        }
+      }
+    },
+    {
       "$template": "enemy_spawner",
       "$components": {}
     },

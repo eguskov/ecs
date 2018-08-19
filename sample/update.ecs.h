@@ -26,6 +26,14 @@ struct EventOnKillEnemy : Event
 }
 DEF_EVENT(EventOnKillEnemy);
 
+struct EventOnWallHit : Event
+{
+  glm::vec2 normal = { 0.f, 0.f };
+  EventOnWallHit() = default;
+  EventOnWallHit(const glm::vec2 &n) : normal(n) {}
+}
+DEF_EVENT(EventOnWallHit);
+
 struct TimerComponent
 {
   float time = 0.f;

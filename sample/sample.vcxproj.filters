@@ -13,9 +13,20 @@
     <Filter Include="gen">
       <UniqueIdentifier>{48057ca6-9e13-4707-90d5-ff35b7a42720}</UniqueIdentifier>
     </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{403e43fb-03a6-4825-8ed9-4d1dc81b0b1f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="update.ecs.cpp" />
     <CustomBuild Include="update.ecs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="entities.json">
+      <Filter>data</Filter>
+    </None>
+    <None Include="templates.json">
+      <Filter>data</Filter>
+    </None>
   </ItemGroup>
 </Project>
