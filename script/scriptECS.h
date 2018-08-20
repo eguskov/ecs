@@ -25,6 +25,9 @@ namespace script
   {
     int callbackId = -1;
 
+    asIScriptContext *eventCtx = nullptr;
+    asIScriptContext *stageCtx = nullptr;
+
     eastl::vector<ScriptSys> systems;
     eastl::vector<eastl::vector<RegSys::Remap>> remaps;
     eastl::vector<Query> queries;

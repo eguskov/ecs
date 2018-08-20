@@ -81,3 +81,19 @@ struct ColorComponent
   }
 }
 DEF_COMP(ColorComponent, color);
+
+struct AutoMove
+{
+  float time = 0.f;
+  float duration = 0.f;
+  float length = 0.f;
+
+  bool set(const JValue &value)
+  {
+    duration = value["duration"].GetFloat();
+    length = value["length"].GetFloat();
+    time = duration;
+    return true;
+  }
+}
+DEF_COMP(AutoMove, auto_move);

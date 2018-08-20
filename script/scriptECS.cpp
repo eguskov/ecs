@@ -36,9 +36,11 @@ namespace script
       const auto &param = params[i];
 
       componentNames.emplace_back() = param.name;
-      componentTypeNames.emplace_back() = param.type;
+      componentTypeNames.emplace_back() = param.getTypeName();
 
-      const RegComp *desc = find_comp(param.type == "real" ? "float" : param.type.c_str());
+      const RegComp *desc = find_comp(componentTypeNames.back().c_str());
+      if (!desc)
+        desc = find_comp(param.name.c_str());
       assert(desc != nullptr);
       components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), param.name.c_str(), desc });
 
@@ -58,7 +60,9 @@ namespace script
     {
       const char *name = componentNames[compIdx].c_str();
       const char *typeName = componentTypeNames[compIdx].c_str();
-      const RegComp *desc = find_comp(::strcmp("real", typeName) == 0 ? "float" : typeName);
+      const RegComp *desc = find_comp(typeName);
+      if (!desc)
+        desc = find_comp(name);
 
       for (size_t i = 0; i < template_comps.size(); ++i)
         if (template_comps[i].desc->id == desc->id && template_comps[i].name == name)
@@ -68,6 +72,9 @@ namespace script
 
   ScriptECS::ScriptECS()
   {
+    eventCtx = internal::create_context();
+    stageCtx = internal::create_context();
+
     callbackId = g_mgr->eventProcessCallbacks.size();
     g_mgr->eventProcessCallbacks.emplace_back() = [this](EntityId eid, int event_id, const RawArg &ev)
     {
@@ -123,6 +130,13 @@ namespace script
 
   void ScriptECS::release()
   {
+    if (eventCtx)
+      eventCtx->Release();
+    eventCtx = nullptr;
+    if (stageCtx)
+      stageCtx->Release();
+    stageCtx = nullptr;
+
     g_mgr->eventProcessCallbacks[callbackId] = nullptr;
 
     for (auto &sys : systems)
@@ -149,9 +163,6 @@ namespace script
 
   void ScriptECS::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
   {
-    // TODO: Create context once
-    ScopeContext ctx;
-
     auto &entity = g_mgr->entities[eid2idx(eid)];
     const auto &templ = g_mgr->templates[entity.templateId];
 
@@ -170,22 +181,21 @@ namespace script
         {
           const auto &remap = remaps[entity.templateId][sys.id];
 
-          ctx->Prepare(sys.fn);
-          internal::set_arg_wrapped(ctx, 0, event_id, ev.mem);
+          eventCtx->Prepare(sys.fn);
+          internal::set_arg_wrapped(eventCtx, 0, event_id, ev.mem);
           for (int i = 1; i < (int)remap.size(); ++i)
           {
-            uint8_t *data = g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]);
-            internal::set_arg_wrapped(ctx, i, templ.components[remap[i]].desc, data);
+            Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
+            const int offset = entity.componentOffsets[remap[i]];
+            internal::set_arg_wrapped(eventCtx, i, templ.components[remap[i]].desc, storage->getRaw(offset));
           }
-          ctx->Execute();
+          eventCtx->Execute();
         }
       }
   }
 
   void ScriptECS::tickStage(int stage_id, const RawArg &stage)
   {
-    // TODO: Create context once
-    ScopeContext ctx;
     for (const auto &query : queries)
     {
       if (query.sys->stageId != stage_id)
@@ -196,15 +206,15 @@ namespace script
         const auto &templ = g_mgr->templates[entity.templateId];
         const auto &remap = remaps[entity.templateId][query.sys->id];
 
-        ctx->Prepare(((ScriptSys*)query.sys)->fn);
-        ctx->SetArgAddress(0, (void*)stage.mem);
-        internal::set_arg_wrapped(ctx, 0, stage_id, stage.mem);
+        stageCtx->Prepare(((ScriptSys*)query.sys)->fn);
+        internal::set_arg_wrapped(stageCtx, 0, stage_id, stage.mem);
         for (int i = 1; i < (int)remap.size(); ++i)
         {
-          uint8_t *data = g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]);
-          internal::set_arg_wrapped(ctx, i, templ.components[remap[i]].desc, data);
+          Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
+          const int offset = entity.componentOffsets[remap[i]];
+          internal::set_arg_wrapped(stageCtx, i, templ.components[remap[i]].desc, storage->getRaw(offset));
         }
-        ctx->Execute();
+        stageCtx->Execute();
       }
     }
   }

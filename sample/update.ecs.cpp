@@ -164,22 +164,6 @@ struct AnimState
 }
 DEF_COMP(AnimState, anim_state);
 
-struct AutoMove
-{
-  float time = 0.f;
-  float duration = 0.f;
-  float length = 0.f;
-
-  bool set(const JValue &value)
-  {
-    duration = value["duration"].GetFloat();
-    length = value["length"].GetFloat();
-    time = duration;
-    return true;
-  }
-}
-DEF_COMP(AutoMove, auto_move);
-
 DEF_SYS()
 static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
 {
@@ -499,29 +483,6 @@ static __forceinline void validate_position(
     pos.x = 0.f;
     pos.y = 0.f;
   }
-}
-
-DEF_SYS(IS_TRUE(is_alive))
-static __forceinline void update_auto_move(
-  const UpdateStage &stage,
-  AutoMove &auto_move,
-  glm::vec2 &vel,
-  float &dir)
-{
-  if (vel.length() > 0.f)
-    vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
-
-  auto_move.time -= stage.dt;
-  if (auto_move.time < 0.f)
-  {
-    auto_move.time = auto_move.duration;
-    vel = -vel;
-  }
-
-  if (vel.x < 0.f)
-    dir = 1.f;
-  else if (vel.x > 0.f)
-    dir = -1.f;
 }
 
 DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));

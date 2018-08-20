@@ -14,6 +14,9 @@ template <> int RegCompSpec<NoHitTimerComponent>::ID = -1;
 static RegCompSpec<ColorComponent> _reg_comp_color("color");
 template <> int RegCompSpec<ColorComponent>::ID = -1;
 
+static RegCompSpec<AutoMove> _reg_comp_auto_move("auto_move");
+template <> int RegCompSpec<AutoMove>::ID = -1;
+
 static RegCompSpec<EventOnSpawn> _reg_event_EventOnSpawn;
 int RegCompSpec<EventOnSpawn>::ID = -1;
 

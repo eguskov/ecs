@@ -42,6 +42,7 @@ namespace script
 
   static eastl::hash_map<int, IScriptHelper*> helperMap;
 
+  using SBool = ScriptHelperDesc<bool, 1024>;
   using SFloat = ScriptHelperDesc<float, 1024>;
   using SVec2 = ScriptHelperDesc<glm::vec2, 1024>;
   using SVec3 = ScriptHelperDesc<glm::vec3, 1024>;
@@ -58,27 +59,47 @@ namespace script
     return D::Helper::create(v1 - v2);
   }
 
-  template<typename D, typename T>
+  template<typename T>
   static float opMul(const T& v1, const T& v2)
   {
     return glm::dot(v1, v2);
   }
 
+  template <typename T>
+  static float opLength(const T& v1)
+  {
+    return glm::length(v1);
+  }
+
   template<typename D, typename T>
-  static typename D::Wrapper opMulScalar(const T& v1, float s)
+  static typename D::Wrapper opMulScalar(const T &v1, float s)
   {
     return D::Helper::create(v1 * s);
   }
 
-  typename float& opAssign(float &v1, const float &v2)
+  template <typename T>
+  static T& opAssign(T &v1, const T &v2)
   {
     v1 = v2;
     return v1;
   }
 
-  typename SFloat::Wrapper opNeg(const float &v1)
+  template <typename T>
+  static const T& opImplConv(const T &v1)
   {
-    return SFloat::Helper::create(-v1);
+    return v1;
+  }
+
+  template <typename D, typename T>
+  static typename D::Wrapper opNeg(const T &v1)
+  {
+    return D::Helper::create(-v1);
+  }
+
+  template <typename D, typename T>
+  static typename D::Wrapper opNormalize(const T &v1)
+  {
+    return D::Helper::create(glm::normalize(v1));
   }
 
   bool init()
@@ -93,21 +114,31 @@ namespace script
     RegisterStdStringUtils(engine);
     RegisterScriptMath(engine);
 
+    register_component<SBool>("boolean", find_comp("bool"));
+    register_component_property("boolean", "bool v", 0);
+    register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
+
     register_component<SFloat>("real", find_comp("float"));
     register_component_property("real", "float v", 0);
-    register_component_function("real", "real@ opAssign(const real&in)", asFUNCTIONPR(opAssign, (float&, const float&), float&));
-    register_component_function("real", "real@ opNeg()", asFUNCTIONPR(opNeg, (const float&), SFloat::Wrapper));
+    register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<SFloat, float>), (const float&), SFloat::Wrapper));
 
     register_component<SVec2>("vec2", find_comp("vec2"));
     register_component_property("vec2", "float x", offsetof(glm::vec2, x));
     register_component_property("vec2", "float y", offsetof(glm::vec2, y));
-    register_component_method("vec2", "vec2@ opAssign(const vec2&in)", asMETHODPR(glm::vec2, operator=, (const glm::vec2&), glm::vec2&));
+    register_component_function("vec2", "vec2& opAssign(const vec2&in)", asFUNCTIONPR((opAssign<glm::vec2>), (glm::vec2&, const glm::vec2&), glm::vec2&));
     register_component_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTIONPR((opAdd<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
     register_component_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTIONPR((opSub<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
-    register_component_function("vec2", "float opMul(const vec2&in) const", asFUNCTIONPR((opMul<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
+    register_component_function("vec2", "float opMul(const vec2&in) const", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
     register_component_function("vec2", "vec2@ opMul(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
     register_component_function("vec2", "vec2@ opMul_r(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
-    register_function("float dot(const vec2&in, const vec2&in)", asFUNCTIONPR((opMul<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
+    register_component_function("vec2", "vec2@ opNeg() const", asFUNCTIONPR((opNeg<SVec2, glm::vec2>), (const glm::vec2&), SVec2::Wrapper));
+    register_function("float dot(const vec2&in, const vec2&in)", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
+    register_function("float length(const vec2&in)", asFUNCTIONPR((opLength<glm::vec2>), (const glm::vec2&), float));
+    register_function("vec2@ normalize(const vec2&in)", asFUNCTIONPR((opNormalize<SVec2, glm::vec2>), (const glm::vec2&), SVec2::Wrapper));
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
@@ -154,6 +185,9 @@ namespace script
     module->Build();
 
     delete[] buffer;
+
+    // For compile test
+    // std::cin.get();
 
     return module;
   }
@@ -217,9 +251,14 @@ namespace script
     fn->GetParam(i, &typeId, (asDWORD*)&desc.flags, &name);
 
     desc.name = name;
-
-    asITypeInfo *type = engine->GetTypeInfoById(typeId);
-    desc.type = type->GetName();
+    if (typeId == asTYPEID_FLOAT) desc.type = "float";
+    else if (typeId == asTYPEID_INT32) desc.type = "int";
+    else if (typeId == asTYPEID_BOOL) desc.type = "bool";
+    else
+    {
+      asITypeInfo *type = engine->GetTypeInfoById(typeId);
+      desc.type = type->GetName();
+    }
 
     return eastl::move(desc);
   }

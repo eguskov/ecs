@@ -59,6 +59,15 @@ namespace script
     eastl::string name;
     eastl::string type;
     uint32_t flags = 0;
+
+    const char* getTypeName() const
+    {
+      if (type == "real")
+        return "float";
+      else if (type == "boolean")
+        return "bool";
+      return type.c_str();
+    }
   };
 
   using ParamDescVector = eastl::vector<ParamDesc>;
@@ -130,7 +139,7 @@ namespace script
 
       void addRef()
       {
-        ++refCount;
+        asAtomicInc(refCount);
       }
 
       void release()
@@ -138,11 +147,12 @@ namespace script
 #ifdef _DEBUG
         assert(helper->magic == 0xdeadbeaf);
 #endif
-        if (--refCount == 0)
+        if (asAtomicDec(refCount) == 0)
         {
           assert(refCount >= 0);
           if (refObject)
             *refObject = object;
+          refObject = nullptr;
           helper->release(this);
         }
       }
