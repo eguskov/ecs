@@ -11,8 +11,12 @@
 
 #include <angelscript.h>
 
+struct RegComp;
+
 namespace script
 {
+  struct IScriptHelper;
+
   namespace internal
   {
     void set_arg(asIScriptContext *ctx, size_t i, void *arg);
@@ -35,6 +39,10 @@ namespace script
 
     asIScriptEngine *get_engine();
     asIScriptContext* create_context();
+
+    void register_struct_helper(IScriptHelper *helper);
+    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data);
+    void set_arg_wrapped(asIScriptContext *ctx, int i, const RegComp *desc, void *data);
   }
 
   struct ScopeContext
@@ -85,6 +93,12 @@ namespace script
     callback((R*)ctx->GetReturnAddress());
   }
 
+  struct IScriptHelper
+  {
+    const RegComp *desc = nullptr;
+    virtual void* wrapObject(void *object) = 0;
+  };
+
   template <typename Desc, size_t MaxInstanceCount> struct ScriptHelper;
 
   template <typename T, size_t _MaxInstanceCount>
@@ -99,7 +113,7 @@ namespace script
   };
 
   template <typename Desc, size_t MaxInstanceCount>
-  struct ScriptHelper
+  struct ScriptHelper : IScriptHelper
   {
     using Helper = ScriptHelper<Desc, MaxInstanceCount>;
 
@@ -107,6 +121,7 @@ namespace script
     {
       // Must be the first, because it is written from script
       typename Desc::Object object;
+      typename Desc::Object *refObject = nullptr;
 
       int id = 0;
       int refCount = 1;
@@ -120,14 +135,22 @@ namespace script
 
       void release()
       {
+#ifdef _DEBUG
+        assert(helper->magic == 0xdeadbeaf);
+#endif
         if (--refCount == 0)
         {
           assert(refCount >= 0);
+          if (refObject)
+            *refObject = object;
           helper->release(this);
         }
       }
     };
 
+#ifdef _DEBUG
+    uint32_t magic = 0xdeadbeaf;
+#endif
     eastl::bitset<MaxInstanceCount> freeMask;
     eastl::array<Wrapper, MaxInstanceCount> storage;
 
@@ -141,9 +164,20 @@ namespace script
       freeMask.set(w->id);
     }
 
-    static Wrapper* newInstance()
+    void* wrapObject(void *object) override final
+    {
+      return Helper::createRef(*(typename Desc::Object*)object);
+    }
+
+    static Helper& instance()
     {
       static Helper helper;
+      return helper;
+    }
+
+    static Wrapper* wrapperInstance()
+    {
+      Helper &helper = instance();
 
       int id = -1;
       Wrapper *w = nullptr;
@@ -169,23 +203,37 @@ namespace script
 
     static Wrapper* create(const typename Desc::Object &v)
     {
-      Wrapper *w = newInstance();
+      Wrapper *w = wrapperInstance();
       w->object = v;
+      return w;
+    }
+
+    static Wrapper* createRef(typename Desc::Object &v)
+    {
+      Wrapper *w = wrapperInstance();
+      w->object = v;
+      w->refObject = &v;
       return w;
     }
   };
 
   template <typename Desc>
-  bool register_struct(const char *type)
+  bool register_component(const char *type, const RegComp *desc = nullptr)
   {
     using ScriptHelperT = ScriptHelper<Desc, Desc::MaxInstanceCount>;
+
+    auto &helper = ScriptHelperT::instance();
+    helper.desc = desc;
+    assert(desc != nullptr);
+
+    internal::register_struct_helper(&helper);
 
     eastl::string factoryDecl = type;
     factoryDecl += "@ f()";
 
     int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF);
     assert(r >= 0);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::newInstance), asCALL_CDECL);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::wrapperInstance), asCALL_CDECL);
     assert(r >= 0);
     r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
     assert(r >= 0);
@@ -195,9 +243,9 @@ namespace script
     return true;
   }
 
-  bool register_struct_property(const char *type, const char *decl, size_t offset);
-  bool register_struct_function(const char *type, const char *decl, const asSFuncPtr &f);
-  bool register_struct_method(const char *type, const char *decl, const asSFuncPtr &f);
+  bool register_component_property(const char *type, const char *decl, size_t offset);
+  bool register_component_function(const char *type, const char *decl, const asSFuncPtr &f);
+  bool register_component_method(const char *type, const char *decl, const asSFuncPtr &f);
   bool register_function(const char *decl, const asSFuncPtr &f);
 
   ParamDesc get_param_desc(asIScriptFunction *fn, int i);

@@ -91,14 +91,14 @@ int main()
 
   script::init();
 
-  script::register_struct<SEventOnKillEnemy>("EventOnKillEnemy");
+  script::register_component<SEventOnKillEnemy>("EventOnKillEnemy", find_comp("EventOnKillEnemy"));
 
-  script::register_struct<SEventOnWallHit>("EventOnWallHit");
-  script::register_struct_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
+  script::register_component<SEventOnWallHit>("EventOnWallHit", find_comp("EventOnWallHit"));
+  script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
 
-  script::register_struct<SUpdateStage>("UpdateStage");
-  script::register_struct_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
-  script::register_struct_property("UpdateStage", "float total", offsetof(UpdateStage, total));
+  script::register_component<SUpdateStage>("UpdateStage", find_comp("UpdateStage"));
+  script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
+  script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
   //script::ScriptECS scriptECS;
   //scriptECS.build("script.as");

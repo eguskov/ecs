@@ -171,9 +171,12 @@ namespace script
           const auto &remap = remaps[entity.templateId][sys.id];
 
           ctx->Prepare(sys.fn);
-          ctx->SetArgAddress(0, (void*)ev.mem);
+          internal::set_arg_wrapped(ctx, 0, event_id, ev.mem);
           for (int i = 1; i < (int)remap.size(); ++i)
-            ctx->SetArgAddress(i, g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]));
+          {
+            uint8_t *data = g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]);
+            internal::set_arg_wrapped(ctx, i, templ.components[remap[i]].desc, data);
+          }
           ctx->Execute();
         }
       }
@@ -195,8 +198,12 @@ namespace script
 
         ctx->Prepare(((ScriptSys*)query.sys)->fn);
         ctx->SetArgAddress(0, (void*)stage.mem);
+        internal::set_arg_wrapped(ctx, 0, stage_id, stage.mem);
         for (int i = 1; i < (int)remap.size(); ++i)
-          ctx->SetArgAddress(i, g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]));
+        {
+          uint8_t *data = g_mgr->storages[templ.components[remap[i]].nameId]->getRaw(entity.componentOffsets[remap[i]]);
+          internal::set_arg_wrapped(ctx, i, templ.components[remap[i]].desc, data);
+        }
         ctx->Execute();
       }
     }
