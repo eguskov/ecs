@@ -70,23 +70,6 @@ struct UserInput
 }
 DEF_COMP(UserInput, user_input);
 
-struct Jump
-{
-  bool acitve = false;
-
-  float startTime = 0.f;
-  float height = 0.f;
-  float duration = 0.f;
-
-  bool set(const JValue &value)
-  {
-    height = value["height"].GetFloat();
-    duration = value["duration"].GetFloat();
-    return true;
-  };
-}
-DEF_COMP(Jump, jump);
-
 struct TextureAtlas
 {
   eastl::string path;
@@ -125,7 +108,7 @@ struct AnimGraph
     eastl::vector<glm::vec4> frames;
   };
 
-  eastl::string_map<Node> nodesMap;
+  eastl::hash_map<eastl::string, Node> nodesMap;
 
   bool set(const JValue &value)
   {
@@ -208,7 +191,11 @@ static __forceinline void update_anim_frame(
   if (anim_state.startTime < 0.f)
     anim_state.startTime = stage.total;
 
-  const auto &node = anim_graph.nodesMap.at(anim_state.currentNode.c_str());
+  auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
+  if (res == anim_graph.nodesMap.end())
+    res = anim_graph.nodesMap.begin();
+
+  const auto &node = res->second;
 
   const int frameNo = (int)floorf((stage.total - anim_state.startTime) / node.frameDt);
   if (node.loop)
@@ -292,9 +279,9 @@ static __forceinline void apply_controls(
   else
     vel.x = 0.f;
 
-  if (user_input.jump && !jump.acitve && is_on_ground)
+  if (user_input.jump && !jump.active && is_on_ground)
   {
-    jump.acitve = true;
+    jump.active = true;
     jump.startTime = stage.total;
   }
 }
@@ -306,7 +293,7 @@ static __forceinline void apply_jump(
   bool &is_on_ground,
   glm::vec2 &vel)
 {
-  if (!jump.acitve)
+  if (!jump.active)
     return;
 
   is_on_ground = false;
@@ -318,7 +305,7 @@ static __forceinline void apply_jump(
   if (k >= 1.f)
   {
     vel.y *= 0.5f;
-    jump.acitve = false;
+    jump.active = false;
   }
 }
 
@@ -430,12 +417,18 @@ static __forceinline void update_auto_move_collisions(
     eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
     if (isHit)
     {
-      g_mgr->sendEvent(eid, EventOnWallHit{ normal });
-      /*if (normal.x < 0.f || normal.x > 0.f)
-      {
-        myVel.x = normal.x * fabsf(myVel.x);
-        dir = -dir;
-      }*/
+      float d = 0.f;
+      if (normal.y < 0.f)
+        d = myCollisionRect.w - (pos.y - myPos.y) + myCollisionRect.y;
+      else if (normal.y > 0.f)
+        d = pos.y + collision_rect.w - myPos.y;
+      else if (normal.x < 0.f)
+        d = myCollisionRect.z + myCollisionRect.x - (pos.x - myPos.x);
+      else if (normal.x > 0.f)
+        d = pos.x - myCollisionRect.x + collision_rect.z - myPos.x;
+
+      // TODO: Solve a collision and send an event
+      g_mgr->sendEvent(eid, EventOnWallHit{ d, normal });
     }
   });
 
@@ -443,8 +436,11 @@ static __forceinline void update_auto_move_collisions(
   vel = myVel;
 }
 
-static void set_anim_node(AnimState &anim_state, const char *node, float start_time)
+static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, float start_time)
 {
+  if (anim_graph.nodesMap.find_as(node) == anim_graph.nodesMap.end())
+    return;
+
   if (anim_state.currentNode != node)
   {
     anim_state.frameNo = 0;
@@ -453,22 +449,24 @@ static void set_anim_node(AnimState &anim_state, const char *node, float start_t
   anim_state.currentNode = node;
 }
 
-DEF_SYS(HAVE_COMP(user_input))
+DEF_SYS()
 static __forceinline void select_current_anim_frame(
   const UpdateStage &stage,
   const glm::vec2 &vel,
+  const AnimGraph &anim_graph,
+  bool is_on_ground,
   TextureAtlas &texture,
   AnimState &anim_state)
 {
   if (vel.x != 0.f)
-    set_anim_node(anim_state, "run", stage.total);
+    set_anim_node(anim_graph, anim_state, "run", stage.total);
   else
-    set_anim_node(anim_state, "idle", stage.total);
+    set_anim_node(anim_graph, anim_state, "idle", stage.total);
 
   if (vel.y < 0.f)
-    set_anim_node(anim_state, "jump", stage.total);
-  else if (vel.y > 0.f)
-    set_anim_node(anim_state, "fall", stage.total);
+    set_anim_node(anim_graph, anim_state, "jump", stage.total);
+  else if (vel.y > 0.f && !is_on_ground)
+    set_anim_node(anim_graph, anim_state, "fall", stage.total);
 }
 
 DEF_SYS()
@@ -523,9 +521,7 @@ static __forceinline void update_enemies_collisions(
 
         is_alive = false;
 
-        // user_input.jump = true;
-
-        jump.acitve = true;
+        jump.active = true;
         jump.startTime = stage.total;
 
         vel = glm::vec2(0.f, 0.f);

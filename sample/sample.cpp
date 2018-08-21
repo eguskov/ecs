@@ -43,6 +43,7 @@ void testFunc<>(eastl::index_sequence<0, 1, 2>)
 
 using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
 using SAutoMove = script::ScriptHelperDesc<AutoMove, 1>;
+using SJump = script::ScriptHelperDesc<Jump, 1>;
 using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
 using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
 
@@ -95,6 +96,7 @@ int main()
   script::register_component<SEventOnKillEnemy>("EventOnKillEnemy", find_comp("EventOnKillEnemy"));
 
   script::register_component<SEventOnWallHit>("EventOnWallHit", find_comp("EventOnWallHit"));
+  script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
   script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
 
   script::register_component<SUpdateStage>("UpdateStage", find_comp("UpdateStage"));
@@ -102,9 +104,16 @@ int main()
   script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
   script::register_component<SAutoMove>("AutoMove", find_comp("auto_move"));
+  script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
   script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
   script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
   script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
+
+  script::register_component<SJump>("Jump", find_comp("jump"));
+  script::register_component_property("Jump", "bool active", offsetof(Jump, active));
+  script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
+  script::register_component_property("Jump", "float height", offsetof(Jump, height));
+  script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
 
   //script::ScriptECS scriptECS;
   //scriptECS.build("script.as");

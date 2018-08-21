@@ -263,6 +263,17 @@
                   -1.0,
                   0.0
                 ]
+              },
+              {
+                "template": "frog",
+                "pos": [
+                  0.0,
+                  6.0
+                ],
+                "vel": [
+                  0.0,
+                  0.0
+                ]
               }
             ]
           }
@@ -455,7 +466,8 @@
           "$type": "auto_move",
           "$value": {
             "duration": 2.0,
-            "length": 64
+            "length": 64,
+            "jump": false
           }
         },
         "collision_rect": {
@@ -465,6 +477,134 @@
             0.0,
             32.0,
             20.0
+          ]
+        }
+      }
+    },
+    {
+      "$name": "frog",
+      "$extends": [
+        "enemy"
+      ],
+      "$components": {
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/atlas/atlas.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "anim_state": {
+          "$type": "anim_state",
+          "$value": {
+            "node": "idle"
+          }
+        },
+        "anim_graph": {
+          "$type": "anim_graph",
+          "$value": {
+            "nodes": {
+              "idle": {
+                "fps": 8.0,
+                "loop": true,
+                "frames": [
+                  {
+                    "x": 181,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  },
+                  {
+                    "x": 255,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  },
+                  {
+                    "x": 144,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  },
+                  {
+                    "x": 107,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  }
+                ]
+              },
+              "jump": {
+                "fps": 10.0,
+                "loop": true,
+                "frames": [
+                  {
+                    "x": 218,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  }
+                ]
+              },
+              "fall": {
+                "fps": 10.0,
+                "loop": true,
+                "frames": [
+                  {
+                    "x": 70,
+                    "y": 68,
+                    "w": 35,
+                    "h": 32
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "dir": {
+          "$type": "float",
+          "$value": -1.0
+        },
+        "is_on_ground": {
+          "$type": "bool",
+          "$value": true
+        },
+        "jump": {
+          "$type": "jump",
+          "$value": {
+            "height": 15.0,
+            "duration": 0.1
+          }
+        },
+        "gravity": {
+          "$type": "gravity",
+          "$value": {
+            "mass": 25.0
+          }
+        },
+        "auto_move": {
+          "$type": "auto_move",
+          "$value": {
+            "duration": 2.0,
+            "length": 64,
+            "jump": true
+          }
+        },
+        "collision_rect": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            -5.0,
+            35.0,
+            32.0
           ]
         }
       }

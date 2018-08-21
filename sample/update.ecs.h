@@ -28,9 +28,10 @@ DEF_EVENT(EventOnKillEnemy);
 
 struct EventOnWallHit : Event
 {
+  float d = 0.f;
   glm::vec2 normal = { 0.f, 0.f };
   EventOnWallHit() = default;
-  EventOnWallHit(const glm::vec2 &n) : normal(n) {}
+  EventOnWallHit(float _d, const glm::vec2 &n) : d(_d), normal(n) {}
 }
 DEF_EVENT(EventOnWallHit);
 
@@ -84,12 +85,15 @@ DEF_COMP(ColorComponent, color);
 
 struct AutoMove
 {
+  bool jump = false;
+
   float time = 0.f;
   float duration = 0.f;
   float length = 0.f;
 
   bool set(const JValue &value)
   {
+    jump = value["jump"].GetBool();
     duration = value["duration"].GetFloat();
     length = value["length"].GetFloat();
     time = duration;
@@ -97,3 +101,20 @@ struct AutoMove
   }
 }
 DEF_COMP(AutoMove, auto_move);
+
+struct Jump
+{
+  bool active = false;
+
+  float startTime = 0.f;
+  float height = 0.f;
+  float duration = 0.f;
+
+  bool set(const JValue &value)
+  {
+    height = value["height"].GetFloat();
+    duration = value["duration"].GetFloat();
+    return true;
+  };
+}
+DEF_COMP(Jump, jump);
