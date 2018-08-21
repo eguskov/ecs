@@ -1,8 +1,10 @@
+[system]
 void on_enenmy_kill_handler(const EventOnKillEnemy@ ev, const vec2@ pos)
 {
   print("on_enenmy_kill_handler: pos: ("+pos.x+", "+pos.y+")");
 }
 
+[system]
 void on_enenmy_hit_wall_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, real@ dir)
 {
   if (dot(ev.normal, vel) >= 0.f)
@@ -15,6 +17,7 @@ void on_enenmy_hit_wall_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, 
   }
 }
 
+[system]
 void on_enenmy_hit_ground_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, real@ dir, boolean@ is_on_ground)
 {
   if (dot(ev.normal, vel) >= 0.f)
@@ -32,6 +35,7 @@ void on_enenmy_hit_ground_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel
   }
 }
 
+[system { "$is-true": "is_alive" }]
 void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ jump, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
   if (!bool(is_alive))
@@ -53,16 +57,13 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
   }
 }
 
+[system]
 void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
   if (!bool(is_alive))
     return;
 
-  if (auto_move.jump)
-  {
-
-  }
-  else
+  if (!auto_move.jump)
   {
     if (length(vel) > 0.f)
       vel = (auto_move.length / auto_move.duration) * normalize(vel);
@@ -81,15 +82,20 @@ void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMov
     dir = -1.f;
 }
 
-ref@ main()
+[query { "$is-true": "is_alive" }]
+class AliveEnemy
 {
-  print("main");
+  vec2@ pos;
+  vec2@ vel;
+}
 
-  array<ref@> systems;
-  systems.insertLast(@update_auto_jump);
-  systems.insertLast(@update_auto_move);
-  systems.insertLast(@on_enenmy_kill_handler);
-  systems.insertLast(@on_enenmy_hit_wall_handler);
-  systems.insertLast(@on_enenmy_hit_ground_handler);
-  return systems;
+void main()
+{
+  Query<AliveEnemy> query;
+  // auto it = performQuery<AliveEnemy>();
+  // for (AliveEnemy@ enemy = it.get(); it.hasNext(); ++it)
+  // {
+  // }
+
+  print("main");
 }

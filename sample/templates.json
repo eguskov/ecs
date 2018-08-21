@@ -111,6 +111,7 @@
         "script": {
           "$type": "script",
           "$value": {
+            "name": "",
             "path": ""
           }
         }

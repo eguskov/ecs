@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <iostream>
+#include <regex>
 
 #include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
@@ -13,6 +14,7 @@
 #include <scripthandle/scripthandle.h>
 #include <scriptstdstring/scriptstdstring.h>
 #include <scriptmath/scriptmath.h>
+#include <scriptbuilder/scriptbuilder.h>
 
 REG_COMP_INIT(script::ScriptComponent, script);
 
@@ -87,26 +89,65 @@ namespace script
     release();
   }
 
-  bool ScriptECS::build(const char *path)
+  static void process_metadata(const JDocument &doc, const char *key, eastl::vector<CompDesc> &out_components)
   {
-    asIScriptModule *moudle = build_module(nullptr, path);
-    asIScriptFunction *func = find_function_by_decl(moudle, "ref@ main()");
+    if (!doc.HasMember(key))
+      return;
 
-    eastl::vector<asIScriptFunction*> scriptSystems;
-    call<CScriptHandle>([&scriptSystems](CScriptHandle *handle)
+    if (doc[key].IsArray())
     {
-      CScriptArray *systems = (CScriptArray*)handle->GetRef();
-      for (int i = 0; i < (int)systems->GetSize(); ++i)
+      for (int i = 0; i < (int)doc[key].Size(); ++i)
       {
-        asIScriptFunction* fn = (asIScriptFunction*)((CScriptHandle*)systems->At(i))->GetRef();
-        fn->AddRef();
-        fn->AddRef();
-        scriptSystems.push_back(fn);
+        auto &c = out_components.emplace_back();
+        c.name = doc[key][i].GetString();
+        c.desc = g_mgr->getComponentDescByName(c.name.c_str());
+        c.nameId = g_mgr->getComponentNameId(c.name.c_str());
+        assert(c.desc != nullptr);
       }
-    }, func);
+    }
+    else
+    {
+      auto &c = out_components.emplace_back();
+      c.name = doc[key].GetString();
+      c.desc = g_mgr->getComponentDescByName(c.name.c_str());
+      c.nameId = g_mgr->getComponentNameId(c.name.c_str());
+      assert(c.desc != nullptr);
+    }
+  }
 
-    for (auto fn : scriptSystems)
-      systems.emplace_back(fn);
+  bool ScriptECS::build(const char *name, const char *path)
+  {
+    asIScriptModule *moudle = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule *module)
+    {
+      for (int i = 0; i < (int)module->GetFunctionCount(); ++i)
+      {
+        asIScriptFunction *fn = module->GetFunctionByIndex(i);
+        eastl::string metadata = builder.GetMetadataStringForFunc(fn);
+
+        std::cmatch match;
+        std::regex re = std::regex("(?:\\s*)\\bsystem\\b(?:\\s*)(.*)");
+        std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
+
+        if (match.size() > 0)
+        {
+          auto &sys = systems.emplace_back(fn);
+          fn->AddRef();
+
+          if (match[1].length() > 0)
+          {
+            JDocument doc;
+            doc.Parse(match[1].str().c_str());
+            process_metadata(doc, "$is-true", sys.isTrueComponents);
+            process_metadata(doc, "$is-false", sys.isFalseComponents);
+            process_metadata(doc, "$have", sys.haveComponents);
+            process_metadata(doc, "$not-have", sys.notHaveComponents);
+          }
+        }
+      }
+    });
+
+    if (asIScriptFunction *mainFn = find_function_by_decl(moudle, "void main()"))
+      call(mainFn);
 
     int id = 0;
     for (auto &sys : systems)

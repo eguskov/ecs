@@ -150,7 +150,7 @@ DEF_COMP(AnimState, anim_state);
 DEF_SYS()
 static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
 {
-  script.scriptECS.build(script.path.c_str());
+  script.scriptECS.build(script.name.c_str(), script.path.c_str());
 }
 
 DEF_SYS()

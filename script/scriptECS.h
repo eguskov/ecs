@@ -35,7 +35,7 @@ namespace script
     ScriptECS();
     ~ScriptECS();
 
-    bool build(const char *path);
+    bool build(const char *name, const char *path);
     void release();
 
     void invalidateQueries();
@@ -55,11 +55,14 @@ namespace script
 
   struct ScriptComponent
   {
+    eastl::string name;
     eastl::string path;
     ScriptECS scriptECS;
 
     bool set(const JValue &value)
     {
+      assert(value.HasMember("name"));
+      name = value["name"].GetString();
       assert(value.HasMember("path"));
       path = value["path"].GetString();
       return true;

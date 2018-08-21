@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <iostream>
+#include <regex>
 
 #include <ecs/component.h>
 
@@ -19,6 +20,8 @@
 #include <scripthandle/scripthandle.h>
 #include <scriptstdstring/scriptstdstring.h>
 #include <scriptmath/scriptmath.h>
+#include <scriptdictionary/scriptdictionary.h>
+#include <scriptbuilder/scriptbuilder.h>
 
 namespace script
 {
@@ -102,6 +105,31 @@ namespace script
     return D::Helper::create(glm::normalize(v1));
   }
 
+  static void performQuery(asITypeInfo*)
+  {
+
+  }
+
+  struct ScriptQuery
+  {
+    uint32_t magic = 0xDEADBEAF;
+
+    void perform(asITypeInfo *type)
+    {
+
+    }
+  };
+
+  void initScriptQuery(asITypeInfo *type, void *data)
+  {
+
+  }
+
+  void releaseScriptQuery(void *data)
+  {
+
+  }
+
   bool init()
   {
     engine = asCreateScriptEngine();
@@ -113,6 +141,14 @@ namespace script
     RegisterStdString(engine);
     RegisterStdStringUtils(engine);
     RegisterScriptMath(engine);
+    RegisterScriptDictionary(engine);
+
+    // register_function("void performQuery(? &in value)", asFUNCTIONPR(performQuery, (asITypeInfo*), void));
+
+    engine->RegisterObjectType("Query<class T>", sizeof(ScriptQuery), asOBJ_VALUE | asOBJ_TEMPLATE | asGetTypeTraits<ScriptQuery>());
+    engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(initScriptQuery, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
+    engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_DESTRUCT, "void f()", asFUNCTIONPR(releaseScriptQuery, (void*), void), asCALL_CDECL_OBJLAST);
+    engine->RegisterObjectMethod("Query<T>", "void perform()", asMETHODPR(ScriptQuery, perform, (asITypeInfo*), void), asCALL_THISCALL);
 
     register_component<SBool>("boolean", find_comp("bool"));
     register_component_property("boolean", "bool v", 0);
@@ -156,11 +192,25 @@ namespace script
     engine = nullptr;
   }
 
-  asIScriptModule* build_module(const char *name, const char *path)
+  asIScriptModule* build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule*)> &callback)
   {
     assert(engine != nullptr);
+    assert(name && name[0]);
 
-    char *buffer = nullptr;
+    CScriptBuilder builder;
+    int r = builder.StartNewModule(engine, name);
+    assert(r >= 0);
+    r = builder.AddSectionFromFile(path);
+    assert(r >= 0);
+    r = builder.BuildModule();
+    assert(r >= 0);
+
+    asIScriptModule *module = engine->GetModule(name);
+    assert(module != nullptr);
+
+    callback(builder, module);
+
+    /*char *buffer = nullptr;
 
     FILE *file = nullptr;
     ::fopen_s(&file, path, "rb");
@@ -184,7 +234,7 @@ namespace script
     module->AddScriptSection(name, buffer, ::strlen(buffer));
     module->Build();
 
-    delete[] buffer;
+    delete[] buffer;*/
 
     // For compile test
     // std::cin.get();
