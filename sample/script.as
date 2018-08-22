@@ -1,3 +1,11 @@
+[query { "$is-true": "is_alive" }]
+class AliveEnemy
+{
+  const AutoMove@ auto_move;
+  const vec2@ pos;
+  vec2@ vel;
+}
+
 [system]
 void on_enenmy_kill_handler(const EventOnKillEnemy@ ev, const vec2@ pos)
 {
@@ -63,6 +71,14 @@ void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMov
   if (!bool(is_alive))
     return;
 
+  for (auto it = Query<AliveEnemy>().perform(); it.hasNext(); ++it)
+  {
+    auto @enemy = it.get();
+    // enemy.vel.x += 0.5;
+    // print("query: enemy.pos: (" + enemy.pos.x + ", " + enemy.pos.y +")");
+    // print("query: enemy.vel: (" + enemy.vel.x + ", " + enemy.vel.y +")");
+  }
+
   if (!auto_move.jump)
   {
     if (length(vel) > 0.f)
@@ -82,20 +98,7 @@ void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMov
     dir = -1.f;
 }
 
-[query { "$is-true": "is_alive" }]
-class AliveEnemy
-{
-  vec2@ pos;
-  vec2@ vel;
-}
-
 void main()
 {
-  Query<AliveEnemy> query;
-  // auto it = performQuery<AliveEnemy>();
-  // for (AliveEnemy@ enemy = it.get(); it.hasNext(); ++it)
-  // {
-  // }
-
   print("main");
 }

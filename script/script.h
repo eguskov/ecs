@@ -103,6 +103,14 @@ namespace script
     callback((R*)ctx->GetReturnAddress());
   }
 
+  template <typename R, typename C, typename... Args>
+  void callValue(const C &callback, asIScriptFunction *fn, Args&&... args)
+  {
+    ScopeContext ctx;
+    call(ctx, fn, eastl::forward<Args>(args)...);
+    callback((R*)ctx->GetAddressOfReturnValue());
+  }
+
   struct IScriptHelper
   {
     const RegComp *desc = nullptr;

@@ -18,39 +18,18 @@
 
 PULL_ESC_CORE;
 
-template <size_t N>
-void call(const eastl::array<int, N> &offets, uint8_t** compontes)
-{
-  for (int i = 0; i < N; ++i)
-  {
-    int offset = offsets[i];
-    void *mem = compontes[i][offset];
-  }
-}
-
 Camera2D camera;
 int screen_width = 800;
 int screen_height = 450;
 
-template <size_t... I>
-void testFunc(eastl::index_sequence<I...>);
-
-template <>
-void testFunc<>(eastl::index_sequence<0, 1, 2>)
-{
-
-}
-
 using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
-using SAutoMove = script::ScriptHelperDesc<AutoMove, 1>;
-using SJump = script::ScriptHelperDesc<Jump, 1>;
 using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
 using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
+using SAutoMove = script::ScriptHelperDesc<AutoMove, 4>;
+using SJump = script::ScriptHelperDesc<Jump, 4>;
 
 int main()
 {
-  testFunc<0, 1, 2>(eastl::make_index_sequence<3>{});
-
   std::srand(unsigned(std::time(0)));
 
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
