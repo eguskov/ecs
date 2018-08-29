@@ -1,0 +1,16 @@
+{
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/node_modules": false
+    },
+    "typescript.format.placeOpenBraceOnNewLineForFunctions": true,
+    "typescript.format.placeOpenBraceOnNewLineForControlBlocks": true,
+}

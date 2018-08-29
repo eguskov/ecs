@@ -1,0 +1,68 @@
+{
+  "$schema": "./node_modules/@angular-devkit/core/src/workspace/workspace-schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "webui": {
+      "root": "",
+      "prefix": "app",
+      "projectType": "application",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist",
+            "index": "app/index.html",
+            "main": "app/main.ts",
+            "polyfills": "app/polyfills.ts",
+            "tsConfig": "app/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "app/assets",
+                "output": "/assets"
+              }
+            ],
+            "styles": [
+              "app/assets/styles.css",
+              "./node_modules/@swimlane/ngx-ui/release/index.css",
+              "./node_modules/@swimlane/ngx-datatable/src/themes/bootstrap.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "environments/environment.ts",
+                  "with": "environments/environment.prod.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "extractCss": true,
+              "namedChunks": false,
+              "aot": true,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "webui:build",
+            "port": 10010
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "webui:build:production"
+            }
+          }
+        }
+      }
+    }
+  }
+}

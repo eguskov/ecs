@@ -1,0 +1,42 @@
+{
+  "name": "webui",
+  "version": "1.0.0",
+  "scripts": {},
+  "license": "ISC",
+  "dependencies": {
+    "@angular-devkit/build-angular": "0.7.5",
+    "@angular/animations": "6.1.4",
+    "@angular/cdk": "^6.4.6",
+    "@angular/cli": "6.1.5",
+    "@angular/common": "6.1.4",
+    "@angular/compiler": "6.1.4",
+    "@angular/compiler-cli": "6.1.4",
+    "@angular/core": "6.1.4",
+    "@angular/forms": "6.1.4",
+    "@angular/http": "6.1.4",
+    "@angular/platform-browser": "6.1.4",
+    "@angular/platform-browser-dynamic": "6.1.4",
+    "@angular/platform-server": "6.1.4",
+    "@angular/router": "6.1.4",
+    "@angular/upgrade": "6.1.4",
+    "@ngtools/webpack": "6.1.5",
+    "@swimlane/ngx-charts": "9.0.0",
+    "@swimlane/ngx-datatable": "13.1.0",
+    "@swimlane/ngx-graph": "5.1.0",
+    "@swimlane/ngx-ui": "21.4.3",
+    "angular2-websocket": "0.9.7",
+    "core-js": "2.5.7",
+    "lodash": "4.17.10",
+    "node-sass": "4.9.3",
+    "reflect-metadata": "0.1.12",
+    "rxjs": "6.2.2",
+    "rxjs-compat": "6.2.2",
+    "sass-loader": "7.1.0",
+    "typescript": "2.9.2",
+    "zone.js": "0.8.26"
+  },
+  "devDependencies": {
+    "@types/core-js": "2.5.0",
+    "@types/node": "10.9.3"
+  }
+}

@@ -1,5 +1,5 @@
 /ecs/Debug
-/.vs/ecs/v14/*.suo
+/.vs
 /Debug
 /Release
 /ecs/Release
@@ -11,3 +11,12 @@
 /raylib/games
 /raylib/projects
 /raylib/templates
+*.obj
+*.tlog
+*.log
+*.pdb
+/EASTL
+/jemalloc
+/raylib
+/sample/AS_DEBUG
+/sdk
