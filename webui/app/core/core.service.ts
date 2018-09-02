@@ -81,7 +81,7 @@ export class CoreService
     }
 
     if (this._updateTimeout === null)
-      this._updateTimeout = global.setTimeout(() => { this.sendCommand('update'); }, UPDATE_INTERVAL_MS);
+      this._updateTimeout = setTimeout(() => { this.sendCommand('update'); }, UPDATE_INTERVAL_MS);
   }
 
   processOpen(): void

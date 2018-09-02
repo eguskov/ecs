@@ -7,11 +7,12 @@ import { CoreModule } from './core/core.module';
 import { AppComponent } from './app.component';
 
 import { NgxUIModule } from '@swimlane/ngx-ui';
+import { AppService } from './app.service';
 
 @NgModule({
   imports: [BrowserModule, NgxUIModule, CoreModule.forRoot()],
   declarations: [AppComponent],
   bootstrap: [AppComponent],
-  providers: [{ provide: APP_BASE_HREF, useValue: '/' }]
+  providers: [{ provide: APP_BASE_HREF, useValue: '/' }, AppService]
 })
 export class AppModule { }

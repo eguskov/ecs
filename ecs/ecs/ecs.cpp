@@ -310,6 +310,10 @@ static void add_component_to_template(const char *comp_type, const char *comp_na
   eastl::vector<const RegComp*> &component_desc_by_names,
   eastl::vector<Storage*> &storages)
 {
+  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.name == comp_name; });
+  if (res != templ.components.end())
+    return;
+
   templ.components.push_back({ 0, add_component_name(component_names, comp_name), comp_name, find_comp(comp_type) });
 
   if (component_desc_by_names.size() < component_names.size())
@@ -350,6 +354,22 @@ static void add_component_to_template(const char *comp_type, const char *comp_na
   assert(storage->elemSize == desc->size);
 }
 
+static void process_extends(EntityManager *mgr,
+  EntityTemplate &templ,
+  const eastl::vector<const char*> &extends,
+  eastl::vector<eastl::string> &component_names,
+  eastl::vector<const RegComp*> &component_desc_by_names,
+  eastl::vector<Storage*> &storages)
+{
+  for (const auto &e : extends)
+  {
+    const int templateId = mgr->getTemplateId(e);
+    templ.extends.push_back(templateId);
+    for (const auto &c : mgr->templates[templateId].components)
+      add_component_to_template(c.desc->name, c.name.c_str(), templ, component_names, component_desc_by_names, storages);
+  }
+}
+
 void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends)
 {
   templates.emplace_back();
@@ -359,13 +379,7 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.compMask.resize(reg_comp_count);
   templ.compMask.set(reg_comp_count, false);
 
-  for (const auto &e : extends)
-  {
-    const int templateId = getTemplateId(e);
-    templ.extends.push_back(templateId);
-    for (const auto &c : templates[templateId].components)
-      add_component_to_template(c.desc->name, c.name.c_str(), templ, componentNames, componentDescByNames, storages);
-  }
+  process_extends(this, templ, extends, componentNames, componentDescByNames, storages);
 
   for (const auto &name : comp_names)
     add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames, storages);
@@ -426,6 +440,29 @@ int EntityManager::getTemplateId(const char *name)
   return -1;
 }
 
+template <typename Allocator>
+static void override_component(JValue &dst, JValue &src, const char *name, Allocator &allocator)
+{
+  if (!dst.HasMember(name))
+    dst.AddMember(rapidjson::StringRef(name), src, allocator);
+}
+
+static void process_templates(EntityManager *mgr, const EntityTemplate &templ, JValue &dst, JDocument &doc)
+{
+  for (int id : templ.extends)
+  {
+    const JValue &extendsValue = doc["$templates"][mgr->templates[id].docId];
+    for (auto it = extendsValue["$components"].MemberBegin(); it != extendsValue["$components"].MemberEnd(); ++it)
+    {
+      JValue v(rapidjson::kObjectType);
+      v.CopyFrom(it->value, doc.GetAllocator());
+      override_component(dst, v, it->name.GetString(), doc.GetAllocator());
+    }
+
+    process_templates(mgr, mgr->templates[id], dst, doc);
+  }
+}
+
 void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
@@ -444,16 +481,8 @@ void EntityManager::createEntitySync(const char *templ_name, const JValue &comps
   JDocument tmpDoc;
   JValue tmpValue(rapidjson::kObjectType);
   tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
-  for (int id : templ.extends)
-  {
-    const JValue &extendsValue = templatesDoc["$templates"][templates[id].docId];
-    for (auto it = extendsValue["$components"].MemberBegin(); it != extendsValue["$components"].MemberEnd(); ++it)
-    {
-      JValue v(rapidjson::kObjectType);
-      v.CopyFrom(it->value, tmpDoc.GetAllocator());
-      tmpValue.AddMember(rapidjson::StringRef(it->name.GetString()), v, tmpDoc.GetAllocator());
-    }
-  }
+
+  process_templates(this, templ, tmpValue, templatesDoc);
 
   if (!comps.IsNull())
     for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)

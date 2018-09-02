@@ -1,6 +1,11 @@
 {
   "$entities": [
     {
+      "$template": "server",
+      "$components": {
+      }
+    },
+    {
       "$template": "script",
       "$components": {
         "script": {
@@ -131,6 +136,15 @@
         "pos": [
           64.0,
           -96.0
+        ]
+      }
+    },
+    {
+      "$template": "block-big-moving",
+      "$components": {
+        "pos": [
+          160.0,
+          0.0
         ]
       }
     },

@@ -1,5 +1,7 @@
 {
   "$order": [
+    "init_websocket_server_handler",
+    "ws_get_ecs_data",
     "update_script_query",
     "build_script_handler",
     "process_on_kill_event",
@@ -21,6 +23,7 @@
     "select_current_anim_frame",
     "update_anim_frame",
     "update_camera",
+    "update_websocket_server",
     "render_walls",
     "render_normal"
   ],
@@ -105,6 +108,16 @@
     }
   ],
   "$templates": [
+    {
+      "$name": "server",
+      "$components": {
+        "ws_server": {
+          "$type": "websocket_server",
+          "$value": {
+          }
+        }
+      }
+    },
     {
       "$name": "script",
       "$components": {
@@ -866,6 +879,29 @@
             32,
             32
           ]
+        }
+      }
+    },
+    {
+      "$name": "block-big-moving",
+      "$extends": [
+        "block-big"
+      ],
+      "$components": {
+        "vel": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            -1.0
+          ]
+        },
+        "auto_move": {
+          "$type": "auto_move",
+          "$value": {
+            "duration": 2.0,
+            "length": 64,
+            "jump": false
+          }
         }
       }
     },

@@ -8,6 +8,9 @@
       <Filter>gen</Filter>
     </ClCompile>
     <ClCompile Include="sample.cpp" />
+    <ClCompile Include="webui.ecs.cpp.gen">
+      <Filter>gen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gen">
@@ -20,6 +23,7 @@
   <ItemGroup>
     <CustomBuild Include="update.ecs.cpp" />
     <CustomBuild Include="update.ecs.h" />
+    <CustomBuild Include="webui.ecs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="entities.json">
