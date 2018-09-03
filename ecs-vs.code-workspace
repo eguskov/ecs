@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"path": "webui"
+		},
+		{
+			"path": "sample"
+		},
+		{
+			"path": "ecs"
+		},
+		{
+			"path": "script"
+		},
+		{
+			"path": "benchmark"
+		},
+		{
+			"path": "codegen"
+		}
+	],
+	"settings": {
+		"explorer.autoReveal": false,
+		"files.exclude": {
+			"**/Debug": true,
+			"**/Release": true,
+			"**/x64": true,
+			"**/*.vcxproj.user": true,
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true
+		}
+	}
+}

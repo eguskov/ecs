@@ -11,8 +11,8 @@
 
 #include <new>
 
-void* operator new(std::size_t s);
-void* operator new[](std::size_t s);
+void* operator new(size_t s);
+void* operator new[](size_t s);
 void operator delete(void*p);
 void operator delete[](void*p);
 void operator delete(void *p, size_t);

@@ -4,6 +4,13 @@
 /Release
 /ecs/Release
 /ecs/x64/Debug
+/codegen/x64/Debug
+/script/Debug
+/script/Release
+/lua/lua/Debug
+/lua/lua/Release
+/mongoose/mongoose/Debug
+/mongoose/mongoose/Release
 /*.opendb
 /*.db
 /ecs/*.user
@@ -15,6 +22,7 @@
 *.tlog
 *.log
 *.pdb
+*.vcxproj.user
 /EASTL
 /jemalloc
 /raylib

@@ -19,7 +19,7 @@ struct HUD
 {
   int killCount = 0;
 
-  DEF_SET();
+  DEF_SET;
 }
 DEF_COMP(HUD, hud);
 
