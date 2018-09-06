@@ -15,6 +15,34 @@ static RegSysSpec<1792234238, decltype(init_websocket_server_handler)> _reg_sys_
 static RegSysSpec<4294383132, decltype(update_websocket_server)> _reg_sys_update_websocket_server("update_websocket_server", update_websocket_server, { "stage", "ws_server" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<2741717703, decltype(ws_get_ecs_data)> _reg_sys_ws_get_ecs_data("ws_get_ecs_data", ws_get_ecs_data, { "ev", "ws_server" }, {  }, {  }, {  }, {  }, true); 
 
+static __forceinline void exec_AllScriptsQuery(const script::ScriptComponent & script) {}
+
+static RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)> _reg_sys_exec_AllScriptsQuery("exec_AllScriptsQuery", exec_AllScriptsQuery, { "script" }, {  }, {  }, {  }, {  }, false); 
+
+template <> template <> __forceinline void RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const {}
+
+template <typename C> void AllScriptsQuery::exec(C callback)
+{
+  using SysType = RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>;
+  const auto &sys = _reg_sys_exec_AllScriptsQuery;
+  const auto &components = sys.components;
+  const auto &query = g_mgr->queries[sys.id];
+  auto *storage = &g_mgr->storages[0];
+  ExtraArguments args;
+  for (int i = 0; i < (int)query.eids.size(); ++i)
+  {
+    EntityId eid = query.eids[i];
+    args.eid = eid;
+    const auto &entity = g_mgr->entities[eid2idx(eid)];
+    const auto &templ = g_mgr->templates[entity.templateId];
+    const auto &remap = templ.remaps[sys.id];
+    const int *offsets = entity.componentOffsets.data();
+    const int argId[] = { components[0].nameId };
+    const int argOffset[] = { get_offset(remap[0], offsets) };
+    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  }
+}
+
 template <> template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
 {
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };

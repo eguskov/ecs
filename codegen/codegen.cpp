@@ -248,6 +248,7 @@ int main(int argc, char* argv[])
     "-I../ecs",
     "-I../glm",
     "-I../script",
+    "-I../mongoose",
     "-I../sdk/angelscript/include",
     "-I../sdk/add_on",
     "-I../EASTL/include",

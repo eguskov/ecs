@@ -17,21 +17,28 @@ enum TemplateOrientation
 })
 export class AppComponent implements OnInit
 {
+  @ViewChild('root') root: ElementRef;
   @ViewChild('canvas') canvas: ElementRef;
 
   ctx: CanvasRenderingContext2D = null;
   width: number = 0;
   height: number = 0;
 
-  status: string = "Unknonwn";
+  status: string = 'Unknonwn';
 
-  constructor(public appService : AppService, private streamService: StreamService, public coreService: CoreService, private zone: NgZone)
+  modes: string[] = ['Detailed', 'Compact'];
+  currentMode: string = 'Compact';
+
+  constructor(public appService: AppService, private streamService: StreamService, public coreService: CoreService, private zone: NgZone)
   {
     this._draw = this._draw.bind(this);
   }
 
   ngAfterViewInit()
   {
+    (<HTMLCanvasElement>this.canvas.nativeElement).width = this.root.nativeElement.offsetWidth;
+    (<HTMLCanvasElement>this.canvas.nativeElement).height = this.root.nativeElement.offsetHeight;
+
     this.ctx = this.canvas.nativeElement.getContext('2d');
     if (this.ctx)
     {
@@ -52,7 +59,7 @@ export class AppComponent implements OnInit
       setInterval(() =>
       {
         let prev = this.status;
-        let status = this.streamService.isConnected() ? "Online" : "Offline";
+        let status = this.streamService.isConnected() ? 'Online' : 'Offline';
         if (prev !== status)
         {
           this.zone.run(() =>
@@ -73,14 +80,46 @@ export class AppComponent implements OnInit
     });
   }
 
+  selectedTemplate: any = null;
+  selectedSystem: any = null;
+
   onClick($event: MouseEvent)
   {
+    if (this._skipNextClick)
+    {
+      this._skipNextClick = false;
+      return;
+    }
+
+    const clickX = $event.offsetX;
+    const clickY = $event.offsetY;
+
+    for (let templ of this.appService.ecsData.templates)
+    {
+      if (templ.visible && clickX >= templ.leftX && clickX <= templ.rightX && clickY >= templ.y && clickY <= templ.y + templ.height)
+      {
+        this.selectedTemplate = this.selectedTemplate === templ ? null : templ;
+        this.selectedSystem = null;
+        return;
+      }
+    }
+
+    for (let sys of this.appService.ecsData.systems)
+    {
+      if (sys.visible && clickX >= sys.leftX && clickX <= sys.rightX && clickY >= sys.y && clickY <= sys.y + sys.height)
+      {
+        this.selectedTemplate = null;
+        this.selectedSystem = this.selectedSystem === sys ? null : sys;
+        return;
+      }
+    }
   }
 
   private _drawX = 10;
   private _drawY = 10;
 
   private _drag = false;
+  private _skipNextClick = false;
   private _dragX = 0;
   private _dragY = 0;
 
@@ -95,6 +134,8 @@ export class AppComponent implements OnInit
   {
     if (this._drag)
     {
+      this._skipNextClick = true;
+
       const dx = $event.offsetX - this._dragX;
       const dy = $event.offsetY - this._dragY;
 
@@ -118,17 +159,20 @@ export class AppComponent implements OnInit
 
   findMaxTextWidth(src, minWidth: number): number
   {
-    this.ctx.font = 'bold 14pt Calibri';
+    this.ctx.font = this.currentMode === 'Compact' ? '12pt Calibri' : 'bold 14pt Calibri';
     const m = this.ctx.measureText(src.name);
     let maxWidth = m.width;
 
-    for (let comp of src.components)
+    if (this.currentMode === 'Detailed')
     {
-      this.ctx.font = 'bold 12pt Calibri';
-      const m = this.ctx.measureText(`${comp.name}:${comp.type}`);
-      if (m.width > maxWidth)
+      for (let comp of src.components)
       {
-        maxWidth = m.width;
+        this.ctx.font = 'bold 12pt Calibri';
+        const m = this.ctx.measureText(`${comp.name}:${comp.type}`);
+        if (m.width > maxWidth)
+        {
+          maxWidth = m.width;
+        }
       }
     }
     return Math.max(maxWidth, minWidth);
@@ -136,8 +180,10 @@ export class AppComponent implements OnInit
 
   drawTemplate(x: number, y: number, orient: TemplateOrientation, templ): { w: number, h: number }
   {
+    const lineHeight = this.currentMode === 'Compact' ? 40 : 60;
+
     let rw = this.findMaxTextWidth(templ, 80) + 30;
-    const rh = 60 + 30 * templ.components.length;
+    const rh = lineHeight + (this.currentMode === 'Compact' ? -0.5 * lineHeight : 0.5 * lineHeight * templ.components.length);
 
     if (orient == TemplateOrientation.kLeft)
     {
@@ -146,87 +192,152 @@ export class AppComponent implements OnInit
 
     this.ctx.beginPath();
     this.ctx.rect(x, y, rw, rh);
-    this.ctx.moveTo(x, y + 30);
-    this.ctx.lineTo(x + rw, y + 30);
-    this.ctx.fillStyle = 'rgb(255, 255, 255)';
+    if (this.currentMode === 'Detailed')
+    {
+      this.ctx.moveTo(x, y + 0.5 * lineHeight);
+      this.ctx.lineTo(x + rw, y + 0.5 * lineHeight);
+    }
+    this.ctx.fillStyle = templ === this.selectedTemplate ? '#74EDD4' : 'rgb(255, 255, 255)';
     this.ctx.fill();
     this.ctx.lineWidth = 1;
     this.ctx.strokeStyle = 'rgb(0, 0, 0)';
     this.ctx.stroke();
 
-    this.ctx.font = 'bold 14pt Calibri';
+    this.ctx.font = this.currentMode === 'Compact' ? '12pt Calibri' : 'bold 14pt Calibri';
     this.ctx.textBaseline = 'middle';
     this.ctx.textAlign = 'center';
     this.ctx.fillStyle = 'rgb(0, 0, 0)';
-    this.ctx.fillText(templ.name, x + 0.5 * rw, y + 0.5 * 30, rw);
+    this.ctx.fillText(templ.name, x + 0.5 * rw, y + 0.25 * lineHeight, rw);
 
-    let compX = x + rw - 14;
-    let compY = y + 60;
-    for (let comp of templ.components)
+    templ.leftX = x;
+    templ.rightX = x + rw;
+    templ.y = y;
+    templ.width = rw;
+    templ.height = rh;
+
+    if (this.currentMode === 'Compact')
     {
-      this.ctx.font = 'bold 12pt Calibri';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillStyle = 'rgb(0, 0, 0)';
-      if (orient == TemplateOrientation.kLeft)
+      if (templ === this.selectedTemplate || this.selectedSystem !== null || this.selectedTemplate === null)
       {
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`${comp.name}:${comp.type}`, compX, compY, rw);
-      }
-      else
-      {
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText(`${comp.name}:${comp.type}`, compX - rw + 28, compY, rw);
-      }
+        for (let sysIndex of templ.systems)
+        {
+          let sys = this.appService.ecsData.systems[sysIndex];
+          if (this.selectedSystem !== null && sys !== this.selectedSystem)
+            continue;
 
-      if (orient == TemplateOrientation.kLeft)
-      {
-        for (let sysIndex in comp.remap)
-        {
-          let compIndex: number = comp.remap[sysIndex];
-          if (compIndex >= 0)
+          sys.visible = true;
+          this.ctx.beginPath();
+          if (orient == TemplateOrientation.kLeft)
           {
-            let sysComp = this.appService.ecsData.systems[sysIndex].components[compIndex];
-            this.appService.ecsData.systems[sysIndex].visible = true;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x + rw, compY);
-            this.ctx.lineTo(sysComp.leftX, sysComp.y);
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeStyle = 'rgb(0, 0, 0)';
-            this.ctx.stroke();
+            this.ctx.moveTo(x + rw, y + 0.5 * rh);
+            this.ctx.lineTo(sys.leftX, sys.y + 0.5 * sys.height);
           }
-        }
-      }
-      else if (orient == TemplateOrientation.kRight)
-      {
-        for (let sysIndex in comp.remap)
-        {
-          let compIndex: number = comp.remap[sysIndex];
-          if (compIndex >= 0)
+          else if (orient == TemplateOrientation.kRight)
           {
-            let sysComp = this.appService.ecsData.systems[sysIndex].components[compIndex];
-            this.appService.ecsData.systems[sysIndex].visible = true;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, compY);
-            this.ctx.lineTo(sysComp.rightX, sysComp.y);
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeStyle = 'rgb(0, 0, 0)';
-            this.ctx.stroke();
+            this.ctx.moveTo(x, y + 0.5 * rh);
+            this.ctx.lineTo(sys.rightX, sys.y + 0.5 * sys.height);
           }
+          this.ctx.lineWidth = 1;
+          // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+          this.ctx.strokeStyle = '#EBEDF2';
+          this.ctx.stroke();
         }
       }
 
       this.ctx.beginPath();
       if (orient == TemplateOrientation.kLeft)
-        this.ctx.arc(x + rw, compY, 5, 0, 2 * Math.PI);
+        this.ctx.arc(x + rw, y + 0.5 * rh, 5, 0, 2 * Math.PI);
       else
-        this.ctx.arc(x, compY, 5, 0, 2 * Math.PI);
+        this.ctx.arc(x, y + 0.5 * rh, 5, 0, 2 * Math.PI);
       this.ctx.fillStyle = 'rgb(255, 255, 255)';
       this.ctx.fill();
       this.ctx.lineWidth = 1;
       this.ctx.strokeStyle = 'rgb(0, 0, 0)';
       this.ctx.stroke();
+    }
+    else if (this.currentMode === 'Detailed')
+    {
+      let compX = x + rw - 14;
+      let compY = y + lineHeight;
+      for (let comp of templ.components)
+      {
+        this.ctx.font = 'bold 12pt Calibri';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillStyle = 'rgb(0, 0, 0)';
+        if (orient == TemplateOrientation.kLeft)
+        {
+          this.ctx.textAlign = 'right';
+          this.ctx.fillText(`${comp.name}:${comp.type}`, compX, compY, rw);
+        }
+        else
+        {
+          this.ctx.textAlign = 'left';
+          this.ctx.fillText(`${comp.name}:${comp.type}`, compX - rw + 28, compY, rw);
+        }
 
-      compY += 30;
+        if (templ === this.selectedTemplate || this.selectedSystem !== null || this.selectedTemplate === null)
+        {
+          if (orient == TemplateOrientation.kLeft)
+          {
+            for (let sysIndex in comp.remap)
+            {
+              let compIndex: number = comp.remap[sysIndex];
+              if (compIndex >= 0)
+              {
+                let sysComp = this.appService.ecsData.systems[sysIndex].components[compIndex];
+                if (this.selectedSystem !== null && this.appService.ecsData.systems[sysIndex] !== this.selectedSystem)
+                {
+                  continue;
+                }
+                this.appService.ecsData.systems[sysIndex].visible = true;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + rw, compY);
+                this.ctx.lineTo(sysComp.leftX, sysComp.y);
+                this.ctx.lineWidth = 1;
+                // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+                this.ctx.strokeStyle = '#EBEDF2';
+                this.ctx.stroke();
+              }
+            }
+          }
+          else if (orient == TemplateOrientation.kRight)
+          {
+            for (let sysIndex in comp.remap)
+            {
+              let compIndex: number = comp.remap[sysIndex];
+              if (compIndex >= 0)
+              {
+                let sysComp = this.appService.ecsData.systems[sysIndex].components[compIndex];
+                if (this.selectedSystem !== null && this.appService.ecsData.systems[sysIndex] !== this.selectedSystem)
+                {
+                  continue;
+                }
+                this.appService.ecsData.systems[sysIndex].visible = true;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, compY);
+                this.ctx.lineTo(sysComp.rightX, sysComp.y);
+                this.ctx.lineWidth = 1;
+                // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+                this.ctx.strokeStyle = '#EBEDF2';
+                this.ctx.stroke();
+              }
+            }
+          }
+        }
+
+        this.ctx.beginPath();
+        if (orient == TemplateOrientation.kLeft)
+          this.ctx.arc(x + rw, compY, 5, 0, 2 * Math.PI);
+        else
+          this.ctx.arc(x, compY, 5, 0, 2 * Math.PI);
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        this.ctx.fill();
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+        this.ctx.stroke();
+
+        compY += 0.5 * lineHeight;
+      }
     }
 
     return { w: rw, h: rh };
@@ -239,58 +350,84 @@ export class AppComponent implements OnInit
       return { w: 0, h: 0 };
     }
 
+    const lineHeight = this.currentMode === 'Compact' ? 40 : 60;
     const rw = this.findMaxTextWidth(sys, 80) + 30;
-    const rh = 60 + 30 * sys.components.length;
+    const rh = lineHeight + (this.currentMode === 'Compact' ? -0.5 * lineHeight : 0.5 * lineHeight * sys.components.length);
 
-    x += 0.5 * (this.maxWidthCenter - rw);
+    if (this.currentMode === 'Detailed')
+    {
+      x += 0.5 * (this.maxWidthCenter - rw);
+    }
 
     this.ctx.beginPath();
     this.ctx.rect(x, y, rw, rh);
-    this.ctx.moveTo(x, y + 30);
-    this.ctx.lineTo(x + rw, y + 30);
-    this.ctx.fillStyle = 'rgb(255, 255, 255)';
+    if (this.currentMode === 'Detailed')
+    {
+      this.ctx.moveTo(x, y + 0.5 * lineHeight);
+      this.ctx.lineTo(x + rw, y + 0.5 * lineHeight);
+    }
+    this.ctx.fillStyle = sys.isScript ? '#86DBFD' : sys.isQuery ? '#CDBEF5' : 'rgb(255, 255, 255)';
     this.ctx.fill();
     this.ctx.lineWidth = 1;
     this.ctx.strokeStyle = 'rgb(0, 0, 0)';
     this.ctx.stroke();
 
-    this.ctx.font = 'bold 14pt Calibri';
+    this.ctx.font = this.currentMode === 'Compact' ? '12pt Calibri' : 'bold 14pt Calibri';
     this.ctx.textBaseline = 'middle';
-    this.ctx.textAlign = 'center';
+    this.ctx.textAlign = this.currentMode === 'Compact' ? 'left' : 'center';
     this.ctx.fillStyle = 'rgb(0, 0, 0)';
-    this.ctx.fillText(sys.name, x + 0.5 * rw, y + 0.5 * 30, rw);
+    this.ctx.fillText(sys.name, this.currentMode === 'Compact' ? x + 14 : x + 0.5 * rw, y + 0.25 * lineHeight, rw);
 
-    let compX = x + 0.5 * rw;
-    let compY = y + 60;
-    for (let comp of sys.components)
+    sys.leftX = x;
+    sys.rightX = x + rw;
+    sys.y = y;
+    sys.width = rw;
+    sys.height = rh;
+
+    if (this.currentMode === 'Compact')
     {
-      this.ctx.font = 'bold 12pt Calibri';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillStyle = 'rgb(0, 0, 0)';
-      this.ctx.fillText(`${comp.name}:${comp.type}`, compX, compY, rw);
-
       this.ctx.beginPath();
-      this.ctx.arc(x, compY, 5, 0, 2 * Math.PI);
+      this.ctx.arc(x, y + 0.5 * rh, 5, 0, 2 * Math.PI);
       this.ctx.fillStyle = 'rgb(255, 255, 255)';
       this.ctx.fill();
       this.ctx.lineWidth = 1;
       this.ctx.strokeStyle = 'rgb(0, 0, 0)';
       this.ctx.stroke();
+    }
+    else if (this.currentMode === 'Detailed')
+    {
+      let compX = x + 0.5 * rw;
+      let compY = y + lineHeight;
+      for (let comp of sys.components)
+      {
+        this.ctx.font = 'bold 12pt Calibri';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = 'rgb(0, 0, 0)';
+        this.ctx.fillText(`${comp.name}:${comp.type}`, compX, compY, rw);
 
-      this.ctx.beginPath();
-      this.ctx.arc(x + rw, compY, 5, 0, 2 * Math.PI);
-      this.ctx.fillStyle = 'rgb(255, 255, 255)';
-      this.ctx.fill();
-      this.ctx.lineWidth = 1;
-      this.ctx.strokeStyle = 'rgb(0, 0, 0)';
-      this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.arc(x, compY, 5, 0, 2 * Math.PI);
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        this.ctx.fill();
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+        this.ctx.stroke();
 
-      comp.leftX = x;
-      comp.rightX = x + rw;
-      comp.y = compY;
+        this.ctx.beginPath();
+        this.ctx.arc(x + rw, compY, 5, 0, 2 * Math.PI);
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        this.ctx.fill();
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'rgb(0, 0, 0)';
+        this.ctx.stroke();
 
-      compY += 30;
+        comp.leftX = x;
+        comp.rightX = x + rw;
+        comp.y = compY;
+
+        compY += 0.5 * lineHeight;
+      }
     }
 
     return { w: rw, h: rh };
@@ -301,8 +438,9 @@ export class AppComponent implements OnInit
 
   draw()
   {
-    this.ctx.fillStyle = 'rgb(255, 255, 255)';
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    // this.ctx.fillStyle = 'rgb(255, 255, 255)';
+    // this.ctx.fillRect(0, 0, this.width, this.height);
+    this.ctx.clearRect(0, 0, this.width, this.height);
 
     let xLeft = this._drawX;
     let yLeft = this._drawY;
@@ -310,19 +448,62 @@ export class AppComponent implements OnInit
     let yRight = this._drawY;
     let i = 0;
 
+    const padding = this.currentMode === 'Compact' ? 10 : 20;
+
+    for (let sys of this.appService.ecsData.systems)
+    {
+      sys.visible = false;
+    }
+
+    if (this.selectedSystem !== null)
+    {
+      this.selectedSystem.visible = true;
+    }
+
+    if (this.selectedSystem === null || this.selectedTemplate === null)
+    {
+      for (let templ of this.appService.ecsData.templates)
+      {
+        templ.visible = true;
+      }
+    }
+
+    if (this.selectedSystem !== null)
+    {
+      for (let templ of this.appService.ecsData.templates)
+      {
+        templ.visible = false;
+        for (let sysIndex of templ.systems)
+        {
+          let sys = this.appService.ecsData.systems[sysIndex];
+          if (sys === this.selectedSystem)
+          {
+            templ.visible = true;
+            break;
+          }
+        }
+      }
+    }
+
     for (let templ of this.appService.ecsData.templates)
     {
-      const orient = (i++ % 2) == 0 ? TemplateOrientation.kLeft : TemplateOrientation.kRight;
+      if (!templ.visible)
+      {
+        continue;
+      }
+
+      const orient = this.currentMode === 'Compact' ? TemplateOrientation.kLeft :
+        (i++ % 2) == 0 ? TemplateOrientation.kLeft : TemplateOrientation.kRight;
 
       if (orient == TemplateOrientation.kRight)
       {
         const sz = this.drawTemplate(xRight, yRight, orient, templ);
-        yRight += sz.h + 20;
+        yRight += sz.h + padding;
       }
       else if (orient == TemplateOrientation.kLeft)
       {
         const sz = this.drawTemplate(xLeft, yLeft, orient, templ);
-        yLeft += sz.h + 20;
+        yLeft += sz.h + padding;
 
         if (sz.w > this.maxWidthLeft)
         {
@@ -336,7 +517,9 @@ export class AppComponent implements OnInit
     for (let sys of this.appService.ecsData.systems)
     {
       if (!sys.visible)
+      {
         continue;
+      }
 
       const sz = this.drawSystem(x, y, sys);
       if (sz.w > this.maxWidthCenter)
@@ -344,7 +527,7 @@ export class AppComponent implements OnInit
         this.maxWidthCenter = sz.w;
       }
 
-      y += sz.h + 20;
+      y += sz.h + padding;
     }
   }
 }

@@ -63,13 +63,25 @@ export class AppService implements IMessageListener
 
     for (let s of this._ecsData.systems)
     {
+      s.isQuery = s.name.indexOf('exec_') === 0;
+
       s.name = s.name.replace(/^exec_/, '');
+      // if (!s.isQuery)
+      // {
+      //   s.name += `:${s.components[0].type}`;
+      // }
       s.components = s.components.filter(v => v.name !== 'eid');
       s.components = [].concat(s.components, s.haveComponents);
       s.components = [].concat(s.components, s.isTrueComponents);
       s.components = [].concat(s.components, s.isFalseComponents);
-      
       // s.components = [].concat(s.components, s.notHaveComponents);
+    }
+
+    const idx = this._ecsData.systems.findIndex(s => s.name === 'update_script');
+    if (idx >= 0)
+    {
+      this._ecsData.scriptSystems.forEach(s => s.isScript = true);
+      this._ecsData.systems.splice(idx + 1, 0, ...this._ecsData.scriptSystems);
     }
 
     for (let t of this._ecsData.templates)

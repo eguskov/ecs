@@ -1,5 +1,7 @@
 #include <ecs/ecs.h>
 
+#include <scriptECS.h>
+
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
 
@@ -111,9 +113,40 @@ static void send(BsonStream &bson, const WSEvent &ev)
   mg_send_websocket_frame(ev.conn, WEBSOCKET_OP_BINARY, d, sz);
 }
 
+DEF_QUERY(AllScriptsQuery);
+
 DEF_SYS()
 static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const WebsocketServer &ws_server)
 {
+  struct SystemData
+  {
+    struct ComponentData
+    {
+      eastl::string type;
+      eastl::string name;
+    };
+
+    eastl::string name;
+    eastl::vector<ComponentData> components;
+  };
+  eastl::vector<SystemData> scriptSystems;
+
+  AllScriptsQuery::exec([&](const script::ScriptComponent &script)
+  {
+    for (const auto &sys : script.scriptECS.systems)
+    {
+      auto &s = scriptSystems.emplace_back();
+      s.name = sys.fn->GetName();
+
+      for (const auto &comp : sys.components)
+      {
+        auto &c = s.components.emplace_back();
+        c.type = comp.desc->name;
+        c.name = comp.name;
+      }
+    }
+  });
+
   BsonStream bson;
 
   bson_document(bson, "getECSData", [&]()
@@ -161,6 +194,17 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
       {
         bson.add("name", comp.name);
         bson.add("type", comp.desc->name);
+      });
+    });
+
+    bson_array_of_documents(bson, "scriptSystems", scriptSystems, [&](int, const SystemData &sys)
+    {
+      bson.add("name", sys.name);
+
+      bson_array_of_documents(bson, "components", sys.components, [&](int, const SystemData::ComponentData &comp)
+      {
+        bson.add("name", comp.name);
+        bson.add("type", comp.type);
       });
     });
   });
