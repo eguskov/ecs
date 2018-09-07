@@ -190,14 +190,28 @@ export class AppComponent implements OnInit
       x += this.maxWidthLeft - rw;
     }
 
+    const radius = 5;
+
     this.ctx.beginPath();
-    this.ctx.rect(x, y, rw, rh);
+    this.ctx.moveTo(x + radius, y);
+    this.ctx.lineTo(x + rw - radius, y);
+    this.ctx.quadraticCurveTo(x + rw, y, x + rw, y + radius);
+    this.ctx.lineTo(x + rw, y + rh - radius);
+    this.ctx.quadraticCurveTo(x + rw, y + rh, x + rw - radius, y + rh);
+    this.ctx.lineTo(x + radius, y + rh);
+    this.ctx.quadraticCurveTo(x, y + rh, x, y + rh - radius);
+    this.ctx.lineTo(x, y + radius);
+    this.ctx.quadraticCurveTo(x, y, x + radius, y);
+
     if (this.currentMode === 'Detailed')
     {
       this.ctx.moveTo(x, y + 0.5 * lineHeight);
       this.ctx.lineTo(x + rw, y + 0.5 * lineHeight);
     }
-    this.ctx.fillStyle = templ === this.selectedTemplate ? '#74EDD4' : 'rgb(255, 255, 255)';
+
+    this.ctx.closePath();
+
+    this.ctx.fillStyle = 'rgb(255, 255, 255)';
     this.ctx.fill();
     this.ctx.lineWidth = 1;
     this.ctx.strokeStyle = 'rgb(0, 0, 0)';
@@ -359,13 +373,27 @@ export class AppComponent implements OnInit
       x += 0.5 * (this.maxWidthCenter - rw);
     }
 
+    const radius = 5;
+
     this.ctx.beginPath();
-    this.ctx.rect(x, y, rw, rh);
+    this.ctx.moveTo(x + radius, y);
+    this.ctx.lineTo(x + rw - radius, y);
+    this.ctx.quadraticCurveTo(x + rw, y, x + rw, y + radius);
+    this.ctx.lineTo(x + rw, y + rh - radius);
+    this.ctx.quadraticCurveTo(x + rw, y + rh, x + rw - radius, y + rh);
+    this.ctx.lineTo(x + radius, y + rh);
+    this.ctx.quadraticCurveTo(x, y + rh, x, y + rh - radius);
+    this.ctx.lineTo(x, y + radius);
+    this.ctx.quadraticCurveTo(x, y, x + radius, y);
+
     if (this.currentMode === 'Detailed')
     {
       this.ctx.moveTo(x, y + 0.5 * lineHeight);
       this.ctx.lineTo(x + rw, y + 0.5 * lineHeight);
     }
+
+    this.ctx.closePath();
+
     this.ctx.fillStyle = sys.isScript ? '#86DBFD' : sys.isQuery ? '#CDBEF5' : 'rgb(255, 255, 255)';
     this.ctx.fill();
     this.ctx.lineWidth = 1;
@@ -466,6 +494,15 @@ export class AppComponent implements OnInit
       {
         templ.visible = true;
       }
+    }
+
+    if (this.selectedTemplate !== null)
+    {
+      for (let templ of this.appService.ecsData.templates)
+      {
+        templ.visible = false;
+      }
+      this.selectedTemplate.visible = true;
     }
 
     if (this.selectedSystem !== null)

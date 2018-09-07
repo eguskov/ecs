@@ -36,7 +36,9 @@
 			"vector": "cpp",
 			"future": "cpp",
 			"system_error": "cpp",
-			"xlocale": "cpp"
+			"xlocale": "cpp",
+			"*.tcc": "cpp",
+			"deque": "cpp"
 		},
 		// "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},
 		// "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",

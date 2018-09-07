@@ -101,6 +101,18 @@ export class AppService implements IMessageListener
           }
         }
 
+        if (s.notHaveComponents)
+        {
+          for (let c of s.notHaveComponents)
+          {
+            if (this._hasComponent(t, c))
+            {
+              ok = false;
+              break;
+            }
+          }
+        }
+
         if (ok)
         {
           t.systems.push(sysIndex);

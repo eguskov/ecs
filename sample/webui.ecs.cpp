@@ -128,6 +128,10 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
 
     eastl::string name;
     eastl::vector<ComponentData> components;
+    eastl::vector<ComponentData> haveComponents;
+    eastl::vector<ComponentData> notHaveComponents;
+    eastl::vector<ComponentData> isTrueComponents;
+    eastl::vector<ComponentData> isFalseComponents;
   };
   eastl::vector<SystemData> scriptSystems;
 
@@ -139,6 +143,30 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
       s.name = sys.fn->GetName();
 
       for (const auto &comp : sys.components)
+      {
+        auto &c = s.components.emplace_back();
+        c.type = comp.desc->name;
+        c.name = comp.name;
+      }
+      for (const auto &comp : sys.haveComponents)
+      {
+        auto &c = s.components.emplace_back();
+        c.type = comp.desc->name;
+        c.name = comp.name;
+      }
+      for (const auto &comp : sys.notHaveComponents)
+      {
+        auto &c = s.components.emplace_back();
+        c.type = comp.desc->name;
+        c.name = comp.name;
+      }
+      for (const auto &comp : sys.isTrueComponents)
+      {
+        auto &c = s.components.emplace_back();
+        c.type = comp.desc->name;
+        c.name = comp.name;
+      }
+      for (const auto &comp : sys.isFalseComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;

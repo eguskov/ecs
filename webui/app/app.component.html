@@ -2,16 +2,19 @@
   <span [class.offline]="status.toLowerCase() !== 'online'" [class.online]="status.toLowerCase() === 'online'">{{status}}</span>
 </div>
 
-<div class="pl-1">
-  <ngx-radiobutton *ngFor="let mode of modes" [checked]="currentMode === mode" (change)="currentMode = mode">
-    {{mode}}
-  </ngx-radiobutton>
-</div>
-
-<div class="h-90 pt-1 pb-1 pl-1 pr-1">
-  <div #root class="h-100-p">
-    <canvas #canvas width="1280" height="680" class="glow-blue-100" (mouseleave)="onMouseLeave($event)" (mousedown)="onMouseDown($event)"
-      (mouseup)="onMouseUp($event)" (mousemove)="onMouseMove($event)" (click)="onClick($event)"></canvas>
+<div fxLayout="row" class="h-100" ngxSplit="row">
+  <div fxFlex="0 0 15vw" style="background: #3B4457; padding:10px">
+    <div class="pl-1">
+      <ngx-radiobutton *ngFor="let mode of modes" [checked]="currentMode === mode" (change)="currentMode = mode">
+        {{mode}}
+      </ngx-radiobutton>
+    </div>
+  </div>
+  <div fxFlex="1 0 85vw" maxBasis="85vw" minBasis="50vw" style="background: #2f3646; padding: 10px; padding-right: 0;" ngxSplitArea>
+    <div #root style="width: 83vw; height: 95vh;">
+      <canvas #canvas width="1280" height="680" class="glow-blue-100" (mouseleave)="onMouseLeave($event)" (mousedown)="onMouseDown($event)"
+        (mouseup)="onMouseUp($event)" (mousemove)="onMouseMove($event)" (click)="onClick($event)"></canvas>
+    </div>
   </div>
 </div>
 

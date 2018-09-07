@@ -6,13 +6,13 @@ class AliveEnemy
   vec2@ vel;
 }
 
-[system]
+[system { "$have": "enemy" }]
 void on_enenmy_kill_handler(const EventOnKillEnemy@ ev, const vec2@ pos)
 {
   print("on_enenmy_kill_handler: pos: ("+pos.x+", "+pos.y+")");
 }
 
-[system]
+[system { "$have": "enemy" }]
 void on_enenmy_hit_wall_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, real@ dir)
 {
   if (dot(ev.normal, vel) >= 0.f)
@@ -25,7 +25,7 @@ void on_enenmy_hit_wall_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, 
   }
 }
 
-[system]
+[system { "$have": "enemy" }]
 void on_enenmy_hit_ground_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, real@ dir, boolean@ is_on_ground)
 {
   if (dot(ev.normal, vel) >= 0.f)
