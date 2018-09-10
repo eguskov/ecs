@@ -73,7 +73,17 @@ struct StorageSpec : Storage
 
   virtual ~StorageSpec()
   {
-    items.clear();
+    int i = 0;
+    for (auto &item : items)
+      if (!freeMask[i++])
+        item.~T();
+    
+    if (items.data())
+    {
+      auto &a = items.get_allocator();
+      a.deallocate(items.data(), items.size() * sizeof(T));
+    }
+    items.reset_lose_memory();
   }
 
   uint8_t* data() override final

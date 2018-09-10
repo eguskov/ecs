@@ -9,6 +9,8 @@
 #include <bson.h>
 #include <bsonUtils.h>
 
+#include <sstream>
+
 struct WSEvent : Event
 {
   mg_connection *conn = nullptr;
@@ -104,6 +106,28 @@ static __forceinline void update_websocket_server(const UpdateStage &stage, Webs
   mg_mgr_poll(&ws_server.mgr, 0);
 }
 
+static char* get_file_content(const char *path)
+{
+  char *buffer = nullptr;
+
+  FILE *file = nullptr;
+  ::fopen_s(&file, path, "rb");
+  if (file)
+  {
+    size_t sz = ::ftell(file);
+    ::fseek(file, 0, SEEK_END);
+    sz = ::ftell(file) - sz;
+    ::fseek(file, 0, SEEK_SET);
+
+    buffer = new char[sz + 1];
+    buffer[sz] = '\0';
+    ::fread(buffer, 1, sz, file);
+    ::fclose(file);
+  }
+
+  return buffer;
+}
+
 static void send(BsonStream &bson, const WSEvent &ev)
 {
   const uint8_t *d = nullptr;
@@ -111,6 +135,29 @@ static void send(BsonStream &bson, const WSEvent &ev)
   eastl::tie(d, sz) = bson.closeAndGetData();
 
   mg_send_websocket_frame(ev.conn, WEBSOCKET_OP_BINARY, d, sz);
+}
+
+static void send(const char *message, const WSEvent &ev)
+{
+  mg_send_websocket_frame(ev.conn, WEBSOCKET_OP_TEXT, message, ::strlen(message));
+}
+
+static void send_json_file(const char *name, const char *path, const WSEvent &ev)
+{
+  char *buffer = get_file_content(path);
+  assert(buffer != nullptr);
+
+  if (buffer)
+  {
+    std::ostringstream oss;
+    oss << "{ \"" << name << "\": ";
+    oss << buffer;
+    oss << " }";
+
+    delete[] buffer;
+
+    send(oss.str().c_str(), ev);
+  }
 }
 
 DEF_QUERY(AllScriptsQuery);
@@ -238,4 +285,7 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
   });
 
   send(bson, ev);
+
+  send_json_file("getECSTemplates", "templates.json", ev);
+  send_json_file("getECSEntities", "entities.json", ev);
 }

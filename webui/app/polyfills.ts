@@ -77,7 +77,7 @@ import 'zone.js/dist/zone';  // Included with Angular CLI.
 /***************************************************************************************************
  * APPLICATION IMPORTS
  */
-
+(window as any).global = window;
 
 /*
 Copyright 2017-2018 Google Inc. All Rights Reserved.

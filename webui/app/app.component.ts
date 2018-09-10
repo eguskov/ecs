@@ -1,8 +1,9 @@
-import { Component, OnInit, AfterViewInit, NgZone, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, NgZone, ViewChild, ElementRef, OnDestroy, ViewEncapsulation } from '@angular/core';
 
 import { StreamService } from './core/stream.service';
 import { CoreService } from './core/core.service';
-import { AppService } from './app.service';
+import { AppService, ECSTemplate, ECSSystem } from './app.service';
+import { Subscription } from 'rxjs/Subscription';
 
 enum TemplateOrientation
 {
@@ -13,9 +14,10 @@ enum TemplateOrientation
 @Component({
   selector: 'my-app',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  encapsulation: ViewEncapsulation.None
 })
-export class AppComponent implements OnInit
+export class AppComponent implements OnInit, OnDestroy
 {
   @ViewChild('root') root: ElementRef;
   @ViewChild('canvas') canvas: ElementRef;
@@ -29,9 +31,31 @@ export class AppComponent implements OnInit
   modes: string[] = ['Detailed', 'Compact'];
   currentMode: string = 'Compact';
 
+  selectedTemplateForEdit: any = null;
+
+  sourceBuilderTools = [
+    // { name: 'Section', children: [] as any[], inputType: 'section', icon: 'section', class: 'wide' },
+    // { name: 'A String', inputType: 'string', icon: 'field-text', class: 'half' },
+    // { name: 'A Number', inputType: 'number', icon: 'field-numeric', class: 'half' }
+  ];
+  targetBuilderTools: any[] = [];
+
+  editorConfig = {
+    lineNumbers: true,
+    theme: 'dracula',
+    mode: {
+      name: 'json',
+      json: true
+    }
+  };
+
+  private _dataSubscription: Subscription;
+
   constructor(public appService: AppService, private streamService: StreamService, public coreService: CoreService, private zone: NgZone)
   {
     this._draw = this._draw.bind(this);
+    this._onDataUpdate = this._onDataUpdate.bind(this);
+    this._dataSubscription = this.appService.observable.subscribe(this._onDataUpdate);
   }
 
   ngAfterViewInit()
@@ -71,6 +95,72 @@ export class AppComponent implements OnInit
     });
   }
 
+  ngOnDestroy()
+  {
+    this._dataSubscription.unsubscribe();
+  }
+
+  _onDataUpdate(id: string)
+  {
+    console.log('_onDataUpdate', id);
+
+    if (id === 'ecsData')
+    {
+      this.sourceBuilderTools = [];
+      this.targetBuilderTools = [];
+
+      for (let c of this.appService.ecsComponents)
+      {
+        let item = Object.assign({ inputType: 'section', icon: 'field-text', class: 'half' }, c);
+        this.sourceBuilderTools.push(item);
+      }
+
+    }
+    else if (id === 'ecsTemplates')
+    {
+      this.selectedTemplateForEdit = this.appService.ecsTemplates[0];
+
+      for (let k in this.selectedTemplateForEdit.$components)
+      {
+        let c = this.selectedTemplateForEdit.$components[k];
+        let item = Object.assign({ name: k, inputType: 'section', icon: 'field-text', class: 'half ecs-template' }, c);
+        this.targetBuilderTools.push(item);
+      }
+    }
+  }
+
+  droppableItemClass = (item: any) => `${item.class} ${item.inputType}`;
+
+  builderDrag(e: any)
+  {
+    const item = e.value;
+    item.data =
+      item.inputType === 'number'
+        ? (Math.random() * 100) | 0
+        : Math.random()
+          .toString(36)
+          .substring(20);
+  }
+
+  log(e: any)
+  {
+    console.log(e.type, e);
+  }
+
+  onSelectTemplateForEdit($event)
+  {
+    this.selectedTemplateForEdit = $event[0];
+
+    this.targetBuilderTools = [];
+
+    for (let k in this.selectedTemplateForEdit.$components)
+    {
+      let c = this.selectedTemplateForEdit.$components[k];
+      let item = Object.assign({ name: k, inputType: 'section', icon: 'field-text', class: 'half' }, c);
+      this.targetBuilderTools.push(item);
+    }
+  }
+
   _draw()
   {
     this.zone.runOutsideAngular(() =>
@@ -80,8 +170,8 @@ export class AppComponent implements OnInit
     });
   }
 
-  selectedTemplate: any = null;
-  selectedSystem: any = null;
+  selectedTemplate: ECSTemplate = null;
+  selectedSystem: ECSSystem = null;
 
   onClick($event: MouseEvent)
   {
@@ -96,7 +186,7 @@ export class AppComponent implements OnInit
 
     for (let templ of this.appService.ecsData.templates)
     {
-      if (templ.visible && clickX >= templ.leftX && clickX <= templ.rightX && clickY >= templ.y && clickY <= templ.y + templ.height)
+      if (templ.data.visible && clickX >= templ.data.leftX && clickX <= templ.data.rightX && clickY >= templ.data.y && clickY <= templ.data.y + templ.data.height)
       {
         this.selectedTemplate = this.selectedTemplate === templ ? null : templ;
         this.selectedSystem = null;
@@ -106,7 +196,7 @@ export class AppComponent implements OnInit
 
     for (let sys of this.appService.ecsData.systems)
     {
-      if (sys.visible && clickX >= sys.leftX && clickX <= sys.rightX && clickY >= sys.y && clickY <= sys.y + sys.height)
+      if (sys.data.visible && clickX >= sys.data.leftX && clickX <= sys.data.rightX && clickY >= sys.data.y && clickY <= sys.data.y + sys.data.height)
       {
         this.selectedTemplate = null;
         this.selectedSystem = this.selectedSystem === sys ? null : sys;
@@ -157,7 +247,7 @@ export class AppComponent implements OnInit
     this._drag = false;
   }
 
-  findMaxTextWidth(src, minWidth: number): number
+  findMaxTextWidth(src: ECSSystem | ECSTemplate, minWidth: number): number
   {
     this.ctx.font = this.currentMode === 'Compact' ? '12pt Calibri' : 'bold 14pt Calibri';
     const m = this.ctx.measureText(src.name);
@@ -178,7 +268,7 @@ export class AppComponent implements OnInit
     return Math.max(maxWidth, minWidth);
   }
 
-  drawTemplate(x: number, y: number, orient: TemplateOrientation, templ): { w: number, h: number }
+  drawTemplate(x: number, y: number, orient: TemplateOrientation, templ: ECSTemplate): { w: number, h: number }
   {
     const lineHeight = this.currentMode === 'Compact' ? 40 : 60;
 
@@ -223,11 +313,11 @@ export class AppComponent implements OnInit
     this.ctx.fillStyle = 'rgb(0, 0, 0)';
     this.ctx.fillText(templ.name, x + 0.5 * rw, y + 0.25 * lineHeight, rw);
 
-    templ.leftX = x;
-    templ.rightX = x + rw;
-    templ.y = y;
-    templ.width = rw;
-    templ.height = rh;
+    templ.data.leftX = x;
+    templ.data.rightX = x + rw;
+    templ.data.y = y;
+    templ.data.width = rw;
+    templ.data.height = rh;
 
     if (this.currentMode === 'Compact')
     {
@@ -239,17 +329,17 @@ export class AppComponent implements OnInit
           if (this.selectedSystem !== null && sys !== this.selectedSystem)
             continue;
 
-          sys.visible = true;
+          sys.data.visible = true;
           this.ctx.beginPath();
           if (orient == TemplateOrientation.kLeft)
           {
             this.ctx.moveTo(x + rw, y + 0.5 * rh);
-            this.ctx.lineTo(sys.leftX, sys.y + 0.5 * sys.height);
+            this.ctx.lineTo(sys.data.leftX, sys.data.y + 0.5 * sys.data.height);
           }
           else if (orient == TemplateOrientation.kRight)
           {
             this.ctx.moveTo(x, y + 0.5 * rh);
-            this.ctx.lineTo(sys.rightX, sys.y + 0.5 * sys.height);
+            this.ctx.lineTo(sys.data.rightX, sys.data.y + 0.5 * sys.data.height);
           }
           this.ctx.lineWidth = 1;
           // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
@@ -303,10 +393,10 @@ export class AppComponent implements OnInit
                 {
                   continue;
                 }
-                this.appService.ecsData.systems[sysIndex].visible = true;
+                this.appService.ecsData.systems[sysIndex].data.visible = true;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x + rw, compY);
-                this.ctx.lineTo(sysComp.leftX, sysComp.y);
+                this.ctx.lineTo(sysComp.data.leftX, sysComp.data.y);
                 this.ctx.lineWidth = 1;
                 // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
                 this.ctx.strokeStyle = '#EBEDF2';
@@ -326,10 +416,10 @@ export class AppComponent implements OnInit
                 {
                   continue;
                 }
-                this.appService.ecsData.systems[sysIndex].visible = true;
+                this.appService.ecsData.systems[sysIndex].data.visible = true;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, compY);
-                this.ctx.lineTo(sysComp.rightX, sysComp.y);
+                this.ctx.lineTo(sysComp.data.rightX, sysComp.data.y);
                 this.ctx.lineWidth = 1;
                 // this.ctx.strokeStyle = 'rgb(0, 0, 0)';
                 this.ctx.strokeStyle = '#EBEDF2';
@@ -357,9 +447,9 @@ export class AppComponent implements OnInit
     return { w: rw, h: rh };
   }
 
-  drawSystem(x: number, y: number, sys): { w: number, h: number }
+  drawSystem(x: number, y: number, sys: ECSSystem): { w: number, h: number }
   {
-    if (!sys.visible)
+    if (!sys.data.visible)
     {
       return { w: 0, h: 0 };
     }
@@ -406,11 +496,11 @@ export class AppComponent implements OnInit
     this.ctx.fillStyle = 'rgb(0, 0, 0)';
     this.ctx.fillText(sys.name, this.currentMode === 'Compact' ? x + 14 : x + 0.5 * rw, y + 0.25 * lineHeight, rw);
 
-    sys.leftX = x;
-    sys.rightX = x + rw;
-    sys.y = y;
-    sys.width = rw;
-    sys.height = rh;
+    sys.data.leftX = x;
+    sys.data.rightX = x + rw;
+    sys.data.y = y;
+    sys.data.width = rw;
+    sys.data.height = rh;
 
     if (this.currentMode === 'Compact')
     {
@@ -450,9 +540,9 @@ export class AppComponent implements OnInit
         this.ctx.strokeStyle = 'rgb(0, 0, 0)';
         this.ctx.stroke();
 
-        comp.leftX = x;
-        comp.rightX = x + rw;
-        comp.y = compY;
+        comp.data.leftX = x;
+        comp.data.rightX = x + rw;
+        comp.data.y = compY;
 
         compY += 0.5 * lineHeight;
       }
@@ -480,19 +570,19 @@ export class AppComponent implements OnInit
 
     for (let sys of this.appService.ecsData.systems)
     {
-      sys.visible = false;
+      sys.data.visible = false;
     }
 
     if (this.selectedSystem !== null)
     {
-      this.selectedSystem.visible = true;
+      this.selectedSystem.data.visible = true;
     }
 
     if (this.selectedSystem === null || this.selectedTemplate === null)
     {
       for (let templ of this.appService.ecsData.templates)
       {
-        templ.visible = true;
+        templ.data.visible = true;
       }
     }
 
@@ -500,22 +590,22 @@ export class AppComponent implements OnInit
     {
       for (let templ of this.appService.ecsData.templates)
       {
-        templ.visible = false;
+        templ.data.visible = false;
       }
-      this.selectedTemplate.visible = true;
+      this.selectedTemplate.data.visible = true;
     }
 
     if (this.selectedSystem !== null)
     {
       for (let templ of this.appService.ecsData.templates)
       {
-        templ.visible = false;
+        templ.data.visible = false;
         for (let sysIndex of templ.systems)
         {
           let sys = this.appService.ecsData.systems[sysIndex];
           if (sys === this.selectedSystem)
           {
-            templ.visible = true;
+            templ.data.visible = true;
             break;
           }
         }
@@ -524,7 +614,7 @@ export class AppComponent implements OnInit
 
     for (let templ of this.appService.ecsData.templates)
     {
-      if (!templ.visible)
+      if (!templ.data.visible)
       {
         continue;
       }
@@ -553,7 +643,7 @@ export class AppComponent implements OnInit
     let y = this._drawY;
     for (let sys of this.appService.ecsData.systems)
     {
-      if (!sys.visible)
+      if (!sys.data.visible)
       {
         continue;
       }

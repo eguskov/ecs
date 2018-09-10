@@ -1,18 +1,76 @@
 import { Injectable } from '@angular/core';
-import { IMessageListener } from './core/common';
+import { IMessageListener, Dictionary } from './core/common';
 import { CoreService } from './core/core.service';
-import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
+import { Observable } from 'rxjs/Observable';
+
+export interface ECSData
+{
+  templates: ECSTemplate[];
+  systems: ECSSystem[];
+  scriptSystems: ECSSystem[];
+}
+
+export interface ECSTemplate
+{
+  data: any;
+
+  name: string;
+  components: ECSComponent[];
+  systems: number[];
+}
+
+export interface ECSSystem
+{
+  isQuery: boolean;
+  isScript: boolean;
+
+  data: any;
+
+  name: string;
+  components: ECSComponent[];
+  haveComponents: ECSComponent[];
+  notHaveComponents: ECSComponent[];
+  isTrueComponents: ECSComponent[];
+  isFalseComponents: ECSComponent[];
+}
+
+export interface ECSComponent
+{
+  data: any;
+
+  name: string;
+  type: string;
+
+  remap: number[];
+}
 
 @Injectable()
 export class AppService implements IMessageListener
 {
-  private _ecsData: any = { templates: [], systems: [] };
+  private _observable: Observable<any> = null;
+  private _observer: any = null;
 
-  private _processMessages = { 'getECSData': d => this.processECSData(d) };
+  private _ecsData: ECSData = { templates: [], systems: [], scriptSystems: [] };
+  private _ecsComponents: ECSComponent[];
+  private _ecsComponentsByName: Dictionary<ECSComponent>;
+
+  private _ecsTemplates: any;
+  private _ecsEntities: any;
+
+  private _processMessages = {
+    'getECSData': d => this.processECSData(d),
+    'getECSTemplates': d => { console.log(d); this.processECSTemplates(d.$templates); },
+    'getECSEntities': d => { console.log(d); this._ecsEntities = d; this._observer.next('ecsEntities'); },
+  };
 
   constructor(public coreService: CoreService)
   {
     this.coreService.addListener(this);
+
+    this._observable = Observable.create(observer =>
+    {
+      this._observer = observer;
+    });
   }
 
   onOpen(): void
@@ -57,12 +115,37 @@ export class AppService implements IMessageListener
     return src.components.findIndex(v => v.name === comp.name);
   }
 
+  processECSTemplates(data: any): void
+  {
+    this._ecsTemplates = data;
+
+    this._ecsTemplates.forEach(t =>
+    {
+      for (let k in t.$components)
+      {
+        let c = t.$components[k];
+        c.$valueStr = JSON.stringify(c.$value, null, 2);
+      };
+    });
+
+    this._observer.next('ecsTemplates');
+  }
+
   processECSData(data: any): void
   {
+    this._ecsComponents = [];
+    this._ecsComponentsByName = {};
     this._ecsData = data;
+
+    this._ecsData.scriptSystems.forEach(s =>
+    {
+      s.data = {};
+      s.components.forEach(v => v.data = {});
+    });
 
     for (let s of this._ecsData.systems)
     {
+      s.data = {};
       s.isQuery = s.name.indexOf('exec_') === 0;
 
       s.name = s.name.replace(/^exec_/, '');
@@ -75,6 +158,8 @@ export class AppService implements IMessageListener
       s.components = [].concat(s.components, s.isTrueComponents);
       s.components = [].concat(s.components, s.isFalseComponents);
       // s.components = [].concat(s.components, s.notHaveComponents);
+
+      s.components.forEach(v => v.data = {});
     }
 
     const idx = this._ecsData.systems.findIndex(s => s.name === 'update_script');
@@ -86,7 +171,17 @@ export class AppService implements IMessageListener
 
     for (let t of this._ecsData.templates)
     {
+      t.data = {};
       t.systems = [];
+      t.components.forEach(c =>
+      {
+        c.data = {};
+        if (!this._ecsComponentsByName[c.name])
+        {
+          this._ecsComponentsByName[c.name] = c;
+          this._ecsComponents.push(c);
+        }
+      });
 
       let sysIndex = 0;
       for (let s of this._ecsData.systems)
@@ -132,6 +227,8 @@ export class AppService implements IMessageListener
     }
 
     console.log(this._ecsData);
+
+    this._observer.next('ecsData');
   }
 
   getECSData(): void
@@ -139,5 +236,10 @@ export class AppService implements IMessageListener
     this.coreService.sendCommand('getECSData', {});
   }
 
+  get observable() { return this._observable; }
   get ecsData() { return this._ecsData; }
+  get ecsComponents() { return this._ecsComponents; }
+  get ecsComponentsByName() { return this._ecsComponentsByName; }
+  get ecsTemplates() { return this._ecsTemplates; }
+  get ecsEntities() { return this._ecsEntities; }
 }

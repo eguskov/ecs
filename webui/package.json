@@ -24,6 +24,8 @@
     "@swimlane/ngx-datatable": "13.1.0",
     "@swimlane/ngx-graph": "5.1.0",
     "@swimlane/ngx-ui": "21.4.3",
+    "@swimlane/ngx-dnd": "5.0.6",
+    "@swimlane/dragula": "3.7.3",
     "angular2-websocket": "0.9.7",
     "core-js": "2.5.7",
     "lodash": "4.17.10",
