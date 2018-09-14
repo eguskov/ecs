@@ -52,7 +52,8 @@
 			"streambuf": "cpp",
 			"thread": "cpp",
 			"tuple": "cpp",
-			"iosfwd": "cpp"
+			"iosfwd": "cpp",
+			"random": "cpp"
 		},
 		// "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},
 		// "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",

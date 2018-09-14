@@ -18,6 +18,7 @@
                 "${workspaceFolder}/../script",
                 "${workspaceFolder}/../glm",
                 "${workspaceFolder}/../sdk/angelscript/include",
+                "${workspaceFolder}/../sdk/add_on",
                 "${workspaceFolder}/../raylib/src",
                 "${workspaceFolder}/../rapidjson/include",
                 "${workspaceFolder}/../EASTL/include",

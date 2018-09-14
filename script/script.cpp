@@ -125,7 +125,7 @@ namespace script
 
       bool hasNext() const
       {
-        return pos < query->eids.size();
+        return pos < (int)query->eids.size();
       }
 
       void operator++()
@@ -234,7 +234,7 @@ namespace script
     assert(query->subType->GetPropertyCount() != 0);
     assert(query->subType->GetFactoryCount() != 0);
 
-    for (int i = 0; i < query->subType->GetPropertyCount(); ++i)
+    for (int i = 0; i < (int)query->subType->GetPropertyCount(); ++i)
     {
       const char *name = nullptr;
       int typeId = -1;
