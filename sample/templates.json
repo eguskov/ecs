@@ -1,5 +1,9 @@
 {
   "$order": [
+    "cef_ready_handler",
+    "cef_after_created_handler",
+    "cef_toggle_dev_tools_handler",
+    "cef_toggle_webui_handler",
     "init_websocket_server_handler",
     "ws_get_ecs_data",
     "update_script_query",
@@ -108,6 +112,10 @@
     }
   ],
   "$templates": [
+    {
+      "$name": "WebUI",
+      "$components": {}
+    },
     {
       "$name": "server",
       "$components": {

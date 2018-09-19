@@ -9,6 +9,8 @@
 
 #include "update.ecs.h"
 
+#include "cef.h"
+
 #include <script.h>
 #include <scriptECS.h>
 
@@ -20,7 +22,7 @@ PULL_ESC_CORE;
 
 Camera2D camera;
 int screen_width = 800;
-int screen_height = 450;
+int screen_height = 600;
 
 using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
 using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
@@ -32,6 +34,10 @@ int main()
 {
   std::srand(unsigned(std::time(0)));
 
+  EntityManager::init();
+
+  cef::init();
+
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
   SetTargetFPS(60);
@@ -40,8 +46,6 @@ int main()
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
   camera.zoom = 1.5f;
-
-  EntityManager::init();
 
   FILE *file = nullptr;
   ::fopen_s(&file, "entities.json", "rb");
@@ -100,6 +104,11 @@ int main()
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
+    if (IsKeyPressed(KEY_F11))
+      g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleDevTools{});
+    else if (IsKeyPressed(KEY_F10))
+      g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleWebUI{});
+
     double t = GetTime();
     g_mgr->tick();
 
@@ -124,12 +133,16 @@ int main()
     g_mgr->tick(RenderHUDStage{});
 
     EndDrawing();
+
+    cef::update();
   }
 
   EntityManager::release();
   script::release();
 
   CloseWindow();
+
+  cef::release();
 
   return 0;
 }

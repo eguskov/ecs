@@ -200,6 +200,11 @@ eastl::string get_type_ref(CXCursor cursor)
   return ref;
 }
 
+eastl::string escape_name(const eastl::string name)
+{
+  return std::regex_replace(name.c_str(), std::regex("::"), "_").c_str();
+}
+
 template<typename T>
 void read_function_params(CXCursor cursor, T &parameters)
 {
@@ -327,6 +332,7 @@ int main(int argc, char* argv[])
     eastl::string filename;
 
     CXTranslationUnit unit;
+    CXCursor unitCursor;
 
     eastl::vector<System> systems;
     eastl::vector<Query> queries;
@@ -344,6 +350,9 @@ int main(int argc, char* argv[])
     ScopeString spelling = clang_getCursorSpelling(cursor);
     ScopeString kindSpelling = clang_getCursorKindSpelling(kind);
 
+    if (kind == CXCursor_Namespace || kind == CXCursor_NamespaceAlias || kind == CXCursor_NamespaceRef)
+      return CXChildVisit_Recurse;
+
     if (kind == CXCursor_StructDecl || kind == CXCursor_ClassDecl)
     {
       auto structVisitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
@@ -356,6 +365,13 @@ int main(int argc, char* argv[])
         {
           auto name = to_string(clang_getCursorSpelling(cursor));
           auto structName = to_string(clang_getCursorSpelling(parent));
+
+          auto p = clang_getCursorSemanticParent(parent);
+          while (!clang_Cursor_isNull(p) && !clang_equalCursors(p, state.unitCursor))
+          {
+            structName = to_string(clang_getCursorSpelling(p)) + "::" + structName;
+            p = clang_getCursorSemanticParent(p);
+          }
 
           if (utils::startsWith(name, "@component: "))
           {
@@ -561,6 +577,7 @@ int main(int argc, char* argv[])
   state.filename = argv[1];
 
   CXCursor cursor = clang_getTranslationUnitCursor(unit);
+  state.unitCursor = cursor;
   //dump_cursor(cursor, clang_getNullCursor());
   clang_visitChildren(cursor, visitor, &state);
   CXFile unitFile = clang_getFile(unit, argv[1]);
@@ -599,14 +616,14 @@ int main(int argc, char* argv[])
 
     for (const auto &comp : state.components)
     {
-      out << "static RegCompSpec<" << comp.type << "> _reg_comp_" << comp.name << "(\"" << comp.name << "\");" << std::endl;
+      out << "static RegCompSpec<" << comp.type << "> _reg_comp_" << escape_name(comp.name) << "(\"" << comp.name << "\");" << std::endl;
       out << "template <> int RegCompSpec<" << comp.type << ">::ID = -1;" << std::endl;
       out << std::endl;
     }
 
     for (const auto &ev : state.events)
     {
-      out << "static RegCompSpec<" << ev.type << "> _reg_event_" << ev.name << ";" << std::endl;
+      out << "static RegCompSpec<" << ev.type << "> _reg_event_" << escape_name(ev.name) << ";" << std::endl;
       out << "int RegCompSpec<" << ev.type << ">::ID = -1;" << std::endl;
       out << std::endl;
     }

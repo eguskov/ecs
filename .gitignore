@@ -27,4 +27,7 @@
 /jemalloc
 /raylib
 /sample/AS_DEBUG
+/sample/GPUCache
+/sample/blob_storage
 /sdk
+/cef

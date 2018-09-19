@@ -1,0 +1,14 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "cef.h"
+
+static RegCompSpec<cef::CmdToggleDevTools> _reg_event_cef_CmdToggleDevTools;
+int RegCompSpec<cef::CmdToggleDevTools>::ID = -1;
+
+static RegCompSpec<cef::CmdToggleWebUI> _reg_event_cef_CmdToggleWebUI;
+int RegCompSpec<cef::CmdToggleWebUI>::ID = -1;
+
+#endif // __CODEGEN__

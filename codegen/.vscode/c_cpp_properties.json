@@ -14,40 +14,18 @@
         "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/cppwinrt",
         "C:/Program Files (x86)/Windows Kits/NETFXSDK/4.6.1/Include/um",
         "${workspaceFolder}/**",
-        "${workspaceFolder}/../ecs",
-        "${workspaceFolder}/../script",
-        "${workspaceFolder}/../glm",
-        "${workspaceFolder}/../sdk/angelscript/include",
-        "${workspaceFolder}/../sdk/add_on",
-        "${workspaceFolder}/../raylib/src",
-        "${workspaceFolder}/../rapidjson/include",
         "${workspaceFolder}/../EASTL/include",
         "${workspaceFolder}/../EASTL/test/packages/EABase/include/Common",
-        "${workspaceFolder}/../mongoose",
-        "${workspaceFolder}/../jemalloc/include",
-        "${workspaceFolder}/../jemalloc/include/msvc_compat",
-        "${workspaceFolder}/../raylib/src/external/glfw/include",
-        "${workspaceFolder}/../cef"
+        "${workspaceFolder}/../LLVM/include"
       ],
       "defines": [
-        "_DEBUG",
-        "WIN32",
-        "_CONSOLE"
+        "_DEBUG"
       ],
+      "windowsSdkVersion": "10.0.17134.0",
+      "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/bin/Hostx64/x64/cl.exe",
       "cStandard": "c11",
       "cppStandard": "c++17",
-      "intelliSenseMode": "msvc-x64",
-      "browse": {
-        "path": [
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.14393.0/um",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.14393.0/ucrt",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.14393.0/shared",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.14393.0/winrt",
-          "${workspaceRoot}"
-        ],
-        "limitSymbolsToIncludedHeaders": true,
-        "databaseFilename": ""
-      }
+      "intelliSenseMode": "msvc-x64"
     }
   ],
   "version": 4

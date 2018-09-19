@@ -11,6 +11,7 @@
     <ClCompile Include="webui.ecs.cpp.gen">
       <Filter>gen</Filter>
     </ClCompile>
+    <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gen">

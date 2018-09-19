@@ -178,7 +178,7 @@ EntityManager::EntityManager()
       ::fread(buffer, 1, sz, file);
       ::fclose(file);
 
-      templatesDoc.Parse(buffer);
+      templatesDoc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
       delete [] buffer;
 
       assert(templatesDoc.HasMember("$order"));
@@ -463,7 +463,7 @@ static void process_templates(EntityManager *mgr, const EntityTemplate &templ, J
   }
 }
 
-void EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
+EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
   for (size_t i = 0; i < templates.size(); ++i)
@@ -517,6 +517,8 @@ void EntityManager::createEntitySync(const char *templ_name, const JValue &comps
   }
 
   sendEventSync(e.eid, EventOnEntityCreate{});
+
+  return e.eid;
 }
 
 void EntityManager::tick()

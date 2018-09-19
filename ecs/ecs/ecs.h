@@ -168,7 +168,7 @@ struct EntityManager
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
 
   void createEntity(const char *templ_name, const JValue &comps);
-  void createEntitySync(const char *templ_name, const JValue &comps);
+  EntityId createEntitySync(const char *templ_name, const JValue &comps);
 
   void deleteEntity(EntityId eid);
 
