@@ -7,14 +7,14 @@ PULL_ESC_CORE;
 
 struct Test
 {
-  glm::vec2 pos = { 0.f, 0.f };
-  glm::vec2 vel = { 1.f, 1.f };
+  glm::vec3 pos = { 0.f, 0.f, 0.f };
+  glm::vec3 vel = { 1.f, 1.f, 1.f };
 };
 
 struct TestSoA
 {
-  eastl::vector<glm::vec2> pos;
-  eastl::vector<glm::vec2> vel;
+  eastl::vector<glm::vec3> pos;
+  eastl::vector<glm::vec3> vel;
 };
 
 int main()
@@ -26,7 +26,7 @@ int main()
   // TODO: 1. Entites
   // TODO: 2. Native loop
   // TODO: 3. Script loop
-  const int count = 10000;
+  const int count = 30000;
 
   eastl::vector<Test> test;
   test.resize(count);
@@ -41,14 +41,14 @@ int main()
 
   for (int i = 0; i < count; ++i)
   {
-    testSoA.pos[i] = { 0.f, 0.f };
-    testSoA.vel[i] = { 1.f, 1.f };
+    testSoA.pos[i] = { 0.f, 0.f, 0.f };
+    testSoA.vel[i] = { 1.f, 1.f, 1.f };
   }
 
   for (int i = 0; i < count; ++i)
   {
-    testSoARaw.pos[i] = { 0.f, 0.f };
-    testSoARaw.vel[i] = { 1.f, 1.f };
+    testSoARaw.pos[i] = { 0.f, 0.f, 0.f };
+    testSoARaw.vel[i] = { 1.f, 1.f, 1.f };
   }
 
   {
@@ -80,7 +80,7 @@ int main()
     PERF_TIME(Native_SoA_RAW);
     for (int i = 0; i < count; ++i)
     {
-      *(glm::vec2*)(posRaw + i * sizeof(glm::vec2)) += (*(glm::vec2*)(velRaw + i * sizeof(glm::vec2))) * dt;
+      *(glm::vec3*)(posRaw + i * sizeof(glm::vec3)) += (*(glm::vec3*)(velRaw + i * sizeof(glm::vec3))) * dt;
     }
   }
 

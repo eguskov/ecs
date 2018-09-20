@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(Debug) Launch",
+      "name": "(Debug) Sample",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
@@ -15,6 +15,45 @@
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
+      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+    },
+    {
+      "name": "(Release) Sample",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Release\\sample.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build release",
+      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+    },
+    {
+      "name": "(Debug) Benchmark",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Debug\\benchmark.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\..\\benchmark",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build",
+      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+    },
+    {
+      "name": "(Release) Benchmark",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Release\\benchmark.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\..\\benchmark",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build release",
       "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
     }
   ]

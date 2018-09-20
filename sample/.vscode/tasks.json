@@ -23,6 +23,24 @@
         "panel": "shared"
       },
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build release",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Release",
+        "/p:Platform=\"x86\"",
+        "/t:build",
+        "${workspaceRoot}\\..\\ecs.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
     }
   ]
 }
