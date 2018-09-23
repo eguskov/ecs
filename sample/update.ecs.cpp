@@ -7,6 +7,10 @@
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
 
+#include <raylib.h>
+
+#include <Box2D/Box2D.h>
+
 extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
@@ -146,6 +150,33 @@ struct AnimState
   }
 }
 DEF_COMP(AnimState, anim_state);
+
+struct PhysicsWorld
+{
+  b2World *world = nullptr;
+
+  bool set(const JValue &value)
+  {
+    return true;
+  }
+
+  ~PhysicsWorld()
+  {
+    delete world;
+  }
+}
+DEF_COMP(PhysicsWorld, phys_world);
+
+DEF_SYS()
+static __forceinline void init_physics_handler(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
+{
+  phys_world.world = new b2World({ 0.f, -9.81f });
+}
+
+DEF_SYS()
+static __forceinline void update_physics(const UpdateStage &stage, PhysicsWorld &phys_world)
+{
+}
 
 DEF_SYS()
 static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)

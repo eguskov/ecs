@@ -4,12 +4,8 @@
 #include <ecs/ecs.h>
 #include <ecs/perf.h>
 
-#include "stages/update.stage.h"
-#include "stages/render.stage.h"
-
-#include "update.ecs.h"
-
-#include "cef.h"
+#include <stages/update.stage.h>
+#include <stages/render.stage.h>
 
 #include <script.h>
 #include <scriptECS.h>
@@ -17,6 +13,12 @@
 #include <scripthandle/scripthandle.h>
 #include <scriptarray/scriptarray.h>
 #include <scriptmath/scriptmath.h>
+
+#include <raylib.h>
+
+#include "update.ecs.h"
+
+#include "cef.h"
 
 PULL_ESC_CORE;
 
@@ -108,6 +110,9 @@ int main()
       g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleDevTools{});
     else if (IsKeyPressed(KEY_F10))
       g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleWebUI{});
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+      g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
 
     double t = GetTime();
     g_mgr->tick();

@@ -3,8 +3,6 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
-#include <raylib.h>
-
 struct EventOnSpawn : Event
 {
   int count;

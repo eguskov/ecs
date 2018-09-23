@@ -11,4 +11,7 @@ int RegCompSpec<cef::CmdToggleDevTools>::ID = -1;
 static RegCompSpec<cef::CmdToggleWebUI> _reg_event_cef_CmdToggleWebUI;
 int RegCompSpec<cef::CmdToggleWebUI>::ID = -1;
 
+static RegCompSpec<cef::EventOnClickOutside> _reg_event_cef_EventOnClickOutside;
+int RegCompSpec<cef::EventOnClickOutside>::ID = -1;
+
 #endif // __CODEGEN__

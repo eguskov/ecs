@@ -37,6 +37,14 @@
   height: 100%;
 }
 
+.ngx-tabs {
+  margin-bottom: 10px !important;
+}
+
+.ngx-tab-content {
+  padding-bottom: 0px !important;
+}
+
 .pl-1 { padding-left: 1.8em }
 .pt-1 { padding-top: 1.8em }
 .pb-1 { padding-bottom: 1.8em }

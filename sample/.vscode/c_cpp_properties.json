@@ -27,7 +27,8 @@
         "${workspaceFolder}/../jemalloc/include",
         "${workspaceFolder}/../jemalloc/include/msvc_compat",
         "${workspaceFolder}/../raylib/src/external/glfw/include",
-        "${workspaceFolder}/../cef"
+        "${workspaceFolder}/../cef",
+        "${workspaceFolder}/../Box2D"
       ],
       "defines": [
         "_DEBUG",

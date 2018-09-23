@@ -17,6 +17,12 @@ namespace cef
   }
   DEF_EVENT(CmdToggleWebUI);
 
+  struct EventOnClickOutside : Event
+  {
+    EventOnClickOutside() = default;
+  }
+  DEF_EVENT(EventOnClickOutside);
+
   EntityId get_eid();
 
   void init();

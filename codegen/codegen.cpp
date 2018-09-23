@@ -259,6 +259,7 @@ int main(int argc, char* argv[])
     "-I../EASTL/include",
     "-I../EASTL/test/packages/EABase/include/Common",
     "-I../raylib/src",
+    "-I../Box2D",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/include",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/atlmfc/include",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Auxiliary/VS/include",

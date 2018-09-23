@@ -158,7 +158,7 @@ struct WebUIHandler : public CefClient, public CefDisplayHandler, public CefLife
     {
       windowInfo.SetAsPopup(g_main_window, "devtools");
       windowInfo.style &= ~WS_OVERLAPPED;
-      windowInfo.style &= ~WS_CAPTION;
+      // windowInfo.style &= ~WS_CAPTION;
       windowInfo.style |= WS_POPUP;
       windowInfo.x = 20;
       windowInfo.y = 100;
@@ -264,7 +264,16 @@ static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
   CefBrowserSettings browserSettings;
 
   CefWindowInfo windowInfo;
-  windowInfo.SetAsChild(g_main_window, { 0, 300, 800, 600 });
+  // windowInfo.SetAsChild(g_main_window, { 0, 300, 800, 600 });
+
+  windowInfo.SetAsPopup(g_main_window, "");
+  // windowInfo.style &= ~WS_OVERLAPPED;
+  // windowInfo.style &= ~WS_CAPTION;
+  // windowInfo.style |= WS_POPUP;
+  windowInfo.x = 20;
+  windowInfo.y = 100;
+  windowInfo.width = 500;
+  windowInfo.height = 500;
 
   auto handler = g_app->handlers.front();
   CefBrowserHost::CreateBrowser(windowInfo, handler, "http://localhost:10010", browserSettings, NULL);
@@ -272,6 +281,12 @@ static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
 
 DEF_SYS()
 static __forceinline void cef_after_created_handler(const CEFEventOnAfterCreated &ev)
+{
+  ::SetFocus(g_main_window);
+}
+
+DEF_SYS()
+static __forceinline void cef_click_outside_handler(const cef::EventOnClickOutside &ev)
 {
   ::SetFocus(g_main_window);
 }
