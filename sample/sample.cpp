@@ -32,13 +32,16 @@ using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
 using SAutoMove = script::ScriptHelperDesc<AutoMove, 4>;
 using SJump = script::ScriptHelperDesc<Jump, 4>;
 
+bool g_enable_cef = false;
+
 int main()
 {
   std::srand(unsigned(std::time(0)));
 
   EntityManager::init();
 
-  cef::init();
+  if (g_enable_cef)
+    cef::init();
 
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
@@ -64,7 +67,7 @@ int main()
     ::fclose(file);
 
     JDocument doc;
-    doc.Parse(buffer);
+    doc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
     delete[] buffer;
 
     assert(doc.HasMember("$entities"));
@@ -78,6 +81,7 @@ int main()
 
   script::init();
 
+  // TODO: Codegen for script bindings
   script::register_component<SEventOnKillEnemy>("EventOnKillEnemy", find_comp("EventOnKillEnemy"));
 
   script::register_component<SEventOnWallHit>("EventOnWallHit", find_comp("EventOnWallHit"));
@@ -106,13 +110,16 @@ int main()
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
-    if (IsKeyPressed(KEY_F11))
-      g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleDevTools{});
-    else if (IsKeyPressed(KEY_F10))
-      g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleWebUI{});
+    if (g_enable_cef)
+    {
+      if (IsKeyPressed(KEY_F11))
+        g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleDevTools{});
+      else if (IsKeyPressed(KEY_F10))
+        g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleWebUI{});
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-      g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
+      if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
+    }
 
     double t = GetTime();
     g_mgr->tick();
@@ -131,15 +138,22 @@ int main()
     g_mgr->tick(RenderStage{});
     EndMode2D();
 
+    BeginMode2D(camera);
+    g_mgr->tick(RenderDebugStage{});
+    EndMode2D();
+
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawFPS(10, 10);
 
     g_mgr->tick(RenderHUDStage{});
 
+    // g_mgr->tick(RenderDebugStage{});
+
     EndDrawing();
 
-    cef::update();
+    if (g_enable_cef)
+      cef::update();
   }
 
   EntityManager::release();
@@ -147,7 +161,8 @@ int main()
 
   CloseWindow();
 
-  cef::release();
+  if (g_enable_cef)
+    cef::release();
 
   return 0;
 }

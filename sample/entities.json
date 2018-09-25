@@ -2,8 +2,11 @@
   "$entities": [
     {
       "$template": "server",
-      "$components": {
-      }
+      "$components": {}
+    },
+    {
+      "$template": "PhysicsWorld",
+      "$components": {}
     },
     {
       "$template": "script",
@@ -131,15 +134,6 @@
       }
     },
     {
-      "$template": "ground-block",
-      "$components": {
-        "pos": [
-          64.0,
-          -96.0
-        ]
-      }
-    },
-    {
       "$template": "block-big-moving",
       "$components": {
         "pos": [
@@ -152,10 +146,19 @@
       "$template": "ground-block",
       "$components": {
         "pos": [
-          80.0,
+          64.0,
           -96.0
         ]
       }
-    }
+    },
+    // {
+    //   "$template": "ground-block",
+    //   "$components": {
+    //     "pos": [
+    //       80.0,
+    //       -96.0
+    //     ]
+    //   }
+    // }
   ]
 }

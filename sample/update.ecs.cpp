@@ -140,7 +140,7 @@ struct AnimState
 {
   bool done = false;
   int frameNo = 0;
-  float startTime = -1.f;
+  double startTime = -1.0;
   eastl::string currentNode;
 
   bool set(const JValue &value)
@@ -150,33 +150,6 @@ struct AnimState
   }
 }
 DEF_COMP(AnimState, anim_state);
-
-struct PhysicsWorld
-{
-  b2World *world = nullptr;
-
-  bool set(const JValue &value)
-  {
-    return true;
-  }
-
-  ~PhysicsWorld()
-  {
-    delete world;
-  }
-}
-DEF_COMP(PhysicsWorld, phys_world);
-
-DEF_SYS()
-static __forceinline void init_physics_handler(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
-{
-  phys_world.world = new b2World({ 0.f, -9.81f });
-}
-
-DEF_SYS()
-static __forceinline void update_physics(const UpdateStage &stage, PhysicsWorld &phys_world)
-{
-}
 
 DEF_SYS()
 static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
@@ -219,7 +192,7 @@ static __forceinline void update_anim_frame(
   AnimState &anim_state,
   glm::vec4 &frame)
 {
-  if (anim_state.startTime < 0.f)
+  if (anim_state.startTime < 0.0)
     anim_state.startTime = stage.total;
 
   auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
@@ -228,7 +201,7 @@ static __forceinline void update_anim_frame(
 
   const auto &node = res->second;
 
-  const int frameNo = (int)floorf((stage.total - anim_state.startTime) / node.frameDt);
+  const int frameNo = (int)floor((stage.total - anim_state.startTime) / (double)node.frameDt);
   if (node.loop)
   {
     anim_state.frameNo = frameNo % node.frames.size();
@@ -329,7 +302,7 @@ static __forceinline void apply_jump(
 
   is_on_ground = false;
 
-  const float k = glm::clamp((stage.total - jump.startTime) / jump.duration, 0.f, 1.f);
+  const float k = (float)glm::clamp((stage.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
   const float v = jump.height / jump.duration;
   vel.y = -v;
 
@@ -392,6 +365,7 @@ static __forceinline void update_collisions(
   glm::vec2 &pos,
   glm::vec2 &vel)
 {
+  return;
   glm::vec2 myPos = pos;
   glm::vec2 myVel = vel;
   glm::vec4 myCollisionRect = collision_rect;
@@ -467,7 +441,7 @@ static __forceinline void update_auto_move_collisions(
   vel = myVel;
 }
 
-static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, float start_time)
+static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, double start_time)
 {
   if (anim_graph.nodesMap.find_as(node) == anim_graph.nodesMap.end())
     return;

@@ -67,7 +67,13 @@
 			"xutility": "cpp",
 			"xiosbase": "cpp",
 			"string": "cpp",
-			"chrono": "cpp"
+			"chrono": "cpp",
+			"functional": "cpp",
+			"xlocmon": "cpp",
+			"xtr1common": "cpp",
+			"ratio": "cpp",
+			"type_traits": "cpp",
+			"utility": "cpp"
 		},
 		"editor.renderWhitespace": "all",
 		// "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},

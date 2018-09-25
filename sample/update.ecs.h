@@ -104,7 +104,7 @@ struct Jump
 {
   bool active = false;
 
-  float startTime = 0.f;
+  double startTime = 0.0;
   float height = 0.f;
   float duration = 0.f;
 

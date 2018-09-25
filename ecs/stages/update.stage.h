@@ -6,7 +6,7 @@
 struct UpdateStage : Stage
 {
   float dt = 0.f;
-  float total = 0.f;
+  double total = 0.0;
   UpdateStage() = default;
   UpdateStage(float _dt, float _total) : dt(_dt), total(_total) {}
 };

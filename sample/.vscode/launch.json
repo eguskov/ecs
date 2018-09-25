@@ -15,7 +15,8 @@
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample.natvis"
     },
     {
       "name": "(Release) Sample",

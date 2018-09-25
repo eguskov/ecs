@@ -152,12 +152,19 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
+    <CustomBuild Include="physics.ecs.cpp">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="update.ecs.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="update.ecs.h.gen">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="physics.ecs.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>

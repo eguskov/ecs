@@ -7,6 +7,9 @@
     "cef_click_outside_handler",
     "init_websocket_server_handler",
     "ws_get_ecs_data",
+    "init_physics_world_handler",
+    "init_physics_body_handler",
+    "init_physics_material_handler",
     "update_script_query",
     "build_script_handler",
     "process_on_kill_event",
@@ -21,6 +24,9 @@
     "update_auto_move",
     "update_auto_move_collisions",
     "update_collisions",
+    "update_physics_collisions",
+    "update_kinematic_physics_body",
+    "update_physics",
     "remove_death_fx",
     "update_spawner",
     "update_position",
@@ -30,7 +36,8 @@
     "update_camera",
     "update_websocket_server",
     "render_walls",
-    "render_normal"
+    "render_normal",
+    "render_debug_physics"
   ],
   "$templates$v1": [
     {
@@ -122,8 +129,7 @@
       "$components": {
         "ws_server": {
           "$type": "websocket_server",
-          "$value": {
-          }
+          "$value": {}
         }
       }
     },
@@ -136,6 +142,15 @@
             "name": "",
             "path": ""
           }
+        }
+      }
+    },
+    {
+      "$name": "PhysicsWorld",
+      "$components": {
+        "phys_world": {
+          "$type": "phys_world",
+          "$value": {}
         }
       }
     },
@@ -670,6 +685,33 @@
             0.0
           ]
         },
+        "collision_shape": {
+          "$type": "collision_shape",
+          "$value": {
+            "size": [
+              20.0,
+              32.0
+            ],
+            "center": [
+              16.0,
+              16.0
+            ],
+            "angle": 0.0
+          }
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "kinematic"
+          }
+        },
+        "phys_material": {
+          "$type": "phys_material",
+          "$value": {
+            "density": 1.0,
+            "friction": 0.5
+          }
+        },
         "collision_rect": {
           "$type": "vec4",
           "$value": [
@@ -831,6 +873,33 @@
             0.0
           ]
         },
+        "collision_shape": {
+          "$type": "collision_shape",
+          "$value": {
+            "size": [
+              32.0,
+              32.0
+            ],
+            "center": [
+              16.0,
+              16.0
+            ],
+            "angle": 0.0
+          }
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "static"
+          }
+        },
+        "phys_material": {
+          "$type": "phys_material",
+          "$value": {
+            "density": 1.0,
+            "friction": 0.5
+          }
+        },
         "collision_rect": {
           "$type": "vec4",
           "$value": [
@@ -911,6 +980,12 @@
             "length": 64,
             "jump": false
           }
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "kinematic"
+          }
         }
       }
     },
@@ -928,6 +1003,20 @@
             16.0,
             16.0
           ]
+        },
+        "collision_shape": {
+          "$type": "collision_shape",
+          "$value": {
+            "size": [
+              16.0,
+              16.0
+            ],
+            "center": [
+              8.0,
+              8.0
+            ],
+            "angle": 0.0
+          }
         },
         "frame": {
           "$type": "vec4",
@@ -960,6 +1049,20 @@
             16.0,
             16.0
           ]
+        },
+        "collision_shape": {
+          "$type": "collision_shape",
+          "$value": {
+            "size": [
+              16.0,
+              16.0
+            ],
+            "center": [
+              8.0,
+              8.0
+            ],
+            "angle": 0.0
+          }
         },
         "frame": {
           "$type": "vec4",

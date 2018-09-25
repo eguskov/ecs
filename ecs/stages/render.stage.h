@@ -8,6 +8,11 @@ struct RenderStage : Stage
 };
 REG_STAGE(RenderStage);
 
+struct RenderDebugStage : Stage
+{
+};
+REG_STAGE(RenderDebugStage);
+
 struct RenderHUDStage : Stage
 {
 };
