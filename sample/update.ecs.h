@@ -116,3 +116,15 @@ struct Jump
   };
 }
 DEF_COMP(Jump, jump);
+
+struct Gravity
+{
+  float mass = 0.f;
+
+  bool set(const JValue &value)
+  {
+    mass = value["mass"].GetFloat();
+    return true;
+  };
+}
+DEF_COMP(Gravity, gravity);

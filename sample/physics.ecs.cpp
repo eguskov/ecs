@@ -7,6 +7,8 @@
 
 #include <Box2D/Box2D.h>
 
+#include "update.ecs.h"
+
 extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
@@ -69,6 +71,15 @@ struct PhysDebugDraw : public b2Draw
   }
 };
 
+struct EventOnPhysicsContact : Event
+{
+  glm::vec2 vel;
+
+  EventOnPhysicsContact() = default;
+  EventOnPhysicsContact(const glm::vec2 v) : vel(v) {}
+}
+DEF_EVENT(EventOnPhysicsContact);
+
 struct PhysicsWorld
 {
   int atTick = 0;
@@ -90,15 +101,37 @@ DEF_COMP(PhysicsWorld, phys_world);
 
 struct CollisionShape
 {
-  b2PolygonShape shape;
+  struct Shape
+  {
+    b2PolygonShape shape;
+
+    bool isSensor = false;
+
+    float density = 0.f;
+    float friction = 0.f;
+
+    b2Fixture *fixture = nullptr;
+  };
+
+  eastl::vector<Shape> shapes;
 
   bool set(const JValue &value)
   {
-    shape.SetAsBox(
-      0.5f * value["size"][0].GetFloat(),
-      0.5f * value["size"][1].GetFloat(),
-      { value["center"][0].GetFloat(), value["center"][1].GetFloat() },
-      value["angle"].GetFloat());
+    for (int i = 0; i < (int)value.Size(); ++i)
+    {
+      auto &s = shapes.emplace_back();
+      s.shape.SetAsBox(
+        0.5f * value[i]["size"][0].GetFloat(),
+        0.5f * value[i]["size"][1].GetFloat(),
+        { value[i]["center"][0].GetFloat(), value[i]["center"][1].GetFloat() },
+        value[i]["angle"].GetFloat());
+
+      s.density = value[i]["material"]["density"].GetFloat();
+      s.friction = value[i]["material"]["friction"].GetFloat();
+
+      if (value[i].HasMember("isSensor"))
+        s.isSensor = value[i]["isSensor"].GetBool();
+    }
     return true;
   }
 }
@@ -126,37 +159,27 @@ struct PhysicsBody
 }
 DEF_COMP(PhysicsBody, phys_body);
 
-struct PhysicsMaterial
-{
-  float density = 0.f;
-  float friction = 0.f;
-
-  b2Fixture *fixture = nullptr;
-
-  bool set(const JValue &value)
-  {
-    density = value["density"].GetFloat();
-    friction = value["friction"].GetFloat();
-    return true;
-  }
-}
-DEF_COMP(PhysicsMaterial, phys_material);
-
 DEF_SYS()
-static __forceinline void init_physics_material_handler(
+static __forceinline void init_physics_collision_handler(
   const EventOnEntityCreate &ev,
+  const EntityId &eid,
   PhysicsBody &phys_body,
-  const CollisionShape &collision_shape,
-  PhysicsMaterial &phys_material)
+  CollisionShape &collision_shape)
 {
   assert(phys_body.body != nullptr);
-  assert(collision_shape.shape.Validate());
 
-  b2FixtureDef def;
-  def.shape = &collision_shape.shape;
-  def.density = phys_material.density;
-  def.friction = phys_material.friction;
-  phys_material.fixture = phys_body.body->CreateFixture(&def);
+  for (auto s : collision_shape.shapes)
+  {
+    assert(s.shape.Validate());
+
+    b2FixtureDef def;
+    def.shape = &s.shape;
+    def.density = s.density;
+    def.friction = s.friction;
+    def.isSensor = s.isSensor;
+    def.userData = (void*)eid.handle;
+    s.fixture = phys_body.body->CreateFixture(&def);
+  }
 }
 
 DEF_SYS()
@@ -204,19 +227,21 @@ static __forceinline void update_kinematic_physics_body(
   const glm::vec2 &pos,
   const glm::vec2 &vel)
 {
-  assert(phys_body.type == b2_kinematicBody);
+  assert(phys_body.type != b2_staticBody);
 
   phys_body.body->SetTransform({ pos.x, pos.y }, 0.f);
   phys_body.body->SetLinearVelocity({ vel.x, vel.y });
 }
 
 DEF_QUERY(BricksQuery, HAVE_COMP(wall));
+DEF_QUERY(MovigBricksQuery, HAVE_COMP(wall) HAVE_COMP(auto_move));
 
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_physics_collisions(
   const UpdateStage &stage,
   const PhysicsBody &phys_body,
   const CollisionShape &collision_shape,
+  const Gravity &gravity,
   bool &is_on_ground,
   glm::vec2 &pos,
   glm::vec2 &vel)
@@ -226,26 +251,41 @@ static __forceinline void update_physics_collisions(
   const CollisionShape &myCollisionShape = collision_shape;
   const PhysicsBody &myPhysBody = phys_body;
 
-  BricksQuery::exec([&myPos, &myVel, &is_on_ground, &myPhysBody, &myCollisionShape, &stage](const PhysicsBody &phys_body, const CollisionShape &collision_shape, const glm::vec2 &pos)
+  MovigBricksQuery::exec([&](const CollisionShape &collision_shape, const glm::vec2 &pos, const glm::vec2 &vel)
   {
-    const float minD = myCollisionShape.shape.m_radius + collision_shape.shape.m_radius;
+    b2Transform xfA = { { pos.x, pos.y }, b2Rot{0.f} };
+    b2Transform xfB = { { myPos.x, myPos.y }, b2Rot{0.f} };
+
+    b2Manifold manifold;
+    b2CollidePolygons(&manifold, &collision_shape.shapes[1].shape, xfA, &myCollisionShape.shapes[0].shape, xfB);
+
+    if (manifold.pointCount > 0 && glm::dot(myVel, vel) >= 0.f)
+    {
+      myVel += vel;
+      myVel.y -= gravity.mass * 9.8f * stage.dt;
+    }
+  });
+
+  BricksQuery::exec([&](const CollisionShape &collision_shape, const glm::vec2 &pos)
+  {
+    const float minD = myCollisionShape.shapes[0].shape.m_radius + collision_shape.shapes[0].shape.m_radius;
 
     b2Transform xfA = { { pos.x, pos.y }, b2Rot{0.f} };
     b2Transform xfB = { { myPos.x, myPos.y }, b2Rot{0.f} };
 
     b2Manifold manifold;
-    b2CollidePolygons(&manifold, &collision_shape.shape, xfA, &myCollisionShape.shape, xfB);
+    b2CollidePolygons(&manifold, &collision_shape.shapes[0].shape, xfA, &myCollisionShape.shapes[0].shape, xfB);
 
     int pointIndex = -1;
     for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
     {
       b2WorldManifold worldManifold;
-      worldManifold.Initialize(&manifold, xfA, collision_shape.shape.m_radius, xfB, myCollisionShape.shape.m_radius);
+      worldManifold.Initialize(&manifold, xfA, collision_shape.shapes[0].shape.m_radius, xfB, myCollisionShape.shapes[0].shape.m_radius);
 
       const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
       const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
 
-      const float dy = myCollisionShape.shape.m_centroid.y - 0.5f * (hitPos.y - myPos.y);
+      const float dy = myCollisionShape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - myPos.y);
       const float d = -worldManifold.separations[i];
 
       if (normal.x != 0.f && dy <= minD)
@@ -257,7 +297,7 @@ static __forceinline void update_physics_collisions(
     if (pointIndex >= 0)
     {
       b2WorldManifold worldManifold;
-      worldManifold.Initialize(&manifold, xfA, myCollisionShape.shape.m_radius, xfB, collision_shape.shape.m_radius);
+      worldManifold.Initialize(&manifold, xfA, myCollisionShape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
 
       const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
       const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
@@ -274,6 +314,36 @@ static __forceinline void update_physics_collisions(
 
   pos = myPos;
   vel = myVel;
+}
+
+DEF_SYS(HAVE_COMP(user_input))
+static __forceinline void physics_contact_handler(const EventOnPhysicsContact &ev, glm::vec2 &vel)
+{
+  // if (glm::dot(vel, ev.vel) >= 0.f)
+  //   vel += ev.vel;
+}
+
+DEF_SYS()
+static __forceinline void check_physics_contacts(const UpdateStage &stage, const PhysicsWorld &phys_world)
+{
+  for (b2Contact *c = g_world->GetContactList(); c; c = c->GetNext())
+  {
+    if (c->IsTouching())
+    {
+      if (c->GetFixtureA()->IsSensor())
+      {
+        // EntityId eidB = (uint32_t)c->GetFixtureB()->GetUserData();
+        // const b2Vec2 &velA = c->GetFixtureA()->GetBody()->GetLinearVelocity();
+        // g_mgr->sendEvent(eidB, EventOnPhysicsContact{ {velA.x, velA.y} });
+      }
+      else if (c->GetFixtureB()->IsSensor())
+      {
+        // EntityId eidA = (uint32_t)c->GetFixtureA()->GetUserData();
+        // const b2Vec2 &velB = c->GetFixtureB()->GetBody()->GetLinearVelocity();
+        // g_mgr->sendEvent(eidA, EventOnPhysicsContact{ {velB.x, velB.y} });
+      }
+    }
+  }
 }
 
 DEF_SYS()

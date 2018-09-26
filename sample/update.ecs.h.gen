@@ -20,6 +20,9 @@ template <> int RegCompSpec<AutoMove>::ID = -1;
 static RegCompSpec<Jump> _reg_comp_jump("jump");
 template <> int RegCompSpec<Jump>::ID = -1;
 
+static RegCompSpec<Gravity> _reg_comp_gravity("gravity");
+template <> int RegCompSpec<Gravity>::ID = -1;
+
 static RegCompSpec<EventOnSpawn> _reg_event_EventOnSpawn;
 int RegCompSpec<EventOnSpawn>::ID = -1;
 

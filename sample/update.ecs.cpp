@@ -52,18 +52,6 @@ struct SpawnList
 }
 DEF_COMP(SpawnList, spawn_list);
 
-struct Gravity
-{
-  float mass = 0.f;
-
-  bool set(const JValue &value)
-  {
-    mass = value["mass"].GetFloat();
-    return true;
-  };
-}
-DEF_COMP(Gravity, gravity);
-
 struct UserInput
 {
   bool left = false;
@@ -251,7 +239,7 @@ static __forceinline void read_controls(
   UserInput &user_input,
   glm::vec2 &vel)
 {
-  user_input = { false, false, false };
+  user_input = {};
 
   if (IsKeyDown(KEY_LEFT))
     user_input.left = true;
@@ -454,7 +442,7 @@ static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, co
   anim_state.currentNode = node;
 }
 
-DEF_SYS()
+DEF_SYS(NOT_HAVE_COMP(user_input))
 static __forceinline void select_current_anim_frame(
   const UpdateStage &stage,
   const glm::vec2 &vel,
@@ -464,6 +452,27 @@ static __forceinline void select_current_anim_frame(
   AnimState &anim_state)
 {
   if (vel.x != 0.f)
+    set_anim_node(anim_graph, anim_state, "run", stage.total);
+  else
+    set_anim_node(anim_graph, anim_state, "idle", stage.total);
+
+  if (vel.y < 0.f)
+    set_anim_node(anim_graph, anim_state, "jump", stage.total);
+  else if (vel.y > 0.f && !is_on_ground)
+    set_anim_node(anim_graph, anim_state, "fall", stage.total);
+}
+
+DEF_SYS()
+static __forceinline void select_current_anim_frame_for_player(
+  const UpdateStage &stage,
+  const glm::vec2 &vel,
+  const AnimGraph &anim_graph,
+  const UserInput &user_input,
+  bool is_on_ground,
+  TextureAtlas &texture,
+  AnimState &anim_state)
+{
+  if (vel.x != 0.f && (user_input.left || user_input.right))
     set_anim_node(anim_graph, anim_state, "run", stage.total);
   else
     set_anim_node(anim_graph, anim_state, "idle", stage.total);

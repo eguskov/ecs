@@ -137,6 +137,19 @@
       "$template": "block-big-moving",
       "$components": {
         "pos": [
+          -32.0,
+          -96.0
+        ],
+        "vel": [
+          -1.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "$template": "block-big-moving",
+      "$components": {
+        "pos": [
           160.0,
           0.0
         ]
@@ -151,14 +164,14 @@
         ]
       }
     },
-    // {
-    //   "$template": "ground-block",
-    //   "$components": {
-    //     "pos": [
-    //       80.0,
-    //       -96.0
-    //     ]
-    //   }
-    // }
+    {
+      "$template": "ground-block",
+      "$components": {
+        "pos": [
+          80.0,
+          -96.0
+        ]
+      }
+    }
   ]
 }
