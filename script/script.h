@@ -42,7 +42,7 @@ namespace script
     asIScriptContext* create_context();
 
     void register_struct_helper(IScriptHelper *helper);
-    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data);
+    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data, size_t data_sz);
     void set_arg_wrapped(asIScriptContext *ctx, int i, const RegComp *desc, void *data);
   }
 
@@ -236,6 +236,18 @@ namespace script
     }
   };
 
+  uint8_t* alloc_frame_mem(size_t sz);
+  void clear_frame_mem();
+
+  template <typename T>
+  struct RawAllocator
+  {
+    static T* alloc()
+    {
+      return (T*)alloc_frame_mem(sizeof(T));
+    }
+  };
+
   template <typename Desc>
   bool register_component(const char *type, const RegComp *desc = nullptr)
   {
@@ -250,14 +262,15 @@ namespace script
     eastl::string factoryDecl = type;
     factoryDecl += "@ f()";
 
-    int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF);
+    int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF | asOBJ_NOCOUNT);
     assert(r >= 0);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::wrapperInstance), asCALL_CDECL);
+    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::wrapperInstance), asCALL_CDECL);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(RawAllocator<Desc::Object>::alloc), asCALL_CDECL);
     assert(r >= 0);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
-    assert(r >= 0);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptHelperT::Wrapper, release), asCALL_THISCALL); assert(r >= 0);
-    assert(r >= 0);
+    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
+    // assert(r >= 0);
+    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptHelperT::Wrapper, release), asCALL_THISCALL); assert(r >= 0);
+    // assert(r >= 0);
 
     return true;
   }

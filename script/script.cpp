@@ -286,17 +286,17 @@ namespace script
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptQuery, release), asCALL_THISCALL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
 
-    register_component<SBool>("boolean", find_comp("bool"));
-    register_component_property("boolean", "bool v", 0);
-    register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
+    // register_component<SBool>("boolean", find_comp("bool"));
+    // register_component_property("boolean", "bool v", 0);
+    // register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    // register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    // register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
 
-    register_component<SFloat>("real", find_comp("float"));
-    register_component_property("real", "float v", 0);
-    register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<SFloat, float>), (const float&), SFloat::Wrapper));
+    // register_component<SFloat>("real", find_comp("float"));
+    // register_component_property("real", "float v", 0);
+    // register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    // register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    // register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<SFloat, float>), (const float&), SFloat::Wrapper));
 
     register_component<SVec2>("vec2", find_comp("vec2"));
     register_component_property("vec2", "float x", offsetof(glm::vec2, x));
@@ -457,6 +457,23 @@ namespace script
     return eastl::move(res);
   }
 
+  static uint8_t g_buffer[1 << 20]; // 1MB
+  static size_t g_buffet_offset = 0;
+
+  uint8_t* alloc_frame_mem(size_t sz)
+  {
+    uint8_t *mem = g_buffer + g_buffet_offset;
+    g_buffet_offset += sz;
+    return mem;
+  }
+
+  void clear_frame_mem()
+  {
+    g_buffet_offset = 0;
+    // TODO: Disable in Release
+    ::memset(g_buffer, 0, sizeof(g_buffer));
+  }
+
   namespace internal
   {
     asIScriptEngine *get_engine()
@@ -506,18 +523,21 @@ namespace script
       res.first->second = helper;
     }
 
-    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data)
+    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data, size_t data_sz)
     {
       assert(data != nullptr);
 
       auto res = helperMap.find(comp_id);
-      ctx->SetArgAddress(i, res == helperMap.end() ? data : res->second->wrapObject(data));
+      // ctx->SetArgAddress(i, res == helperMap.end() ? data : res->second->wrapObject(data));
+      uint8_t *mem = alloc_frame_mem(data_sz);
+      ::memcpy(mem, data, data_sz);
+      ctx->SetArgAddress(i, mem);
     }
 
     void set_arg_wrapped(asIScriptContext *ctx, int i, const RegComp *desc, void *data)
     {
       assert(desc != nullptr);
-      set_arg_wrapped(ctx, i, desc->id, data);
+      set_arg_wrapped(ctx, i, desc->id, data, desc->size);
     }
   }
 }

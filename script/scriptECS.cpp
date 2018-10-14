@@ -225,7 +225,7 @@ namespace script
           const auto &remap = remaps[entity.templateId][sys.id];
 
           eventCtx->Prepare(sys.fn);
-          internal::set_arg_wrapped(eventCtx, 0, event_id, ev.mem);
+          internal::set_arg_wrapped(eventCtx, 0, event_id, ev.mem, ev.size);
           for (int i = 1; i < (int)remap.size(); ++i)
           {
             Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
@@ -250,7 +250,7 @@ namespace script
         const auto &remap = remaps[entity.templateId][query.sys->id];
 
         stageCtx->Prepare(((ScriptSys*)query.sys)->fn);
-        internal::set_arg_wrapped(stageCtx, 0, stage_id, stage.mem);
+        internal::set_arg_wrapped(stageCtx, 0, stage_id, stage.mem, stage.size);
         for (int i = 1; i < (int)remap.size(); ++i)
         {
           Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
