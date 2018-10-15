@@ -45,23 +45,24 @@ namespace script
 
   static asIScriptEngine *engine = nullptr;
 
-  static eastl::hash_map<int, IScriptHelper*> helperMap;
-
-  using SBool = ScriptHelperDesc<bool, 1024>;
-  using SFloat = ScriptHelperDesc<float, 1024>;
-  using SVec2 = ScriptHelperDesc<glm::vec2, 1024>;
-  using SVec3 = ScriptHelperDesc<glm::vec3, 1024>;
-
-  template<typename D, typename T>
-  static typename D::Wrapper opAdd(const T& v1, const T& v2)
+  template<typename T>
+  static __forceinline T& alloc_result(T &&v)
   {
-    return D::Helper::create(v1 + v2);
+    T &ref = *(T*)alloc_frame_mem(sizeof(T));
+    ref = eastl::move(v);
+    return res;
   }
 
-  template<typename D, typename T>
-  static typename D::Wrapper opSub(const T& v1, const T& v2)
+  template<typename T>
+  static T& opAdd(const T& v1, const T& v2)
   {
-    return D::Helper::create(v1 - v2);
+    return alloc_result(v1 + v2);
+  }
+
+  template<typename T>
+  static T& opSub(const T& v1, const T& v2)
+  {
+    return alloc_result(v1 - v2);
   }
 
   template<typename T>
@@ -76,10 +77,10 @@ namespace script
     return glm::length(v1);
   }
 
-  template<typename D, typename T>
-  static typename D::Wrapper opMulScalar(const T &v1, float s)
+  template<typename T>
+  static T& opMulScalar(const T &v1, float s)
   {
-    return D::Helper::create(v1 * s);
+    return alloc_result(v1 * s);
   }
 
   template <typename T>
@@ -95,16 +96,16 @@ namespace script
     return v1;
   }
 
-  template <typename D, typename T>
-  static typename D::Wrapper opNeg(const T &v1)
+  template <typename T>
+  static T& opNeg(const T &v1)
   {
-    return D::Helper::create(-v1);
+    return alloc_result<T>(-v1);
   }
 
-  template <typename D, typename T>
-  static typename D::Wrapper opNormalize(const T &v1)
+  template <typename T>
+  static T& opNormalize(const T &v1)
   {
-    return D::Helper::create(glm::normalize(v1));
+    return alloc_result(glm::normalize(v1));
   }
 
   struct ScriptQuery
@@ -155,10 +156,10 @@ namespace script
             {
               void *prop = object->GetAddressOfProperty(c.id);
 
-              auto res = helperMap.find(tc.desc->id);
-              assert(res != helperMap.end());
+              // auto res = helperMap.find(tc.desc->id);
+              // assert(res != helperMap.end());
 
-              *(uint8_t**)prop = (uint8_t*)res->second->wrapObject(g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]));
+              // *(uint8_t**)prop = (uint8_t*)res->second->wrapObject(g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]));
 
               break;
             }
@@ -286,31 +287,31 @@ namespace script
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptQuery, release), asCALL_THISCALL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
 
-    // register_component<SBool>("boolean", find_comp("bool"));
-    // register_component_property("boolean", "bool v", 0);
-    // register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    // register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    // register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
+    register_component<bool>("boolean", find_comp("bool"));
+    register_component_property("boolean", "bool v", 0);
+    register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
+    register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
 
-    // register_component<SFloat>("real", find_comp("float"));
-    // register_component_property("real", "float v", 0);
-    // register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    // register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    // register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<SFloat, float>), (const float&), SFloat::Wrapper));
+    register_component<float>("real", find_comp("float"));
+    register_component_property("real", "float v", 0);
+    register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
+    register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<float>), (const float&), float&));
 
-    register_component<SVec2>("vec2", find_comp("vec2"));
+    register_component<glm::vec2>("vec2", find_comp("vec2"));
     register_component_property("vec2", "float x", offsetof(glm::vec2, x));
     register_component_property("vec2", "float y", offsetof(glm::vec2, y));
     register_component_function("vec2", "vec2& opAssign(const vec2&in)", asFUNCTIONPR((opAssign<glm::vec2>), (glm::vec2&, const glm::vec2&), glm::vec2&));
-    register_component_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTIONPR((opAdd<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
-    register_component_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTIONPR((opSub<SVec2, glm::vec2>), (const glm::vec2&, const glm::vec2&), SVec2::Wrapper));
+    register_component_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTIONPR((opAdd<glm::vec2>), (const glm::vec2&, const glm::vec2&), glm::vec2&));
+    register_component_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTIONPR((opSub<glm::vec2>), (const glm::vec2&, const glm::vec2&), glm::vec2&));
     register_component_function("vec2", "float opMul(const vec2&in) const", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
-    register_component_function("vec2", "vec2@ opMul(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
-    register_component_function("vec2", "vec2@ opMul_r(float) const", asFUNCTIONPR((opMulScalar<SVec2, glm::vec2>), (const glm::vec2&, float), SVec2::Wrapper));
-    register_component_function("vec2", "vec2@ opNeg() const", asFUNCTIONPR((opNeg<SVec2, glm::vec2>), (const glm::vec2&), SVec2::Wrapper));
+    register_component_function("vec2", "vec2@ opMul(float) const", asFUNCTIONPR((opMulScalar<glm::vec2>), (const glm::vec2&, float), glm::vec2&));
+    register_component_function("vec2", "vec2@ opMul_r(float) const", asFUNCTIONPR((opMulScalar<glm::vec2>), (const glm::vec2&, float), glm::vec2&));
+    register_component_function("vec2", "vec2@ opNeg() const", asFUNCTIONPR((opNeg<glm::vec2>), (const glm::vec2&), glm::vec2&));
     register_function("float dot(const vec2&in, const vec2&in)", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
     register_function("float length(const vec2&in)", asFUNCTIONPR((opLength<glm::vec2>), (const glm::vec2&), float));
-    register_function("vec2@ normalize(const vec2&in)", asFUNCTIONPR((opNormalize<SVec2, glm::vec2>), (const glm::vec2&), SVec2::Wrapper));
+    register_function("vec2@ normalize(const vec2&in)", asFUNCTIONPR((opNormalize<glm::vec2>), (const glm::vec2&), glm::vec2&));
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
@@ -512,22 +513,22 @@ namespace script
       ctx->Release();
     }
 
-    void register_struct_helper(IScriptHelper *helper)
-    {
-      if (!helper->desc)
-        return;
+    // void register_struct_helper(IScriptHelper *helper)
+    // {
+    //   if (!helper->desc)
+    //     return;
 
-      auto res = helperMap.insert(helper->desc->id);
-      assert(res.second);
+    //   auto res = helperMap.insert(helper->desc->id);
+    //   assert(res.second);
 
-      res.first->second = helper;
-    }
+    //   res.first->second = helper;
+    // }
 
     void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data, size_t data_sz)
     {
       assert(data != nullptr);
 
-      auto res = helperMap.find(comp_id);
+      // auto res = helperMap.find(comp_id);
       // ctx->SetArgAddress(i, res == helperMap.end() ? data : res->second->wrapObject(data));
       uint8_t *mem = alloc_frame_mem(data_sz);
       ::memcpy(mem, data, data_sz);

@@ -4,8 +4,13 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/../ecs",
                 "${workspaceFolder}/../EASTL/include",
-                "${workspaceFolder}/../EASTL/test/packages/EABase/include/Common"
+                "${workspaceFolder}/../EASTL/test/packages/EABase/include/Common",
+                "${workspaceFolder}/../sdk/angelscript/include",
+                "${workspaceFolder}/../sdk/add_on",
+                "${workspaceFolder}/../glm",
+                "${workspaceFolder}/../rapidjson/include"
             ],
             "defines": [
                 "_DEBUG",

@@ -111,131 +111,6 @@ namespace script
     callback((R*)ctx->GetAddressOfReturnValue());
   }
 
-  struct IScriptHelper
-  {
-    const RegComp *desc = nullptr;
-    virtual void* wrapObject(void *object) = 0;
-  };
-
-  template <typename Desc, size_t MaxInstanceCount> struct ScriptHelper;
-
-  template <typename T, size_t _MaxInstanceCount>
-  struct ScriptHelperDesc
-  {
-    using Self = ScriptHelperDesc<T, _MaxInstanceCount>;
-    using Object = T;
-    using Helper = ScriptHelper<Self, _MaxInstanceCount>;
-    using Wrapper = typename eastl::add_pointer<typename Helper::Wrapper>::type;
-
-    constexpr static size_t MaxInstanceCount = _MaxInstanceCount;
-  };
-
-  template <typename Desc, size_t MaxInstanceCount>
-  struct ScriptHelper : IScriptHelper
-  {
-    using Helper = ScriptHelper<Desc, MaxInstanceCount>;
-
-    struct Wrapper
-    {
-      // Must be the first, because it is written from script
-      typename Desc::Object object;
-      typename Desc::Object *refObject = nullptr;
-
-      int id = 0;
-      int refCount = 1;
-
-      Helper* helper = nullptr;
-
-      void addRef()
-      {
-        asAtomicInc(refCount);
-      }
-
-      void release()
-      {
-#ifdef _DEBUG
-        assert(helper->magic == 0xdeadbeaf);
-#endif
-        if (asAtomicDec(refCount) == 0)
-        {
-          assert(refCount >= 0);
-          if (refObject)
-            *refObject = object;
-          refObject = nullptr;
-          helper->release(this);
-        }
-      }
-    };
-
-#ifdef _DEBUG
-    uint32_t magic = 0xdeadbeaf;
-#endif
-    eastl::bitset<MaxInstanceCount> freeMask;
-    eastl::array<Wrapper, MaxInstanceCount> storage;
-
-    ScriptHelper()
-    {
-      freeMask.set();
-    }
-
-    void release(Wrapper *w)
-    {
-      freeMask.set(w->id);
-    }
-
-    void* wrapObject(void *object) override final
-    {
-      return Helper::createRef(*(typename Desc::Object*)object);
-    }
-
-    static Helper& instance()
-    {
-      static Helper helper;
-      return helper;
-    }
-
-    static Wrapper* wrapperInstance()
-    {
-      Helper &helper = instance();
-
-      int id = -1;
-      Wrapper *w = nullptr;
-      for (int i = 0; i < MaxInstanceCount; ++i)
-        if (helper.freeMask[i])
-        {
-          id = i;
-          w = &helper.storage[i];
-          break;
-        }
-
-      assert(w != nullptr && id >= 0);
-      assert(w->refCount <= 1);
-
-      helper.freeMask.reset(id);
-
-      w->id = id;
-      w->refCount = 1;
-      w->helper = &helper;
-      new (&w->object) typename Desc::Object();
-      return w;
-    }
-
-    static Wrapper* create(const typename Desc::Object &v)
-    {
-      Wrapper *w = wrapperInstance();
-      w->object = v;
-      return w;
-    }
-
-    static Wrapper* createRef(typename Desc::Object &v)
-    {
-      Wrapper *w = wrapperInstance();
-      w->object = v;
-      w->refObject = &v;
-      return w;
-    }
-  };
-
   uint8_t* alloc_frame_mem(size_t sz);
   void clear_frame_mem();
 
@@ -248,16 +123,10 @@ namespace script
     }
   };
 
-  template <typename Desc>
+  template <typename T>
   bool register_component(const char *type, const RegComp *desc = nullptr)
   {
-    using ScriptHelperT = ScriptHelper<Desc, Desc::MaxInstanceCount>;
-
-    auto &helper = ScriptHelperT::instance();
-    helper.desc = desc;
-    assert(desc != nullptr);
-
-    internal::register_struct_helper(&helper);
+    // internal::register_struct_helper(&helper);
 
     eastl::string factoryDecl = type;
     factoryDecl += "@ f()";
@@ -265,7 +134,7 @@ namespace script
     int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF | asOBJ_NOCOUNT);
     assert(r >= 0);
     // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::wrapperInstance), asCALL_CDECL);
-    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(RawAllocator<Desc::Object>::alloc), asCALL_CDECL);
+    r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(RawAllocator<T>::alloc), asCALL_CDECL);
     assert(r >= 0);
     // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
     // assert(r >= 0);

@@ -26,11 +26,11 @@ Camera2D camera;
 int screen_width = 800;
 int screen_height = 600;
 
-using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
-using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
-using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
-using SAutoMove = script::ScriptHelperDesc<AutoMove, 4>;
-using SJump = script::ScriptHelperDesc<Jump, 4>;
+// using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
+// using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
+// using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
+// using SAutoMove = script::ScriptHelperDesc<AutoMove, 4>;
+// using SJump = script::ScriptHelperDesc<Jump, 4>;
 
 bool g_enable_cef = false;
 
@@ -88,7 +88,7 @@ int main()
   // script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
   // script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
 
-  script::register_component<SUpdateStage>("UpdateStage", find_comp("UpdateStage"));
+  script::register_component<UpdateStage>("UpdateStage", find_comp("UpdateStage"));
   script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
   script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
