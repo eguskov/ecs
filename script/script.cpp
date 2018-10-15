@@ -46,11 +46,11 @@ namespace script
   static asIScriptEngine *engine = nullptr;
 
   template<typename T>
-  static __forceinline T& alloc_result(T &&v)
+  static T& alloc_result(const T &v)
   {
     T &ref = *(T*)alloc_frame_mem(sizeof(T));
     ref = eastl::move(v);
-    return res;
+    return ref;
   }
 
   template<typename T>
@@ -155,12 +155,7 @@ namespace script
             if (c.nameId == tc.nameId)
             {
               void *prop = object->GetAddressOfProperty(c.id);
-
-              // auto res = helperMap.find(tc.desc->id);
-              // assert(res != helperMap.end());
-
-              // *(uint8_t**)prop = (uint8_t*)res->second->wrapObject(g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]));
-
+              *(uint8_t**)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
               break;
             }
           }
@@ -287,19 +282,19 @@ namespace script
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptQuery, release), asCALL_THISCALL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
 
-    register_component<bool>("boolean", find_comp("bool"));
+    register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);
     register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
     register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
     register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
 
-    register_component<float>("real", find_comp("float"));
+    register_component<float>("real");
     register_component_property("real", "float v", 0);
     register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
     register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
     register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<float>), (const float&), float&));
 
-    register_component<glm::vec2>("vec2", find_comp("vec2"));
+    register_component<glm::vec2>("vec2");
     register_component_property("vec2", "float x", offsetof(glm::vec2, x));
     register_component_property("vec2", "float y", offsetof(glm::vec2, y));
     register_component_function("vec2", "vec2& opAssign(const vec2&in)", asFUNCTIONPR((opAssign<glm::vec2>), (glm::vec2&, const glm::vec2&), glm::vec2&));
@@ -458,21 +453,37 @@ namespace script
     return eastl::move(res);
   }
 
-  static uint8_t g_buffer[1 << 20]; // 1MB
-  static size_t g_buffet_offset = 0;
+  static eastl::array<uint8_t, 4 << 20> g_buffer; // 4MB
+  static size_t g_buffer_offset = 0;
+  static size_t g_buffer_max_offset = 0;
 
   uint8_t* alloc_frame_mem(size_t sz)
   {
-    uint8_t *mem = g_buffer + g_buffet_offset;
-    g_buffet_offset += sz;
+    uint8_t *mem = &g_buffer[g_buffer_offset];
+    g_buffer_offset += sz;
     return mem;
   }
 
   void clear_frame_mem()
   {
-    g_buffet_offset = 0;
-    // TODO: Disable in Release
-    ::memset(g_buffer, 0, sizeof(g_buffer));
+    if (g_buffer_offset > g_buffer_max_offset)
+      g_buffer_max_offset = g_buffer_offset;
+
+    g_buffer_offset = 0;
+
+#ifdef _DEBUG
+    g_buffer.fill(0xBA);
+#endif
+  }
+
+  size_t get_frame_mem_allocated_size()
+  {
+    return g_buffer_offset;
+  }
+
+  size_t get_frame_mem_allocated_max_size()
+  {
+    return g_buffer_max_offset;
   }
 
   namespace internal
@@ -513,32 +524,10 @@ namespace script
       ctx->Release();
     }
 
-    // void register_struct_helper(IScriptHelper *helper)
-    // {
-    //   if (!helper->desc)
-    //     return;
-
-    //   auto res = helperMap.insert(helper->desc->id);
-    //   assert(res.second);
-
-    //   res.first->second = helper;
-    // }
-
-    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data, size_t data_sz)
+    void set_arg_wrapped(asIScriptContext *ctx, int i, void *data)
     {
       assert(data != nullptr);
-
-      // auto res = helperMap.find(comp_id);
-      // ctx->SetArgAddress(i, res == helperMap.end() ? data : res->second->wrapObject(data));
-      uint8_t *mem = alloc_frame_mem(data_sz);
-      ::memcpy(mem, data, data_sz);
-      ctx->SetArgAddress(i, mem);
-    }
-
-    void set_arg_wrapped(asIScriptContext *ctx, int i, const RegComp *desc, void *data)
-    {
-      assert(desc != nullptr);
-      set_arg_wrapped(ctx, i, desc->id, data, desc->size);
+      ctx->SetArgAddress(i, data);
     }
   }
 }

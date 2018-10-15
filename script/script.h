@@ -16,8 +16,6 @@ class CScriptBuilder;
 
 namespace script
 {
-  struct IScriptHelper;
-
   namespace internal
   {
     void set_arg(asIScriptContext *ctx, size_t i, void *arg);
@@ -41,9 +39,7 @@ namespace script
     asIScriptEngine *get_engine();
     asIScriptContext* create_context();
 
-    void register_struct_helper(IScriptHelper *helper);
-    void set_arg_wrapped(asIScriptContext *ctx, int i, int comp_id, void *data, size_t data_sz);
-    void set_arg_wrapped(asIScriptContext *ctx, int i, const RegComp *desc, void *data);
+    void set_arg_wrapped(asIScriptContext *ctx, int i, void *data);
   }
 
   struct ScopeContext
@@ -114,6 +110,9 @@ namespace script
   uint8_t* alloc_frame_mem(size_t sz);
   void clear_frame_mem();
 
+  size_t get_frame_mem_allocated_size();
+  size_t get_frame_mem_allocated_max_size();
+
   template <typename T>
   struct RawAllocator
   {
@@ -124,22 +123,15 @@ namespace script
   };
 
   template <typename T>
-  bool register_component(const char *type, const RegComp *desc = nullptr)
+  bool register_component(const char *type)
   {
-    // internal::register_struct_helper(&helper);
-
     eastl::string factoryDecl = type;
     factoryDecl += "@ f()";
 
     int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF | asOBJ_NOCOUNT);
     assert(r >= 0);
-    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(ScriptHelperT::wrapperInstance), asCALL_CDECL);
     r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(RawAllocator<T>::alloc), asCALL_CDECL);
     assert(r >= 0);
-    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptHelperT::Wrapper, addRef), asCALL_THISCALL); assert(r >= 0);
-    // assert(r >= 0);
-    // r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptHelperT::Wrapper, release), asCALL_THISCALL); assert(r >= 0);
-    // assert(r >= 0);
 
     return true;
   }

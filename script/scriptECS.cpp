@@ -225,12 +225,12 @@ namespace script
           const auto &remap = remaps[entity.templateId][sys.id];
 
           eventCtx->Prepare(sys.fn);
-          internal::set_arg_wrapped(eventCtx, 0, event_id, ev.mem, ev.size);
+          internal::set_arg_wrapped(eventCtx, 0, ev.mem);
           for (int i = 1; i < (int)remap.size(); ++i)
           {
             Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
             const int offset = entity.componentOffsets[remap[i]];
-            internal::set_arg_wrapped(eventCtx, i, templ.components[remap[i]].desc, storage->getRaw(offset));
+            internal::set_arg_wrapped(eventCtx, i, storage->getRaw(offset));
           }
           eventCtx->Execute();
         }
@@ -250,12 +250,12 @@ namespace script
         const auto &remap = remaps[entity.templateId][query.sys->id];
 
         stageCtx->Prepare(((ScriptSys*)query.sys)->fn);
-        internal::set_arg_wrapped(stageCtx, 0, stage_id, stage.mem, stage.size);
+        internal::set_arg_wrapped(stageCtx, 0, stage.mem);
         for (int i = 1; i < (int)remap.size(); ++i)
         {
           Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
           const int offset = entity.componentOffsets[remap[i]];
-          internal::set_arg_wrapped(stageCtx, i, templ.components[remap[i]].desc, storage->getRaw(offset));
+          internal::set_arg_wrapped(stageCtx, i, storage->getRaw(offset));
         }
         stageCtx->Execute();
       }

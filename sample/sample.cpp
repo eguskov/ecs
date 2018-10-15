@@ -26,12 +26,6 @@ Camera2D camera;
 int screen_width = 800;
 int screen_height = 600;
 
-// using SUpdateStage = script::ScriptHelperDesc<UpdateStage, 1>;
-// using SEventOnKillEnemy = script::ScriptHelperDesc<EventOnKillEnemy, 1>;
-// using SEventOnWallHit = script::ScriptHelperDesc<EventOnWallHit, 1>;
-// using SAutoMove = script::ScriptHelperDesc<AutoMove, 4>;
-// using SJump = script::ScriptHelperDesc<Jump, 4>;
-
 bool g_enable_cef = false;
 
 int main()
@@ -82,27 +76,27 @@ int main()
   script::init();
 
   // TODO: Codegen for script bindings
-  // script::register_component<SEventOnKillEnemy>("EventOnKillEnemy", find_comp("EventOnKillEnemy"));
+  script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
 
-  // script::register_component<SEventOnWallHit>("EventOnWallHit", find_comp("EventOnWallHit"));
-  // script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
-  // script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
+  script::register_component<EventOnWallHit>("EventOnWallHit");
+  script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
+  script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
 
-  script::register_component<UpdateStage>("UpdateStage", find_comp("UpdateStage"));
+  script::register_component<UpdateStage>("UpdateStage");
   script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
   script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
 
-  // script::register_component<SAutoMove>("AutoMove", find_comp("auto_move"));
-  // script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
-  // script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
-  // script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
-  // script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
+  script::register_component<AutoMove>("AutoMove");
+  script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
+  script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
+  script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
+  script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
 
-  // script::register_component<SJump>("Jump", find_comp("jump"));
-  // script::register_component_property("Jump", "bool active", offsetof(Jump, active));
-  // script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
-  // script::register_component_property("Jump", "float height", offsetof(Jump, height));
-  // script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
+  script::register_component<Jump>("Jump");
+  script::register_component_property("Jump", "bool active", offsetof(Jump, active));
+  script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
+  script::register_component_property("Jump", "float height", offsetof(Jump, height));
+  script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
 
   //script::ScriptECS scriptECS;
   //scriptECS.build("script.as");
@@ -144,6 +138,10 @@ int main()
 
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
+    DrawText(FormatText("Script: FrameMem: %d (%d)",
+      script::get_frame_mem_allocated_size(),
+      script::get_frame_mem_allocated_max_size()),
+      10, 70, 20, LIME);
     DrawFPS(10, 10);
 
     g_mgr->tick(RenderHUDStage{});
