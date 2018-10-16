@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include <angelscript.h>
 #include <scriptarray/scriptarray.h>
@@ -53,60 +54,114 @@ namespace script
     return ref;
   }
 
-  template<typename T>
-  static T& opAdd(const T& v1, const T& v2)
-  {
-    return alloc_result(v1 + v2);
-  }
+  #define DEF_OP_1(name, ret, code) \
+    template<typename T> \
+    struct name \
+    { \
+      static ret exec(const T& v1) \
+      { \
+        return _ALLOC(T, code); \
+      } \
+      using ExecType = ret (*) (const T&); \
+      static constexpr ExecType execPtr = &name<T>::exec; \
+    }; \
+
+  #define DEF_OP_2(name, ret, code) \
+    template<typename T> \
+    struct name \
+    { \
+      static ret exec(const T& v1, const T& v2) \
+      { \
+        return _ALLOC(T, code); \
+      } \
+      using ExecType = ret (*) (const T&, const T&); \
+      static constexpr ExecType execPtr = &name<T>::exec; \
+    }; \
+
+  #define DEF_OP_ASSIGN(name, code) \
+    template<typename T> \
+    struct name \
+    { \
+      static T& exec(T& v1, const T& v2) \
+      { \
+        code; \
+        return v1; \
+      } \
+      using ExecType = T& (*) (T&, const T&); \
+      static constexpr ExecType execPtr = &name<T>::exec; \
+    }; \
+
+  #define _ALLOC(T, code) alloc_result<T>(code)
+
+  DEF_OP_1(opNormalize, T&, glm::normalize(v1));
+  DEF_OP_1(opNeg, T&, -v1);
+
+  DEF_OP_2(opAdd, T&, v1 + v2);
+  DEF_OP_2(opSub, T&, v1 - v2);
+  DEF_OP_2(opMod, T&, glm::cross(v1, v2));
+
+  #undef _ALLOC
+
+  #define _ALLOC(T, code) code
+
+  DEF_OP_1(opLength, float, glm::length(v1));
+  DEF_OP_2(opMul, float, glm::dot(v1, v2));
+
+  #undef _ALLOC
+
+  DEF_OP_ASSIGN(opAssign, v1 = v2);
+  DEF_OP_ASSIGN(opAddAssign, v1 += v2);
+  DEF_OP_ASSIGN(opSubAssign, v1 -= v2);
 
   template<typename T>
-  static T& opSub(const T& v1, const T& v2)
+  struct opMulScalar
   {
-    return alloc_result(v1 - v2);
-  }
+    static T& exec(const T &v1, float s)
+    {
+      return alloc_result(v1 * s);
+    }
+    using ExecType = T& (*) (const T &, float);
+    static constexpr ExecType execPtr = &opMulScalar<T>::exec;
+  };
 
   template<typename T>
-  static float opMul(const T& v1, const T& v2)
+  struct opMulScalarAssign
   {
-    return glm::dot(v1, v2);
-  }
-
-  template <typename T>
-  static float opLength(const T& v1)
-  {
-    return glm::length(v1);
-  }
+    static T& exec(T &v1, float s)
+    {
+      v1 *= s;
+      return v1;
+    }
+    using ExecType = T& (*) (T &, float);
+    static constexpr ExecType execPtr = &opMulScalarAssign<T>::exec;
+  };
 
   template<typename T>
-  static T& opMulScalar(const T &v1, float s)
+  struct opImplConv
   {
-    return alloc_result(v1 * s);
-  }
+    static const T& exec(const T& v1)
+    {
+      return v1;
+    }
+    using ExecType = const T& (*) (const T&);
+    static constexpr ExecType execPtr = &opImplConv<T>::exec;
+  };
 
-  template <typename T>
-  static T& opAssign(T &v1, const T &v2)
+  struct FrameMemAllocator
   {
-    v1 = v2;
-    return v1;
-  }
+    explicit FrameMemAllocator(const char* = nullptr) {}
+    FrameMemAllocator(const FrameMemAllocator& x) {}
+    FrameMemAllocator(const FrameMemAllocator& x, const char*) {}
 
-  template <typename T>
-  static const T& opImplConv(const T &v1)
-  {
-    return v1;
-  }
+    FrameMemAllocator& operator=(const FrameMemAllocator& x) { return *this; }
 
-  template <typename T>
-  static T& opNeg(const T &v1)
-  {
-    return alloc_result<T>(-v1);
-  }
+    void* allocate(size_t n, int flags = 0) { return alloc_frame_mem(n); }
+    void* allocate(size_t n, size_t alignment, size_t offset, int flags = 0) { return alloc_frame_mem(n); }
+    void  deallocate(void* p, size_t n) {}
 
-  template <typename T>
-  static T& opNormalize(const T &v1)
-  {
-    return alloc_result(glm::normalize(v1));
-  }
+    const char* get_name() const { return "FrameMem"; }
+    void        set_name(const char*) {}
+  };
 
   struct ScriptQuery
   {
@@ -174,12 +229,18 @@ namespace script
       it->query->release();
     }
 
-    EntityVector eids;
-    eastl::vector<CompDesc> components;
+    eastl::vector<EntityId, FrameMemAllocator> eids;
+    eastl::vector<CompDescWithAllocator<FrameMemAllocator>, FrameMemAllocator> components;
 
     asITypeInfo *subType = nullptr;
 
     int refCount = 1;
+
+    ~ScriptQuery()
+    {
+      eids.reset_lose_memory();
+      components.reset_lose_memory();
+    }
 
     void addRef()
     {
@@ -188,8 +249,6 @@ namespace script
 
     void release()
     {
-      if (asAtomicDec(refCount) == 0)
-        delete this;
     }
 
     Iterator perform()
@@ -222,9 +281,12 @@ namespace script
     }
   };
 
+  static eastl::array<ScriptQuery, 1024> g_query_buffer;
+  static size_t g_query_offset = 0;
+
   ScriptQuery* createScriptQuery(asITypeInfo *type, void *data)
   {
-    ScriptQuery *query = new ScriptQuery;
+    ScriptQuery *query = new (&g_query_buffer[g_query_offset++]) ScriptQuery;
 
     query->subType = type->GetEngine()->GetTypeInfoById(type->GetSubTypeId());
     assert(query->subType->GetPropertyCount() != 0);
@@ -276,37 +338,80 @@ namespace script
     engine->RegisterObjectMethod("QueryIterator<T>", "void opPreInc()", asMETHODPR(ScriptQuery::Iterator, operator++, (), void), asCALL_THISCALL);
     engine->RegisterObjectMethod("QueryIterator<T>", "T@ get()", asMETHODPR(ScriptQuery::Iterator, get, (), void*), asCALL_THISCALL);
 
-    engine->RegisterObjectType("Query<class T>", sizeof(ScriptQuery), asOBJ_REF | asOBJ_TEMPLATE);
+    engine->RegisterObjectType("Query<class T>", sizeof(ScriptQuery), asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_FACTORY, "Query<T>@ f(int&in)", asFUNCTIONPR(createScriptQuery, (asITypeInfo*, void*), ScriptQuery*), asCALL_CDECL);
-    engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptQuery, addRef), asCALL_THISCALL);
-    engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptQuery, release), asCALL_THISCALL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
 
     register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);
-    register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTIONPR((opAssign<bool>), (bool&, const bool&), bool&));
-    register_component_function("boolean", "bool opImplConv() const", asFUNCTIONPR((opImplConv<bool>), (const bool&), const bool&));
+    register_component_function("boolean", "boolean& opAssign(const boolean&in)", asFUNCTION(opAssign<bool>::execPtr));
+    register_component_function("boolean", "boolean& opAssign(const bool&in)", asFUNCTION(opAssign<bool>::execPtr));
+    register_component_function("boolean", "bool opImplConv() const", asFUNCTION(opImplConv<bool>::execPtr));
 
     register_component<float>("real");
     register_component_property("real", "float v", 0);
-    register_component_function("real", "real& opAssign(const real&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    register_component_function("real", "real& opAssign(const float&in)", asFUNCTIONPR((opAssign<float>), (float&, const float&), float&));
-    register_component_function("real", "real@ opNeg()", asFUNCTIONPR((opNeg<float>), (const float&), float&));
+    register_component_function("real", "real& opAssign(const real&in)", asFUNCTION(opAssign<float>::execPtr));
+    register_component_function("real", "real& opAssign(const float&in)", asFUNCTION(opAssign<float>::execPtr));
+    register_component_function("real", "float opImplConv() const", asFUNCTION(opImplConv<float>::execPtr));
 
     register_component<glm::vec2>("vec2");
     register_component_property("vec2", "float x", offsetof(glm::vec2, x));
     register_component_property("vec2", "float y", offsetof(glm::vec2, y));
-    register_component_function("vec2", "vec2& opAssign(const vec2&in)", asFUNCTIONPR((opAssign<glm::vec2>), (glm::vec2&, const glm::vec2&), glm::vec2&));
-    register_component_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTIONPR((opAdd<glm::vec2>), (const glm::vec2&, const glm::vec2&), glm::vec2&));
-    register_component_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTIONPR((opSub<glm::vec2>), (const glm::vec2&, const glm::vec2&), glm::vec2&));
-    register_component_function("vec2", "float opMul(const vec2&in) const", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
-    register_component_function("vec2", "vec2@ opMul(float) const", asFUNCTIONPR((opMulScalar<glm::vec2>), (const glm::vec2&, float), glm::vec2&));
-    register_component_function("vec2", "vec2@ opMul_r(float) const", asFUNCTIONPR((opMulScalar<glm::vec2>), (const glm::vec2&, float), glm::vec2&));
-    register_component_function("vec2", "vec2@ opNeg() const", asFUNCTIONPR((opNeg<glm::vec2>), (const glm::vec2&), glm::vec2&));
-    register_function("float dot(const vec2&in, const vec2&in)", asFUNCTIONPR((opMul<glm::vec2>), (const glm::vec2&, const glm::vec2&), float));
-    register_function("float length(const vec2&in)", asFUNCTIONPR((opLength<glm::vec2>), (const glm::vec2&), float));
-    register_function("vec2@ normalize(const vec2&in)", asFUNCTIONPR((opNormalize<glm::vec2>), (const glm::vec2&), glm::vec2&));
+    register_component_function("vec2", "vec2& opAssign(const vec2&in)", asFUNCTION(opAssign<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2& opAddAssign(const vec2&in)", asFUNCTION(opAddAssign<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2& opSubAssign(const vec2&in)", asFUNCTION(opSubAssign<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opAdd(const vec2&in) const", asFUNCTION(opAdd<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opSub(const vec2&in) const", asFUNCTION(opSub<glm::vec2>::execPtr));
+    register_component_function("vec2", "float opMul(const vec2&in) const", asFUNCTION(opMul<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opMul(float) const", asFUNCTION(opMulScalar<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opMul_r(float) const", asFUNCTION(opMulScalar<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opMulAssign(float) const", asFUNCTION(opMulScalarAssign<glm::vec2>::execPtr));
+    register_component_function("vec2", "vec2@ opNeg() const", asFUNCTION(opNeg<glm::vec2>::execPtr));
+
+    register_component<glm::vec3>("vec3");
+    register_component_property("vec3", "float x", offsetof(glm::vec3, x));
+    register_component_property("vec3", "float y", offsetof(glm::vec3, y));
+    register_component_property("vec3", "float z", offsetof(glm::vec3, z));
+    register_component_function("vec3", "vec3& opAssign(const vec3&in)", asFUNCTION(opAssign<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3& opAddAssign(const vec3&in)", asFUNCTION(opAddAssign<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3& opSubAssign(const vec3&in)", asFUNCTION(opSubAssign<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opAdd(const vec3&in) const", asFUNCTION(opAdd<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opSub(const vec3&in) const", asFUNCTION(opSub<glm::vec3>::execPtr));
+    register_component_function("vec3", "float opMul(const vec3&in) const", asFUNCTION(opMul<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opMod(const vec3&in) const", asFUNCTION(opMod<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opMul(float) const", asFUNCTION(opMulScalar<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opMul_r(float) const", asFUNCTION(opMulScalar<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opMulAssign(float) const", asFUNCTION(opMulScalarAssign<glm::vec3>::execPtr));
+    register_component_function("vec3", "vec3@ opNeg() const", asFUNCTION(opNeg<glm::vec3>::execPtr));
+
+    register_component<glm::vec4>("vec4");
+    register_component_property("vec4", "float x", offsetof(glm::vec4, x));
+    register_component_property("vec4", "float y", offsetof(glm::vec4, y));
+    register_component_property("vec4", "float z", offsetof(glm::vec4, z));
+    register_component_property("vec4", "float w", offsetof(glm::vec4, w));
+    register_component_function("vec4", "vec4& opAssign(const vec4&in)", asFUNCTION(opAssign<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4& opAddAssign(const vec4&in)", asFUNCTION(opAddAssign<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4& opSubAssign(const vec4&in)", asFUNCTION(opSubAssign<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opAdd(const vec4&in) const", asFUNCTION(opAdd<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opSub(const vec4&in) const", asFUNCTION(opSub<glm::vec4>::execPtr));
+    register_component_function("vec4", "float opMul(const vec4&in) const", asFUNCTION(opMul<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opMul(float) const", asFUNCTION(opMulScalar<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opMul_r(float) const", asFUNCTION(opMulScalar<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opMulAssign(float) const", asFUNCTION(opMulScalarAssign<glm::vec4>::execPtr));
+    register_component_function("vec4", "vec4@ opNeg() const", asFUNCTION(opNeg<glm::vec4>::execPtr));
+
+    register_function("float dot(const vec2&in, const vec2&in)", asFUNCTION(opMul<glm::vec2>::execPtr));
+    register_function("float length(const vec2&in)", asFUNCTION(opLength<glm::vec2>::execPtr));
+    register_function("vec2@ normalize(const vec2&in)", asFUNCTION(opNormalize<glm::vec2>::execPtr));
+
+    register_function("vec3@ cross(const vec3&in, const vec3&in)", asFUNCTION(opMod<glm::vec3>::execPtr));
+    register_function("float dot(const vec3&in, const vec3&in)", asFUNCTION(opMul<glm::vec3>::execPtr));
+    register_function("float length(const vec3&in)", asFUNCTION(opLength<glm::vec3>::execPtr));
+    register_function("vec3@ normalize(const vec3&in)", asFUNCTION(opNormalize<glm::vec3>::execPtr));
+
+    register_function("float dot(const vec4&in, const vec4&in)", asFUNCTION(opMul<glm::vec4>::execPtr));
+    register_function("float length(const vec4&in)", asFUNCTION(opLength<glm::vec4>::execPtr));
+    register_function("vec4@ normalize(const vec4&in)", asFUNCTION(opNormalize<glm::vec4>::execPtr));
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
@@ -470,6 +575,9 @@ namespace script
       g_buffer_max_offset = g_buffer_offset;
 
     g_buffer_offset = 0;
+    for (size_t i = 0; i < g_query_offset; ++i)
+      g_query_buffer[i].~ScriptQuery();
+    g_query_offset = 0;
 
 #ifdef _DEBUG
     g_buffer.fill(0xBA);

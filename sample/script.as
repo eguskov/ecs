@@ -21,7 +21,7 @@ void on_enenmy_hit_wall_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel, 
   if (ev.normal.x < 0.f || ev.normal.x > 0.f)
   {
     vel.x = ev.normal.x * abs(vel.x);
-    dir = -dir;
+    dir = -float(dir);
   }
 }
 
@@ -46,9 +46,6 @@ void on_enenmy_hit_ground_handler(const EventOnWallHit@ ev, vec2@ pos, vec2@ vel
 [system { "$is-true": "is_alive" }]
 void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ jump, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
-  if (!bool(is_alive))
-    return;
-
   if (auto_move.jump)
   {
     auto_move.time -= stage.dt;
@@ -65,12 +62,9 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
   }
 }
 
-[system]
+[system { "$is-true": "is_alive" }]
 void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
-  if (!bool(is_alive))
-    return;
-
   for (auto it = Query<AliveEnemy>().perform(); it.hasNext(); ++it)
   {
     auto @enemy = it.get();

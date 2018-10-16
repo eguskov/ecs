@@ -75,13 +75,16 @@ struct RawArgSpec : RawArg
   RawArgSpec() : RawArg(Size, &buffer[0]) {}
 };
 
-struct CompDesc
+template <typename Allocator>
+struct CompDescWithAllocator
 {
   int id;
   int nameId;
-  eastl::string name;
+  eastl::basic_string<char, Allocator> name;
   const RegComp* desc;
 };
+
+using CompDesc = CompDescWithAllocator<EASTLAllocatorType>;
 
 DEF_HAS_METHOD(require);
 
