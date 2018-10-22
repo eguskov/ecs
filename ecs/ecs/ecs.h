@@ -76,13 +76,27 @@ struct System
 
 struct EventStream
 {
+  enum Flags
+  {
+    kTarget = 0,
+    kBroadcast = 1 << 0,
+  };
+
+  struct Header
+  {
+    EntityId eid;
+    uint8_t flags;
+    int eventId;
+    int eventSize;
+  };
+
   int popOffset = 0;
   int pushOffset = 0;
   int count = 0;
   eastl::vector<uint8_t> data;
 
-  void push(EntityId eid, int event_id, const RawArg &ev);
-  eastl::tuple<EntityId, int, RawArg> pop();
+  void push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev);
+  eastl::tuple<Header, RawArg> pop();
 };
 
 struct CreateQueueData
@@ -196,6 +210,9 @@ struct EntityManager
   void sendEvent(EntityId eid, int event_id, const RawArg &ev);
   void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
 
+  void sendEventBroadcast(int event_id, const RawArg &ev);
+  void sendEventBroadcastSync(int event_id, const RawArg &ev);
+
   template <typename S>
   void tick(const S &stage)
   {
@@ -221,6 +238,24 @@ struct EntityManager
     new (arg0.mem) E(ev);
 
     sendEventSync(eid, RegCompSpec<E>::ID, arg0);
+  }
+
+  template <typename E>
+  void sendEventBroadcast(const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    sendEventBroadcast(RegCompSpec<E>::ID, arg0);
+  }
+
+  template <typename E>
+  void sendEventBroadcastSync(const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    sendEventBroadcastSync(RegCompSpec<E>::ID, arg0);
   }
 
   void queryEids(EntityVector &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)

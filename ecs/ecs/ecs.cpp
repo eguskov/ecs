@@ -90,11 +90,11 @@ int EntityTemplate::getCompontentOffset(int id, const char *name) const
   return -1;
 }
 
-void EventStream::push(EntityId eid, int event_id, const RawArg &ev)
+void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
 {
   ++count;
 
-  int sz = sizeof(eid) + sizeof(event_id) + sizeof(ev.size) + ev.size;
+  int sz = sizeof(Header) + ev.size;
   int pos = 0;
 
   if (pushOffset + sz <= (int)data.size())
@@ -105,38 +105,31 @@ void EventStream::push(EntityId eid, int event_id, const RawArg &ev)
     data.resize(pushOffset + sz);
   }
 
-  new (&data[pos]) EntityId(eid);
-  pos += sizeof(eid);
+  Header *header = (Header*)&data[pos];
+  pos += sizeof(Header);
 
-  new (&data[pos]) int(event_id);
-  pos += sizeof(event_id);
-
-  new (&data[pos]) int(ev.size);
-  pos += sizeof(ev.size);
+  header->eid = eid;
+  header->flags = flags;
+  header->eventId = event_id;
+  header->eventSize = ev.size;
 
   ::memcpy(&data[pos], ev.mem, ev.size);
 
   pushOffset += sz;
 }
 
-eastl::tuple<EntityId, int, RawArg> EventStream::pop()
+eastl::tuple<EventStream::Header, RawArg> EventStream::pop()
 {
   assert(count > 0);
 
   if (count <= 0)
     return {};
 
-  EntityId eid = *(EntityId*)&data[popOffset];
-  popOffset += sizeof(eid);
-
-  int event_id = *(int*)&data[popOffset];
-  popOffset += sizeof(event_id);
-
-  int event_size = *(int*)&data[popOffset];
-  popOffset += sizeof(event_size);
+  EventStream::Header header = *(EventStream::Header*)&data[popOffset];
+  popOffset += sizeof(EventStream::Header);
 
   uint8_t *mem = &data[popOffset];
-  popOffset += event_size;
+  popOffset += header.eventSize;
 
   if (--count == 0)
   {
@@ -144,7 +137,7 @@ eastl::tuple<EntityId, int, RawArg> EventStream::pop()
     pushOffset = 0;
   }
 
-  return eastl::make_tuple(eid, event_id, RawArg{ event_size, mem });
+  return eastl::make_tuple(header, RawArg{ header.eventSize, mem });
 }
 
 void EntityManager::init()
@@ -235,7 +228,7 @@ EntityManager::EntityManager()
   for (const auto &sys : systems)
   {
     auto &q = queries[sys.desc->id];
-    q.stageId = sys.desc->stageId;
+    q.stageId = sys.desc->stageId > 0 ? sys.desc->stageId : sys.desc->eventId;
     q.sys = sys.desc;
   }
 
@@ -605,15 +598,18 @@ void EntityManager::tick()
 
   while (events[streamIndex].count)
   {
-    EntityId eid;
-    int event_id = -1;
+    EventStream::Header header;
     RawArg ev;
-    eastl::tie(eid, event_id, ev) = events[streamIndex].pop();
-    sendEventSync(eid, event_id, ev);
+    eastl::tie(header, ev) = events[streamIndex].pop();
+
+    if (header.flags & EventStream::kBroadcast)
+      sendEventBroadcastSync(header.eventId, ev);
+    else
+      sendEventSync(header.eid, header.eventId, ev);
 
     for (const auto &cb : eventProcessCallbacks)
       if (cb)
-        cb(eid, event_id, ev);
+        cb(header.eid, header.eventId, ev);
   }
 }
 
@@ -621,8 +617,8 @@ void EntityManager::invalidateQuery(Query &query)
 {
   query.dirty = false;
 
-  if (query.stageId < 0 && query.sys->eventId >= 0)
-    return;
+  //if (query.stageId < 0 && query.sys->eventId >= 0)
+  //  return;
 
   query.eids.clear();
 
@@ -749,12 +745,12 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
-  events[currentEventStream].push(eid, event_id, ev);
+  events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
 }
 
 void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
-  auto &e = entities[eid2idx(eid)];
+  auto &e = entities[eid.index];
 
   const auto &templ = templates[e.templateId];
 
@@ -774,3 +770,17 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
     }
 }
 
+void EntityManager::sendEventBroadcast(int event_id, const RawArg &ev)
+{
+  events[currentEventStream].push(EntityId{}, EventStream::kBroadcast, event_id, ev);
+}
+
+void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
+{
+  for (const auto &sys : systems)
+    if (sys.desc->eventId == event_id)
+    {
+      auto &query = queries[sys.desc->id];
+      (sys.desc->*sys.desc->stageFn)(query.eids.size(), query.eids.data(), ev, storages.data());
+    }
+}
