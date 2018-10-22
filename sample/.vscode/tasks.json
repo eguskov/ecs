@@ -2,6 +2,15 @@
   // See https://go.microsoft.com/fwlink/?LinkId=733558
   // for the documentation about the tasks.json format
   "version": "2.0.0",
+  "options": {
+    "shell": {
+      "executable": "cmd.exe",
+      "args": [
+        "/d",
+        "/c"
+      ]
+    }
+  },
   "tasks": [
     {
       "label": "build",
@@ -41,6 +50,21 @@
         "panel": "shared"
       },
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "reload script",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-H", "Content-Type: application/json",
+        "-d", "{\\\"script\\\":\\\"script.as\\\"}",
+        "http://127.0.0.1:10112/reload_script"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }

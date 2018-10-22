@@ -11,6 +11,8 @@
 
 #include <sstream>
 
+#include "script.ecs.h"
+
 struct WSEvent : Event
 {
   mg_connection *conn = nullptr;
@@ -74,6 +76,24 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
   }
 }
 
+static void handle_reload_script(struct mg_connection *nc, int ev, void *ev_data)
+{
+  mg_printf(nc, "HTTP/1.0 200 OK\r\n\r\n");
+  nc->flags |= MG_F_SEND_AND_CLOSE;
+
+  struct http_message *hm = (struct http_message *) ev_data;
+  if (hm->body.len > 0)
+  {
+    JDocument doc;
+    doc.Parse(hm->body.p, hm->body.len);
+
+    if (doc.HasMember("script"))
+    {
+      g_mgr->sendEventBroadcast(CmdReloadScript{});
+    }
+  }
+}
+
 struct WebsocketServer
 {
   struct mg_mgr mgr;
@@ -96,8 +116,11 @@ static __forceinline void init_websocket_server_handler(const EventOnEntityCreat
 {
   mg_mgr_init(&ws_server.mgr, nullptr);
   ws_server.nc = mg_bind(&ws_server.mgr, "127.0.0.1:10112", ev_handler);
+
   mg_set_protocol_http_websocket(ws_server.nc);
   ws_server.nc->user_data = (void*)(uint32_t)eid.handle;
+
+  mg_register_http_endpoint(ws_server.nc, "/reload_script", handle_reload_script);
 }
 
 DEF_SYS()

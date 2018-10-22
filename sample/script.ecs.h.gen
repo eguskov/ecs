@@ -1,0 +1,11 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "script.ecs.h"
+
+static RegCompSpec<CmdReloadScript> _reg_event_CmdReloadScript;
+int RegCompSpec<CmdReloadScript>::ID = -1;
+
+#endif // __CODEGEN__

@@ -72,7 +72,8 @@ namespace script
   bool init();
   void release();
 
-  asIScriptModule* build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule*)> &callback);
+  bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);
+
   asIScriptModule* get_module(const char *name);
   asIScriptFunction* find_function_by_decl(asIScriptModule *module, const char *decl);
 

@@ -1,7 +1,5 @@
 #include <ecs/ecs.h>
 
-#include <scriptECS.h>
-
 #include "update.ecs.h"
 
 #include <stages/update.stage.h>
@@ -138,25 +136,6 @@ struct AnimState
   }
 }
 DEF_COMP(AnimState, anim_state);
-
-DEF_SYS()
-static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
-{
-  script.scriptECS.build(script.name.c_str(), script.path.c_str());
-}
-
-DEF_SYS()
-static __forceinline void update_script_query(const UpdateStage &stage, script::ScriptComponent &script)
-{
-  if (g_mgr->status != kStatusNone)
-    script.scriptECS.invalidateQueries();
-}
-
-DEF_SYS()
-static __forceinline void update_script(const UpdateStage &stage, script::ScriptComponent &script)
-{
-  script.scriptECS.tick(stage);
-}
 
 DEF_SYS()
 static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureAtlas &texture)

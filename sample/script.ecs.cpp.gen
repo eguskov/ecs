@@ -1,0 +1,41 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "script.ecs.cpp"
+
+static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler, { "ev", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler, { "ev", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
+
+template <> template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  reload_script_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  build_script_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+template <> template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  update_script_query(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+template <> template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+{
+  const int argId[] = { components[0].nameId, components[1].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
+  update_script(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+}
+
+#endif // __CODEGEN__

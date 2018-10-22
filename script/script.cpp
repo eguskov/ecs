@@ -429,10 +429,15 @@ namespace script
     engine = nullptr;
   }
 
-  asIScriptModule* build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule*)> &callback)
+  bool build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule&)> &callback)
   {
     assert(engine != nullptr);
     assert(name && name[0]);
+
+    if (engine->GetModule(name) != nullptr)
+    {
+      engine->DiscardModule(name);
+    }
 
     CScriptBuilder builder;
     int r = builder.StartNewModule(engine, name);
@@ -445,38 +450,10 @@ namespace script
     asIScriptModule *module = engine->GetModule(name);
     assert(module != nullptr);
 
-    callback(builder, module);
+    if (module)
+      callback(builder, *module);
 
-    /*char *buffer = nullptr;
-
-    FILE *file = nullptr;
-    ::fopen_s(&file, path, "rb");
-    if (file)
-    {
-      size_t sz = ::ftell(file);
-      ::fseek(file, 0, SEEK_END);
-      sz = ::ftell(file) - sz;
-      ::fseek(file, 0, SEEK_SET);
-
-      buffer = new char[sz + 1];
-      buffer[sz] = '\0';
-      ::fread(buffer, 1, sz, file);
-      ::fclose(file);
-    }
-    assert(buffer != nullptr);
-    if (!buffer)
-      return nullptr;
-
-    asIScriptModule *module = engine->GetModule(name, asGM_ALWAYS_CREATE);
-    module->AddScriptSection(name, buffer, ::strlen(buffer));
-    module->Build();
-
-    delete[] buffer;*/
-
-    // For compile test
-    // std::cin.get();
-
-    return module;
+    return module != nullptr;
   }
 
   asIScriptModule* get_module(const char *name)

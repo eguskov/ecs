@@ -117,11 +117,21 @@ namespace script
 
   bool ScriptECS::build(const char *name, const char *path)
   {
-    asIScriptModule *moudle = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule *module)
+    for (auto &sys : systems)
     {
-      for (int i = 0; i < (int)module->GetFunctionCount(); ++i)
+      sys.fn->Release();
+      sys.fn = nullptr;
+    }
+
+    systems.clear();
+    remaps.clear();
+    queries.clear();
+
+    bool isOk = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule &module)
+    {
+      for (int i = 0; i < (int)module.GetFunctionCount(); ++i)
       {
-        asIScriptFunction *fn = module->GetFunctionByIndex(i);
+        asIScriptFunction *fn = module.GetFunctionByIndex(i);
         eastl::string metadata = builder.GetMetadataStringForFunc(fn);
 
         std::cmatch match;
@@ -144,10 +154,13 @@ namespace script
           }
         }
       }
+
+      if (asIScriptFunction *mainFn = find_function_by_decl(&module, "void main()"))
+        call(mainFn);
     });
 
-    if (asIScriptFunction *mainFn = find_function_by_decl(moudle, "void main()"))
-      call(mainFn);
+    if (!isOk)
+      return false;
 
     int id = 0;
     for (auto &sys : systems)
@@ -165,6 +178,8 @@ namespace script
     for (int templateId = 0; templateId < (int)g_mgr->templates.size(); ++templateId)
       for (int sysId = 0; sysId < (int)systems.size(); ++sysId)
         systems[sysId].initRemap(g_mgr->templates[templateId].components, remaps[templateId][sysId]);
+
+    invalidateQueries();
 
     return true;
   }
