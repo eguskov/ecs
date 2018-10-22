@@ -108,21 +108,6 @@ namespace script
     callback((R*)ctx->GetAddressOfReturnValue());
   }
 
-  uint8_t* alloc_frame_mem(size_t sz);
-  void clear_frame_mem();
-
-  size_t get_frame_mem_allocated_size();
-  size_t get_frame_mem_allocated_max_size();
-
-  template <typename T>
-  struct RawAllocator
-  {
-    static T* alloc()
-    {
-      return (T*)alloc_frame_mem(sizeof(T));
-    }
-  };
-
   template <typename T>
   bool register_component(const char *type)
   {
@@ -144,4 +129,6 @@ namespace script
 
   ParamDesc get_param_desc(asIScriptFunction *fn, int i);
   ParamDescVector get_all_param_desc(asIScriptFunction *fn);
+
+  void clear_frame_mem_data();
 }

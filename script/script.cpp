@@ -8,10 +8,12 @@
 #include <ecs/ecs.h>
 #include <ecs/component.h>
 #include <ecs/system.h>
+#include <ecs/map.h>
 
 #include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
+#include <EASTL/intrusive_list.h>
 
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>
@@ -43,6 +45,11 @@ namespace script
   {
     std::cout << "[Script]: " << str << std::endl;
   }
+
+  // static void print(const FrameMemString &str)
+  // {
+  //   std::cout << "[Script]: " << str.c_str() << std::endl;
+  // }
 
   static asIScriptEngine *engine = nullptr;
 
@@ -145,22 +152,6 @@ namespace script
     }
     using ExecType = const T& (*) (const T&);
     static constexpr ExecType execPtr = &opImplConv<T>::exec;
-  };
-
-  struct FrameMemAllocator
-  {
-    explicit FrameMemAllocator(const char* = nullptr) {}
-    FrameMemAllocator(const FrameMemAllocator& x) {}
-    FrameMemAllocator(const FrameMemAllocator& x, const char*) {}
-
-    FrameMemAllocator& operator=(const FrameMemAllocator& x) { return *this; }
-
-    void* allocate(size_t n, int flags = 0) { return alloc_frame_mem(n); }
-    void* allocate(size_t n, size_t alignment, size_t offset, int flags = 0) { return alloc_frame_mem(n); }
-    void  deallocate(void* p, size_t n) {}
-
-    const char* get_name() const { return "FrameMem"; }
-    void        set_name(const char*) {}
   };
 
   struct ScriptQuery
@@ -317,6 +308,110 @@ namespace script
     return query;
   }
 
+  // struct StringFactory : public asIStringFactory
+  // {
+  //   struct Node : eastl::intrusive_list_node
+  //   {
+  //     size_t index;
+  //     eastl::string value;
+  //   };
+
+  //   size_t index = 0;
+  //   eastl::queue<size_t> freeIndices;
+  //   eastl::array<Node, 1024> stringsData;
+  //   eastl::intrusive_list<Node> strings;
+
+  //   virtual const void *GetStringConstant(const char *data, asUINT length)
+  //   {
+  //     size_t i = 0;
+  //     if (freeIndices.empty())
+  //       i = index++;
+  //     else
+  //     {
+  //       i = freeIndices.front();
+  //       freeIndices.pop();
+  //     }
+
+  //     Node *n = &stringsData[i];
+  //     strings.push_back(*n);
+
+  //     n->index = index - 1;
+  //     n->value.assign(data, length);
+
+  //     return n;
+
+  //     //FrameMemString *str = new (alloc_frame_mem(sizeof(FrameMemString))) FrameMemString(data, length);
+  //     //return str;
+  //   }
+
+  //   virtual int ReleaseStringConstant(const void *str)
+  //   {
+  //     if (str == nullptr)
+  //       return asERROR;
+
+  //     freeIndices.push(((Node*)str)->index);
+  //     strings.remove(*(Node*)str);
+
+  //     return asSUCCESS;
+  //   }
+
+  //   virtual int GetRawStringData(const void *str, char *data, asUINT *length) const
+  //   {
+  //     if (str == nullptr)
+  //       return asERROR;
+
+  //     if (length)
+  //       *length = ((Node*)str)->value.length();
+
+  //     if (data)
+  //       ::memcpy(data, ((Node*)str)->value.data(), ((Node*)str)->value.length());
+
+  //     return asSUCCESS;
+  //   }
+  // }
+  // string_factory;
+
+  // static StringFactory::Node* alloc_string()
+  // {
+  //   return new (alloc_frame_mem(sizeof(StringFactory::Node))) StringFactory::Node;
+  // }
+
+  // static void construct_string(StringFactory::Node *thisPointer)
+  // {
+  //   new (thisPointer) StringFactory::Node();
+  // }
+
+  // static void copy_construct_string(const StringFactory::Node &other, StringFactory::Node *thisPointer)
+  // {
+  //   new (thisPointer) StringFactory::Node(other);
+  // }
+
+  // static void destruct_string(StringFactory::Node *thisPointer)
+  // {
+  //   // thisPointer->~string();
+  // }
+
+  // static FrameMemString add_string_float(const FrameMemString &str, float f)
+  // {
+  //   FrameMemString* res = alloc_string();
+  //   res->append_sprintf("%s%f", str.c_str(), f);
+  //   return *res;
+  // }
+
+  // static FrameMemString add_float_string(float f, const FrameMemString &str)
+  // {
+  //   FrameMemString* res = alloc_string();
+  //   res->append_sprintf("%f%s", f, str.c_str());
+  //   return *res;
+  // }
+
+  // static FrameMemString add_string_string(const FrameMemString &a, const FrameMemString &b)
+  // {
+  //   FrameMemString* res = alloc_string();
+  //   res->append_sprintf("%s%s", a.c_str(), b.c_str());
+  //   return *res;
+  // }
+
   bool init()
   {
     engine = asCreateScriptEngine();
@@ -330,6 +425,18 @@ namespace script
     RegisterScriptMath(engine);
     RegisterScriptDictionary(engine);
 
+    // engine->RegisterObjectType("string", sizeof(FrameMemString), asOBJ_VALUE | asGetTypeTraits<FrameMemString>());
+    // engine->RegisterStringFactory("string", &string_factory);
+
+    // engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()", asFUNCTION(construct_string), asCALL_CDECL_OBJLAST);
+    // engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)", asFUNCTION(copy_construct_string), asCALL_CDECL_OBJLAST);
+    // engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()", asFUNCTION(destruct_string),  asCALL_CDECL_OBJLAST);
+
+    // engine->RegisterObjectMethod("string", "string opAdd(const string &in) const", asFUNCTIONPR(add_string_string, (const FrameMemString &, const FrameMemString &), FrameMemString), asCALL_CDECL_OBJFIRST);
+
+    // engine->RegisterObjectMethod("string", "string opAdd(float) const", asFUNCTION(add_string_float), asCALL_CDECL_OBJFIRST);
+    // engine->RegisterObjectMethod("string", "string opAdd_r(float) const", asFUNCTION(add_float_string), asCALL_CDECL_OBJLAST);
+
     engine->RegisterObjectType("QueryIterator<class T>", sizeof(ScriptQuery::Iterator), asOBJ_VALUE | asOBJ_TEMPLATE | asGetTypeTraits<ScriptQuery::Iterator>());
     engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(ScriptQuery::initIterator, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
     engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_DESTRUCT, "void f()", asFUNCTIONPR(ScriptQuery::releaseIterator, (ScriptQuery::Iterator*), void), asCALL_CDECL_OBJFIRST);
@@ -341,6 +448,9 @@ namespace script
     engine->RegisterObjectType("Query<class T>", sizeof(ScriptQuery), asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_FACTORY, "Query<T>@ f(int&in)", asFUNCTIONPR(createScriptQuery, (asITypeInfo*, void*), ScriptQuery*), asCALL_CDECL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
+
+    // engine->RegisterObjectType("Map", sizeof(FrameMemMap), asOBJ_REF | asOBJ_NOCOUNT);
+    // engine->RegisterObjectMethod("Map", "void set(string&in, int&in) const", asMETHODPR(Map::Iterator, hasNext, () const, bool), asCALL_THISCALL);
 
     register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);
@@ -535,40 +645,11 @@ namespace script
     return eastl::move(res);
   }
 
-  static eastl::array<uint8_t, 4 << 20> g_buffer; // 4MB
-  static size_t g_buffer_offset = 0;
-  static size_t g_buffer_max_offset = 0;
-
-  uint8_t* alloc_frame_mem(size_t sz)
+  void clear_frame_mem_data()
   {
-    uint8_t *mem = &g_buffer[g_buffer_offset];
-    g_buffer_offset += sz;
-    return mem;
-  }
-
-  void clear_frame_mem()
-  {
-    if (g_buffer_offset > g_buffer_max_offset)
-      g_buffer_max_offset = g_buffer_offset;
-
-    g_buffer_offset = 0;
     for (size_t i = 0; i < g_query_offset; ++i)
       g_query_buffer[i].~ScriptQuery();
     g_query_offset = 0;
-
-#ifdef _DEBUG
-    g_buffer.fill(0xBA);
-#endif
-  }
-
-  size_t get_frame_mem_allocated_size()
-  {
-    return g_buffer_offset;
-  }
-
-  size_t get_frame_mem_allocated_max_size()
-  {
-    return g_buffer_max_offset;
   }
 
   namespace internal

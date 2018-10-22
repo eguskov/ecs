@@ -3,6 +3,7 @@
 
 #include <ecs/ecs.h>
 #include <ecs/perf.h>
+#include <ecs/map.h>
 
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
@@ -115,6 +116,13 @@ int main()
         g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
     }
 
+    {
+      FrameMemMap m;
+      m["1"] = 1;
+      m["2"] = 2.f;
+      m["3"] = "3";
+    }
+
     double t = GetTime();
     g_mgr->tick();
 
@@ -139,8 +147,8 @@ int main()
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawText(FormatText("Script: FrameMem: %d (%d)",
-      script::get_frame_mem_allocated_size(),
-      script::get_frame_mem_allocated_max_size()),
+      get_frame_mem_allocated_size(),
+      get_frame_mem_allocated_max_size()),
       10, 70, 20, LIME);
     DrawFPS(10, 10);
 
@@ -153,7 +161,8 @@ int main()
     if (g_enable_cef)
       cef::update();
 
-    script::clear_frame_mem();
+    script::clear_frame_mem_data();
+    clear_frame_mem();
   }
 
   EntityManager::release();
