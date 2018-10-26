@@ -412,6 +412,246 @@ namespace script
   //   return *res;
   // }
 
+  static JFrameAllocator json_frame_allocator; 
+
+  void* create_map()
+  {
+    return new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
+  }
+
+  void* create_array()
+  {
+    return new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kArrayType);
+  }
+
+  void* create_array_from_float_list(void *values)
+  {
+    return new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kArrayType);
+  }
+
+  JFrameValue& set_map_int(JFrameValue &m, const std::string &key, int value)
+  {
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = value;
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      JFrameValue jv(rapidjson::kNumberType);
+      jv.SetInt(value);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
+  JFrameValue& set_map_float(JFrameValue &m, const std::string &key, float value)
+  {
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = value;
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      JFrameValue jv(rapidjson::kNumberType);
+      jv.SetFloat(value);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
+  JFrameValue& set_map_string(JFrameValue &m, const std::string &key, const std::string &value)
+  {
+    JFrameValue jv(rapidjson::kStringType);
+    jv.SetString(value.c_str(), value.length(), json_frame_allocator);
+
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = eastl::move(jv);
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
+  JFrameValue& set_map_map(JFrameValue &m, const std::string &key, const JFrameValue &value)
+  {
+    JFrameValue jv(rapidjson::kObjectType);
+    jv.CopyFrom(value, json_frame_allocator);
+
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = eastl::move(jv);
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
+  JFrameValue& set_map_array(JFrameValue &m, const std::string &key, const JFrameValue &value)
+  {
+    JFrameValue jv(rapidjson::kArrayType);
+    jv.CopyFrom(value, json_frame_allocator);
+
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = eastl::move(jv);
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
+  JFrameValue& push_array_int(JFrameValue &arr, int value)
+  {
+    JFrameValue jv(rapidjson::kNumberType);
+    jv.SetInt(value);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
+  JFrameValue& push_array_float(JFrameValue &arr, float value)
+  {
+    JFrameValue jv(rapidjson::kNumberType);
+    jv.SetFloat(value);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
+  JFrameValue& push_array_string(JFrameValue &arr, const std::string &value)
+  {
+    JFrameValue jv(rapidjson::kStringType);
+    jv.SetString(value.c_str(), value.length(), json_frame_allocator);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
+  JFrameValue& push_array_map(JFrameValue &arr, const JFrameValue &value)
+  {
+    JFrameValue jv(rapidjson::kObjectType);
+    jv.CopyFrom(value, json_frame_allocator);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
+  JFrameValue& push_array_array(JFrameValue &arr, const JFrameValue &value)
+  {
+    JFrameValue jv(rapidjson::kArrayType);
+    jv.CopyFrom(value, json_frame_allocator);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
+  void* create_array_from_list(void *data)
+  {
+    asUINT num = *(asUINT*)data;
+    assert(num > 0);
+
+    struct Values
+    {
+      asUINT typeId;
+      void *value;
+    };
+
+    Values *values = (Values*)(((asUINT*)data) + 1);
+
+    JFrameValue *arr = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kArrayType);
+
+    for (asUINT i = 0; i < num; ++i)
+    {
+      const Values &value = values[i];
+      if (value.typeId == asTYPEID_INT64)
+        push_array_int(*arr, (int)*(int64_t*)&value.value);
+      else if (value.typeId == asTYPEID_INT16)
+        push_array_int(*arr, (int)*(int16_t*)&value.value);
+      else if (value.typeId == asTYPEID_INT32)
+        push_array_int(*arr, *(int*)&value.value);
+      else if (value.typeId == asTYPEID_FLOAT)
+        push_array_float(*arr, *(float*)&value.value);
+      else
+      {
+        asITypeInfo *info = engine->GetTypeInfoById(value.typeId);
+        if (::strcmp(info->GetName(), "string") == 0)
+          push_array_string(*arr, *(std::string*)&value.value);
+        else if (::strcmp(info->GetName(), "Map") == 0)
+          push_array_map(*arr, *(JFrameValue*)&value.value);
+        else if (::strcmp(info->GetName(), "Array") == 0)
+          push_array_array(*arr, *(JFrameValue*)&value.value);
+      }
+    }
+
+    return arr;
+  }
+
+  void* create_map_from_list(void *data)
+  {
+    asUINT num = *(asUINT*)data;
+    assert(num > 0);
+
+    struct Values
+    {
+      asUINT typeId;
+      void *value;
+    };
+
+    Values *values = (Values*)(((asUINT*)data) + 1);
+
+    // TODO: !!!!
+    JFrameValue *arr = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
+
+    for (asUINT i = 0; i < num; ++i)
+    {
+      const Values &value = values[i];
+      if (value.typeId == asTYPEID_INT64)
+        push_array_int(*arr, (int)*(int64_t*)&value.value);
+      else if (value.typeId == asTYPEID_INT16)
+        push_array_int(*arr, (int)*(int16_t*)&value.value);
+      else if (value.typeId == asTYPEID_INT32)
+        push_array_int(*arr, *(int*)&value.value);
+      else if (value.typeId == asTYPEID_FLOAT)
+        push_array_float(*arr, *(float*)&value.value);
+      else
+      {
+        asITypeInfo *info = engine->GetTypeInfoById(value.typeId);
+        if (::strcmp(info->GetName(), "string") == 0)
+          push_array_string(*arr, *(std::string*)&value.value);
+        else if (::strcmp(info->GetName(), "Map") == 0)
+          push_array_map(*arr, *(JFrameValue*)&value.value);
+        else if (::strcmp(info->GetName(), "Array") == 0)
+          push_array_array(*arr, *(JFrameValue*)&value.value);
+      }
+    }
+
+    return arr;
+  }
+
+  void create_entity(const std::string &templ, const JFrameValue &m)
+  {
+    g_mgr->createEntity(templ.c_str(), m);
+  }
+
   bool init()
   {
     engine = asCreateScriptEngine();
@@ -449,8 +689,27 @@ namespace script
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_FACTORY, "Query<T>@ f(int&in)", asFUNCTIONPR(createScriptQuery, (asITypeInfo*, void*), ScriptQuery*), asCALL_CDECL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
 
-    // engine->RegisterObjectType("Map", sizeof(FrameMemMap), asOBJ_REF | asOBJ_NOCOUNT);
-    // engine->RegisterObjectMethod("Map", "void set(string&in, int&in) const", asMETHODPR(Map::Iterator, hasNext, () const, bool), asCALL_THISCALL);
+    engine->RegisterObjectType("Map", 0, asOBJ_REF | asOBJ_NOCOUNT);
+    engine->RegisterObjectBehaviour("Map", asBEHAVE_FACTORY, "Map@ f()", asFUNCTION(create_map), asCALL_CDECL);
+    engine->RegisterObjectBehaviour("Map", asBEHAVE_LIST_FACTORY, "Map@ f(int &in) {repeat {string, ?}}", asFUNCTION(create_map_from_list), asCALL_CDECL);
+
+    engine->RegisterObjectType("Array", 0, asOBJ_REF | asOBJ_NOCOUNT);
+    engine->RegisterObjectBehaviour("Array", asBEHAVE_FACTORY, "Array@ f()", asFUNCTION(create_array), asCALL_CDECL);
+    engine->RegisterObjectBehaviour("Array", asBEHAVE_LIST_FACTORY, "Array@ f(int &in) {repeat ?}", asFUNCTION(create_array_from_list), asCALL_CDECL);
+
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, int)", asFUNCTION(set_map_int), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, float)", asFUNCTION(set_map_float), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, string&in)", asFUNCTION(set_map_string), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, Map@)", asFUNCTION(set_map_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, Array@)", asFUNCTION(set_map_array), asCALL_CDECL_OBJFIRST);
+
+    engine->RegisterObjectMethod("Array", "Array@ push(int)", asFUNCTION(push_array_int), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Array@ push(float)", asFUNCTION(push_array_float), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Array@ push(string&in)", asFUNCTION(push_array_string), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Array@ push(Map@)", asFUNCTION(push_array_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Array@ push(Array@)", asFUNCTION(push_array_array), asCALL_CDECL_OBJFIRST);
+
+    engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
 
     register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);

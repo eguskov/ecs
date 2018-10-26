@@ -10,6 +10,13 @@ class AliveEnemy
 void on_enenmy_kill_handler(const EventOnKillEnemy@ ev, const vec2@ pos)
 {
   print("on_enenmy_kill_handler: pos: ("+pos.x+", "+pos.y+")");
+
+  Map map;
+  map.set("pos", Array = { pos.x, pos.y + 20.f });
+
+  Map test = { {"pos", Array = { pos.x, pos.y + 20.f }} };
+
+  create_entity("death_fx", map);
 }
 
 [system { "$have": "enemy" }]

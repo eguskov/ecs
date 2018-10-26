@@ -6,7 +6,7 @@
 #include "io/json.h"
 #include "framemem.h"
 
-template <typename Allocator>
+template <typename Allocator = EASTLAllocatorType>
 struct MapValue
 {
   enum class Type
@@ -14,7 +14,8 @@ struct MapValue
     kUnknown,
     kInt,
     kFloat,
-    kString
+    kString,
+    kMap
   };
 
   Allocator allocator;
@@ -102,11 +103,10 @@ struct hash<FrameMemString>
 
 } // namespace eastl
 
-using Map = eastl::hash_map<eastl::string, MapValue<EASTLAllocatorType>>;
 
 template <typename T>
-using FrameMemHashMap = eastl::hash_map<FrameMemString, T, eastl::hash<FrameMemString>, eastl::equal_to<FrameMemString>, FrameMemAllocator>;
-
-using FrameMemMap = FrameMemHashMap<MapValue<FrameMemAllocator>>;
+using FrameMemHashMap = eastl::hash_map<FrameMemString, MapValue<T>, eastl::hash<FrameMemString>, eastl::equal_to<FrameMemString>, FrameMemAllocator>;
+using FrameMemMap = FrameMemHashMap<FrameMemAllocator>;
+using Map = eastl::hash_map<eastl::string, MapValue<>>;
 
 Map json_to_map(const JDocument &doc);

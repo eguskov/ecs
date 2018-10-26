@@ -412,6 +412,17 @@ void EntityManager::createEntity(const char *templ_name, const JValue &comps)
   createQueue.emplace_back(eastl::move(q));
 }
 
+void EntityManager::createEntity(const char *templ_name, const JFrameValue &comps)
+{
+  JDocument doc;
+  doc.CopyFrom(comps, doc.GetAllocator());
+
+  CreateQueueData q;
+  q.templanemName = templ_name;
+  q.components = eastl::move(doc);
+  createQueue.emplace_back(eastl::move(q));
+}
+
 void EntityManager::deleteEntity(EntityId eid)
 {
   deleteQueue.emplace_back(eid);
