@@ -596,9 +596,9 @@ namespace script
         if (::strcmp(info->GetName(), "string") == 0)
           push_array_string(*arr, *(std::string*)&value.value);
         else if (::strcmp(info->GetName(), "Map") == 0)
-          push_array_map(*arr, *(JFrameValue*)&value.value);
+          push_array_map(*arr, *(JFrameValue*)value.value);
         else if (::strcmp(info->GetName(), "Array") == 0)
-          push_array_array(*arr, *(JFrameValue*)&value.value);
+          push_array_array(*arr, *(JFrameValue*)value.value);
       }
     }
 
@@ -612,39 +612,39 @@ namespace script
 
     struct Values
     {
+      std::string key;
       asUINT typeId;
       void *value;
     };
 
     Values *values = (Values*)(((asUINT*)data) + 1);
 
-    // TODO: !!!!
-    JFrameValue *arr = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
+    JFrameValue *m = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
 
     for (asUINT i = 0; i < num; ++i)
     {
       const Values &value = values[i];
       if (value.typeId == asTYPEID_INT64)
-        push_array_int(*arr, (int)*(int64_t*)&value.value);
+        set_map_int(*m, value.key, (int)*(int64_t*)&value.value);
       else if (value.typeId == asTYPEID_INT16)
-        push_array_int(*arr, (int)*(int16_t*)&value.value);
+        set_map_int(*m, value.key, (int)*(int16_t*)&value.value);
       else if (value.typeId == asTYPEID_INT32)
-        push_array_int(*arr, *(int*)&value.value);
+        set_map_int(*m, value.key, *(int*)&value.value);
       else if (value.typeId == asTYPEID_FLOAT)
-        push_array_float(*arr, *(float*)&value.value);
+        set_map_float(*m, value.key, *(float*)&value.value);
       else
       {
         asITypeInfo *info = engine->GetTypeInfoById(value.typeId);
         if (::strcmp(info->GetName(), "string") == 0)
-          push_array_string(*arr, *(std::string*)&value.value);
+          set_map_string(*m, value.key, *(std::string*)&value.value);
         else if (::strcmp(info->GetName(), "Map") == 0)
-          push_array_map(*arr, *(JFrameValue*)&value.value);
+          set_map_map(*m, value.key, *(JFrameValue*)value.value);
         else if (::strcmp(info->GetName(), "Array") == 0)
-          push_array_array(*arr, *(JFrameValue*)&value.value);
+          set_map_array(*m, value.key, *(JFrameValue*)value.value);
       }
     }
 
-    return arr;
+    return m;
   }
 
   void create_entity(const std::string &templ, const JFrameValue &m)

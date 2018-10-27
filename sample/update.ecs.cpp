@@ -510,7 +510,7 @@ static __forceinline void update_enemies_collisions(
       if (normal.y < 0.f)
       {
         g_mgr->deleteEntity(eid);
-        g_mgr->sendEvent(myEid, EventOnKillEnemy{});
+        g_mgr->sendEvent(myEid, EventOnKillEnemy{ pos });
 
         is_alive = false;
 
@@ -518,15 +518,6 @@ static __forceinline void update_enemies_collisions(
         jump.startTime = stage.total;
 
         vel = glm::vec2(0.f, 0.f);
-
-        JDocument doc;
-        auto &a = doc.GetAllocator();
-        JValue posValue(rapidjson::kArrayType);
-        posValue.PushBack(pos.x, a);
-        posValue.PushBack(pos.y, a);
-        JValue value(rapidjson::kObjectType);
-        value.AddMember("pos", posValue, a);
-        g_mgr->createEntity("death_fx", value);
       }
     }
   });

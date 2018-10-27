@@ -21,6 +21,9 @@ DEF_EVENT(EventOnAnotherTest);
 
 struct EventOnKillEnemy : Event
 {
+  glm::vec2 pos = { 0.f, 0.f };
+  EventOnKillEnemy() = default;
+  EventOnKillEnemy(const glm::vec2 &p) : pos(p) {}
 }
 DEF_EVENT(EventOnKillEnemy);
 

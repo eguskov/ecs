@@ -78,6 +78,7 @@ int main()
 
   // TODO: Codegen for script bindings
   script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
+  script::register_component_property("EventOnKillEnemy", "vec2 pos", offsetof(EventOnKillEnemy, pos));
 
   script::register_component<EventOnWallHit>("EventOnWallHit");
   script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
