@@ -48,7 +48,6 @@ static RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)> _re
 static RegSysSpec<3007763911, decltype(validate_position)> _reg_sys_validate_position("validate_position", validate_position, { "stage", "pos" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<917788925, decltype(update_enemies_collisions)> _reg_sys_update_enemies_collisions("update_enemies_collisions", update_enemies_collisions, { "stage", "eid", "jump", "collision_rect", "pos", "vel", "dir" }, { "user_input" }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<1963192783, decltype(remove_death_fx)> _reg_sys_remove_death_fx("remove_death_fx", remove_death_fx, { "stage", "eid", "anim_state", "is_alive" }, {  }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<1411313099, decltype(update_spawner)> _reg_sys_update_spawner("update_spawner", update_spawner, { "stage", "spawn_timer", "spawn_list" }, { "spawner" }, {  }, {  }, {  }, true); 
 static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("update_camera", update_camera, { "stage", "pos" }, { "user_input" }, {  }, {  }, {  }, true); 
 static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event, { "ev", "hud" }, {  }, {  }, {  }, {  }, true); 
 
@@ -105,26 +104,6 @@ template <typename C> void AliveEnemiesQuery::exec(C callback)
     const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId };
     const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets) };
     callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<SysType::Argument<3>::Type, SysType::Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<SysType::Argument<4>::Type, SysType::Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<SysType::Argument<5>::Type, SysType::Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]));
-  }
-}
-
-static __forceinline void exec_AliveEnemiesCountQuery(EntityId eid) {}
-
-static RegSysSpec<3489973887, decltype(exec_AliveEnemiesCountQuery)> _reg_sys_exec_AliveEnemiesCountQuery("exec_AliveEnemiesCountQuery", exec_AliveEnemiesCountQuery, { "eid" }, { "enemy" }, {  }, { "is_alive" }, {  }, false); 
-
-template <> template <> __forceinline void RegSysSpec<3489973887, decltype(exec_AliveEnemiesCountQuery)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const {}
-
-template <typename C> void AliveEnemiesCountQuery::exec(C callback)
-{
-  using SysType = RegSysSpec<3489973887, decltype(exec_AliveEnemiesCountQuery)>;
-  const auto &sys = _reg_sys_exec_AliveEnemiesCountQuery;
-  const auto &components = sys.components;
-  const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storages[0];
-  ExtraArguments args;
-  for (int i = 0; i < (int)query.eids.size(); ++i)
-  {
-    callback();
   }
 }
 
@@ -238,13 +217,6 @@ template <> template <> __forceinline void RegSysSpec<1963192783, decltype(remov
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
   remove_death_fx(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
-}
-
-template <> template <> __forceinline void RegSysSpec<1411313099, decltype(update_spawner)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
-{
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  update_spawner(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
 template <> template <> __forceinline void RegSysSpec<1506347756, decltype(update_camera)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const

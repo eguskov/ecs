@@ -540,39 +540,39 @@ static __forceinline void remove_death_fx(
   }
 }
 
-DEF_QUERY(AliveEnemiesCountQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
+// DEF_QUERY(AliveEnemiesCountQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
 
-DEF_SYS(HAVE_COMP(spawner))
-static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer, const SpawnList &spawn_list)
-{
-  int count = 0;
-  AliveEnemiesCountQuery::exec([&count]() { ++count; });
+// DEF_SYS(HAVE_COMP(spawner))
+// static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer, const SpawnList &spawn_list)
+// {
+  // int count = 0;
+  // AliveEnemiesCountQuery::exec([&count]() { ++count; });
 
-  if (count == 0)
-  {
-    spawn_timer.time -= stage.dt;
-    if (spawn_timer.time < 0.f)
-    {
-      spawn_timer.time = spawn_timer.period;
+  // if (count == 0)
+  // {
+  //   spawn_timer.time -= stage.dt;
+  //   if (spawn_timer.time < 0.f)
+  //   {
+  //     spawn_timer.time = spawn_timer.period;
 
-      for (const auto &d : spawn_list.data)
-      {
-        JDocument doc;
-        auto &a = doc.GetAllocator();
-        JValue posValue(rapidjson::kArrayType);
-        posValue.PushBack(d.pos.x, a);
-        posValue.PushBack(d.pos.y, a);
-        JValue velValue(rapidjson::kArrayType);
-        velValue.PushBack(d.vel.x, a);
-        velValue.PushBack(d.vel.y, a);
-        JValue value(rapidjson::kObjectType);
-        value.AddMember("pos", posValue, a);
-        value.AddMember("vel", velValue, a);
-        g_mgr->createEntity(d.templ.c_str(), value);
-      }
-    }
-  }
-}
+  //     for (const auto &d : spawn_list.data)
+  //     {
+  //       JDocument doc;
+  //       auto &a = doc.GetAllocator();
+  //       JValue posValue(rapidjson::kArrayType);
+  //       posValue.PushBack(d.pos.x, a);
+  //       posValue.PushBack(d.pos.y, a);
+  //       JValue velValue(rapidjson::kArrayType);
+  //       velValue.PushBack(d.vel.x, a);
+  //       velValue.PushBack(d.vel.y, a);
+  //       JValue value(rapidjson::kObjectType);
+  //       value.AddMember("pos", posValue, a);
+  //       value.AddMember("vel", velValue, a);
+  //       g_mgr->createEntity(d.templ.c_str(), value);
+  //     }
+  //   }
+  // }
+// }
 
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_camera(const UpdateStage &stage, const glm::vec2 &pos)

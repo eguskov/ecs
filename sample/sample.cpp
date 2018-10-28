@@ -100,6 +100,10 @@ int main()
   script::register_component_property("Jump", "float height", offsetof(Jump, height));
   script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
 
+  script::register_component<TimerComponent>("TimerComponent");
+  script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
+  script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
+
   //script::ScriptECS scriptECS;
   //scriptECS.build("script.as");
 

@@ -6,6 +6,32 @@ class AliveEnemy
   vec2@ vel;
 }
 
+[query { "$is-true": "is_alive", "$have": "enemy" }]
+class AliveEnemiesCountQuery
+{
+}
+
+[system]
+void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
+{
+  int count = 0;
+  for (auto it = Query<AliveEnemiesCountQuery>().perform(); it.hasNext(); ++it)
+  {
+    ++count;
+  }
+
+  print("count: "+count);
+
+  if (count == 0)
+  {
+    spawn_timer.time -= stage.dt;
+    if (spawn_timer.time < 0.f)
+    {
+      spawn_timer.time = spawn_timer.period;
+    }
+  }
+}
+
 [system { "$have": "enemy" }]
 void on_enenmy_kill_handler(const EventOnKillEnemy@ ev, const vec2@ pos)
 {
