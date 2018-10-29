@@ -268,57 +268,6 @@
             "time": 5.0,
             "period": 5.0
           }
-        },
-        "spawn_list": {
-          "$type": "spawn_list",
-          "$value": {
-            "data": [
-              {
-                "template": "opossum",
-                "pos": [
-                  0.0,
-                  4.0
-                ],
-                "vel": [
-                  -20.0,
-                  0.0
-                ]
-              },
-              {
-                "template": "eagle",
-                "pos": [
-                  128.0,
-                  -80.0
-                ],
-                "vel": [
-                  0.0,
-                  -1.0
-                ]
-              },
-              {
-                "template": "eagle",
-                "pos": [
-                  -64.0,
-                  -96.0
-                ],
-                "vel": [
-                  -1.0,
-                  0.0
-                ]
-              },
-              {
-                "template": "frog",
-                "pos": [
-                  0.0,
-                  6.0
-                ],
-                "vel": [
-                  0.0,
-                  0.0
-                ]
-              }
-            ]
-          }
         }
       }
     },

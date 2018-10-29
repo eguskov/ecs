@@ -31,8 +31,9 @@ struct EventOnWallHit : Event
 {
   float d = 0.f;
   glm::vec2 normal = { 0.f, 0.f };
+  glm::vec2 vel = { 0.f, 0.f };
   EventOnWallHit() = default;
-  EventOnWallHit(float _d, const glm::vec2 &n) : d(_d), normal(n) {}
+  EventOnWallHit(float _d, const glm::vec2 &n, const glm::vec2 &v) : d(_d), normal(n), vel(v) {}
 }
 DEF_EVENT(EventOnWallHit);
 

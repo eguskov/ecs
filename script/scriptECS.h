@@ -21,6 +21,16 @@ namespace script
     void initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const override final;
   };
 
+  struct ScriptQueryDesc
+  {
+    asITypeInfo *type = nullptr;
+    eastl::vector<CompDesc> components;
+    eastl::vector<CompDesc> haveComponents;
+    eastl::vector<CompDesc> notHaveComponents;
+    eastl::vector<CompDesc> isTrueComponents;
+    eastl::vector<CompDesc> isFalseComponents;
+  };
+
   struct ScriptECS
   {
     int callbackId = -1;
@@ -31,6 +41,8 @@ namespace script
     eastl::vector<ScriptSys> systems;
     eastl::vector<eastl::vector<RegSys::Remap>> remaps;
     eastl::vector<Query> queries;
+
+    eastl::hash_map<int, ScriptQueryDesc> queryDescs;
 
     ScriptECS();
     ~ScriptECS();

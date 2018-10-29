@@ -42,7 +42,7 @@ namespace script
 
       const RegComp *desc = find_comp(componentTypeNames.back().c_str());
       if (!desc)
-        desc = find_comp(param.name.c_str());
+        desc = mgr->getComponentDescByName(param.name.c_str());
       assert(desc != nullptr);
       components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), param.name.c_str(), desc });
 
@@ -64,7 +64,8 @@ namespace script
       const char *typeName = componentTypeNames[compIdx].c_str();
       const RegComp *desc = find_comp(typeName);
       if (!desc)
-        desc = find_comp(name);
+        desc = g_mgr->getComponentDescByName(name);
+      assert(desc != nullptr);
 
       for (size_t i = 0; i < template_comps.size(); ++i)
         if (template_comps[i].desc->id == desc->id && template_comps[i].name == name)
@@ -89,7 +90,7 @@ namespace script
     release();
   }
 
-  static void process_metadata(const JDocument &doc, const char *key, eastl::vector<CompDesc> &out_components)
+  static void process_metadata(const JFrameDocument &doc, const char *key, eastl::vector<CompDesc> &out_components)
   {
     if (!doc.HasMember(key))
       return;
@@ -126,6 +127,7 @@ namespace script
     systems.clear();
     remaps.clear();
     queries.clear();
+    queryDescs.clear();
 
     bool isOk = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule &module)
     {
@@ -145,12 +147,69 @@ namespace script
 
           if (match[1].length() > 0)
           {
-            JDocument doc;
+            JFrameDocument doc;
             doc.Parse(match[1].str().c_str());
             process_metadata(doc, "$is-true", sys.isTrueComponents);
             process_metadata(doc, "$is-false", sys.isFalseComponents);
             process_metadata(doc, "$have", sys.haveComponents);
             process_metadata(doc, "$not-have", sys.notHaveComponents);
+          }
+        }
+      }
+
+      for (int i = 0; i < (int)module.GetObjectTypeCount(); ++i)
+      {
+        asITypeInfo *type = module.GetObjectTypeByIndex(i);
+        const int typeId = type->GetTypeId();
+        eastl::string metadata = builder.GetMetadataStringForType(typeId);
+
+        std::cmatch match;
+        std::regex re = std::regex("(?:\\s*)\\bquery\\b(?:\\s*)(.*)");
+        std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
+
+        if (match.size() > 0)
+        {
+          ScriptQueryDesc &queryDesc = queryDescs[typeId];
+
+          queryDesc.type = type;
+
+          if (match[1].length() > 0)
+          {
+            JFrameDocument doc;
+            doc.Parse(match[1].str().c_str());
+
+            process_metadata(doc, "$is-true", queryDesc.isTrueComponents);
+            process_metadata(doc, "$is-false", queryDesc.isFalseComponents);
+            process_metadata(doc, "$have", queryDesc.haveComponents);
+            process_metadata(doc, "$not-have", queryDesc.notHaveComponents);
+          }
+
+          assert(type->GetPropertyCount() != 0 ||
+            !queryDesc.isTrueComponents.empty() ||
+            !queryDesc.isFalseComponents.empty() ||
+            !queryDesc.haveComponents.empty() ||
+            !queryDesc.notHaveComponents.empty());
+          assert(type->GetFactoryCount() != 0);
+
+          for (int i = 0; i < (int)type->GetPropertyCount(); ++i)
+          {
+            const char *name = nullptr;
+            int typeId = -1;
+            type->GetProperty(i, &name, &typeId);
+
+            const char *typeName = nullptr;
+
+            if (typeId == asTYPEID_FLOAT) typeName = "float";
+            else if (typeId == asTYPEID_INT32) typeName = "int";
+            else if (typeId == asTYPEID_BOOL) typeName = "bool";
+            else typeName = internal::get_engine()->GetTypeInfoById(typeId)->GetName();
+
+            const RegComp *desc = find_comp(typeName);
+            if (!desc)
+              desc = find_comp(name);
+            assert(desc != nullptr);
+
+            queryDesc.components.push_back({ i, g_mgr->getComponentNameId(name), name, desc });
           }
         }
       }
@@ -240,6 +299,7 @@ namespace script
           const auto &remap = remaps[entity.templateId][sys.id];
 
           eventCtx->Prepare(sys.fn);
+          eventCtx->SetUserData(this, 1000);
           internal::set_arg_wrapped(eventCtx, 0, ev.mem);
           for (int i = 1; i < (int)remap.size(); ++i)
           {
@@ -265,6 +325,7 @@ namespace script
         const auto &remap = remaps[entity.templateId][query.sys->id];
 
         stageCtx->Prepare(((ScriptSys*)query.sys)->fn);
+        stageCtx->SetUserData(this, 1000);
         internal::set_arg_wrapped(stageCtx, 0, stage.mem);
         for (int i = 1; i < (int)remap.size(); ++i)
         {

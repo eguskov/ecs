@@ -7,7 +7,7 @@
 #include "script.ecs.h"
 
 DEF_SYS()
-static __forceinline void reload_script_handler(const CmdReloadScript &ev, script::ScriptComponent &script)
+static __forceinline void reload_script_handler(const CmdReloadScript &ev, const EntityId &eid, script::ScriptComponent &script)
 {
   script.scriptECS.build(script.name.c_str(), script.path.c_str());
 }

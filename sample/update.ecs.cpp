@@ -25,31 +25,6 @@ struct HUD
 }
 DEF_COMP(HUD, hud);
 
-struct SpawnList
-{
-  struct Data
-  {
-    eastl::string templ;
-    glm::vec2 pos;
-    glm::vec2 vel;
-  };
-
-  eastl::vector<Data> data;
-
-  bool set(const JValue &value)
-  {
-    for (int i = 0; i < (int)value["data"].Size(); ++i)
-    {
-      auto &d = data.emplace_back();
-      d.templ = value["data"][i]["template"].GetString();
-      Setter<glm::vec2>::set(d.pos, value["data"][i]["pos"]);
-      Setter<glm::vec2>::set(d.vel, value["data"][i]["vel"]);
-    }
-    return true;
-  };
-}
-DEF_COMP(SpawnList, spawn_list);
-
 struct UserInput
 {
   bool left = false;
@@ -399,8 +374,12 @@ static __forceinline void update_auto_move_collisions(
       else if (normal.x > 0.f)
         d = pos.x - myCollisionRect.x + collision_rect.z - myPos.x;
 
-      // TODO: Solve a collision and send an event
-      g_mgr->sendEvent(eid, EventOnWallHit{ d, normal });
+      g_mgr->sendEvent(eid, EventOnWallHit{ d, normal, myVel });
+
+      const float proj = glm::dot(myVel, normal);
+      if (proj < 0.f)
+        myVel += fabsf(proj) * normal;
+      myPos += fabsf(d) * normal;
     }
   });
 
@@ -539,40 +518,6 @@ static __forceinline void remove_death_fx(
     g_mgr->deleteEntity(eid);
   }
 }
-
-// DEF_QUERY(AliveEnemiesCountQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
-
-// DEF_SYS(HAVE_COMP(spawner))
-// static __forceinline void update_spawner(const UpdateStage &stage, TimerComponent &spawn_timer, const SpawnList &spawn_list)
-// {
-  // int count = 0;
-  // AliveEnemiesCountQuery::exec([&count]() { ++count; });
-
-  // if (count == 0)
-  // {
-  //   spawn_timer.time -= stage.dt;
-  //   if (spawn_timer.time < 0.f)
-  //   {
-  //     spawn_timer.time = spawn_timer.period;
-
-  //     for (const auto &d : spawn_list.data)
-  //     {
-  //       JDocument doc;
-  //       auto &a = doc.GetAllocator();
-  //       JValue posValue(rapidjson::kArrayType);
-  //       posValue.PushBack(d.pos.x, a);
-  //       posValue.PushBack(d.pos.y, a);
-  //       JValue velValue(rapidjson::kArrayType);
-  //       velValue.PushBack(d.vel.x, a);
-  //       velValue.PushBack(d.vel.y, a);
-  //       JValue value(rapidjson::kObjectType);
-  //       value.AddMember("pos", posValue, a);
-  //       value.AddMember("vel", velValue, a);
-  //       g_mgr->createEntity(d.templ.c_str(), value);
-  //     }
-  //   }
-  // }
-// }
 
 DEF_SYS(HAVE_COMP(user_input))
 static __forceinline void update_camera(const UpdateStage &stage, const glm::vec2 &pos)

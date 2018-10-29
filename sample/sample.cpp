@@ -83,6 +83,7 @@ int main()
   script::register_component<EventOnWallHit>("EventOnWallHit");
   script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
   script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
+  script::register_component_property("EventOnWallHit", "vec2 vel", offsetof(EventOnWallHit, vel));
 
   script::register_component<UpdateStage>("UpdateStage");
   script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
