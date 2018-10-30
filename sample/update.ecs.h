@@ -42,7 +42,7 @@ struct TimerComponent
   float time = 0.f;
   float period = 5.f;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     assert(value.HasMember("time"));
     time = value["time"].GetFloat();
@@ -57,7 +57,7 @@ struct NoHitTimerComponent
 {
   float time = 0.f;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     assert(value.HasMember("time"));
     time = value["time"].GetFloat();
@@ -72,7 +72,7 @@ struct ColorComponent
   uint8_t g = 255;
   uint8_t b = 255;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     assert(value.HasMember("r"));
     r = (uint8_t)value["r"].GetInt();
@@ -93,7 +93,7 @@ struct AutoMove
   float duration = 0.f;
   float length = 0.f;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     jump = value["jump"].GetBool();
     duration = value["duration"].GetFloat();
@@ -112,7 +112,7 @@ struct Jump
   float height = 0.f;
   float duration = 0.f;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     height = value["height"].GetFloat();
     duration = value["duration"].GetFloat();
@@ -125,7 +125,7 @@ struct Gravity
 {
   float mass = 0.f;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     mass = value["mass"].GetFloat();
     return true;

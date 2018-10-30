@@ -132,7 +132,23 @@ void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMov
     dir = -1.f;
 }
 
-void main()
+[on_load]
+void load()
 {
-  print("main");
+  print("script.as: load");
+
+  create_entity("script", Map = {
+    {"script", Map = {{"name", "level_generator"}, {"path", "level_generator.as"}}}
+  });
+
+  create_entity("fox", Map = {
+    {"pos", Array = {0.f, -128.f}},
+    {"vel", Array = {0.f, 0.f}}
+  });
+}
+
+[on_reload]
+void reload()
+{
+  print("script.as: reload");
 }

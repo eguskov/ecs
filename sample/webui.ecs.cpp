@@ -104,7 +104,7 @@ struct WebsocketServer
     mg_mgr_free(&mgr);
   }
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     return true;
   };

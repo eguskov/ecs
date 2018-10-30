@@ -21,19 +21,19 @@
       "$template": "enemy_spawner",
       "$components": {}
     },
-    {
-      "$template": "fox",
-      "$components": {
-        "pos": [
-          0.0,
-          -128.0
-        ],
-        "vel": [
-          0.0,
-          0.0
-        ]
-      }
-    },
+    // {
+    //   "$template": "fox",
+    //   "$components": {
+    //     "pos": [
+    //       0.0,
+    //       -128.0
+    //     ],
+    //     "vel": [
+    //       0.0,
+    //       0.0
+    //     ]
+    //   }
+    // },
     {
       "$template": "block-big",
       "$components": {

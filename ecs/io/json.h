@@ -23,7 +23,10 @@ struct JFrameAllocator
 
   void* Realloc(void *orig_ptr, size_t orig_sz, size_t new_sz)
   {
-    return /* orig_ptr && orig_sz < new_sz ? orig_ptr :  */alloc_frame_mem(new_sz);
+    void *mem = alloc_frame_mem(new_sz);
+    if (orig_ptr)
+      ::memmove(mem, orig_ptr, orig_sz);
+    return mem;
   }
 
   static void Free(void *) {}

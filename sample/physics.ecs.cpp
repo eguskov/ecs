@@ -86,7 +86,7 @@ struct PhysicsWorld
 
   PhysDebugDraw debugDraw;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     return true;
   }
@@ -115,7 +115,7 @@ struct CollisionShape
 
   eastl::vector<Shape> shapes;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     for (int i = 0; i < (int)value.Size(); ++i)
     {
@@ -142,7 +142,7 @@ struct PhysicsBody
   b2BodyType type = b2_staticBody;
   b2Body *body = nullptr;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     eastl::string t = value["type"].GetString();
     if (t == "static")

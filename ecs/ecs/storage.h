@@ -67,7 +67,7 @@ struct Storage
 };
 
 template <typename T>
-struct StorageSpec : Storage
+struct StorageSpec final : Storage
 {
   eastl::vector<T> items;
 
@@ -138,11 +138,9 @@ struct StorageSpec : Storage
 
       invalidate();
     }
-    else
-    {
-      uint8_t *mem = (uint8_t*)&items[i];
-      new (mem) T;
-    }
+
+    uint8_t *mem = (uint8_t*)&items[i];
+    new (mem) T;
 
     freeMask[i] = false;
 

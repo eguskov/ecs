@@ -33,7 +33,7 @@ namespace script
 
   struct ScriptECS
   {
-    int callbackId = -1;
+    bool loaded = false;
 
     asIScriptContext *eventCtx = nullptr;
     asIScriptContext *stageCtx = nullptr;
@@ -44,8 +44,13 @@ namespace script
 
     eastl::hash_map<int, ScriptQueryDesc> queryDescs;
 
-    ScriptECS();
+    ScriptECS() = default;
+    ScriptECS(ScriptECS &&);
+    ScriptECS(const ScriptECS&);
     ~ScriptECS();
+
+    ScriptECS& operator=(ScriptECS&&);
+    ScriptECS& operator=(const ScriptECS&);
 
     bool build(const char *name, const char *path);
     void release();
@@ -71,7 +76,15 @@ namespace script
     eastl::string path;
     ScriptECS scriptECS;
 
-    bool set(const JValue &value)
+    ScriptComponent() = default;
+    ScriptComponent(ScriptComponent &&) = default;
+    ScriptComponent(const ScriptComponent&) = default;
+    ~ScriptComponent() = default;
+
+    ScriptComponent& operator=(ScriptComponent&&) = default;
+    ScriptComponent& operator=(const ScriptComponent &assign) = default;
+
+    bool set(const JFrameValue &value)
     {
       assert(value.HasMember("name"));
       name = value["name"].GetString();

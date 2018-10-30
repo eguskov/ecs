@@ -12,7 +12,7 @@ struct RegCompSpec<EntityId> : RegComp
 
   static int ID;
 
-  bool init(uint8_t *, const JValue &) const override final { return true; }
+  bool init(uint8_t *, const JFrameValue &) const override final { return true; }
 
   RegCompSpec() : RegComp("eid", sizeof(CompType))
   {
@@ -23,7 +23,7 @@ struct RegCompSpec<EntityId> : RegComp
 template <>
 struct Setter<bool>
 {
-  static inline bool set(bool &v, const JValue &value)
+  static inline bool set(bool &v, const JFrameValue &value)
   {
     assert(value.IsBool());
     v = value.GetBool();
@@ -34,7 +34,7 @@ struct Setter<bool>
 template <>
 struct Setter<int>
 {
-  static inline bool set(int &v, const JValue &value)
+  static inline bool set(int &v, const JFrameValue &value)
   {
     assert(value.IsInt());
     v = value.GetInt();
@@ -45,7 +45,7 @@ struct Setter<int>
 template <>
 struct Setter<float>
 {
-  static inline bool set(float &v, const JValue &value)
+  static inline bool set(float &v, const JFrameValue &value)
   {
     assert(value.IsFloat());
     v = value.GetFloat();
@@ -56,7 +56,7 @@ struct Setter<float>
 template <>
 struct Setter<glm::vec2>
 {
-  static inline bool set(glm::vec2 &vec, const JValue &value)
+  static inline bool set(glm::vec2 &vec, const JFrameValue &value)
   {
     assert(value.IsArray() && value.Size() >= 2);
     vec.x = value[0].GetFloat();
@@ -68,7 +68,7 @@ struct Setter<glm::vec2>
 template <>
 struct Setter<glm::vec3>
 {
-  static inline bool set(glm::vec3 &vec, const JValue &value)
+  static inline bool set(glm::vec3 &vec, const JFrameValue &value)
   {
     assert(value.IsArray() && value.Size() >= 3);
     vec.x = value[0].GetFloat();
@@ -81,7 +81,7 @@ struct Setter<glm::vec3>
 template <>
 struct Setter<glm::vec4>
 {
-  static inline bool set(glm::vec4 &vec, const JValue &value)
+  static inline bool set(glm::vec4 &vec, const JFrameValue &value)
   {
     assert(value.IsArray() && value.Size() >= 4);
     vec.x = value[0].GetFloat();

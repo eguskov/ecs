@@ -8,7 +8,6 @@
 #include <ecs/ecs.h>
 #include <ecs/component.h>
 #include <ecs/system.h>
-#include <ecs/map.h>
 
 #include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
@@ -490,36 +489,45 @@ namespace script
     asUINT num = *(asUINT*)data;
     assert(num > 0);
 
-    struct Values
-    {
-      asUINT typeId;
-      void *value;
-    };
-
-    Values *values = (Values*)(((asUINT*)data) + 1);
-
     JFrameValue *arr = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kArrayType);
 
+    uint8_t *ptr = ((uint8_t*)data) + 4;
     for (asUINT i = 0; i < num; ++i)
     {
-      const Values &value = values[i];
-      if (value.typeId == asTYPEID_INT64)
-        push_array_int(*arr, (int)*(int64_t*)&value.value);
-      else if (value.typeId == asTYPEID_INT16)
-        push_array_int(*arr, (int)*(int16_t*)&value.value);
-      else if (value.typeId == asTYPEID_INT32)
-        push_array_int(*arr, *(int*)&value.value);
-      else if (value.typeId == asTYPEID_FLOAT)
-        push_array_float(*arr, *(float*)&value.value);
+      int32_t &typeId = *(int32_t*)ptr;
+      ptr += sizeof(int32_t);
+
+      if (typeId == asTYPEID_INT32)
+      {
+        push_array_int(*arr, *(int*)ptr);
+        ptr += sizeof(int32_t);
+      }
+      else if (typeId == asTYPEID_FLOAT)
+      {
+        push_array_float(*arr, *(float*)ptr);
+        ptr += sizeof(float);
+      }
       else
       {
-        asITypeInfo *info = engine->GetTypeInfoById(value.typeId);
+        asITypeInfo *info = engine->GetTypeInfoById(typeId);
+        assert(info != nullptr);
         if (::strcmp(info->GetName(), "string") == 0)
-          push_array_string(*arr, *(std::string*)&value.value);
+        {
+          push_array_string(*arr, *(std::string*)ptr);
+          ptr += sizeof(std::string);
+        }
         else if (::strcmp(info->GetName(), "Map") == 0)
-          push_array_map(*arr, *(JFrameValue*)value.value);
+        {
+          push_array_map(*arr, **(JFrameValue**)ptr);
+          ptr += sizeof(JFrameValue*);
+        }
         else if (::strcmp(info->GetName(), "Array") == 0)
-          push_array_array(*arr, *(JFrameValue*)value.value);
+        {
+          push_array_array(*arr, **(JFrameValue**)ptr);
+          ptr += sizeof(JFrameValue*);
+        }
+        else
+          assert(false);
       }
     }
 
@@ -531,37 +539,48 @@ namespace script
     asUINT num = *(asUINT*)data;
     assert(num > 0);
 
-    struct Values
-    {
-      std::string key;
-      asUINT typeId;
-      void *value;
-    };
-
-    Values *values = (Values*)(((asUINT*)data) + 1);
-
     JFrameValue *m = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
 
+    uint8_t *ptr = ((uint8_t*)data) + 4;
     for (asUINT i = 0; i < num; ++i)
     {
-      const Values &value = values[i];
-      if (value.typeId == asTYPEID_INT64)
-        set_map_int(*m, value.key, (int)*(int64_t*)&value.value);
-      else if (value.typeId == asTYPEID_INT16)
-        set_map_int(*m, value.key, (int)*(int16_t*)&value.value);
-      else if (value.typeId == asTYPEID_INT32)
-        set_map_int(*m, value.key, *(int*)&value.value);
-      else if (value.typeId == asTYPEID_FLOAT)
-        set_map_float(*m, value.key, *(float*)&value.value);
+      std::string &key = *(std::string*)ptr;
+      ptr += sizeof(std::string);
+
+      int32_t &typeId = *(int32_t*)ptr;
+      ptr += sizeof(int32_t);
+
+      if (typeId == asTYPEID_INT32)
+      {
+        set_map_int(*m, key, *(int*)ptr);
+        ptr += sizeof(int32_t);
+      }
+      else if (typeId == asTYPEID_FLOAT)
+      {
+        set_map_float(*m, key, *(float*)ptr);
+        ptr += sizeof(float);
+      }
       else
       {
-        asITypeInfo *info = engine->GetTypeInfoById(value.typeId);
+        asITypeInfo *info = engine->GetTypeInfoById(typeId);
+        assert(info != nullptr);
         if (::strcmp(info->GetName(), "string") == 0)
-          set_map_string(*m, value.key, *(std::string*)&value.value);
+        {
+          set_map_string(*m, key, *(std::string*)ptr);
+          ptr += sizeof(std::string);
+        }
         else if (::strcmp(info->GetName(), "Map") == 0)
-          set_map_map(*m, value.key, *(JFrameValue*)value.value);
+        {
+          set_map_map(*m, key, **(JFrameValue**)ptr);
+          ptr += sizeof(JFrameValue*);
+        }
         else if (::strcmp(info->GetName(), "Array") == 0)
-          set_map_array(*m, value.key, *(JFrameValue*)value.value);
+        {
+          set_map_array(*m, key, **(JFrameValue**)ptr);
+          ptr += sizeof(JFrameValue*);
+        }
+        else
+          assert(false);
       }
     }
 
@@ -746,9 +765,7 @@ namespace script
   asIScriptFunction* find_function_by_decl(asIScriptModule *module, const char *decl)
   {
     assert(module != nullptr);
-    asIScriptFunction *fn = module->GetFunctionByDecl(decl);
-    assert(fn != nullptr);
-    return fn;
+    return module->GetFunctionByDecl(decl);
   }
 
   asIScriptContext* find_free_context()

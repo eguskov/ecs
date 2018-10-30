@@ -73,21 +73,67 @@ namespace script
     }
   }
 
-  ScriptECS::ScriptECS()
-  {
-    eventCtx = internal::create_context();
-    stageCtx = internal::create_context();
-
-    callbackId = g_mgr->eventProcessCallbacks.size();
-    g_mgr->eventProcessCallbacks.emplace_back() = [this](EntityId eid, int event_id, const RawArg &ev)
-    {
-      return sendEventSync(eid, event_id, ev);
-    };
-  }
-
   ScriptECS::~ScriptECS()
   {
     release();
+  }
+
+  ScriptECS::ScriptECS(const ScriptECS &assign)
+  {
+    (*this) = assign;
+  }
+
+  ScriptECS& ScriptECS::operator=(const ScriptECS &assign)
+  {
+    if (this == &assign)
+      return *this;
+
+    release();
+
+    eventCtx = assign.eventCtx;
+    stageCtx = assign.stageCtx;
+
+    eventCtx->AddRef();
+    stageCtx->AddRef();
+
+    loaded = assign.loaded;
+
+    systems = assign.systems;
+    remaps = assign.remaps;
+    queries = assign.queries;
+
+    for (auto &sys : systems)
+      sys.fn->AddRef();
+
+    queryDescs = assign.queryDescs;
+
+    return *this;
+  }
+
+  ScriptECS::ScriptECS(ScriptECS &&assign)
+  {
+    (*this) = eastl::move(assign);
+  }
+
+  ScriptECS& ScriptECS::operator=(ScriptECS &&assign)
+  {
+    release();
+
+    eventCtx = assign.eventCtx;
+    stageCtx = assign.stageCtx;
+
+    assign.eventCtx = nullptr;
+    assign.stageCtx = nullptr;
+
+    loaded = assign.loaded;
+
+    systems = eastl::move(assign.systems);
+    remaps = eastl::move(assign.remaps);
+    queries = eastl::move(assign.queries);
+
+    queryDescs = eastl::move(assign.queryDescs);
+
+    return *this;
   }
 
   static void process_metadata(const JFrameDocument &doc, const char *key, eastl::vector<CompDesc> &out_components)
@@ -137,22 +183,35 @@ namespace script
         eastl::string metadata = builder.GetMetadataStringForFunc(fn);
 
         std::cmatch match;
-        std::regex re = std::regex("(?:\\s*)\\bsystem\\b(?:\\s*)(.*)");
+        std::regex re = std::regex("(?:\\s*)\\b(system|on_load|on_reload)\\b(?:\\s*)(.*)");
         std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
 
         if (match.size() > 0)
         {
-          auto &sys = systems.emplace_back(fn);
-          fn->AddRef();
-
-          if (match[1].length() > 0)
+          if (match[1].str() == "system")
           {
-            JFrameDocument doc;
-            doc.Parse(match[1].str().c_str());
-            process_metadata(doc, "$is-true", sys.isTrueComponents);
-            process_metadata(doc, "$is-false", sys.isFalseComponents);
-            process_metadata(doc, "$have", sys.haveComponents);
-            process_metadata(doc, "$not-have", sys.notHaveComponents);
+            auto &sys = systems.emplace_back(fn);
+            fn->AddRef();
+
+            if (match[1].length() > 0)
+            {
+              JFrameDocument doc;
+              doc.Parse(match[2].str().c_str());
+              process_metadata(doc, "$is-true", sys.isTrueComponents);
+              process_metadata(doc, "$is-false", sys.isFalseComponents);
+              process_metadata(doc, "$have", sys.haveComponents);
+              process_metadata(doc, "$not-have", sys.notHaveComponents);
+            }
+          }
+          else if (match[1].str() == "on_load")
+          {
+            if (!loaded)
+              call(fn);
+          }
+          else if (match[1].str() == "on_reload")
+          {
+            if (loaded)
+              call(fn);
           }
         }
       }
@@ -221,6 +280,12 @@ namespace script
     if (!isOk)
       return false;
 
+    if (!loaded)
+    {
+      eventCtx = internal::create_context();
+      stageCtx = internal::create_context();
+    }
+
     int id = 0;
     for (auto &sys : systems)
     {
@@ -240,6 +305,8 @@ namespace script
 
     invalidateQueries();
 
+    loaded = true;
+
     return true;
   }
 
@@ -247,12 +314,11 @@ namespace script
   {
     if (eventCtx)
       eventCtx->Release();
-    eventCtx = nullptr;
     if (stageCtx)
       stageCtx->Release();
-    stageCtx = nullptr;
 
-    g_mgr->eventProcessCallbacks[callbackId] = nullptr;
+    eventCtx = nullptr;
+    stageCtx = nullptr;
 
     for (auto &sys : systems)
     {
@@ -263,6 +329,7 @@ namespace script
     queries.clear();
     systems.clear();
     remaps.clear();
+    queryDescs.clear();
   }
 
   void ScriptECS::invalidateQueries()

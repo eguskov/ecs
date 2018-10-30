@@ -1,6 +1,7 @@
 #include <ecs/ecs.h>
 
 #include <stages/update.stage.h>
+#include <stages/dispatchEvent.stage.h>
 
 #include <scriptECS.h>
 
@@ -29,4 +30,10 @@ DEF_SYS()
 static __forceinline void update_script(const UpdateStage &stage, script::ScriptComponent &script)
 {
   script.scriptECS.tick(stage);
+}
+
+DEF_SYS()
+static __forceinline void dispatch_event_script(const DispatchEventStage &stage, script::ScriptComponent &script)
+{
+  script.scriptECS.sendEventSync(stage.eid, stage.eventId, stage.ev);
 }

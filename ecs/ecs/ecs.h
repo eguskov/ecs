@@ -140,8 +140,6 @@ enum EntityManagerStatus
 
 struct EntityManager
 {
-  using EventProcessCallback = eastl::function<void (EntityId, int, const RawArg &)>;
-
   int eidCompId = -1;
   uint32_t status = kStatusNone;
 
@@ -165,8 +163,6 @@ struct EntityManager
 
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
-
-  eastl::vector<EventProcessCallback> eventProcessCallbacks;
 
   static void init();
   static void release();

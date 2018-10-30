@@ -13,13 +13,13 @@
 
 #ifdef __CODEGEN__
 #define DEF_COMP(type, name) __attribute__((annotate("@component: " #name)))
-#define DEF_EMPTY_COMP(type, name) { bool set(const JValue&) { return true; }; } __attribute__((annotate("@component: " #name)));
+#define DEF_EMPTY_COMP(type, name) { bool set(const JFrameValue&) { return true; }; } __attribute__((annotate("@component: " #name)));
 #else
 #define DEF_COMP(type, name) ;REG_COMP(type, name);
-#define DEF_EMPTY_COMP(type, name) { bool set(const JValue&) { return true; }; };REG_COMP(type, name);
+#define DEF_EMPTY_COMP(type, name) { bool set(const JFrameValue&) { return true; }; };REG_COMP(type, name);
 #endif
 
-#define DEF_SET bool set(const JValue&) { return true; }
+#define DEF_SET bool set(const JFrameValue&) { return true; }
 
 #define REG_COMP(type, n) \
   template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #n; }; \
@@ -54,7 +54,7 @@ struct RegComp
   RegComp(const char *_name, int _size);
   virtual ~RegComp();
 
-  virtual bool init(uint8_t *mem, const JValue &value) const = 0;
+  virtual bool init(uint8_t *mem, const JFrameValue &value) const = 0;
 
   virtual Storage* createStorage() const { return nullptr; }
 };
@@ -75,7 +75,7 @@ struct CompSetter;
 template <typename T>
 struct CompSetter<T, true>
 {
-  static inline bool set(T *comp, const JValue &value)
+  static inline bool set(T *comp, const JFrameValue &value)
   {
     return comp->set(value);
   }
@@ -87,7 +87,7 @@ struct Setter;
 template <typename T>
 struct CompSetter<T, false>
 {
-  static inline bool set(T *comp, const JValue &value)
+  static inline bool set(T *comp, const JFrameValue &value)
   {
     return Setter<T>::set(*comp, value);
   }
@@ -106,7 +106,7 @@ struct ArrayComp
   {
   }
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     assert(value.IsArray());
     for (int i = 0; i < Size; ++i)
@@ -134,7 +134,7 @@ struct RegCompSpec : RegComp
 
   static int ID;
 
-  bool init(uint8_t *mem, const JValue &value) const override final
+  bool init(uint8_t *mem, const JFrameValue &value) const override final
   {
     return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
   }

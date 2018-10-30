@@ -180,16 +180,17 @@
     <ClInclude Include="ecs\system.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="stages\update.stage.h" />
+    <ClInclude Include="stages\dispatchEvent.stage.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="components\core.cpp" />
     <ClCompile Include="ecs\ecs.cpp" />
     <ClCompile Include="ecs\memory.cpp" />
     <ClCompile Include="ecs\snprintf.cpp" />
-    <ClCompile Include="ecs\map.cpp" />
     <ClCompile Include="ecs\framemem.cpp" />
     <ClCompile Include="stages\render.stage.cpp" />
     <ClCompile Include="stages\update.stage.cpp" />
+    <ClCompile Include="stages\dispatchEvent.stage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />

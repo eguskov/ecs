@@ -1,5 +1,7 @@
 #include "ecs.h"
 
+#include "stages/dispatchEvent.stage.h"
+
 #include <sstream>
 
 REG_EVENT_INIT(EventOnEntityCreate);
@@ -445,25 +447,30 @@ int EntityManager::getTemplateId(const char *name)
 }
 
 template <typename Allocator>
-static void override_component(JValue &dst, JValue &src, const char *name, Allocator &allocator)
+static void override_component(JFrameValue &dst, JFrameValue &src, const char *name, Allocator &allocator)
 {
   if (!dst.HasMember(name))
     dst.AddMember(rapidjson::StringRef(name), src, allocator);
 }
 
-static void process_templates(EntityManager *mgr, const EntityTemplate &templ, JValue &dst, JDocument &doc)
+template <typename Allocator>
+static void process_templates(EntityManager *mgr,
+  const EntityTemplate &templ,
+  const JDocument &templates_doc,
+  JFrameValue &dst,
+  Allocator &allocator)
 {
   for (int id : templ.extends)
   {
-    const JValue &extendsValue = doc["$templates"][mgr->templates[id].docId];
+    const JValue &extendsValue = templates_doc["$templates"][mgr->templates[id].docId];
     for (auto it = extendsValue["$components"].MemberBegin(); it != extendsValue["$components"].MemberEnd(); ++it)
     {
-      JValue v(rapidjson::kObjectType);
-      v.CopyFrom(it->value, doc.GetAllocator());
-      override_component(dst, v, it->name.GetString(), doc.GetAllocator());
+      JFrameValue v(rapidjson::kObjectType);
+      v.CopyFrom(it->value, allocator);
+      override_component(dst, v, it->name.GetString(), allocator);
     }
 
-    process_templates(mgr, mgr->templates[id], dst, doc);
+    process_templates(mgr, mgr->templates[id], templates_doc, dst, allocator);
   }
 }
 
@@ -482,15 +489,15 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   const JValue &value = templatesDoc["$templates"][templ.docId];
 
-  JDocument tmpDoc;
-  JValue tmpValue(rapidjson::kObjectType);
-  tmpValue.CopyFrom(value["$components"], tmpDoc.GetAllocator());
+  JFrameAllocator tmp_allocator;
+  JFrameValue tmpValue(rapidjson::kObjectType);
+  tmpValue.CopyFrom(value["$components"], tmp_allocator);
 
-  process_templates(this, templ, tmpValue, templatesDoc);
+  process_templates(this, templ, templatesDoc, tmpValue, tmp_allocator);
 
   if (!comps.IsNull())
     for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-      tmpValue[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, tmpDoc.GetAllocator());
+      tmpValue[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, tmp_allocator);
 
   int freeIndex = -1;
   if (!freeEntityQueue.empty())
@@ -618,9 +625,7 @@ void EntityManager::tick()
     else
       sendEventSync(header.eid, header.eventId, ev);
 
-    for (const auto &cb : eventProcessCallbacks)
-      if (cb)
-        cb(header.eid, header.eventId, ev);
+    tick(DispatchEventStage{ header.eid, header.eventId, ev });
   }
 }
 

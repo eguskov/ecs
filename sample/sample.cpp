@@ -3,7 +3,6 @@
 
 #include <ecs/ecs.h>
 #include <ecs/perf.h>
-#include <ecs/map.h>
 
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
@@ -105,9 +104,6 @@ int main()
   script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
   script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
 
-  //script::ScriptECS scriptECS;
-  //scriptECS.build("script.as");
-
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
@@ -120,13 +116,6 @@ int main()
 
       if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
-    }
-
-    {
-      FrameMemMap m;
-      m["1"] = 1;
-      m["2"] = 2.f;
-      m["3"] = "3";
     }
 
     double t = GetTime();

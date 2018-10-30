@@ -16,6 +16,7 @@ extern int screen_height;
 struct Wall DEF_EMPTY_COMP(Wall, wall);
 struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
 struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
+struct LevelGenerator DEF_EMPTY_COMP(LevelGenerator, level_generator);
 
 struct HUD
 {
@@ -31,7 +32,7 @@ struct UserInput
   bool right = false;
   bool jump = false;
 
-  bool set(const JValue&) { return true; };
+  bool set(const JFrameValue&) { return true; };
 }
 DEF_COMP(UserInput, user_input);
 
@@ -54,7 +55,7 @@ struct TextureAtlas
   TextureAtlas(const TextureAtlas&) { assert(false); }
   void operator=(const TextureAtlas&) { assert(false); }
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     assert(value.HasMember("path"));
     path = value["path"].GetString();
@@ -75,7 +76,7 @@ struct AnimGraph
 
   eastl::hash_map<eastl::string, Node> nodesMap;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     for (auto it = value["nodes"].MemberBegin(); it != value["nodes"].MemberEnd(); ++it)
     {
@@ -104,7 +105,7 @@ struct AnimState
   double startTime = -1.0;
   eastl::string currentNode;
 
-  bool set(const JValue &value)
+  bool set(const JFrameValue &value)
   {
     currentNode = value["node"].GetString();
     return true;
