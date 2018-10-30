@@ -273,6 +273,31 @@
       }
     },
     {
+      "$name": "player_spawner",
+      "$components": {
+        "player_spawner": {
+          "$type": "player_spawner",
+          "$value": {}
+        }
+      }
+    },
+    {
+      "$name": "player_spawn_zone",
+      "$components": {
+        "player_spawn_zone": {
+          "$type": "player_spawn_zone",
+          "$value": {}
+        },
+        "pos": {
+          "$type": "vec2",
+          "$value": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
       "$name": "enemy",
       "$components": {
         "enemy": {

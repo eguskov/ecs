@@ -104,6 +104,10 @@ int main()
   script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
   script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
 
+  script::register_component<PlayerSpawner>("PlayerSpawner");
+  script::register_component<PlayerSpawnZone>("PlayerSpawnZone");
+  script::register_component<LevelGenerator>("LevelGenerator");
+
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
@@ -141,9 +145,10 @@ int main()
 
     DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
-    DrawText(FormatText("Script: FrameMem: %d (%d)",
+    DrawText(FormatText("FM: %d B Max: %d MB (%d kB)",
       get_frame_mem_allocated_size(),
-      get_frame_mem_allocated_max_size()),
+      get_frame_mem_allocated_max_size() >> 20,
+      get_frame_mem_allocated_max_size() >> 10),
       10, 70, 20, LIME);
     DrawFPS(10, 10);
 
@@ -162,6 +167,9 @@ int main()
 
   EntityManager::release();
   script::release();
+
+  extern void clear_textures();
+  clear_textures();
 
   CloseWindow();
 

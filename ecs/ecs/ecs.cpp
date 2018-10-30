@@ -425,7 +425,7 @@ void EntityManager::createEntity(const char *templ_name, const JFrameValue &comp
   createQueue.emplace_back(eastl::move(q));
 }
 
-void EntityManager::deleteEntity(EntityId eid)
+void EntityManager::deleteEntity(const EntityId &eid)
 {
   deleteQueue.emplace_back(eid);
 }

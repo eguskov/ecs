@@ -2,7 +2,7 @@
 
 static constexpr size_t default_alignment = 4;
 
-static eastl::array<uint8_t, 4 << 20> buffer; // 4MB
+static eastl::array<uint8_t, 16 << 20> buffer; // 16MB
 static size_t buffer_offset = 0;
 static size_t buffer_max_offset = 0;
 

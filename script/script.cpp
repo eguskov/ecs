@@ -185,21 +185,31 @@ namespace script
           object->AddRef();
         }, fn);
 
-        EntityId eid = query->eids[pos];
+        const EntityId &eid = query->eids[pos];
         const auto &entity = g_mgr->entities[eid.index];
         const auto &templ = g_mgr->templates[entity.templateId];
 
         for (const auto &c : query->queryDesc->components)
         {
+          if (c.desc->id == RegCompSpec<EntityId>::ID)
+          {
+            void *prop = object->GetAddressOfProperty(c.id);
+            *(uint8_t**)prop = (uint8_t*)&eid;
+            continue;
+          }
+
+          bool ok = false;
           for (const auto &tc : templ.components)
           {
             if (c.nameId == tc.nameId)
             {
+              ok = true;
               void *prop = object->GetAddressOfProperty(c.id);
               *(uint8_t**)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
               break;
             }
           }
+          assert(ok);
         }
 
         return object;
@@ -368,6 +378,25 @@ namespace script
     return m;
   }
 
+  JFrameValue& set_map_bool(JFrameValue &m, const std::string &key, bool value)
+  {
+    const char *k = key.c_str();
+    if (m.HasMember(k))
+      m[k] = value;
+    else
+    {
+      JFrameValue jk(rapidjson::kStringType);
+      jk.SetString(k, key.length(), json_frame_allocator);
+
+      JFrameValue jv(rapidjson::kNumberType);
+      jv.SetBool(value);
+
+      m.AddMember(eastl::move(jk), eastl::move(jv), json_frame_allocator);
+    }
+
+    return m;
+  }
+
   JFrameValue& set_map_float(JFrameValue &m, const std::string &key, float value)
   {
     const char *k = key.c_str();
@@ -444,6 +473,14 @@ namespace script
     return m;
   }
 
+  JFrameValue& push_array_bool(JFrameValue &arr, bool value)
+  {
+    JFrameValue jv(rapidjson::kNumberType);
+    jv.SetBool(value);
+    arr.PushBack(eastl::move(jv), json_frame_allocator);
+    return arr;
+  }
+
   JFrameValue& push_array_int(JFrameValue &arr, int value)
   {
     JFrameValue jv(rapidjson::kNumberType);
@@ -484,6 +521,16 @@ namespace script
     return arr;
   }
 
+  int array_get_size(const JFrameValue &arr)
+  {
+    return arr.Size();
+  }
+
+  int array_get_item_int(const JFrameValue &arr, int index)
+  {
+    return arr[index].GetInt();
+  }
+
   void* create_array_from_list(void *data)
   {
     asUINT num = *(asUINT*)data;
@@ -506,6 +553,11 @@ namespace script
       {
         push_array_float(*arr, *(float*)ptr);
         ptr += sizeof(float);
+      }
+      else if (typeId == asTYPEID_BOOL)
+      {
+        push_array_bool(*arr, *(bool*)ptr);
+        ptr += sizeof(bool);
       }
       else
       {
@@ -560,6 +612,11 @@ namespace script
         set_map_float(*m, key, *(float*)ptr);
         ptr += sizeof(float);
       }
+      else if (typeId == asTYPEID_BOOL)
+      {
+        set_map_bool(*m, key, *(bool*)ptr);
+        ptr += sizeof(bool);
+      }
       else
       {
         asITypeInfo *info = engine->GetTypeInfoById(typeId);
@@ -590,6 +647,11 @@ namespace script
   void create_entity(const std::string &templ, const JFrameValue &m)
   {
     g_mgr->createEntity(templ.c_str(), m);
+  }
+
+  void delete_entity(const EntityId &eid)
+  {
+    g_mgr->deleteEntity(eid);
   }
 
   bool init()
@@ -627,19 +689,24 @@ namespace script
     engine->RegisterObjectBehaviour("Array", asBEHAVE_FACTORY, "Array@ f()", asFUNCTION(create_array), asCALL_CDECL);
     engine->RegisterObjectBehaviour("Array", asBEHAVE_LIST_FACTORY, "Array@ f(int &in) {repeat ?}", asFUNCTION(create_array_from_list), asCALL_CDECL);
 
+    engine->RegisterObjectMethod("Map", "Map@ set(string&in, bool)", asFUNCTION(set_map_bool), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, int)", asFUNCTION(set_map_int), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, float)", asFUNCTION(set_map_float), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, string&in)", asFUNCTION(set_map_string), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, Map@)", asFUNCTION(set_map_map), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, Array@)", asFUNCTION(set_map_array), asCALL_CDECL_OBJFIRST);
 
+    engine->RegisterObjectMethod("Array", "Array@ push(bool)", asFUNCTION(push_array_bool), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(int)", asFUNCTION(push_array_int), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(float)", asFUNCTION(push_array_float), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(string&in)", asFUNCTION(push_array_string), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(Map@)", asFUNCTION(push_array_map), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(Array@)", asFUNCTION(push_array_array), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "int size()", asFUNCTION(array_get_size), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "int getInt(int)", asFUNCTION(array_get_item_int), asCALL_CDECL_OBJFIRST);
 
-    engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
+    register_component<EntityId>("EntityId");
+    register_component_property("EntityId", "uint handle", 0);
 
     register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);
@@ -715,6 +782,9 @@ namespace script
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
     assert(r >= 0);
+
+    engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
+    engine->RegisterGlobalFunction("void delete_entity(const EntityId@)", asFUNCTION(delete_entity), asCALL_CDECL);
 
     return true;
   }

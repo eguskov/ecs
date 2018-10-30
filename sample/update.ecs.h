@@ -3,6 +3,10 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
+struct PlayerSpawner DEF_EMPTY_COMP(PlayerSpawner, player_spawner);
+struct PlayerSpawnZone DEF_EMPTY_COMP(PlayerSpawnZone, player_spawn_zone);
+struct LevelGenerator DEF_EMPTY_COMP(LevelGenerator, level_generator);
+
 struct EventOnSpawn : Event
 {
   int count;

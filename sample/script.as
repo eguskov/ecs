@@ -6,6 +6,17 @@ class AliveEnemy
   vec2@ vel;
 }
 
+[query { "$is-true": "is_alive", "$have": "user_input" }]
+class AlivePlayerQuery
+{
+}
+
+[query { "$have": "player_spawn_zone" }]
+class PlayerSpawnZonesQuery
+{
+  const vec2@ pos;
+}
+
 // TODO: Make real usage of query
 // for (auto it = Query<AliveEnemy>().perform(); it.hasNext(); ++it)
 // {
@@ -23,6 +34,14 @@ class AliveEnemiesCountQuery
 [system { "$have": "spawner" }]
 void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
 {
+  // TODO: Implement more convenient way to do this
+  bool hasPlayer = false;
+  for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+    hasPlayer = true;
+
+  if (!hasPlayer)
+    return;
+
   for (auto it = Query<AliveEnemiesCountQuery>().perform(); it.hasNext(); ++it)
     return;
 
@@ -31,28 +50,49 @@ void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
   {
     spawn_timer.time = spawn_timer.period;
 
-    print("Spawn!");
+    // print("Spawn!");
 
-    create_entity("opossum", Map = {
-      {"pos", Array = { 0.f, 4.f }},
-      {"vel", Array = { -20.f, 0.f }}
-    });
+    // create_entity("opossum", Map = {
+    //   {"pos", Array = { 0.f, 4.f }},
+    //   {"vel", Array = { -20.f, 0.f }}
+    // });
 
-    create_entity("eagle", Map = {
-      {"pos", Array = { 128.f, -80.f }},
-      {"vel", Array = { 0.f, -1.f }}
-    });
+    // create_entity("eagle", Map = {
+    //   {"pos", Array = { 128.f, -80.f }},
+    //   {"vel", Array = { 0.f, -1.f }}
+    // });
 
-    create_entity("eagle", Map = {
-      {"pos", Array = { -64.f, -96.f }},
-      {"vel", Array = { -1.f, 0.f }}
-    });
+    // create_entity("eagle", Map = {
+    //   {"pos", Array = { -64.f, -96.f }},
+    //   {"vel", Array = { -1.f, 0.f }}
+    // });
 
-    create_entity("frog", Map = {
-      {"pos", Array = { 0.f, 6.f }},
-      {"vel", Array = { 0.f, 0.f }}
-    });
+    // create_entity("frog", Map = {
+    //   {"pos", Array = { 0.f, 6.f }},
+    //   {"vel", Array = { 0.f, 0.f }}
+    // });
   }
+}
+
+[system { "$have": "player_spawner" }]
+void update_player_spawner(const UpdateStage@ stage, PlayerSpawner@ player_spawner)
+{
+  for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+    return;
+
+  const vec2@ spawnPos;
+  for (auto it = Query<PlayerSpawnZonesQuery>().perform(); it.hasNext(); ++it)
+    @spawnPos = it.get().pos;
+
+  if (spawnPos is null)
+    return;
+
+  print("Spawn player");
+
+  create_entity("fox", Map = {
+    {"pos", Array = {spawnPos.x, spawnPos.y}},
+    {"vel", Array = {0.f, 0.f}}
+  });
 }
 
 [system { "$have": "enemy" }]
@@ -139,11 +179,6 @@ void load()
 
   create_entity("script", Map = {
     {"script", Map = {{"name", "level_generator"}, {"path", "level_generator.as"}}}
-  });
-
-  create_entity("fox", Map = {
-    {"pos", Array = {0.f, -128.f}},
-    {"vel", Array = {0.f, 0.f}}
   });
 }
 

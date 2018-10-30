@@ -86,10 +86,26 @@ namespace script
   }
 
   template <typename... Args>
+  void call(asIScriptContext *ctx, void *user_data, asIScriptFunction *fn, Args&&... args)
+  {
+    ctx->Prepare(fn);
+    ctx->SetUserData(user_data, 1000);
+    internal::set_args(ctx, eastl::forward<Args>(args)...);
+    ctx->Execute();
+  }
+
+  template <typename... Args>
   void call(asIScriptFunction *fn, Args&&... args)
   {
     ScopeContext ctx;
     call(ctx, fn, eastl::forward<Args>(args)...);
+  }
+
+  template <typename... Args>
+  void call(void *user_data, asIScriptFunction *fn, Args&&... args)
+  {
+    ScopeContext ctx;
+    call(ctx, user_data, fn, eastl::forward<Args>(args)...);
   }
 
   template <typename R, typename C, typename... Args>

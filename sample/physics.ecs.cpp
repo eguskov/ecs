@@ -142,6 +142,25 @@ struct PhysicsBody
   b2BodyType type = b2_staticBody;
   b2Body *body = nullptr;
 
+  PhysicsBody() = default;
+  PhysicsBody(PhysicsBody &&other)
+  {
+    if (body)
+      g_world->DestroyBody(body);
+    type = other.type;
+    body = other.body;
+    other.body = nullptr;
+  }
+
+  PhysicsBody(const PhysicsBody&) { assert(false); }
+  void operator=(const PhysicsBody&) { assert(false); }
+
+  ~PhysicsBody()
+  {
+    if (body && g_world)
+      g_world->DestroyBody(body);
+  }
+
   bool set(const JFrameValue &value)
   {
     eastl::string t = value["type"].GetString();

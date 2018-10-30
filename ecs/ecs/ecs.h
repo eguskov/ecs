@@ -181,7 +181,7 @@ struct EntityManager
   void createEntity(const char *templ_name, const JFrameValue &comps);
   EntityId createEntitySync(const char *templ_name, const JValue &comps);
 
-  void deleteEntity(EntityId eid);
+  void deleteEntity(const EntityId &eid);
 
   void waitFor(EntityId eid, std::future<bool> && value);
 

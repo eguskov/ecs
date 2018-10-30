@@ -2,6 +2,8 @@
 
 #include "update.ecs.h"
 
+#include <EASTL/shared_ptr.h>
+
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
 
@@ -16,7 +18,6 @@ extern int screen_height;
 struct Wall DEF_EMPTY_COMP(Wall, wall);
 struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
 struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
-struct LevelGenerator DEF_EMPTY_COMP(LevelGenerator, level_generator);
 
 struct HUD
 {
@@ -39,18 +40,11 @@ DEF_COMP(UserInput, user_input);
 struct TextureAtlas
 {
   eastl::string path;
-  Texture2D id;
+  eastl::weak_ptr<Texture2D> id;
 
   TextureAtlas() = default;
-  TextureAtlas(TextureAtlas &&other) : path(eastl::move(other.path)), id(other.id)
-  {
-    other.id = Texture2D();
-  }
-
-  ~TextureAtlas()
-  {
-    UnloadTexture(id);
-  }
+  TextureAtlas(TextureAtlas &&other) = default;
+  ~TextureAtlas() = default;
 
   TextureAtlas(const TextureAtlas&) { assert(false); }
   void operator=(const TextureAtlas&) { assert(false); }
@@ -113,10 +107,27 @@ struct AnimState
 }
 DEF_COMP(AnimState, anim_state);
 
+// TODO: Implement texture manager
+static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;
+void clear_textures()
+{
+  for (auto &t : texture_map)
+    UnloadTexture(*t.second);
+  texture_map.clear();
+}
+
 DEF_SYS()
 static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureAtlas &texture)
 {
-  texture.id = LoadTexture(texture.path.c_str()); 
+  auto it = texture_map.find(texture.path);
+  if (it == texture_map.end())
+  {
+    auto id = eastl::make_shared<Texture2D>(LoadTexture(texture.path.c_str()));
+    texture.id = id;
+    texture_map[texture.path] = id;
+  }
+  else
+    texture.id = it->second;
 }
 
 DEF_SYS(IS_TRUE(is_alive))
@@ -167,7 +178,7 @@ static __forceinline void render_walls(
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(*texture.id.lock(), Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
 DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive))
@@ -180,7 +191,7 @@ static __forceinline void render_normal(
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(*texture.id.lock(), Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
 //DEF_SYS()
@@ -447,13 +458,13 @@ static __forceinline void validate_position(
   const UpdateStage &stage,
   glm::vec2 &pos)
 {
-  const float hw = 0.5f * screen_width;
-  const float hh = 0.5f * screen_width;
-  if (pos.x > hw || pos.y > hh || pos.x < -hw || pos.y < -hh)
-  {
-    pos.x = 0.f;
-    pos.y = 0.f;
-  }
+  // const float hw = 0.5f * screen_width;
+  // const float hh = 0.5f * screen_width;
+  // if (pos.x > hw || pos.y > hh || pos.x < -hw || pos.y < -hh)
+  // {
+  //   pos.x = 0.f;
+  //   pos.y = 0.f;
+  // }
 }
 
 DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));

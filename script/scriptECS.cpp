@@ -177,45 +177,6 @@ namespace script
 
     bool isOk = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule &module)
     {
-      for (int i = 0; i < (int)module.GetFunctionCount(); ++i)
-      {
-        asIScriptFunction *fn = module.GetFunctionByIndex(i);
-        eastl::string metadata = builder.GetMetadataStringForFunc(fn);
-
-        std::cmatch match;
-        std::regex re = std::regex("(?:\\s*)\\b(system|on_load|on_reload)\\b(?:\\s*)(.*)");
-        std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
-
-        if (match.size() > 0)
-        {
-          if (match[1].str() == "system")
-          {
-            auto &sys = systems.emplace_back(fn);
-            fn->AddRef();
-
-            if (match[1].length() > 0)
-            {
-              JFrameDocument doc;
-              doc.Parse(match[2].str().c_str());
-              process_metadata(doc, "$is-true", sys.isTrueComponents);
-              process_metadata(doc, "$is-false", sys.isFalseComponents);
-              process_metadata(doc, "$have", sys.haveComponents);
-              process_metadata(doc, "$not-have", sys.notHaveComponents);
-            }
-          }
-          else if (match[1].str() == "on_load")
-          {
-            if (!loaded)
-              call(fn);
-          }
-          else if (match[1].str() == "on_reload")
-          {
-            if (loaded)
-              call(fn);
-          }
-        }
-      }
-
       for (int i = 0; i < (int)module.GetObjectTypeCount(); ++i)
       {
         asITypeInfo *type = module.GetObjectTypeByIndex(i);
@@ -269,6 +230,45 @@ namespace script
             assert(desc != nullptr);
 
             queryDesc.components.push_back({ i, g_mgr->getComponentNameId(name), name, desc });
+          }
+        }
+      }
+
+      for (int i = 0; i < (int)module.GetFunctionCount(); ++i)
+      {
+        asIScriptFunction *fn = module.GetFunctionByIndex(i);
+        eastl::string metadata = builder.GetMetadataStringForFunc(fn);
+
+        std::cmatch match;
+        std::regex re = std::regex("(?:\\s*)\\b(system|on_load|on_reload)\\b(?:\\s*)(.*)");
+        std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
+
+        if (match.size() > 0)
+        {
+          if (match[1].str() == "system")
+          {
+            auto &sys = systems.emplace_back(fn);
+            fn->AddRef();
+
+            if (match[1].length() > 0)
+            {
+              JFrameDocument doc;
+              doc.Parse(match[2].str().c_str());
+              process_metadata(doc, "$is-true", sys.isTrueComponents);
+              process_metadata(doc, "$is-false", sys.isFalseComponents);
+              process_metadata(doc, "$have", sys.haveComponents);
+              process_metadata(doc, "$not-have", sys.notHaveComponents);
+            }
+          }
+          else if (match[1].str() == "on_load")
+          {
+            if (!loaded)
+              call(this, fn);
+          }
+          else if (match[1].str() == "on_reload")
+          {
+            if (loaded)
+              call(this, fn);
           }
         }
       }
