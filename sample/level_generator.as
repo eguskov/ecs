@@ -40,6 +40,14 @@ void create_level()
         {"auto_move", Map = { {"duration", 2.f}, {"length", 2.f * 32.f}, {"jump", false} } }
       });
     }
+    else if (p == 4)
+    {
+      create_entity("block-big-moving", Map = {
+        {"pos", Array = {wx, wy}},
+        {"vel", Array = {0.f, 1.f}},
+        {"auto_move", Map = { {"duration", 2.f}, {"length", 3.f * 32.f}, {"jump", false} } }
+      });
+    }
   }
 }
 

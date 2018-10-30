@@ -537,7 +537,7 @@ static __forceinline void update_camera(const UpdateStage &stage, const glm::vec
   const float hw = 0.5f * screen_width;
   const float hh = 0.5f * screen_width;
   camera.target = Vector2{ hw, hh };
-  camera.offset = Vector2{ -pos.x, -pos.y };
+  camera.offset = Vector2{ -pos.x * camera.zoom, -pos.y * camera.zoom };
 }
 
 DEF_SYS()

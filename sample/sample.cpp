@@ -135,15 +135,17 @@ int main()
 
     ClearBackground(RAYWHITE);
 
+    t = GetTime();
     BeginMode2D(camera);
     g_mgr->tick(RenderStage{});
     EndMode2D();
+    const float renderDelta = (float)((GetTime() - t) * 1e3);
 
     BeginMode2D(camera);
     g_mgr->tick(RenderDebugStage{});
     EndMode2D();
 
-    DrawText(FormatText("ECS time: %f ms", delta), 10, 30, 20, LIME);
+    DrawText(FormatText("ECS time: %2.2f ms (%2.2f ms)", delta, renderDelta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawText(FormatText("FM: %d B Max: %d MB (%d kB)",
       get_frame_mem_allocated_size(),
