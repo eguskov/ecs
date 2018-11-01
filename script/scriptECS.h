@@ -22,6 +22,7 @@ namespace script
 
     ParamDescVector params;
 
+    eastl::vector<int> componentTypeIds;
     eastl::vector<eastl::string> componentNames;
     eastl::vector<eastl::string> componentTypeNames;
 

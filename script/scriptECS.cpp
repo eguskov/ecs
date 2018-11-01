@@ -9,12 +9,9 @@
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 
-#include <angelscript.h>
-#include <scriptarray/scriptarray.h>
-#include <scripthandle/scripthandle.h>
-#include <scriptstdstring/scriptstdstring.h>
-#include <scriptmath/scriptmath.h>
 #include <scriptbuilder/scriptbuilder.h>
+
+#include "scriptQuery.h"
 
 REG_COMP_INIT(script::ScriptComponent, script);
 
@@ -39,12 +36,13 @@ namespace script
 
       componentNames.emplace_back() = param.name;
       componentTypeNames.emplace_back() = param.getTypeName();
+      componentTypeIds.emplace_back() = param.typeId.id;
 
       auto res = script_ecs->dataQueries.find(param.typeId);
       if (res != script_ecs->dataQueries.end())
       {
         useJoin = true;
-        // asITypeInfo *type = internal::get_engine()->GetTypeInfoById(param.typeId);
+        queryDesc.joinQueries.push_back(param.typeId.id);
       }
       else
       {
@@ -201,7 +199,7 @@ namespace script
         {
           Query &query = dataQueries[typeId];
 
-          // query.desc.type = type;
+          std::cout << "Add query: " << internal::get_engine()->GetTypeInfoById(typeId.id)->GetName() << std::endl;
 
           if (match[1].length() > 0)
           {
@@ -241,6 +239,8 @@ namespace script
 
             query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), desc });
           }
+
+          g_mgr->invalidateQuery(query);
         }
       }
 
@@ -345,7 +345,10 @@ namespace script
   void ScriptECS::invalidateQueries()
   {
     for (auto &it : dataQueries)
+    {
       g_mgr->invalidateQuery(it.second);
+      std::cout << "invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.eids.size() << std::endl;
+    }
 
     for (const auto &sys : systems)
     {
@@ -353,7 +356,10 @@ namespace script
       query.stageId = sys.stageId;
       query.sysId = sys.id;
       query.desc = sys.queryDesc;
-      g_mgr->invalidateQuery(query);
+      if (sys.useJoin)
+        /* TODO: Do join by links */;
+      else
+        g_mgr->invalidateQuery(query);
     }
   }
 
@@ -400,23 +406,70 @@ namespace script
     {
       if (query.stageId != stage_id)
         continue;
-      for (const auto &eid : query.eids)
+      // TODO: Remove branch somehow if it performance critical
+      // TODO: Check join queries intersection for debug
+      if (systems[query.sysId].useJoin)
       {
-        const auto &entity = g_mgr->entities[eid.index];
-        const auto &templ = g_mgr->templates[entity.templateId];
-        const auto &remap = remaps[entity.templateId][query.sysId];
+        int firstQueryIndex = 0;
+        uint32_t firstTypeId = query.desc.joinQueries[firstQueryIndex];
 
-        stageCtx->Prepare(systems[query.sysId].fn);
-        stageCtx->SetUserData(this, 1000);
-        internal::set_arg_wrapped(stageCtx, 0, stage.mem);
-        for (int i = 1; i < (int)remap.size(); ++i)
+        asITypeInfo *firstType = internal::get_engine()->GetTypeInfoById(firstTypeId);
+        assert(firstType != nullptr);
+
+        auto firstDataQuery = dataQueries.find(TypeId{ firstTypeId });
+        assert(firstDataQuery != dataQueries.end());
+
+        for (const auto &firstEid : firstDataQuery->second.eids)
         {
-          Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
-          const int offset = entity.componentOffsets[remap[i]];
-          internal::set_arg_wrapped(stageCtx, i, storage->getRaw(offset));
+          asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
+          assert(firstObject != nullptr);
+
+          int secondQueryIndex = 1;
+          uint32_t secondTypeId = query.desc.joinQueries[secondQueryIndex];
+
+          asITypeInfo *secondType = internal::get_engine()->GetTypeInfoById(secondTypeId);
+          assert(secondType != nullptr);
+
+          auto secondDataQuery = dataQueries.find(TypeId{ secondTypeId });
+          assert(secondDataQuery != dataQueries.end());
+
+          for (const auto &secondEid : secondDataQuery->second.eids)
+          {
+            asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
+            assert(secondObject != nullptr);
+
+            stageCtx->Prepare(systems[query.sysId].fn);
+            stageCtx->SetUserData(this, 1000);
+
+            internal::set_arg_wrapped(stageCtx, 0, stage.mem);
+            firstObject->AddRef();
+            internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
+            internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
+
+            stageCtx->Execute();
+          }
+
+          firstObject->Release();
         }
-        stageCtx->Execute();
       }
+      else
+        for (const auto &eid : query.eids)
+        {
+          const auto &entity = g_mgr->entities[eid.index];
+          const auto &templ = g_mgr->templates[entity.templateId];
+          const auto &remap = remaps[entity.templateId][query.sysId];
+
+          stageCtx->Prepare(systems[query.sysId].fn);
+          stageCtx->SetUserData(this, 1000);
+          internal::set_arg_wrapped(stageCtx, 0, stage.mem);
+          for (int i = 1; i < (int)remap.size(); ++i)
+          {
+            Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
+            const int offset = entity.componentOffsets[remap[i]];
+            internal::set_arg_wrapped(stageCtx, i, storage->getRaw(offset));
+          }
+          stageCtx->Execute();
+        }
     }
   }
 }

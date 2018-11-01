@@ -5,15 +5,6 @@
 
 #include "update.ecs.cpp"
 
-static RegCompSpec<Wall> _reg_comp_wall("wall");
-template <> int RegCompSpec<Wall>::ID = -1;
-
-static RegCompSpec<Enemy> _reg_comp_enemy("enemy");
-template <> int RegCompSpec<Enemy>::ID = -1;
-
-static RegCompSpec<Spawner> _reg_comp_spawner("spawner");
-template <> int RegCompSpec<Spawner>::ID = -1;
-
 static RegCompSpec<HUD> _reg_comp_hud("hud");
 template <> int RegCompSpec<HUD>::ID = -1;
 

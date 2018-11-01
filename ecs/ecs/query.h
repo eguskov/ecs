@@ -17,6 +17,7 @@ struct QueryDesc
   eastl::vector<CompDesc> isTrueComponents;
   eastl::vector<CompDesc> isFalseComponents;
 
+  eastl::vector<int> joinQueries;
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
 
@@ -26,6 +27,7 @@ struct QueryDesc
       if (c.nameId >= 0)
         return true;
     return
+      !joinQueries.empty() ||
       !haveComponents.empty() ||
       !notHaveComponents.empty() ||
       !isTrueComponents.empty() ||

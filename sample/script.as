@@ -1,9 +1,9 @@
-[query { "$is-true": "is_alive" }]
+[query { "$have": "enemy", "$is-true": "is_alive" }]
 class AliveEnemy
 {
-  const AutoMove@ auto_move;
+  const EntityId@ eid;
   const vec2@ pos;
-  vec2@ vel;
+  const vec2@ vel;
 }
 
 [query { "$is-true": "is_alive", "$have": "user_input" }]
@@ -25,21 +25,16 @@ class AliveEnemiesCountQuery
 [query { "$have": "user_input" }]
 class Player
 {
+  const EntityId@ eid;
   const vec2@ pos;
   const vec2@ vel;
 }
 
-// [component { "$have": "car" }]
-// class Car
-// {
-//   const vec2@ pos;
-//   const vec2@ vel;
-// }
-
-[system]
-void process_player_test(const UpdateStage@ stage, const Player@ player)
+[system { "$link": [ "player.enemy_eid", "enemy.eid" ] }]
+void process_player_test(const UpdateStage@ stage, const Player@ player, const AliveEnemy@ enemy)
 {
-  print("process_player_test");
+  // print("process_player_test: player: "+player.eid.handle);
+  // print("process_player_test: enemy: "+enemy.eid.handle);
 }
 
 // [system { "$is-false": "use_car_trigger_active" }]

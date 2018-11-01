@@ -72,4 +72,39 @@ ScriptQuery::Iterator ScriptQuery::perform()
   return it;
 }
 
+asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type)
+{
+  asIScriptFunction *fn = type->GetFactoryByIndex(0);
+  asIScriptObject *object = nullptr;
+  callValue<asIScriptObject*>([&](asIScriptObject **obj) { object = *obj; object->AddRef(); }, fn);
+
+  const auto &entity = g_mgr->entities[eid.index];
+  const auto &templ = g_mgr->templates[entity.templateId];
+
+  for (const auto &c : components)
+  {
+    if (c.desc->id == RegCompSpec<EntityId>::ID)
+    {
+      void *prop = object->GetAddressOfProperty(c.id);
+      *(uint8_t **)prop = (uint8_t *)&eid;
+      continue;
+    }
+
+    bool ok = false;
+    for (const auto &tc : templ.components)
+    {
+      if (c.nameId == tc.nameId)
+      {
+        ok = true;
+        void *prop = object->GetAddressOfProperty(c.id);
+        *(uint8_t **)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
+        break;
+      }
+    }
+    assert(ok);
+  }
+
+  return object;
+}
+
 }

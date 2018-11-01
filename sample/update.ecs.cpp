@@ -15,10 +15,6 @@ extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
 
-struct Wall DEF_EMPTY_COMP(Wall, wall);
-struct Enemy DEF_EMPTY_COMP(Enemy, enemy);
-struct Spawner DEF_EMPTY_COMP(Spawner, spawner);
-
 struct HUD
 {
   int killCount = 0;

@@ -11,45 +11,4 @@ int RegCompSpec<CEFEventOnReady>::ID = -1;
 static RegCompSpec<CEFEventOnAfterCreated> _reg_event_CEFEventOnAfterCreated;
 int RegCompSpec<CEFEventOnAfterCreated>::ID = -1;
 
-static RegSysSpec<2878479676, decltype(cef_ready_handler)> _reg_sys_cef_ready_handler("cef_ready_handler", cef_ready_handler, { "ev" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2581954526, decltype(cef_after_created_handler)> _reg_sys_cef_after_created_handler("cef_after_created_handler", cef_after_created_handler, { "ev" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1923709597, decltype(cef_click_outside_handler)> _reg_sys_cef_click_outside_handler("cef_click_outside_handler", cef_click_outside_handler, { "ev" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)> _reg_sys_cef_toggle_dev_tools_handler("cef_toggle_dev_tools_handler", cef_toggle_dev_tools_handler, { "ev" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)> _reg_sys_cef_toggle_webui_handler("cef_toggle_webui_handler", cef_toggle_webui_handler, { "ev" }, {  }, {  }, {  }, {  }, true); 
-
-template <> template <> __forceinline void RegSysSpec<2878479676, decltype(cef_ready_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
-{
-  const int argId[] = { queryDesc.components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_ready_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
-}
-
-template <> template <> __forceinline void RegSysSpec<2581954526, decltype(cef_after_created_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
-{
-  const int argId[] = { queryDesc.components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_after_created_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
-}
-
-template <> template <> __forceinline void RegSysSpec<1923709597, decltype(cef_click_outside_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
-{
-  const int argId[] = { queryDesc.components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_click_outside_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
-}
-
-template <> template <> __forceinline void RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
-{
-  const int argId[] = { queryDesc.components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_toggle_dev_tools_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
-}
-
-template <> template <> __forceinline void RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
-{
-  const int argId[] = { queryDesc.components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_toggle_webui_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
-}
-
 #endif // __CODEGEN__

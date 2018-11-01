@@ -127,7 +127,12 @@
   "$templates": [
     {
       "$name": "WebUI",
-      "$components": {}
+      "$components": {
+        "webui": {
+          "$type": "tag",
+          "$value": {}
+        }
+      }
     },
     {
       "$name": "server",
@@ -260,7 +265,7 @@
       "$name": "enemy_spawner",
       "$components": {
         "spawner": {
-          "$type": "spawner",
+          "$type": "tag",
           "$value": {}
         },
         "spawn_timer": {
@@ -284,6 +289,10 @@
     {
       "$name": "player_spawn_zone",
       "$components": {
+        "zone": {
+          "$type": "tag",
+          "$value": {}
+        },
         "player_spawn_zone": {
           "$type": "tag",
           "$value": {}
@@ -301,7 +310,7 @@
       "$name": "enemy",
       "$components": {
         "enemy": {
-          "$type": "enemy",
+          "$type": "tag",
           "$value": {}
         },
         "pos": {
@@ -842,7 +851,7 @@
       "$name": "base-block",
       "$components": {
         "wall": {
-          "$type": "wall",
+          "$type": "tag",
           "$value": {}
         },
         "pos": {

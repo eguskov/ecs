@@ -1,7 +1,12 @@
 #pragma once
 
+#include <EASTL/vector.h>
+
 class asITypeInfo;
+class asIScriptObject;
+struct EntityId;
 struct Query;
+struct CompDesc;
 
 namespace script
 {
@@ -26,5 +31,7 @@ namespace script
 
     Iterator perform();
   };
+
+  asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type);
 
 }
