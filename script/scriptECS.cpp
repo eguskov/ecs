@@ -40,27 +40,35 @@ namespace script
       componentNames.emplace_back() = param.name;
       componentTypeNames.emplace_back() = param.getTypeName();
 
-      // auto res = script_ecs->queryDescs.find(param.typeId);
-      // if (res != script_ecs->queryDescs.end())
-      // {
-      //   asITypeInfo *type = internal::get_engine()->GetTypeInfoById(param.typeId);
-      // }
-
-      const RegComp *desc = find_comp(componentTypeNames.back().c_str());
-      if (!desc)
-        desc = mgr->getComponentDescByName(param.name.c_str());
-      assert(desc != nullptr);
-      queryDesc.components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), desc });
-
-      if ((param.flags & asTM_CONST) != 0)
-        queryDesc.roComponents.push_back(i);
+      auto res = script_ecs->dataQueries.find(param.typeId);
+      if (res != script_ecs->dataQueries.end())
+      {
+        useJoin = true;
+        // asITypeInfo *type = internal::get_engine()->GetTypeInfoById(param.typeId);
+      }
       else
-        queryDesc.rwComponents.push_back(i);
+      {
+        assert(!useJoin);
+
+        const RegComp *desc = find_comp(componentTypeNames.back().c_str());
+        if (!desc)
+          desc = mgr->getComponentDescByName(param.name.c_str());
+        assert(desc != nullptr);
+        queryDesc.components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), desc });
+
+        if ((param.flags & asTM_CONST) != 0)
+          queryDesc.roComponents.push_back(i);
+        else
+          queryDesc.rwComponents.push_back(i);
+      }
     }
   }
 
   void ScriptSys::initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const
   {
+    if (useJoin)
+      return;
+
     remap.resize(componentNames.size());
     eastl::fill(remap.begin(), remap.end(), -1);
 
@@ -112,8 +120,6 @@ namespace script
     for (auto &sys : systems)
       sys.fn->AddRef();
 
-    // queryDescs = assign.queryDescs;
-
     return *this;
   }
 
@@ -138,8 +144,6 @@ namespace script
     remaps = eastl::move(assign.remaps);
     dataQueries = eastl::move(assign.dataQueries);
     systemQueries = eastl::move(assign.systemQueries);
-
-    // queryDescs = eastl::move(assign.queryDescs);
 
     return *this;
   }
@@ -180,7 +184,6 @@ namespace script
     remaps.clear();
     dataQueries.clear();
     systemQueries.clear();
-    // queryDescs.clear();
 
     bool isOk = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule &module)
     {
@@ -337,7 +340,6 @@ namespace script
     systemQueries.clear();
     systems.clear();
     remaps.clear();
-    // queryDescs.clear();
   }
 
   void ScriptECS::invalidateQueries()

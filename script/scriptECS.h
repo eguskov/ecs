@@ -12,6 +12,8 @@ namespace script
   {
     asIScriptFunction *fn = nullptr;
 
+    bool useJoin = false;
+
     int id = -1;
     int stageId = -1;
     int eventId = -1;
@@ -29,11 +31,6 @@ namespace script
     void initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const;
   };
 
-  struct ScriptQueryDesc : QueryDesc
-  {
-    asITypeInfo *type = nullptr;
-  };
-
   struct ScriptECS
   {
     bool loaded = false;
@@ -43,11 +40,9 @@ namespace script
 
     eastl::vector<ScriptSys> systems;
     eastl::vector<eastl::vector<RegSys::Remap>> remaps;
-    // eastl::vector<Query> dataQueries;
     eastl::vector<Query> systemQueries;
 
     eastl::hash_map<TypeId, Query> dataQueries;
-    // eastl::hash_map<TypeId, ScriptQueryDesc> queryDescs;
 
     ScriptECS() = default;
     ScriptECS(ScriptECS &&);

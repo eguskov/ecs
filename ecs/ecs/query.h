@@ -22,8 +22,10 @@ struct QueryDesc
 
   bool isValid() const
   {
+    for (const auto &c : components)
+      if (c.nameId >= 0)
+        return true;
     return
-      !components.empty() ||
       !haveComponents.empty() ||
       !notHaveComponents.empty() ||
       !isTrueComponents.empty() ||

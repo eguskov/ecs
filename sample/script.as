@@ -22,12 +22,12 @@ class AliveEnemiesCountQuery
 {
 }
 
-// [component { "$have": "user_input" }]
-// class Player
-// {
-//   const vec2@ pos;
-//   const vec2@ vel;
-// }
+[query { "$have": "user_input" }]
+class Player
+{
+  const vec2@ pos;
+  const vec2@ vel;
+}
 
 // [component { "$have": "car" }]
 // class Car
@@ -36,10 +36,11 @@ class AliveEnemiesCountQuery
 //   const vec2@ vel;
 // }
 
-// [system]
-// void process_player_test(const UpdateStage@ stage, const Player@ player)
-// {
-// }
+[system]
+void process_player_test(const UpdateStage@ stage, const Player@ player)
+{
+  print("process_player_test");
+}
 
 // [system { "$is-false": "use_car_trigger_active" }]
 // void check_trigger(const UpdateStage@ stage, const Trigger@ use_car_trigger, boolean@ use_car_trigger_active)
