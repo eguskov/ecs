@@ -9,6 +9,7 @@ static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_positio
 
 template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
   update_position(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));

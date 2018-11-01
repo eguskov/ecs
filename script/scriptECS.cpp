@@ -20,12 +20,12 @@ REG_COMP_INIT(script::ScriptComponent, script);
 
 namespace script
 {
-  ScriptSys::ScriptSys(asIScriptFunction *_fn) : RegSys(nullptr, -1, false), fn(_fn)
+  ScriptSys::ScriptSys(asIScriptFunction *_fn) : fn(_fn)
   {
     params = get_all_param_desc(fn);
   }
 
-  void ScriptSys::init(const EntityManager *mgr)
+  void ScriptSys::init(const EntityManager *mgr, const ScriptECS *script_ecs)
   {
     const RegComp *comp = find_comp(params[0].type.c_str());
     assert(comp != nullptr);
@@ -40,20 +40,26 @@ namespace script
       componentNames.emplace_back() = param.name;
       componentTypeNames.emplace_back() = param.getTypeName();
 
+      // auto res = script_ecs->queryDescs.find(param.typeId);
+      // if (res != script_ecs->queryDescs.end())
+      // {
+      //   asITypeInfo *type = internal::get_engine()->GetTypeInfoById(param.typeId);
+      // }
+
       const RegComp *desc = find_comp(componentTypeNames.back().c_str());
       if (!desc)
         desc = mgr->getComponentDescByName(param.name.c_str());
       assert(desc != nullptr);
-      components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), param.name.c_str(), desc });
+      queryDesc.components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), desc });
 
       if ((param.flags & asTM_CONST) != 0)
-        roComponents.push_back(i);
+        queryDesc.roComponents.push_back(i);
       else
-        rwComponents.push_back(i);
+        queryDesc.rwComponents.push_back(i);
     }
   }
 
-  void ScriptSys::initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const
+  void ScriptSys::initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const
   {
     remap.resize(componentNames.size());
     eastl::fill(remap.begin(), remap.end(), -1);
@@ -68,7 +74,7 @@ namespace script
       assert(desc != nullptr);
 
       for (size_t i = 0; i < template_comps.size(); ++i)
-        if (template_comps[i].desc->id == desc->id && template_comps[i].name == name)
+        if (template_comps[i].desc->id == desc->id && template_comps[i].nameId == g_mgr->getComponentNameId(name))
           remap[compIdx] = i;
     }
   }
@@ -100,12 +106,13 @@ namespace script
 
     systems = assign.systems;
     remaps = assign.remaps;
-    queries = assign.queries;
+    dataQueries = assign.dataQueries;
+    systemQueries = assign.systemQueries;
 
     for (auto &sys : systems)
       sys.fn->AddRef();
 
-    queryDescs = assign.queryDescs;
+    // queryDescs = assign.queryDescs;
 
     return *this;
   }
@@ -129,9 +136,10 @@ namespace script
 
     systems = eastl::move(assign.systems);
     remaps = eastl::move(assign.remaps);
-    queries = eastl::move(assign.queries);
+    dataQueries = eastl::move(assign.dataQueries);
+    systemQueries = eastl::move(assign.systemQueries);
 
-    queryDescs = eastl::move(assign.queryDescs);
+    // queryDescs = eastl::move(assign.queryDescs);
 
     return *this;
   }
@@ -146,18 +154,16 @@ namespace script
       for (int i = 0; i < (int)doc[key].Size(); ++i)
       {
         auto &c = out_components.emplace_back();
-        c.name = doc[key][i].GetString();
-        c.desc = g_mgr->getComponentDescByName(c.name.c_str());
-        c.nameId = g_mgr->getComponentNameId(c.name.c_str());
+        c.desc = g_mgr->getComponentDescByName(doc[key][i].GetString());
+        c.nameId = g_mgr->getComponentNameId(doc[key][i].GetString());
         assert(c.desc != nullptr);
       }
     }
     else
     {
       auto &c = out_components.emplace_back();
-      c.name = doc[key].GetString();
-      c.desc = g_mgr->getComponentDescByName(c.name.c_str());
-      c.nameId = g_mgr->getComponentNameId(c.name.c_str());
+      c.desc = g_mgr->getComponentDescByName(doc[key].GetString());
+      c.nameId = g_mgr->getComponentNameId(doc[key].GetString());
       assert(c.desc != nullptr);
     }
   }
@@ -172,16 +178,17 @@ namespace script
 
     systems.clear();
     remaps.clear();
-    queries.clear();
-    queryDescs.clear();
+    dataQueries.clear();
+    systemQueries.clear();
+    // queryDescs.clear();
 
     bool isOk = build_module(name, path, [&](CScriptBuilder &builder, asIScriptModule &module)
     {
       for (int i = 0; i < (int)module.GetObjectTypeCount(); ++i)
       {
         asITypeInfo *type = module.GetObjectTypeByIndex(i);
-        const int typeId = type->GetTypeId();
-        eastl::string metadata = builder.GetMetadataStringForType(typeId);
+        TypeId typeId = type->GetTypeId();
+        eastl::string metadata = builder.GetMetadataStringForType(typeId.id);
 
         std::cmatch match;
         std::regex re = std::regex("(?:\\s*)\\bquery\\b(?:\\s*)(.*)");
@@ -189,26 +196,26 @@ namespace script
 
         if (match.size() > 0)
         {
-          ScriptQueryDesc &queryDesc = queryDescs[typeId];
+          Query &query = dataQueries[typeId];
 
-          queryDesc.type = type;
+          // query.desc.type = type;
 
           if (match[1].length() > 0)
           {
             JFrameDocument doc;
             doc.Parse(match[1].str().c_str());
 
-            process_metadata(doc, "$is-true", queryDesc.isTrueComponents);
-            process_metadata(doc, "$is-false", queryDesc.isFalseComponents);
-            process_metadata(doc, "$have", queryDesc.haveComponents);
-            process_metadata(doc, "$not-have", queryDesc.notHaveComponents);
+            process_metadata(doc, "$is-true", query.desc.isTrueComponents);
+            process_metadata(doc, "$is-false", query.desc.isFalseComponents);
+            process_metadata(doc, "$have", query.desc.haveComponents);
+            process_metadata(doc, "$not-have", query.desc.notHaveComponents);
           }
 
           assert(type->GetPropertyCount() != 0 ||
-            !queryDesc.isTrueComponents.empty() ||
-            !queryDesc.isFalseComponents.empty() ||
-            !queryDesc.haveComponents.empty() ||
-            !queryDesc.notHaveComponents.empty());
+            !query.desc.isTrueComponents.empty() ||
+            !query.desc.isFalseComponents.empty() ||
+            !query.desc.haveComponents.empty() ||
+            !query.desc.notHaveComponents.empty());
           assert(type->GetFactoryCount() != 0);
 
           for (int i = 0; i < (int)type->GetPropertyCount(); ++i)
@@ -229,7 +236,7 @@ namespace script
               desc = find_comp(name);
             assert(desc != nullptr);
 
-            queryDesc.components.push_back({ i, g_mgr->getComponentNameId(name), name, desc });
+            query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), desc });
           }
         }
       }
@@ -250,14 +257,14 @@ namespace script
             auto &sys = systems.emplace_back(fn);
             fn->AddRef();
 
-            if (match[1].length() > 0)
+            if (match[2].length() > 0)
             {
               JFrameDocument doc;
               doc.Parse(match[2].str().c_str());
-              process_metadata(doc, "$is-true", sys.isTrueComponents);
-              process_metadata(doc, "$is-false", sys.isFalseComponents);
-              process_metadata(doc, "$have", sys.haveComponents);
-              process_metadata(doc, "$not-have", sys.notHaveComponents);
+              process_metadata(doc, "$is-true", sys.queryDesc.isTrueComponents);
+              process_metadata(doc, "$is-false", sys.queryDesc.isFalseComponents);
+              process_metadata(doc, "$have", sys.queryDesc.haveComponents);
+              process_metadata(doc, "$not-have", sys.queryDesc.notHaveComponents);
             }
           }
           else if (match[1].str() == "on_load")
@@ -290,14 +297,14 @@ namespace script
     for (auto &sys : systems)
     {
       sys.id = id++;
-      sys.init(g_mgr);
+      sys.init(g_mgr, this);
     }
 
     remaps.resize(g_mgr->templates.size());
     for (auto &remap : remaps)
       remap.resize(systems.size());
 
-    queries.resize(systems.size());
+    systemQueries.resize(systems.size());
 
     for (int templateId = 0; templateId < (int)g_mgr->templates.size(); ++templateId)
       for (int sysId = 0; sysId < (int)systems.size(); ++sysId)
@@ -326,19 +333,24 @@ namespace script
       sys.fn = nullptr;
     }
 
-    queries.clear();
+    dataQueries.clear();
+    systemQueries.clear();
     systems.clear();
     remaps.clear();
-    queryDescs.clear();
+    // queryDescs.clear();
   }
 
   void ScriptECS::invalidateQueries()
   {
+    for (auto &it : dataQueries)
+      g_mgr->invalidateQuery(it.second);
+
     for (const auto &sys : systems)
     {
-      auto &query = queries[sys.id];
+      auto &query = systemQueries[sys.id];
       query.stageId = sys.stageId;
-      query.sys = &sys;
+      query.sysId = sys.id;
+      query.desc = sys.queryDesc;
       g_mgr->invalidateQuery(query);
     }
   }
@@ -354,8 +366,8 @@ namespace script
       if (sys.stageId == event_id)
       {
         bool ok = true;
-        for (const auto &c : sys.components)
-          if (c.desc->id != g_mgr->eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+        for (const auto &c : sys.queryDesc.components)
+          if (c.desc->id != g_mgr->eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.nameId))
           {
             ok = false;
             break;
@@ -381,17 +393,18 @@ namespace script
 
   void ScriptECS::tickStage(int stage_id, const RawArg &stage)
   {
-    for (const auto &query : queries)
+    // TODO: Store quries in map by stageId
+    for (const auto &query : systemQueries)
     {
-      if (query.sys->stageId != stage_id)
+      if (query.stageId != stage_id)
         continue;
       for (const auto &eid : query.eids)
       {
         const auto &entity = g_mgr->entities[eid.index];
         const auto &templ = g_mgr->templates[entity.templateId];
-        const auto &remap = remaps[entity.templateId][query.sys->id];
+        const auto &remap = remaps[entity.templateId][query.sysId];
 
-        stageCtx->Prepare(((ScriptSys*)query.sys)->fn);
+        stageCtx->Prepare(systems[query.sysId].fn);
         stageCtx->SetUserData(this, 1000);
         internal::set_arg_wrapped(stageCtx, 0, stage.mem);
         for (int i = 1; i < (int)remap.size(); ++i)

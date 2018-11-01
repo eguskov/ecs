@@ -5,6 +5,7 @@
 #include "ecs/stage.h"
 #include "ecs/event.h"
 #include "ecs/storage.h"
+#include "ecs/query.h"
 
 struct EntityManager;
 
@@ -75,17 +76,6 @@ struct RawArgSpec : RawArg
   RawArgSpec() : RawArg(Size, &buffer[0]) {}
 };
 
-template <typename Allocator>
-struct CompDescWithAllocator
-{
-  int id;
-  int nameId;
-  eastl::basic_string<char, Allocator> name;
-  const RegComp* desc;
-};
-
-using CompDesc = CompDescWithAllocator<EASTLAllocatorType>;
-
 DEF_HAS_METHOD(require);
 
 struct RegSys
@@ -106,13 +96,7 @@ struct RegSys
   StageFunc stageFn = nullptr;
 
   eastl::bitvector<> compMask;
-  eastl::vector<CompDesc> components;
-  eastl::vector<CompDesc> haveComponents;
-  eastl::vector<CompDesc> notHaveComponents;
-  eastl::vector<CompDesc> isTrueComponents;
-  eastl::vector<CompDesc> isFalseComponents;
-  eastl::vector<int> roComponents;
-  eastl::vector<int> rwComponents;
+  QueryDesc queryDesc;
 
   RegSys(const char *_name, int _id, bool need_order = true);
   virtual ~RegSys();
@@ -193,6 +177,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
   using Indices = eastl::make_index_sequence<ArgsCount>;
   using StringArray = eastl::array<const char*, ArgsCount>;
   using StringList = std::initializer_list<const char*>;
+  using StringVector = eastl::vector<eastl::string>;
   using ReturnType = R;
 
   template <std::size_t N>
@@ -232,6 +217,10 @@ struct RegSysSpec<D, R(Args...)> : RegSys
   SysType sys;
   SysFuncType sysFunc;
   StringArray componentNames;
+  StringVector haveNames;
+  StringVector notHaveNames;
+  StringVector isTrueNames;
+  StringVector isFalseNames;
 
   template <std::size_t... I>
   constexpr static auto createNames(eastl::index_sequence<I...>)
@@ -338,13 +327,18 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     ++reg_sys_count;
 
     for (const auto &n : have)
-      haveComponents.emplace_back().name = n;
+      haveNames.emplace_back(n);
     for (const auto &n : not_have)
-      notHaveComponents.emplace_back().name = n;
+      notHaveNames.emplace_back(n);
     for (const auto &n : is_true)
-      isTrueComponents.emplace_back().name = n;
+      isTrueNames.emplace_back(n);
     for (const auto &n : is_false)
-      isFalseComponents.emplace_back().name = n;
+      isFalseNames.emplace_back(n);
+
+    queryDesc.haveComponents.resize(haveNames.size());
+    queryDesc.notHaveComponents.resize(notHaveNames.size());
+    queryDesc.isTrueComponents.resize(isTrueNames.size());
+    queryDesc.isFalseComponents.resize(isFalseNames.size());
   }
 
   void init(const EntityManager *mgr) override final
@@ -354,46 +348,54 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     {
       const RegComp *desc = find_comp(componentTypeNames[i]);
       assert(desc != nullptr);
-      components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), componentNames[i], desc });
+      queryDesc.components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), desc });
 
       if (arguments[i].isConst)
-        roComponents.push_back(i);
+        queryDesc.roComponents.push_back(i);
       else
-        rwComponents.push_back(i);
+        queryDesc.rwComponents.push_back(i);
     }
 
-    for (auto &c : haveComponents)
+    int index = 0;
+    for (const auto &n : haveNames)
     {
-      c.desc = mgr->getComponentDescByName(c.name.c_str());
-      c.nameId = mgr->getComponentNameId(c.name.c_str());
+      auto &c = queryDesc.haveComponents[index++];
+      c.desc = mgr->getComponentDescByName(n.c_str());
+      c.nameId = mgr->getComponentNameId(n.c_str());
       assert(c.desc != nullptr);
     }
 
-    for (auto &c : notHaveComponents)
+    index = 0;
+    for (const auto &n : notHaveNames)
     {
-      c.desc = mgr->getComponentDescByName(c.name.c_str());
-      c.nameId = mgr->getComponentNameId(c.name.c_str());
+      auto &c = queryDesc.notHaveComponents[index++];
+      c.desc = mgr->getComponentDescByName(n.c_str());
+      c.nameId = mgr->getComponentNameId(n.c_str());
       assert(c.desc != nullptr);
     }
 
-    for (auto &c : isTrueComponents)
+    index = 0;
+    for (const auto &n : isTrueNames)
     {
-      c.desc = mgr->getComponentDescByName(c.name.c_str());
-      c.nameId = mgr->getComponentNameId(c.name.c_str());
+      auto &c = queryDesc.isTrueComponents[index++];
+      c.desc = mgr->getComponentDescByName(n.c_str());
+      c.nameId = mgr->getComponentNameId(n.c_str());
       assert(c.desc != nullptr);
     }
 
-    for (auto &c : isFalseComponents)
+    index = 0;
+    for (const auto &n : isFalseNames)
     {
-      c.desc = mgr->getComponentDescByName(c.name.c_str());
-      c.nameId = mgr->getComponentNameId(c.name.c_str());
+      auto &c = queryDesc.isFalseComponents[index++];
+      c.desc = mgr->getComponentDescByName(n.c_str());
+      c.nameId = mgr->getComponentNameId(n.c_str());
       assert(c.desc != nullptr);
     }
 
     compMask.resize(reg_comp_count);
     compMask.set(reg_comp_count, false);
 
-    for (const auto &c : components)
+    for (const auto &c : queryDesc.components)
       compMask[c.desc->id] = true;
 
     if (Argument<0>::isStage)
@@ -414,7 +416,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
       const RegComp *desc = find_comp(typeName);
 
       for (size_t i = 0; i < template_comps.size(); ++i)
-        if (template_comps[i].desc->id == desc->id && template_comps[i].name == name)
+        if (template_comps[i].desc->id == desc->id && template_comps[i].nameId == g_mgr->getComponentNameId(name))
           remap[compIdx] = i;
     }
   }

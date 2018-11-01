@@ -8,6 +8,7 @@
 
 #include "entity.h"
 #include "component.h"
+#include "query.h"
 #include "system.h"
 
 #include "event.h"
@@ -47,8 +48,8 @@ struct EntityTemplate
   eastl::vector<RegSys::Remap> remaps;
   eastl::vector<int> extends;
 
-  bool hasCompontent(int id, const char *name) const;
-  int getCompontentOffset(int id, const char *name) const;
+  bool hasCompontent(int type_id, int name_id) const;
+  int getCompontentOffset(int type_id, int name_id) const;
 };
 
 template <typename T>
@@ -118,18 +119,6 @@ struct AsyncValue
   }
 };
 
-struct Query
-{
-  bool dirty = false;
-  int stageId = -1;
-  const RegSys *sys = nullptr;
-  EntityVector eids;
-
-#ifdef ECS_PACK_QUERY_DATA
-  eastl::vector<int> data;
-#endif
-};
-
 enum EntityManagerStatus
 {
   kStatusNone = 0,
@@ -154,6 +143,7 @@ struct EntityManager
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
+  eastl::vector<QueryDesc> queryDescs;
 
   eastl::queue<CreateQueueData> createQueue;
   eastl::queue<EntityId> deleteQueue;
@@ -164,14 +154,17 @@ struct EntityManager
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
 
-  static void init();
+  static void create();
   static void release();
 
   EntityManager();
   ~EntityManager();
 
+  void init();
+
   int getSystemWeight(const char *name) const;
   int getComponentNameId(const char *name) const;
+  const char* getComponentName(int name_id) const;
   const RegComp* getComponentDescByName(const char *name) const;
 
   int getTemplateId(const char *name);
@@ -253,28 +246,6 @@ struct EntityManager
     new (arg0.mem) E(ev);
 
     sendEventBroadcastSync(RegCompSpec<E>::ID, arg0);
-  }
-
-  void queryEids(EntityVector &out_eids, std::initializer_list<eastl::pair<const char*, const char*>> comps)
-  {
-    for (auto &e : entities)
-    {
-      const auto &templ = templates[e.templateId];
-
-      bool ok = true;
-      for (const auto &c : comps)
-      {
-        const RegComp *desc = find_comp(c.first);
-        if (!templ.hasCompontent(desc->id, c.second))
-        {
-          ok = false;
-          break;
-        }
-      }
-
-      if (ok)
-        out_eids.push_back(e.eid);
-    }
   }
 };
 

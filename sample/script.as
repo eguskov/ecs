@@ -17,19 +17,47 @@ class PlayerSpawnZonesQuery
   const vec2@ pos;
 }
 
-// TODO: Make real usage of query
-// for (auto it = Query<AliveEnemy>().perform(); it.hasNext(); ++it)
-// {
-//   auto @enemy = it.get();
-//   enemy.vel.x += 0.5;
-//   print("query: enemy.pos: (" + enemy.pos.x + ", " + enemy.pos.y +")");
-//   print("query: enemy.vel: (" + enemy.vel.x + ", " + enemy.vel.y +")");
-// }
-
 [query { "$is-true": "is_alive", "$have": "enemy" }]
 class AliveEnemiesCountQuery
 {
 }
+
+// [component { "$have": "user_input" }]
+// class Player
+// {
+//   const vec2@ pos;
+//   const vec2@ vel;
+// }
+
+// [component { "$have": "car" }]
+// class Car
+// {
+//   const vec2@ pos;
+//   const vec2@ vel;
+// }
+
+// [system]
+// void process_player_test(const UpdateStage@ stage, const Player@ player)
+// {
+// }
+
+// [system { "$is-false": "use_car_trigger_active" }]
+// void check_trigger(const UpdateStage@ stage, const Trigger@ use_car_trigger, boolean@ use_car_trigger_active)
+// {
+//   use_car_trigger_active = true;
+// }
+
+// [system { "$is-true": "caruse_car_trigger_active" }]
+// void select_cars_with_active_trigger(const UpdateStage@ stage, Player@ player, Car@ car)
+// {
+//   for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+//     it.get().car_eid = eid;
+// }
+
+// [system { "$eq": [ "player.car_eid", "car.eid" ], "$is-true": "player.is_alive" }]
+// void join_system(const UpdateStage@ stage, Player@ player, Car@ car)
+// {
+// }
 
 [system { "$have": "spawner" }]
 void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
@@ -75,7 +103,7 @@ void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
 }
 
 [system { "$have": "player_spawner" }]
-void update_player_spawner(const UpdateStage@ stage, PlayerSpawner@ player_spawner)
+void update_player_spawner(const UpdateStage@ stage)
 {
   for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
     return;

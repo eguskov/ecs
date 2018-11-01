@@ -37,7 +37,7 @@ template <typename C> void BricksQuery::exec(C callback)
 {
   using SysType = RegSysSpec<1315101757, decltype(exec_BricksQuery)>;
   const auto &sys = _reg_sys_exec_BricksQuery;
-  const auto &components = sys.components;
+  const auto &components = sys.queryDesc.components;
   const auto &query = g_mgr->queries[sys.id];
   auto *storage = &g_mgr->storages[0];
   ExtraArguments args;
@@ -65,7 +65,7 @@ template <typename C> void MovigBricksQuery::exec(C callback)
 {
   using SysType = RegSysSpec<2996131765, decltype(exec_MovigBricksQuery)>;
   const auto &sys = _reg_sys_exec_MovigBricksQuery;
-  const auto &components = sys.components;
+  const auto &components = sys.queryDesc.components;
   const auto &query = g_mgr->queries[sys.id];
   auto *storage = &g_mgr->storages[0];
   ExtraArguments args;
@@ -85,6 +85,7 @@ template <typename C> void MovigBricksQuery::exec(C callback)
 
 template <> template <> __forceinline void RegSysSpec<1721297381, decltype(init_physics_collision_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
   init_physics_collision_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
@@ -92,6 +93,7 @@ template <> template <> __forceinline void RegSysSpec<1721297381, decltype(init_
 
 template <> template <> __forceinline void RegSysSpec<3790419289, decltype(init_physics_body_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
   init_physics_body_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
@@ -99,6 +101,7 @@ template <> template <> __forceinline void RegSysSpec<3790419289, decltype(init_
 
 template <> template <> __forceinline void RegSysSpec<3886467065, decltype(init_physics_world_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   init_physics_world_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
@@ -106,6 +109,7 @@ template <> template <> __forceinline void RegSysSpec<3886467065, decltype(init_
 
 template <> template <> __forceinline void RegSysSpec<3068576552, decltype(update_physics)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   update_physics(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
@@ -113,6 +117,7 @@ template <> template <> __forceinline void RegSysSpec<3068576552, decltype(updat
 
 template <> template <> __forceinline void RegSysSpec<2372555697, decltype(update_kinematic_physics_body)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
   update_kinematic_physics_body(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
@@ -120,6 +125,7 @@ template <> template <> __forceinline void RegSysSpec<2372555697, decltype(updat
 
 template <> template <> __forceinline void RegSysSpec<745133916, decltype(update_physics_collisions)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId, components[6].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets), get_offset(remap[6], offsets) };
   update_physics_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]), Value<Argument<6>::Type, Argument<6>::valueType>::get(args, storage, argId[6], argOffset[6]));
@@ -127,6 +133,7 @@ template <> template <> __forceinline void RegSysSpec<745133916, decltype(update
 
 template <> template <> __forceinline void RegSysSpec<881407812, decltype(physics_contact_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   physics_contact_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
@@ -134,6 +141,7 @@ template <> template <> __forceinline void RegSysSpec<881407812, decltype(physic
 
 template <> template <> __forceinline void RegSysSpec<209165139, decltype(check_physics_contacts)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   check_physics_contacts(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
@@ -141,6 +149,7 @@ template <> template <> __forceinline void RegSysSpec<209165139, decltype(check_
 
 template <> template <> __forceinline void RegSysSpec<2141609791, decltype(render_debug_physics)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   render_debug_physics(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));

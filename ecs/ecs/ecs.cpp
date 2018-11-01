@@ -27,14 +27,6 @@ RegSys::~RegSys()
     ::free(name);
 }
 
-bool RegSys::hasCompontent(int id, const char *name) const
-{
-  for (const auto &c : components)
-    if (c.desc->id == id && c.name == name)
-      return true;
-  return false;
-}
-
 const RegSys *find_sys(const char *name)
 {
   const RegSys *head = reg_sys_head;
@@ -72,25 +64,41 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
-bool EntityTemplate::hasCompontent(int id, const char *name) const
+bool EntityTemplate::hasCompontent(int type_id, int name_id) const
 {
-  if (!name || !name[0])
-    return compMask[id];
+  assert(name_id >= 0);
   for (const auto &c : components)
-    if (c.desc->id == id && c.name == name)
+    if (c.desc->id == type_id && c.nameId == name_id)
       return true;
   return false;
 }
 
-int EntityTemplate::getCompontentOffset(int id, const char *name) const
+// bool EntityTemplate::hasCompontent(int type_id, const char *name) const
+// {
+//   assert(name && name[0]);
+//   for (const auto &c : components)
+//     if (c.desc->id == type_id && c.name == name)
+//       return true;
+//   return false;
+// }
+
+int EntityTemplate::getCompontentOffset(int type_id, int name_id) const
 {
-  if (!name || !name[0])
-    return -1;
+  assert(name_id >= 0);
   for (const auto &c : components)
-    if (c.desc->id == id && c.name == name)
+    if (c.desc->id == type_id && c.nameId == name_id)
       return c.id;
   return -1;
 }
+
+// int EntityTemplate::getCompontentOffset(int type_id, const char *name) const
+// {
+//   assert(name && name[0]);
+//   for (const auto &c : components)
+//     if (c.desc->id == type_id && c.name == name)
+//       return c.id;
+//   return -1;
+// }
 
 void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
 {
@@ -142,12 +150,13 @@ eastl::tuple<EventStream::Header, RawArg> EventStream::pop()
   return eastl::make_tuple(header, RawArg{ header.eventSize, mem });
 }
 
-void EntityManager::init()
+void EntityManager::create()
 {
   if (g_mgr)
     return;
 
   g_mgr = new EntityManager;
+  g_mgr->init();
 }
 
 void EntityManager::release()
@@ -157,6 +166,17 @@ void EntityManager::release()
 }
 
 EntityManager::EntityManager()
+{
+}
+
+EntityManager::~EntityManager()
+{
+  for (Storage *s : storages)
+    delete s;
+  // TODO: Call dtors for components
+}
+
+void EntityManager::init()
 {
   {
     FILE *file = nullptr;
@@ -231,41 +251,36 @@ EntityManager::EntityManager()
   {
     auto &q = queries[sys.desc->id];
     q.stageId = sys.desc->stageId > 0 ? sys.desc->stageId : sys.desc->eventId;
-    q.sys = sys.desc;
+    q.sysId = sys.desc->id;
+    q.desc = sys.desc->queryDesc;
   }
 
   for (const auto &sys : systems)
   {
-    for (const auto &c : sys.desc->isTrueComponents)
+    for (const auto &c : sys.desc->queryDesc.isTrueComponents)
       trackComponents.insert(c.nameId);
-    for (const auto &c : sys.desc->isFalseComponents)
+    for (const auto &c : sys.desc->queryDesc.isFalseComponents)
       trackComponents.insert(c.nameId);
   }
 
-  for (const auto &sys : systems)
-  {
-    for (int nameId : trackComponents)
-    {
-      auto it = eastl::find_if(sys.desc->rwComponents.begin(), sys.desc->rwComponents.end(), [&](int id)
-      {
-        return sys.desc->components[id].nameId == nameId;
-      });
+  // TODO: Change detection
+  // for (const auto &sys : systems)
+  // {
+  //   for (int nameId : trackComponents)
+  //   {
+  //     auto it = eastl::find_if(sys.desc->rwComponents.begin(), sys.desc->rwComponents.end(), [&](int id)
+  //     {
+  //       return sys.desc->components[id].nameId == nameId;
+  //     });
 
-      if (it != sys.desc->rwComponents.end())
-      {
+  //     if (it != sys.desc->rwComponents.end())
+  //     {
 
-      }
-    }
-  }
+  //     }
+  //   }
+  // }
 
   eidCompId = find_comp("eid")->id;
-}
-
-EntityManager::~EntityManager()
-{
-  for (Storage *s : storages)
-    delete s;
-  // TODO: Call dtors for components
 }
 
 int EntityManager::getSystemWeight(const char *name) const
@@ -286,6 +301,13 @@ static int add_component_name(eastl::vector<eastl::string> &to, const char *name
   return it - to.begin();
 }
 
+const char* EntityManager::getComponentName(int name_id) const
+{
+  if (name_id >= 0 && name_id < (int)componentNames.size())
+    return componentNames[name_id].c_str();
+  return nullptr;
+}
+
 int EntityManager::getComponentNameId(const char *name) const
 {
   auto it = eastl::find(componentNames.begin(), componentNames.end(), name);
@@ -299,17 +321,19 @@ const RegComp* EntityManager::getComponentDescByName(const char *name) const
   return componentDescByNames[nameId];
 }
 
-static void add_component_to_template(const char *comp_type, const char *comp_name,
+static void add_component_to_template(const char *comp_type, int comp_name_id,
   EntityTemplate &templ,
   eastl::vector<eastl::string> &component_names,
   eastl::vector<const RegComp*> &component_desc_by_names,
   eastl::vector<Storage*> &storages)
 {
-  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.name == comp_name; });
+  assert(comp_name_id >= 0 && comp_name_id < (int)component_names.size());
+
+  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.nameId == comp_name_id; });
   if (res != templ.components.end())
     return;
 
-  templ.components.push_back({ 0, add_component_name(component_names, comp_name), comp_name, find_comp(comp_type) });
+  templ.components.push_back({ 0, comp_name_id, find_comp(comp_type) });
 
   if (component_desc_by_names.size() < component_names.size())
   {
@@ -342,11 +366,20 @@ static void add_component_to_template(const char *comp_type, const char *comp_na
 
   if (storage->elemSize <= 0)
   {
-    storage->name = comp_name;
+    storage->name = component_names[comp_name_id];
     storage->elemSize = desc->size;
   }
 
   assert(storage->elemSize == desc->size);
+}
+
+static void add_component_to_template(const char *comp_type, const char *comp_name,
+  EntityTemplate &templ,
+  eastl::vector<eastl::string> &component_names,
+  eastl::vector<const RegComp*> &component_desc_by_names,
+  eastl::vector<Storage*> &storages)
+{
+  add_component_to_template(comp_type, add_component_name(component_names, comp_name), templ, component_names, component_desc_by_names, storages);
 }
 
 static void process_extends(EntityManager *mgr,
@@ -361,7 +394,7 @@ static void process_extends(EntityManager *mgr,
     const int templateId = mgr->getTemplateId(e);
     templ.extends.push_back(templateId);
     for (const auto &c : mgr->templates[templateId].components)
-      add_component_to_template(c.desc->name, c.name.c_str(), templ, component_names, component_desc_by_names, storages);
+      add_component_to_template(c.desc->name, c.nameId, templ, component_names, component_desc_by_names, storages);
   }
 }
 
@@ -383,7 +416,7 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     [](const CompDesc &lhs, const CompDesc &rhs)
     {
       if (lhs.desc->id == rhs.desc->id)
-        return lhs.name < rhs.name;
+        return lhs.nameId < rhs.nameId;
       return lhs.desc->id < rhs.desc->id;
     });
 
@@ -523,7 +556,7 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
     int offset = 0;
     eastl::tie(mem, offset) = storage->allocate();
 
-    c.desc->init(mem, tmpValue[c.name.c_str()]);
+    c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
     e.componentOffsets.push_back(offset);
   }
 
@@ -631,6 +664,8 @@ void EntityManager::tick()
 
 void EntityManager::invalidateQuery(Query &query)
 {
+  assert(query.desc.isValid());
+
   query.dirty = false;
 
   //if (query.stageId < 0 && query.sys->eventId >= 0)
@@ -650,8 +685,8 @@ void EntityManager::invalidateQuery(Query &query)
     const auto &templ = templates[e.templateId];
 
     bool ok = true;
-    for (const auto &c : query.sys->components)
-      if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.stageId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+    for (const auto &c : query.desc.components)
+      if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.stageId && !templ.hasCompontent(c.desc->id, c.nameId))
       {
         ok = false;
         break;
@@ -659,8 +694,8 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      for (const auto &c : query.sys->haveComponents)
-        if (!templ.hasCompontent(c.desc->id, c.name.c_str()))
+      for (const auto &c : query.desc.haveComponents)
+        if (!templ.hasCompontent(c.desc->id, c.nameId))
         {
           ok = false;
           break;
@@ -669,8 +704,8 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      for (const auto &c : query.sys->notHaveComponents)
-        if (templ.hasCompontent(c.desc->id, c.name.c_str()))
+      for (const auto &c : query.desc.notHaveComponents)
+        if (templ.hasCompontent(c.desc->id, c.nameId))
         {
           ok = false;
           break;
@@ -679,12 +714,12 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      for (const auto &c : query.sys->isTrueComponents)
+      for (const auto &c : query.desc.isTrueComponents)
       {
         const auto &entity = entities[eid2idx(e.eid)];
-        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
+        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.nameId)];
 
-        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || !storages[c.nameId]->get<bool>(offset))
+        if (!templ.hasCompontent(c.desc->id, c.nameId) || !storages[c.nameId]->get<bool>(offset))
         {
           ok = false;
           break;
@@ -694,12 +729,12 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      for (const auto &c : query.sys->isFalseComponents)
+      for (const auto &c : query.desc.isFalseComponents)
       {
         const auto &entity = entities[eid2idx(e.eid)];
-        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
+        const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.nameId)];
 
-        if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || storages[c.nameId]->get<bool>(offset))
+        if (!templ.hasCompontent(c.desc->id, c.nameId) || storages[c.nameId]->get<bool>(offset))
         {
           ok = false;
           break;
@@ -774,8 +809,8 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
     if (sys.desc->eventId == event_id)
     {
       bool ok = true;
-      for (const auto &c : sys.desc->components)
-        if (c.desc->id != eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.name.c_str()))
+      for (const auto &c : sys.desc->queryDesc.components)
+        if (c.desc->id != eidCompId && c.desc->id != event_id && !templ.hasCompontent(c.desc->id, c.nameId))
         {
           ok = false;
           break;

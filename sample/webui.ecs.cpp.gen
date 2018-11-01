@@ -25,7 +25,7 @@ template <typename C> void AllScriptsQuery::exec(C callback)
 {
   using SysType = RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>;
   const auto &sys = _reg_sys_exec_AllScriptsQuery;
-  const auto &components = sys.components;
+  const auto &components = sys.queryDesc.components;
   const auto &query = g_mgr->queries[sys.id];
   auto *storage = &g_mgr->storages[0];
   ExtraArguments args;
@@ -45,6 +45,7 @@ template <typename C> void AllScriptsQuery::exec(C callback)
 
 template <> template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
   init_websocket_server_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
@@ -52,6 +53,7 @@ template <> template <> __forceinline void RegSysSpec<1792234238, decltype(init_
 
 template <> template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_server)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   update_websocket_server(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
@@ -59,6 +61,7 @@ template <> template <> __forceinline void RegSysSpec<4294383132, decltype(updat
 
 template <> template <> __forceinline void RegSysSpec<2741717703, decltype(ws_get_ecs_data)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
 {
+  const auto &components = queryDesc.components;
   const int argId[] = { components[0].nameId, components[1].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
   ws_get_ecs_data(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));

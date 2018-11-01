@@ -276,7 +276,7 @@
       "$name": "player_spawner",
       "$components": {
         "player_spawner": {
-          "$type": "player_spawner",
+          "$type": "tag",
           "$value": {}
         }
       }
@@ -285,7 +285,7 @@
       "$name": "player_spawn_zone",
       "$components": {
         "player_spawn_zone": {
-          "$type": "player_spawn_zone",
+          "$type": "tag",
           "$value": {}
         },
         "pos": {

@@ -32,7 +32,7 @@ int main()
 {
   std::srand(unsigned(std::time(0)));
 
-  EntityManager::init();
+  EntityManager::create();
 
   if (g_enable_cef)
     cef::init();
@@ -104,10 +104,6 @@ int main()
   script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
   script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
 
-  script::register_component<PlayerSpawner>("PlayerSpawner");
-  script::register_component<PlayerSpawnZone>("PlayerSpawnZone");
-  script::register_component<LevelGenerator>("LevelGenerator");
-
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
@@ -163,7 +159,6 @@ int main()
     if (g_enable_cef)
       cef::update();
 
-    script::clear_frame_mem_data();
     clear_frame_mem();
   }
 

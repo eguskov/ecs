@@ -27,6 +27,7 @@
 #include <scriptbuilder/scriptbuilder.h>
 
 #include "scriptECS.h"
+#include "scriptQuery.h"
 
 namespace script
 {
@@ -149,188 +150,17 @@ namespace script
     static constexpr ExecType execPtr = &opImplConv<T>::exec;
   };
 
-  struct ScriptQuery
+  static void initIterator(asITypeInfo *type, void *data)
   {
-    struct Iterator
-    {
-      ScriptQuery *query = nullptr;
-      int pos = 0;
+  }
 
-      Iterator& operator=(const Iterator &assign)
-      {
-        pos = assign.pos;
-        query = assign.query;
-        assert(query != nullptr);
-        query->addRef();
-        return *this;
-      }
-
-      bool hasNext() const
-      {
-        return pos < (int)query->eids.size();
-      }
-
-      void operator++()
-      {
-        ++pos;
-      }
-
-      void* get()
-      {
-        asIScriptFunction *fn = query->queryDesc->type->GetFactoryByIndex(0);
-        asIScriptObject *object = nullptr;
-        callValue<asIScriptObject*>([&](asIScriptObject **obj)
-        {
-          object = *obj;
-          object->AddRef();
-        }, fn);
-
-        const EntityId &eid = query->eids[pos];
-        const auto &entity = g_mgr->entities[eid.index];
-        const auto &templ = g_mgr->templates[entity.templateId];
-
-        for (const auto &c : query->queryDesc->components)
-        {
-          if (c.desc->id == RegCompSpec<EntityId>::ID)
-          {
-            void *prop = object->GetAddressOfProperty(c.id);
-            *(uint8_t**)prop = (uint8_t*)&eid;
-            continue;
-          }
-
-          bool ok = false;
-          for (const auto &tc : templ.components)
-          {
-            if (c.nameId == tc.nameId)
-            {
-              ok = true;
-              void *prop = object->GetAddressOfProperty(c.id);
-              *(uint8_t**)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
-              break;
-            }
-          }
-          assert(ok);
-        }
-
-        return object;
-      }
-    };
-
-    static void initIterator(asITypeInfo *type, void *data)
-    {
-    }
-
-    static void releaseIterator(Iterator *it)
-    {
-      it->query->release();
-    }
-
-    eastl::vector<EntityId, FrameMemAllocator> eids;
-
-    ScriptQueryDesc *queryDesc = nullptr;
-
-    int refCount = 1;
-
-    ~ScriptQuery()
-    {
-      eids.reset_lose_memory();
-    }
-
-    void addRef()
-    {
-      asAtomicInc(refCount);
-    }
-
-    void release()
-    {
-    }
-
-    Iterator perform()
-    {
-      eids.clear();
-
-      for (auto &e : g_mgr->entities)
-      {
-        if (!e.ready)
-          continue;
-
-        const auto &templ = g_mgr->templates[e.templateId];
-
-        bool ok = true;
-        for (const auto &c : queryDesc->components)
-          if (c.desc->id != g_mgr->eidCompId && !templ.hasCompontent(c.desc->id, c.name.c_str()))
-          {
-            ok = false;
-            break;
-          }
-
-        if (ok)
-        {
-          for (const auto &c : queryDesc->haveComponents)
-            if (!templ.hasCompontent(c.desc->id, c.name.c_str()))
-            {
-              ok = false;
-              break;
-            }
-        }
-
-        if (ok)
-        {
-          for (const auto &c : queryDesc->notHaveComponents)
-            if (templ.hasCompontent(c.desc->id, c.name.c_str()))
-            {
-              ok = false;
-              break;
-            }
-        }
-
-        if (ok)
-        {
-          for (const auto &c : queryDesc->isTrueComponents)
-          {
-            const auto &entity = g_mgr->entities[e.eid.index];
-            const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
-
-            if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || !g_mgr->storages[c.nameId]->get<bool>(offset))
-            {
-              ok = false;
-              break;
-            }
-          }
-        }
-
-        if (ok)
-        {
-          for (const auto &c : queryDesc->isFalseComponents)
-          {
-            const auto &entity = g_mgr->entities[e.eid.index];
-            const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.name.c_str())];
-
-            if (!templ.hasCompontent(c.desc->id, c.name.c_str()) || g_mgr->storages[c.nameId]->get<bool>(offset))
-            {
-              ok = false;
-              break;
-            }
-          }
-        }
-
-        if (ok)
-          eids.push_back(e.eid);
-      }
-
-      Iterator it;
-      it.query = this;
-      it.query->addRef();
-      return it;
-    }
-  };
-
-  static eastl::array<ScriptQuery, 1024> query_buffer;
-  static size_t query_offset = 0;
+  static void releaseIterator(void *it)
+  {
+  }
 
   ScriptQuery* create_script_query(asITypeInfo *type, void *data)
   {
-    ScriptQuery *query = new (&query_buffer[query_offset++]) ScriptQuery;
+    ScriptQuery *sq = new (RawAllocator<ScriptQuery>::alloc()) ScriptQuery;
 
     asIScriptContext *ctx = asGetActiveContext();
     assert(ctx != nullptr);
@@ -338,13 +168,14 @@ namespace script
     ScriptECS *scriptECS = (ScriptECS *)ctx->GetUserData(1000);
     assert(scriptECS != nullptr);
 
-    auto res = scriptECS->queryDescs.find(type->GetSubTypeId());
-    assert(res != scriptECS->queryDescs.end());
+    auto res = scriptECS->dataQueries.find(type->GetSubTypeId());
+    assert(res != scriptECS->dataQueries.end());
 
-    query->queryDesc = &res->second;
+    sq->type = engine->GetTypeInfoById(res->first.id);
+    assert(sq->type != nullptr);
+    sq->query = &res->second;
 
-    // TODO: Save query for "subType" and invalidate
-    return query;
+    return sq;
   }
 
   static JFrameAllocator json_frame_allocator; 
@@ -670,8 +501,8 @@ namespace script
     RegisterScriptDictionary(engine);
 
     engine->RegisterObjectType("QueryIterator<class T>", sizeof(ScriptQuery::Iterator), asOBJ_VALUE | asOBJ_TEMPLATE | asGetTypeTraits<ScriptQuery::Iterator>());
-    engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(ScriptQuery::initIterator, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
-    engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_DESTRUCT, "void f()", asFUNCTIONPR(ScriptQuery::releaseIterator, (ScriptQuery::Iterator*), void), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(initIterator, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
+    engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_DESTRUCT, "void f()", asFUNCTIONPR(releaseIterator, (void*), void), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("QueryIterator<T>", "QueryIterator<T>& opAssign(const QueryIterator<T>&in)", asMETHODPR(ScriptQuery::Iterator, operator=, (const ScriptQuery::Iterator&), ScriptQuery::Iterator&), asCALL_THISCALL);
     engine->RegisterObjectMethod("QueryIterator<T>", "bool hasNext() const", asMETHODPR(ScriptQuery::Iterator, hasNext, () const, bool), asCALL_THISCALL);
     engine->RegisterObjectMethod("QueryIterator<T>", "void opPreInc()", asMETHODPR(ScriptQuery::Iterator, operator++, (), void), asCALL_THISCALL);
@@ -881,6 +712,7 @@ namespace script
     const char *name = nullptr;
     fn->GetParam(i, &typeId, (asDWORD*)&desc.flags, &name);
 
+    desc.typeId = typeId;
     desc.name = name;
     if (typeId == asTYPEID_FLOAT) desc.type = "float";
     else if (typeId == asTYPEID_INT32) desc.type = "int";
@@ -900,13 +732,6 @@ namespace script
     for (int i = 0; i < (int)fn->GetParamCount(); ++i)
       res.push_back(eastl::move(get_param_desc(fn, i)));
     return eastl::move(res);
-  }
-
-  void clear_frame_mem_data()
-  {
-    for (size_t i = 0; i < query_offset; ++i)
-      query_buffer[i].~ScriptQuery();
-    query_offset = 0;
   }
 
   namespace internal

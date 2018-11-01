@@ -5,14 +5,8 @@
 
 #include "update.ecs.h"
 
-static RegCompSpec<PlayerSpawner> _reg_comp_player_spawner("player_spawner");
-template <> int RegCompSpec<PlayerSpawner>::ID = -1;
-
-static RegCompSpec<PlayerSpawnZone> _reg_comp_player_spawn_zone("player_spawn_zone");
-template <> int RegCompSpec<PlayerSpawnZone>::ID = -1;
-
-static RegCompSpec<LevelGenerator> _reg_comp_level_generator("level_generator");
-template <> int RegCompSpec<LevelGenerator>::ID = -1;
+static RegCompSpec<Tag> _reg_comp_tag("tag");
+template <> int RegCompSpec<Tag>::ID = -1;
 
 static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
 template <> int RegCompSpec<TimerComponent>::ID = -1;

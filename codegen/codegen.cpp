@@ -742,7 +742,7 @@ int main(int argc, char* argv[])
       out << "{" << std::endl;
       out << "  using SysType = RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>;" << std::endl;
       out << "  const auto &sys = _reg_sys_exec_" << q.name << ";" << std::endl;
-      out << "  const auto &components = sys.components;" << std::endl;
+      out << "  const auto &components = sys.queryDesc.components;" << std::endl;
       out << "  const auto &query = g_mgr->queries[sys.id];" << std::endl;
       out << "  auto *storage = &g_mgr->storages[0];" << std::endl;
       out << "  ExtraArguments args;" << std::endl;
@@ -775,6 +775,7 @@ int main(int argc, char* argv[])
     {
       out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
+      out << "  const auto &components = queryDesc.components;" << std::endl;
       out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;
       out << "  " << sys.name << "(";

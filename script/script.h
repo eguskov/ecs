@@ -51,10 +51,23 @@ namespace script
     asIScriptContext* operator->() { return ctx; }
   };
 
+  struct TypeId
+  {
+    uint32_t id = 0;
+    uint32_t baseId = 0;
+    TypeId() = default;
+    TypeId(uint32_t _id) : id(_id), baseId(_id & asTYPEID_MASK_SEQNBR) {}
+
+    void operator=(uint32_t _id) { id = _id; baseId = _id & asTYPEID_MASK_SEQNBR; }
+    bool operator==(const TypeId &rhs) const { return baseId == rhs.baseId; }
+    operator uint32_t() const { return baseId; }
+  };
+
   struct ParamDesc
   {
     eastl::string name;
     eastl::string type;
+    TypeId typeId;
     uint32_t flags = 0;
 
     const char* getTypeName() const
@@ -148,3 +161,11 @@ namespace script
 
   void clear_frame_mem_data();
 }
+
+namespace eastl
+{
+  template <> struct hash<script::TypeId>
+  {
+    size_t operator()(script::TypeId val) const { return static_cast<uint32_t>(val); }
+  };
+};

@@ -6,9 +6,17 @@
 
 namespace script
 {
-  struct ScriptSys : RegSys
+  struct ScriptECS;
+
+  struct ScriptSys
   {
     asIScriptFunction *fn = nullptr;
+
+    int id = -1;
+    int stageId = -1;
+    int eventId = -1;
+
+    QueryDesc queryDesc;
 
     ParamDescVector params;
 
@@ -17,18 +25,13 @@ namespace script
 
     ScriptSys(asIScriptFunction *_fn);
 
-    void init(const EntityManager *mgr) override final;
-    void initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const override final;
+    void init(const EntityManager *mgr, const ScriptECS *script_ecs);
+    void initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const;
   };
 
-  struct ScriptQueryDesc
+  struct ScriptQueryDesc : QueryDesc
   {
     asITypeInfo *type = nullptr;
-    eastl::vector<CompDesc> components;
-    eastl::vector<CompDesc> haveComponents;
-    eastl::vector<CompDesc> notHaveComponents;
-    eastl::vector<CompDesc> isTrueComponents;
-    eastl::vector<CompDesc> isFalseComponents;
   };
 
   struct ScriptECS
@@ -40,9 +43,11 @@ namespace script
 
     eastl::vector<ScriptSys> systems;
     eastl::vector<eastl::vector<RegSys::Remap>> remaps;
-    eastl::vector<Query> queries;
+    // eastl::vector<Query> dataQueries;
+    eastl::vector<Query> systemQueries;
 
-    eastl::hash_map<int, ScriptQueryDesc> queryDescs;
+    eastl::hash_map<TypeId, Query> dataQueries;
+    // eastl::hash_map<TypeId, ScriptQueryDesc> queryDescs;
 
     ScriptECS() = default;
     ScriptECS(ScriptECS &&);

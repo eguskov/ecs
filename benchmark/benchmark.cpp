@@ -21,7 +21,7 @@ int main()
 {
   using namespace std::chrono_literals;
 
-  EntityManager::init();
+  EntityManager::create();
 
   // TODO: 1. Entites
   // TODO: 2. Native loop
