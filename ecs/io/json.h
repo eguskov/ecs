@@ -4,7 +4,7 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-#include "framemem.h"
+#include "ecs/framemem.h"
 
 using JDocument = rapidjson::Document;
 using JValue = rapidjson::Value;

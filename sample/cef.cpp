@@ -256,7 +256,7 @@ void cef::release()
   CefShutdown();
 }
 
-DEF_SYS(HAVE(webui))
+DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
 {
   g_main_window = ::FindWindow(nullptr, "raylib [core] example - basic window");
@@ -279,25 +279,25 @@ static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
   CefBrowserHost::CreateBrowser(windowInfo, handler, "http://localhost:10010", browserSettings, NULL);
 }
 
-DEF_SYS(HAVE(webui))
+DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_after_created_handler(const CEFEventOnAfterCreated &ev)
 {
   ::SetFocus(g_main_window);
 }
 
-DEF_SYS(HAVE(webui))
+DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_click_outside_handler(const cef::EventOnClickOutside &ev)
 {
   ::SetFocus(g_main_window);
 }
 
-DEF_SYS(HAVE(webui))
+DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_toggle_dev_tools_handler(const cef::CmdToggleDevTools &ev)
 {
   g_app->handlers.front()->ToggleDevTools();
 }
 
-DEF_SYS(HAVE(webui))
+DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_toggle_webui_handler(const cef::CmdToggleWebUI &ev)
 {
   HWND hWnd = g_app->handlers.front()->browsers.front()->GetHost()->GetWindowHandle();

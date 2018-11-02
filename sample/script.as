@@ -7,19 +7,14 @@ class AliveEnemy
 }
 
 [query { "$is-true": "is_alive", "$have": "user_input" }]
-class AlivePlayerQuery
+class AlivePlayer
 {
 }
 
 [query { "$have": "player_spawn_zone" }]
-class PlayerSpawnZonesQuery
+class PlayerSpawnZone
 {
   const vec2@ pos;
-}
-
-[query { "$is-true": "is_alive", "$have": "enemy" }]
-class AliveEnemiesCountQuery
-{
 }
 
 [query { "$have": "user_input" }]
@@ -30,11 +25,44 @@ class Player
   const vec2@ vel;
 }
 
-[system { "$link": [ "player.enemy_eid", "enemy.eid" ] }]
+[system { "$join": [ "Player.enemy_eid", "AliveEnemy.eid" ] }]
 void process_player_test(const UpdateStage@ stage, const Player@ player, const AliveEnemy@ enemy)
 {
   // print("process_player_test: player: "+player.eid.handle);
   // print("process_player_test: enemy: "+enemy.eid.handle);
+}
+
+[query { "$have": "switch_trigger" }]
+class SwitchTrigger
+{
+  const vec2@ pos;
+}
+
+[query { "$have": "enable_lift_action" }]
+class EnableLiftAction
+{
+  const EntityId@ eid;
+}
+
+[system { "$have": "switch_trigger", "$is-false": "is_binded" }]
+void bind_trigger_to_enable_lift_action(const UpdateStage@ stage, const HashedString@ action_key, EntityId@ action_eid, boolean@ is_binded)
+{
+  for (auto it = Query<EnableLiftAction>().perform(Map = { {"key", action_key} }); it.hasNext(); ++it)
+  {
+    is_binded = true;
+
+    EnableLiftAction@ action = it.get().pos;
+    action_eid = action.eid;
+
+    print("Action binded: "+action_key.str);
+  }
+}
+
+[system { "$join": [ "SwitchTrigger.action_eid", "EnableLiftAction.eid" ] }]
+void update_switch_triggers(const UpdateStage@ stage, const SwitchTrigger@ trigger, const EnableLiftAction@ action)
+{
+  // Check condition
+  // if condition is true then ???
 }
 
 // [system { "$is-false": "use_car_trigger_active" }]
@@ -46,7 +74,7 @@ void process_player_test(const UpdateStage@ stage, const Player@ player, const A
 // [system { "$is-true": "caruse_car_trigger_active" }]
 // void select_cars_with_active_trigger(const UpdateStage@ stage, Player@ player, Car@ car)
 // {
-//   for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+//   for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
 //     it.get().car_eid = eid;
 // }
 
@@ -60,13 +88,13 @@ void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
 {
   // TODO: Implement more convenient way to do this
   bool hasPlayer = false;
-  for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+  for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
     hasPlayer = true;
 
   if (!hasPlayer)
     return;
 
-  for (auto it = Query<AliveEnemiesCountQuery>().perform(); it.hasNext(); ++it)
+  if (Count<AliveEnemy>().get() > 0)
     return;
 
   spawn_timer.time -= stage.dt;
@@ -101,11 +129,11 @@ void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
 [system { "$have": "player_spawner" }]
 void update_player_spawner(const UpdateStage@ stage)
 {
-  for (auto it = Query<AlivePlayerQuery>().perform(); it.hasNext(); ++it)
+  for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
     return;
 
   const vec2@ spawnPos;
-  for (auto it = Query<PlayerSpawnZonesQuery>().perform(); it.hasNext(); ++it)
+  for (auto it = Query<PlayerSpawnZone>().perform(); it.hasNext(); ++it)
     @spawnPos = it.get().pos;
 
   if (spawnPos is null)
@@ -174,8 +202,9 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
   }
 }
 
+// TODO: Move to native code
 [system { "$is-true": "is_alive" }]
-void update_auto_move(const UpdateStage@ stage, const boolean@ is_alive, AutoMove@ auto_move, vec2@ vel, real@ dir)
+void update_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
   if (!auto_move.jump)
   {

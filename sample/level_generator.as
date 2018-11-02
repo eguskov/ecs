@@ -1,13 +1,19 @@
 #include "level_1.as"
 
 [query { "$have": [ "wall" ] }]
-class AllBlocksQuery
+class Wall
 {
   const EntityId@ eid;
 }
 
 [query { "$have": [ "zone" ] }]
-class AllZonesQuery
+class Zone
+{
+  const EntityId@ eid;
+}
+
+[query { "$have": [ "enemy" ] }]
+class Enemy
 {
   const EntityId@ eid;
 }
@@ -54,6 +60,13 @@ void create_level()
         {"auto_move", Map = { {"duration", 2.f}, {"length", 7.f * 32.f}, {"jump", false} } }
       });
     }
+    else if (p == 5)
+    {
+      create_entity("switch-trigger", Map = {
+        {"pos", Array = {wx, wy}},
+        {"key", "test_key"}
+      });
+    }
     else if (p == 10)
     {
       create_entity("opossum", Map = {
@@ -77,21 +90,28 @@ void reload()
   print("level_generator.as: reload");
 
   int count = 0;
-  for (auto it = Query<AllBlocksQuery>().perform(); it.hasNext(); ++it)
+  for (auto it = Query<Wall>().perform(); it.hasNext(); ++it)
   {
     auto @block = it.get();
     ++count;
     delete_entity(block.eid);
   }
 
-  for (auto it = Query<AllZonesQuery>().perform(); it.hasNext(); ++it)
+  for (auto it = Query<Zone>().perform(); it.hasNext(); ++it)
   {
     auto @block = it.get();
     ++count;
     delete_entity(block.eid);
   }
 
-  print("level_generator.as: " + count);
+  for (auto it = Query<Enemy>().perform(); it.hasNext(); ++it)
+  {
+    auto @block = it.get();
+    ++count;
+    delete_entity(block.eid);
+  }
+
+  print("level_generator.as: deleted: " + count);
 
   create_level();
 }

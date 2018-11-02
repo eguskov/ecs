@@ -170,6 +170,49 @@ namespace script
     }
   }
 
+  static void process_join(const JFrameDocument &doc, const asIScriptModule &module, QueryDesc &query_desc)
+  {
+    if (!doc.HasMember("$join"))
+      return;
+
+    const JFrameValue &join = doc["$join"];
+
+    assert(join.IsArray() && join.Size() == 2);
+
+    eastl::string first = join[0].GetString();
+    eastl::string second = join[1].GetString();
+
+    std::cmatch match;
+    std::regex re = std::regex("(.*)\\.(.*)");
+
+    QueryLink &link = query_desc.joinLinks.emplace_back();
+
+    {
+      std::regex_search(first.cbegin(), first.cend(), match, re);
+      assert(match.size() == 3);
+
+      asITypeInfo *type = module.GetTypeInfoByName(match[1].str().c_str());
+      assert(type != nullptr);
+
+      link.firstTypeId = type->GetTypeId();
+      link.firstNameId = g_mgr->getComponentNameId(match[2].str().c_str());
+    }
+
+    {
+      std::regex_search(second.cbegin(), second.cend(), match, re);
+      assert(match.size() == 3);
+
+      asITypeInfo *type = module.GetTypeInfoByName(match[1].str().c_str());
+      assert(type != nullptr);
+
+      link.secondTypeId = type->GetTypeId();
+      link.secondNameId = g_mgr->getComponentNameId(match[2].str().c_str());
+    }
+
+    assert(link.firstTypeId >= 0 && link.firstNameId >= 0);
+    assert(link.secondTypeId >= 0 && link.secondNameId >= 0);
+  }
+
   bool ScriptECS::build(const char *name, const char *path)
   {
     for (auto &sys : systems)
@@ -249,6 +292,8 @@ namespace script
         asIScriptFunction *fn = module.GetFunctionByIndex(i);
         eastl::string metadata = builder.GetMetadataStringForFunc(fn);
 
+        std::cout << "Add system: " << fn->GetName() << std::endl;
+
         std::cmatch match;
         std::regex re = std::regex("(?:\\s*)\\b(system|on_load|on_reload)\\b(?:\\s*)(.*)");
         std::regex_search(metadata.cbegin(), metadata.cend(), match, re);
@@ -268,6 +313,7 @@ namespace script
               process_metadata(doc, "$is-false", sys.queryDesc.isFalseComponents);
               process_metadata(doc, "$have", sys.queryDesc.haveComponents);
               process_metadata(doc, "$not-have", sys.queryDesc.notHaveComponents);
+              process_join(doc, module, sys.queryDesc);
             }
           }
           else if (match[1].str() == "on_load")
@@ -357,7 +403,40 @@ namespace script
       query.sysId = sys.id;
       query.desc = sys.queryDesc;
       if (sys.useJoin)
-        /* TODO: Do join by links */;
+      {
+        for (const QueryLink &link : query.desc.joinLinks)
+        {
+          auto first = dataQueries.find(link.firstTypeId);
+          auto second = dataQueries.find(link.secondTypeId);
+          assert(first != dataQueries.end());
+          assert(second != dataQueries.end());
+
+          Storage *firstStorage = g_mgr->storages[link.firstNameId];
+          Storage *secondStorage = g_mgr->storages[link.secondNameId];
+
+          const int firstNameId = link.firstNameId;
+          const int secondNameId = link.secondNameId;
+          const int firstElemSize = firstStorage->elemSize;
+          const int secondElemSize = secondStorage->elemSize;
+          assert(firstElemSize == secondElemSize);
+
+          for (const EntityId &firstEid : first->second.eids)
+          {
+            uint8_t *firstRaw = firstStorage->getRaw(g_mgr->entityDescs[firstEid.index].offsetsByNameId[firstNameId]);
+            for (const EntityId &secondEid : second->second.eids)
+            {
+              uint8_t *secondRaw = secondStorage->getRaw(g_mgr->entityDescs[secondEid.index].offsetsByNameId[secondNameId]);
+              if (::memcmp(firstRaw, secondRaw, firstElemSize) == 0)
+              {
+                query.eids.emplace_back() = firstEid;
+                query.eids.emplace_back() = secondEid;
+              }
+            }
+          }
+        }
+
+        assert((query.eids.size() % query.desc.joinQueries.size()) == 0);
+      }
       else
         g_mgr->invalidateQuery(query);
     }

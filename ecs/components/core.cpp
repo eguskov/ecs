@@ -9,4 +9,7 @@ REG_COMP_INIT(float, float);
 REG_COMP_INIT(glm::vec2, vec2);
 REG_COMP_INIT(glm::vec3, vec3);
 REG_COMP_INIT(glm::vec4, vec4);
+REG_COMP_INIT(eastl::string, string);
+REG_COMP_INIT(HashedString, hash_string);
+
 REG_COMP_ARR_INIT(glm::vec2, vec2, 2);

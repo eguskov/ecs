@@ -642,6 +642,10 @@
           "$type": "hud",
           "$value": {}
         },
+        "enemy_eid": {
+          "$type": "eid",
+          "$value": 0
+        },
         "user_input": {
           "$type": "user_input",
           "$value": {}
@@ -1112,6 +1116,59 @@
             16,
             16
           ]
+        }
+      }
+    },
+    {
+      "$name": "trigger",
+      "$components": {
+        "key": {
+          "$type": "hash_string",
+          "$value": ""
+        }
+      }
+    },
+    {
+      "$name": "switch-trigger",
+      "$extends": [
+        "trigger"
+      ],
+      "$components": {
+        "switch_trigger": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "pos": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "collision_shape": {
+          "$type": "collision_shape",
+          "$value": [
+            {
+              "type": "box",
+              "isSensor": true,
+              "size": [
+                32.0,
+                32.0
+              ],
+              "center": [
+                16.0,
+                16.0
+              ],
+              "angle": 0.0,
+              "material": {
+                "density": 0.0,
+                "friction": 0.0
+              }
+            }
+          ]
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "static"
+          }
         }
       }
     }

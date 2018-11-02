@@ -62,11 +62,17 @@ struct Entity
 {
   bool ready = false;
 
+  // TODO: Is this needed here??
   EntityId eid;
   int templateId = -1;
 
   // TODO: Store as SoA in one array???
   eastl::vector<int> componentOffsets;
+};
+
+struct EntityDesc
+{
+  eastl::hash_map<int, int> offsetsByNameId;
 };
 
 struct System
@@ -130,6 +136,7 @@ enum EntityManagerStatus
 struct EntityManager
 {
   int eidCompId = -1;
+  const RegComp *eidComp = nullptr;
   uint32_t status = kStatusNone;
 
   JDocument templatesDoc;
@@ -138,6 +145,7 @@ struct EntityManager
   eastl::vector<EntityTemplate> templates;
   eastl::vector<Storage*> storages;
   eastl::vector<Entity> entities;
+  eastl::vector<EntityDesc> entityDescs;
   eastl::vector<eastl::string> componentNames;
   eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;

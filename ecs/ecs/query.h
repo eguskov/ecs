@@ -9,6 +9,15 @@ struct CompDesc
   const RegComp* desc;
 };
 
+struct QueryLink
+{
+  int firstTypeId = -1;
+  int firstNameId = -1;
+
+  int secondTypeId = -1;
+  int secondNameId = -1;
+};
+
 struct QueryDesc
 {
   eastl::vector<CompDesc> components;
@@ -17,9 +26,11 @@ struct QueryDesc
   eastl::vector<CompDesc> isTrueComponents;
   eastl::vector<CompDesc> isFalseComponents;
 
-  eastl::vector<int> joinQueries;
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
+
+  eastl::vector<int> joinQueries;
+  eastl::vector<QueryLink> joinLinks;
 
   bool isValid() const
   {

@@ -178,6 +178,16 @@ EntityManager::~EntityManager()
 
 void EntityManager::init()
 {
+  eidComp = find_comp("eid");
+  eidCompId = eidComp->id;
+
+  componentNames.emplace_back() = "eid";
+  componentDescByNames.emplace_back() = eidComp;
+
+  storages.emplace_back() = componentDescByNames[0]->createStorage();
+  storages[0]->name = componentNames[0];
+  storages[0]->elemSize = eidComp->size;
+
   {
     FILE *file = nullptr;
     ::fopen_s(&file, "templates.json", "rb");
@@ -279,8 +289,6 @@ void EntityManager::init()
   //     }
   //   }
   // }
-
-  eidCompId = find_comp("eid")->id;
 }
 
 int EntityManager::getSystemWeight(const char *name) const
@@ -548,6 +556,10 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
   e.templateId = templateId;
   e.ready = true;
 
+  entityDescs.resize(entities.size());
+
+  auto &entityDesc = entityDescs[e.eid.index];
+
   for (const auto &c : templ.components)
   {
     auto &storage = storages[c.nameId];
@@ -558,6 +570,27 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
     c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
     e.componentOffsets.push_back(offset);
+
+    entityDesc.offsetsByNameId[c.nameId] = offset;
+  }
+
+  // eid
+  {
+    uint8_t *mem = nullptr;
+    int offset = 0;
+    eastl::tie(mem, offset) = storages[0]->allocate();
+
+    JFrameAllocator allocator;
+
+    JFrameValue val(rapidjson::kObjectType);
+    JFrameValue eidVal(rapidjson::kNumberType);
+    eidVal.SetInt(e.eid.handle);
+    val.AddMember("$value", eastl::move(eidVal), allocator);
+
+    eidComp->init(mem, val);
+    e.componentOffsets.push_back(offset);
+
+    entityDesc.offsetsByNameId[0] = offset;
   }
 
   sendEventSync(e.eid, EventOnEntityCreate{});
@@ -581,9 +614,11 @@ void EntityManager::tick()
       shouldInvalidateQueries = true;
       status |= kStatusEntityDeleted;
 
+      entityDescs[eid.index].offsetsByNameId.clear();
+
       const auto &templ = templates[entity.templateId];
 
-      assert(templ.components.size() == entity.componentOffsets.size());
+      assert(templ.components.size() == entity.componentOffsets.size() - 1);
 
       int compIndex = 0;
       for (const auto &c : templ.components)
@@ -592,6 +627,9 @@ void EntityManager::tick()
         const int offset = entity.componentOffsets[compIndex++];
         storage->deallocate(offset);
       }
+
+      // eid
+      storages[0]->deallocate(entity.componentOffsets[compIndex]);
 
       entity.eid.generation = (entity.eid.generation + 1) % std::numeric_limits<uint16_t>::max();
       entity.ready = false;
@@ -717,9 +755,13 @@ void EntityManager::invalidateQuery(Query &query)
       for (const auto &c : query.desc.isTrueComponents)
       {
         const auto &entity = entities[eid2idx(e.eid)];
+        if (!templ.hasCompontent(c.desc->id, c.nameId))
+        {
+          ok = false;
+          break;
+        }
         const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.nameId)];
-
-        if (!templ.hasCompontent(c.desc->id, c.nameId) || !storages[c.nameId]->get<bool>(offset))
+        if (!storages[c.nameId]->get<bool>(offset))
         {
           ok = false;
           break;
@@ -732,9 +774,13 @@ void EntityManager::invalidateQuery(Query &query)
       for (const auto &c : query.desc.isFalseComponents)
       {
         const auto &entity = entities[eid2idx(e.eid)];
+        if (!templ.hasCompontent(c.desc->id, c.nameId))
+        {
+          ok = false;
+          break;
+        }
         const int offset = entity.componentOffsets[templ.getCompontentOffset(c.desc->id, c.nameId)];
-
-        if (!templ.hasCompontent(c.desc->id, c.nameId) || storages[c.nameId]->get<bool>(offset))
+        if (storages[c.nameId]->get<bool>(offset))
         {
           ok = false;
           break;
@@ -760,12 +806,12 @@ void EntityManager::invalidateQuery(Query &query)
 
 void EntityManager::tickStage(int stage_id, const RawArg &stage)
 {
-  // TODO: Fast stack allocator
-  eastl::vector<Storage*> tmpCopy;
+  eastl::vector<uint8_t*, FrameMemAllocator> snapshots;
   for (int nameId : trackComponents)
   {
-    tmpCopy.emplace_back() = componentDescByNames[nameId]->createStorage();
-    storages[nameId]->copyTo(tmpCopy.back());
+    const size_t sz = storages[nameId]->size();
+    snapshots.emplace_back() = alloc_frame_mem(sz);
+    ::memcpy(snapshots.back(), storages[nameId]->data(), sz);
   }
 
   for (const auto &sys : systems)
@@ -775,23 +821,14 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
       (sys.desc->*sys.desc->stageFn)(query.eids.size(), query.eids.data(), stage, storages.data());
     }
 
-  bool changed = false;
-
   int i = 0;
   for (int nameId : trackComponents)
-    if (::memcmp(tmpCopy[i++]->data(), storages[nameId]->data(), storages[nameId]->size()))
+    if (::memcmp(snapshots[i++], storages[nameId]->data(), storages[nameId]->size()))
     {
-      changed = true;
+      for (auto &q : queries)
+        q.dirty = true;
       break;
     }
-
-  for (Storage *s : tmpCopy)
-    delete s;
-
-  // Invalidate only "is-true" "is-false" queries
-  if (changed)
-    for (auto &q : queries)
-      q.dirty = true;
 }
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)

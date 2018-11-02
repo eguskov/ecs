@@ -2,6 +2,7 @@
 #include <ctime>
 
 #include <ecs/ecs.h>
+#include <ecs/hash.h>
 #include <ecs/perf.h>
 
 #include <stages/update.stage.h>
@@ -104,6 +105,17 @@ int main()
   script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
   script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
 
+  script::register_component<HashedString>("HashedString");
+  script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
+  script::register_component_property("HashedString", "string str", offsetof(HashedString, str));
+
+  double nextResetMinMax = 0.0;
+
+  float minDelta = 1000.f;
+  float maxDelta = 0.f;
+
+  float minRenderDelta = 1000.f;
+
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
@@ -118,12 +130,25 @@ int main()
         g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
     }
 
+    if (totalTime > nextResetMinMax)
+    {
+      nextResetMinMax = totalTime + 1.0;
+
+      minDelta = 1000.f;
+      maxDelta = 0.f;
+
+      minRenderDelta = 1000.f;
+    }
+
     double t = GetTime();
     g_mgr->tick();
 
     const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f / 60.f);
     g_mgr->tick(UpdateStage{ dt, totalTime });
     const float delta = (float)((GetTime() - t) * 1e3);
+
+    minDelta = eastl::min(minDelta, delta);
+    maxDelta = eastl::max(maxDelta, delta);
 
     totalTime += dt;
 
@@ -137,11 +162,13 @@ int main()
     EndMode2D();
     const float renderDelta = (float)((GetTime() - t) * 1e3);
 
+    minRenderDelta = eastl::min(minRenderDelta, renderDelta);
+
     BeginMode2D(camera);
     g_mgr->tick(RenderDebugStage{});
     EndMode2D();
 
-    DrawText(FormatText("ECS time: %2.2f ms (%2.2f ms)", delta, renderDelta), 10, 30, 20, LIME);
+    DrawText(FormatText("ECS time: %2.2f ms (%2.2f ms)", /* delta */minDelta, /* renderDelta */ minRenderDelta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);
     DrawText(FormatText("FM: %d B Max: %d MB (%d kB)",
       get_frame_mem_allocated_size(),
