@@ -6,6 +6,7 @@
 
 REG_EVENT_INIT(EventOnEntityCreate);
 REG_EVENT_INIT(EventOnEntityReady);
+REG_EVENT_INIT(EventOnChangeDetected);
 
 EntityManager *g_mgr = nullptr;
 
@@ -268,27 +269,10 @@ void EntityManager::init()
   for (const auto &sys : systems)
   {
     for (const auto &c : sys.desc->queryDesc.isTrueComponents)
-      trackComponents.insert(c.nameId);
+      enableChangeDetection(c.nameId);
     for (const auto &c : sys.desc->queryDesc.isFalseComponents)
-      trackComponents.insert(c.nameId);
+      enableChangeDetection(c.nameId);
   }
-
-  // TODO: Change detection
-  // for (const auto &sys : systems)
-  // {
-  //   for (int nameId : trackComponents)
-  //   {
-  //     auto it = eastl::find_if(sys.desc->rwComponents.begin(), sys.desc->rwComponents.end(), [&](int id)
-  //     {
-  //       return sys.desc->components[id].nameId == nameId;
-  //     });
-
-  //     if (it != sys.desc->rwComponents.end())
-  //     {
-
-  //     }
-  //   }
-  // }
 }
 
 int EntityManager::getSystemWeight(const char *name) const
@@ -602,8 +586,6 @@ void EntityManager::tick()
 {
   bool shouldInvalidateQueries = false;
 
-  status = kStatusNone;
-
   while (!deleteQueue.empty())
   {
     EntityId eid = deleteQueue.front();
@@ -612,7 +594,6 @@ void EntityManager::tick()
     if (eid.generation == entity.eid.generation)
     {
       shouldInvalidateQueries = true;
-      status |= kStatusEntityDeleted;
 
       entityDescs[eid.index].offsetsByNameId.clear();
 
@@ -644,7 +625,6 @@ void EntityManager::tick()
   while (!createQueue.empty())
   {
     shouldInvalidateQueries = true;
-    status |= kStatusEntityCreated;
 
     const auto &q = createQueue.front();
     createEntitySync(q.templanemName.c_str(), q.components);
@@ -661,7 +641,6 @@ void EntityManager::tick()
     if (ready)
     {
       shouldInvalidateQueries = true;
-      status |= kStatusEntityReady;
 
       entities[eid2idx(v.eid)].ready = ready;
       sendEventSync(v.eid, EventOnEntityReady{});
@@ -671,32 +650,49 @@ void EntityManager::tick()
   if (!asyncValues.empty())
     asyncValues.erase(eastl::remove_if(asyncValues.begin(), asyncValues.end(), [](const AsyncValue &v) { return v.isReady(); }), asyncValues.end());
 
+  bool queriesInvalidated = false;
   if (shouldInvalidateQueries)
+  {
+    queriesInvalidated = true;
     for (auto &q : queries)
       invalidateQuery(q);
+  }
   else
   {
     for (auto &q : queries)
       if (q.dirty)
+      {
+        queriesInvalidated = true;
         invalidateQuery(q);
+      }
   }
+
+  if (queriesInvalidated)
+    sendEventBroadcastSync(EventOnChangeDetected{});
 
   const int streamIndex = currentEventStream;
   currentEventStream = (currentEventStream + 1) % events.size();
   assert(currentEventStream != streamIndex);
 
-  while (events[streamIndex].count)
   {
-    EventStream::Header header;
-    RawArg ev;
-    eastl::tie(header, ev) = events[streamIndex].pop();
+    FrameSnapshot snapshot;
+    fillFrameSnapshot(snapshot);
 
-    if (header.flags & EventStream::kBroadcast)
-      sendEventBroadcastSync(header.eventId, ev);
-    else
-      sendEventSync(header.eid, header.eventId, ev);
+    while (events[streamIndex].count)
+    {
+      EventStream::Header header;
+      RawArg ev;
+      eastl::tie(header, ev) = events[streamIndex].pop();
 
-    tick(DispatchEventStage{ header.eid, header.eventId, ev });
+      if (header.flags & EventStream::kBroadcast)
+        sendEventBroadcastSync(header.eventId, ev);
+      else
+        sendEventSync(header.eid, header.eventId, ev);
+
+      tick(DispatchEventStage{ header.eid, header.eventId, ev });
+    }
+
+    checkFrameSnapshot(snapshot);
   }
 }
 
@@ -804,15 +800,32 @@ void EntityManager::invalidateQuery(Query &query)
   }
 }
 
-void EntityManager::tickStage(int stage_id, const RawArg &stage)
+void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
 {
-  eastl::vector<uint8_t*, FrameMemAllocator> snapshots;
   for (int nameId : trackComponents)
   {
     const size_t sz = storages[nameId]->size();
-    snapshots.emplace_back() = alloc_frame_mem(sz);
-    ::memcpy(snapshots.back(), storages[nameId]->data(), sz);
+    snapshot.emplace_back() = alloc_frame_mem(sz);
+    ::memcpy(snapshot.back(), storages[nameId]->data(), sz);
   }
+}
+
+void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
+{
+  int i = 0;
+  for (int nameId : trackComponents)
+    if (::memcmp(snapshot[i++], storages[nameId]->data(), storages[nameId]->size()))
+    {
+      for (auto &q : queries)
+        q.dirty = true;
+      break;
+    }
+}
+
+void EntityManager::tickStage(int stage_id, const RawArg &stage)
+{
+  FrameSnapshot snapshot;
+  fillFrameSnapshot(snapshot);
 
   for (const auto &sys : systems)
     if (sys.desc->stageId == stage_id)
@@ -821,14 +834,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
       (sys.desc->*sys.desc->stageFn)(query.eids.size(), query.eids.data(), stage, storages.data());
     }
 
-  int i = 0;
-  for (int nameId : trackComponents)
-    if (::memcmp(snapshots[i++], storages[nameId]->data(), storages[nameId]->size()))
-    {
-      for (auto &q : queries)
-        q.dirty = true;
-      break;
-    }
+  checkFrameSnapshot(snapshot);
 }
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
@@ -871,4 +877,15 @@ void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
       auto &query = queries[sys.desc->id];
       (sys.desc->*sys.desc->stageFn)(query.eids.size(), query.eids.data(), ev, storages.data());
     }
+}
+
+void EntityManager::enableChangeDetection(int name_id)
+{
+  std::cout << "enableChangeDetection: " << getComponentName(name_id) << std::endl;
+  trackComponents.insert(name_id);
+}
+
+void EntityManager::disableChangeDetection(int name_id)
+{
+  trackComponents.erase(name_id);
 }

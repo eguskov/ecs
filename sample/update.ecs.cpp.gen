@@ -21,7 +21,8 @@ static RegCompSpec<AnimState> _reg_comp_anim_state("anim_state");
 template <> int RegCompSpec<AnimState>::ID = -1;
 
 static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler, { "ev", "texture" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "stage", "vel", "pos" }, {  }, {  }, { "is_alive" }, {  }, true); 
+static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "stage", "vel", "pos" }, {  }, { "is_active" }, { "is_alive" }, {  }, true); 
+static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active, { "stage", "vel", "pos" }, {  }, {  }, { "is_active", "is_alive" }, {  }, true); 
 static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame, { "stage", "anim_graph", "anim_state", "frame" }, {  }, {  }, {  }, {  }, true); 
 static RegSysSpec<1007297635, decltype(render_walls)> _reg_sys_render_walls("render_walls", render_walls, { "stage", "texture", "frame", "pos" }, { "wall" }, {  }, { "is_alive" }, {  }, true); 
 static RegSysSpec<2012399197, decltype(render_normal)> _reg_sys_render_normal("render_normal", render_normal, { "stage", "texture", "frame", "pos", "dir" }, {  }, { "wall" }, { "is_alive" }, {  }, true); 
@@ -109,6 +110,14 @@ template <> template <> __forceinline void RegSysSpec<1621823280, decltype(updat
   const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
   const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
   update_position(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+}
+
+template <> template <> __forceinline void RegSysSpec<4245480229, decltype(update_position_for_active)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
+{
+  const auto &components = queryDesc.components;
+  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
+  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
+  update_position_for_active(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
 }
 
 template <> template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const

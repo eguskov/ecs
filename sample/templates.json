@@ -34,6 +34,7 @@
     "remove_death_fx",
     "update_spawner",
     "update_position",
+    "update_position_for_active",
     "validate_position",
     "select_current_anim_frame",
     "select_current_anim_frame_for_player",
@@ -958,12 +959,24 @@
         "block-big"
       ],
       "$components": {
+        "lift": {
+          "$type": "tag",
+          "$value": {}
+        },
         "vel": {
           "$type": "vec2",
           "$value": [
             0.0,
             -1.0
           ]
+        },
+        "is_active": {
+          "$type": "bool",
+          "$value": true
+        },
+        "key": {
+          "$type": "hash_string",
+          "$value": ""
         },
         "auto_move": {
           "$type": "auto_move",
@@ -1125,6 +1138,18 @@
         "key": {
           "$type": "hash_string",
           "$value": ""
+        },
+        "is_binded": {
+          "$type": "bool",
+          "$value": false
+        },
+        "is_active": {
+          "$type": "bool",
+          "$value": false
+        },
+        "action_eid": {
+          "$type": "eid",
+          "$value": 0
         }
       }
     },
@@ -1137,6 +1162,10 @@
         "switch_trigger": {
           "$type": "tag",
           "$value": {}
+        },
+        "action_key": {
+          "$type": "hash_string",
+          "$value": ""
         },
         "pos": {
           "$type": "vec2",
@@ -1170,6 +1199,35 @@
             "type": "static"
           }
         }
+      }
+    },
+    {
+      "$name": "action",
+      "$components": {
+        "key": {
+          "$type": "hash_string",
+          "$value": ""
+        },
+        "is_active": {
+          "$type": "bool",
+          "$value": false
+        }
+      }
+    },
+    {
+      "$name": "enable-lift-action",
+      "$extends": [
+        "action"
+      ],
+      "$components": {
+        "enable_lift_action": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "lift_key": {
+          "$type": "hash_string",
+          "$value": ""
+        },
       }
     }
   ]

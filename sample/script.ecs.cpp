@@ -20,10 +20,9 @@ static __forceinline void build_script_handler(const EventOnEntityCreate &ev, sc
 }
 
 DEF_SYS()
-static __forceinline void update_script_query(const UpdateStage &stage, script::ScriptComponent &script)
+static __forceinline void update_script_query(const EventOnChangeDetected &ev, script::ScriptComponent &script)
 {
-  if (g_mgr->status != kStatusNone)
-    script.scriptECS.invalidateQueries();
+  script.scriptECS.invalidateQueries();
 }
 
 DEF_SYS()

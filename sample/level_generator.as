@@ -49,6 +49,8 @@ void create_level()
       create_entity("block-big-moving", Map = {
         {"pos", Array = {wx, wy}},
         {"vel", Array = {0.f, -1.f}},
+        {"is_active", false},
+        {"key", "go-up-lift"},
         {"auto_move", Map = { {"duration", 2.f}, {"length", 2.f * 32.f}, {"jump", false} } }
       });
     }
@@ -57,6 +59,8 @@ void create_level()
       create_entity("block-big-moving", Map = {
         {"pos", Array = {wx, wy}},
         {"vel", Array = {0.f, 1.f}},
+        {"is_active", false},
+        {"key", "go-down-lift"},
         {"auto_move", Map = { {"duration", 2.f}, {"length", 7.f * 32.f}, {"jump", false} } }
       });
     }
@@ -64,13 +68,22 @@ void create_level()
     {
       create_entity("switch-trigger", Map = {
         {"pos", Array = {wx, wy}},
-        {"key", "test_key"}
+        {"key", "enable-lift-trigger-1"},
+        {"action_key", "enable-lift-1"}
+      });
+    }
+    else if (p == 6)
+    {
+      create_entity("switch-trigger", Map = {
+        {"pos", Array = {wx, wy}},
+        {"key", "enable-lift-trigger-2"},
+        {"action_key", "enable-lift-2"}
       });
     }
     else if (p == 10)
     {
       create_entity("opossum", Map = {
-        {"pos", Array = {wx, wy}},
+        {"pos", Array = {wx, wy + 4.f}},
         {"vel", Array = {-20.f, 0.f}}
       });
     }

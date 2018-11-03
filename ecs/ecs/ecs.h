@@ -37,6 +37,11 @@ struct EventOnEntityReady : Event
 };
 REG_EVENT(EventOnEntityReady);
 
+struct EventOnChangeDetected : Event
+{
+};
+REG_EVENT(EventOnChangeDetected);
+
 struct EntityTemplate
 {
   int size = 0;
@@ -125,19 +130,12 @@ struct AsyncValue
   }
 };
 
-enum EntityManagerStatus
-{
-  kStatusNone = 0,
-  kStatusEntityCreated = 1 << 0,
-  kStatusEntityDeleted = 1 << 1,
-  kStatusEntityReady = 1 << 2,
-};
+using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
 struct EntityManager
 {
   int eidCompId = -1;
   const RegComp *eidComp = nullptr;
-  uint32_t status = kStatusNone;
 
   JDocument templatesDoc;
 
@@ -187,6 +185,12 @@ struct EntityManager
   void waitFor(EntityId eid, std::future<bool> && value);
 
   void invalidateQuery(Query &query);
+
+  void enableChangeDetection(int name_id);
+  void disableChangeDetection(int name_id);
+
+  void fillFrameSnapshot(FrameSnapshot &snapshot) const;
+  void checkFrameSnapshot(const FrameSnapshot &snapshot);
 
   template <typename T>
   const T& getComponent(EntityId eid, const char *name)

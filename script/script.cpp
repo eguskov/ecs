@@ -407,7 +407,7 @@ namespace script
       else if (typeId == asTYPEID_BOOL)
       {
         push_array_bool(*arr, *(bool*)ptr);
-        ptr += sizeof(bool);
+        ptr += sizeof(int32_t);
       }
       else
       {
@@ -465,7 +465,7 @@ namespace script
       else if (typeId == asTYPEID_BOOL)
       {
         set_map_bool(*m, key, *(bool*)ptr);
-        ptr += sizeof(bool);
+        ptr += sizeof(int32_t);
       }
       else
       {
@@ -527,14 +527,6 @@ namespace script
     engine->RegisterObjectMethod("QueryIterator<T>", "void opPreInc()", asMETHODPR(ScriptQuery::Iterator, operator++, (), void), asCALL_THISCALL);
     engine->RegisterObjectMethod("QueryIterator<T>", "T@ get()", asMETHODPR(ScriptQuery::Iterator, get, (), void*), asCALL_THISCALL);
 
-    engine->RegisterObjectType("QueryIteratorWithFilter<class T>", sizeof(ScriptQuery::IteratorWithFilter), asOBJ_VALUE | asOBJ_TEMPLATE | asGetTypeTraits<ScriptQuery::IteratorWithFilter>());
-    engine->RegisterObjectBehaviour("QueryIteratorWithFilter<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(initIterator, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
-    engine->RegisterObjectBehaviour("QueryIteratorWithFilter<T>", asBEHAVE_DESTRUCT, "void f()", asFUNCTIONPR(releaseIterator, (void*), void), asCALL_CDECL_OBJFIRST);
-    engine->RegisterObjectMethod("QueryIteratorWithFilter<T>", "QueryIteratorWithFilter<T>& opAssign(const QueryIteratorWithFilter<T>&in)", asMETHODPR(ScriptQuery::IteratorWithFilter, operator=, (const ScriptQuery::IteratorWithFilter&), ScriptQuery::IteratorWithFilter&), asCALL_THISCALL);
-    engine->RegisterObjectMethod("QueryIteratorWithFilter<T>", "bool hasNext() const", asMETHODPR(ScriptQuery::IteratorWithFilter, hasNext, () const, bool), asCALL_THISCALL);
-    engine->RegisterObjectMethod("QueryIteratorWithFilter<T>", "void opPreInc()", asMETHODPR(ScriptQuery::IteratorWithFilter, operator++, (), void), asCALL_THISCALL);
-    engine->RegisterObjectMethod("QueryIteratorWithFilter<T>", "T@ get()", asMETHODPR(ScriptQuery::IteratorWithFilter, get, (), void*), asCALL_THISCALL);
-
     engine->RegisterObjectType("Count<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
     engine->RegisterObjectBehaviour("Count<T>", asBEHAVE_FACTORY, "Count<T>@ f(int&in)", asFUNCTION(create_script_query_count), asCALL_CDECL);
     engine->RegisterObjectMethod("Count<T>", "int get()", asFUNCTION(create_script_query_count_get), asCALL_CDECL_OBJFIRST);
@@ -566,10 +558,10 @@ namespace script
     engine->RegisterObjectType("Query<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_FACTORY, "Query<T>@ f(int&in)", asFUNCTIONPR(create_script_query, (asITypeInfo*, void*), ScriptQuery*), asCALL_CDECL);
     engine->RegisterObjectMethod("Query<T>", "QueryIterator<T> perform()", asMETHODPR(ScriptQuery, perform, (), ScriptQuery::Iterator), asCALL_THISCALL);
-    engine->RegisterObjectMethod("Query<T>", "QueryIteratorWithFilter<T> perform(Map@)", asMETHODPR(ScriptQuery, perform, (const JFrameValue &m), ScriptQuery::IteratorWithFilter), asCALL_THISCALL);
 
     register_component<EntityId>("EntityId");
     register_component_property("EntityId", "uint handle", 0);
+    register_component_function("EntityId", "EntityId& opAssign(const EntityId&in)", asFUNCTION(opAssign<EntityId>::execPtr));
 
     register_component<bool>("boolean");
     register_component_property("boolean", "bool v", 0);

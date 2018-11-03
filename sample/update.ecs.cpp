@@ -126,8 +126,17 @@ static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, Te
     texture.id = it->second;
 }
 
-DEF_SYS(IS_TRUE(is_alive))
+DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
 static __forceinline void update_position(
+  const UpdateStage &stage,
+  const glm::vec2 &vel,
+  glm::vec2 &pos)
+{
+  pos += vel * stage.dt;
+}
+
+DEF_SYS(IS_TRUE(is_alive) IS_TRUE(is_active))
+static __forceinline void update_position_for_active(
   const UpdateStage &stage,
   const glm::vec2 &vel,
   glm::vec2 &pos)

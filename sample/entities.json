@@ -24,6 +24,20 @@
     {
       "$template": "player_spawner",
       "$components": {}
+    },
+    {
+      "$template": "enable-lift-action",
+      "$components": {
+        "key": "enable-lift-1",
+        "lift_key": "go-up-lift"
+      }
+    },
+    {
+      "$template": "enable-lift-action",
+      "$components": {
+        "key": "enable-lift-2",
+        "lift_key": "go-down-lift"
+      }
     }
   ]
 }

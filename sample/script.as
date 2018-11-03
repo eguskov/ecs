@@ -9,6 +9,7 @@ class AliveEnemy
 [query { "$is-true": "is_alive", "$have": "user_input" }]
 class AlivePlayer
 {
+  const vec2@ pos;
 }
 
 [query { "$have": "player_spawn_zone" }]
@@ -25,11 +26,11 @@ class Player
   const vec2@ vel;
 }
 
-[system { "$join": [ "Player.enemy_eid", "AliveEnemy.eid" ] }]
-void process_player_test(const UpdateStage@ stage, const Player@ player, const AliveEnemy@ enemy)
+[query { "$have": "lift", "$is-false": "is_active" }]
+class InactiveLift
 {
-  // print("process_player_test: player: "+player.eid.handle);
-  // print("process_player_test: enemy: "+enemy.eid.handle);
+  const HashedString@ key;
+  boolean@ is_active;
 }
 
 [query { "$have": "switch_trigger" }]
@@ -38,50 +39,91 @@ class SwitchTrigger
   const vec2@ pos;
 }
 
+[query { "$have": "switch_trigger", "$is-false": "is_binded" }]
+class NotBindedSwitchTrigger
+{
+  const HashedString@ key;
+  const HashedString@ action_key;
+  EntityId@ action_eid;
+  boolean@ is_binded;
+}
+
+[query { "$have": "switch_trigger", "$is-true": "is_active" }]
+class ActiveSwitchTrigger
+{
+  const HashedString@ key;
+  const vec2@ pos;
+}
+
+[query { "$have": "switch_trigger", "$is-false": "is_active" }]
+class InactiveSwitchTrigger
+{
+  const HashedString@ key;
+  const vec2@ pos;
+  boolean@ is_active;
+}
+
 [query { "$have": "enable_lift_action" }]
 class EnableLiftAction
 {
   const EntityId@ eid;
+  const HashedString@ key;
 }
 
-[system { "$have": "switch_trigger", "$is-false": "is_binded" }]
-void bind_trigger_to_enable_lift_action(const UpdateStage@ stage, const HashedString@ action_key, EntityId@ action_eid, boolean@ is_binded)
+[query { "$have": "enable_lift_action", "$is-false": "is_active" }]
+class InactiveEnableLiftAction
 {
-  for (auto it = Query<EnableLiftAction>().perform(Map = { {"key", action_key} }); it.hasNext(); ++it)
+  const EntityId@ eid;
+  const HashedString@ key;
+  const HashedString@ lift_key;
+  boolean@ is_active;
+}
+
+[query { "$have": "enable_lift_action", "$is-true": "is_active" }]
+class ActiveEnableLiftAction
+{
+  const EntityId@ eid;
+  const HashedString@ key;
+}
+
+[system]
+void bind_trigger_to_enable_lift_action(const UpdateStage@ stage, NotBindedSwitchTrigger@ trigger, const EnableLiftAction@ action)
+{
+  if (action.key.hash == trigger.action_key.hash)
   {
-    is_binded = true;
+    trigger.is_binded = true;
+    trigger.action_eid = action.eid;
 
-    EnableLiftAction@ action = it.get().pos;
-    action_eid = action.eid;
-
-    print("Action binded: "+action_key.str);
+    print("*** Action binded: "+trigger.key.str+" => "+action.key.str);
   }
 }
 
-[system { "$join": [ "SwitchTrigger.action_eid", "EnableLiftAction.eid" ] }]
-void update_switch_triggers(const UpdateStage@ stage, const SwitchTrigger@ trigger, const EnableLiftAction@ action)
+[system]
+void update_inactive_switch_triggers(const UpdateStage@ stage, const AlivePlayer@ player, InactiveSwitchTrigger@ trigger)
 {
-  // Check condition
-  // if condition is true then ???
+  if (length(player.pos - trigger.pos) < 1.f)
+  {
+    print("*** Activate SwitchTrigger: "+trigger.key.str);
+    trigger.is_active = true;
+  }
 }
 
-// [system { "$is-false": "use_car_trigger_active" }]
-// void check_trigger(const UpdateStage@ stage, const Trigger@ use_car_trigger, boolean@ use_car_trigger_active)
-// {
-//   use_car_trigger_active = true;
-// }
+[system { "$join": [ "ActiveSwitchTrigger.action_eid", "InactiveEnableLiftAction.eid" ] }]
+void update_active_switch_triggers(const UpdateStage@ stage, const ActiveSwitchTrigger@ trigger, InactiveEnableLiftAction@ action)
+{
+  print("*** Activate EnableLiftAction: "+trigger.key.str+" => "+action.key.str);
+  action.is_active = true;
 
-// [system { "$is-true": "caruse_car_trigger_active" }]
-// void select_cars_with_active_trigger(const UpdateStage@ stage, Player@ player, Car@ car)
-// {
-//   for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
-//     it.get().car_eid = eid;
-// }
-
-// [system { "$eq": [ "player.car_eid", "car.eid" ], "$is-true": "player.is_alive" }]
-// void join_system(const UpdateStage@ stage, Player@ player, Car@ car)
-// {
-// }
+  for (auto it = Query<InactiveLift>().perform(); it.hasNext(); ++it)
+  {
+    InactiveLift@ lift = it.get();
+    if (lift.key.hash == action.lift_key.hash)
+    {
+      lift.is_active = true;
+      print("*** Action lift: "+lift.key.str);
+    }
+  }
+}
 
 [system { "$have": "spawner" }]
 void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
@@ -203,7 +245,7 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
 }
 
 // TODO: Move to native code
-[system { "$is-true": "is_alive" }]
+[system { "$is-true": ["is_active", "is_alive"] }]
 void update_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
   if (!auto_move.jump)

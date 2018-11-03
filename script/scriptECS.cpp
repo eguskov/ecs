@@ -253,6 +253,11 @@ namespace script
             process_metadata(doc, "$is-false", query.desc.isFalseComponents);
             process_metadata(doc, "$have", query.desc.haveComponents);
             process_metadata(doc, "$not-have", query.desc.notHaveComponents);
+
+            for (const auto &c : query.desc.isTrueComponents)
+              g_mgr->enableChangeDetection(c.nameId);
+            for (const auto &c : query.desc.isFalseComponents)
+              g_mgr->enableChangeDetection(c.nameId);
           }
 
           assert(type->GetPropertyCount() != 0 ||
@@ -277,7 +282,7 @@ namespace script
 
             const RegComp *desc = find_comp(typeName);
             if (!desc)
-              desc = find_comp(name);
+              desc = g_mgr->getComponentDescByName(name);
             assert(desc != nullptr);
 
             query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), desc });
@@ -314,6 +319,16 @@ namespace script
               process_metadata(doc, "$have", sys.queryDesc.haveComponents);
               process_metadata(doc, "$not-have", sys.queryDesc.notHaveComponents);
               process_join(doc, module, sys.queryDesc);
+
+              for (const auto &c : sys.queryDesc.isTrueComponents)
+                g_mgr->enableChangeDetection(c.nameId);
+              for (const auto &c : sys.queryDesc.isFalseComponents)
+                g_mgr->enableChangeDetection(c.nameId);
+              for (const auto &link : sys.queryDesc.joinLinks)
+              {
+                g_mgr->enableChangeDetection(link.firstNameId);
+                g_mgr->enableChangeDetection(link.secondNameId);
+              }
             }
           }
           else if (match[1].str() == "on_load")
@@ -404,6 +419,8 @@ namespace script
       query.desc = sys.queryDesc;
       if (sys.useJoin)
       {
+        query.eids.clear();
+
         for (const QueryLink &link : query.desc.joinLinks)
         {
           auto first = dataQueries.find(link.firstTypeId);
@@ -498,22 +515,53 @@ namespace script
         auto firstDataQuery = dataQueries.find(TypeId{ firstTypeId });
         assert(firstDataQuery != dataQueries.end());
 
-        for (const auto &firstEid : firstDataQuery->second.eids)
+        int secondQueryIndex = 1;
+        uint32_t secondTypeId = query.desc.joinQueries[secondQueryIndex];
+
+        asITypeInfo *secondType = internal::get_engine()->GetTypeInfoById(secondTypeId);
+        assert(secondType != nullptr);
+
+        auto secondDataQuery = dataQueries.find(TypeId{ secondTypeId });
+        assert(secondDataQuery != dataQueries.end());
+
+        if (query.desc.joinLinks.empty())
         {
-          asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
-          assert(firstObject != nullptr);
-
-          int secondQueryIndex = 1;
-          uint32_t secondTypeId = query.desc.joinQueries[secondQueryIndex];
-
-          asITypeInfo *secondType = internal::get_engine()->GetTypeInfoById(secondTypeId);
-          assert(secondType != nullptr);
-
-          auto secondDataQuery = dataQueries.find(TypeId{ secondTypeId });
-          assert(secondDataQuery != dataQueries.end());
-
-          for (const auto &secondEid : secondDataQuery->second.eids)
+          for (const auto &firstEid : firstDataQuery->second.eids)
           {
+            asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
+            assert(firstObject != nullptr);
+
+            for (const auto &secondEid : secondDataQuery->second.eids)
+            {
+              asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
+              assert(secondObject != nullptr);
+
+              stageCtx->Prepare(systems[query.sysId].fn);
+              stageCtx->SetUserData(this, 1000);
+
+              internal::set_arg_wrapped(stageCtx, 0, stage.mem);
+              firstObject->AddRef();
+              internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
+              internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
+
+              stageCtx->Execute();
+            }
+
+            firstObject->Release();
+          }
+        }
+        else
+        {
+          const int step = query.desc.joinQueries.size();
+          assert(step == 2);
+          for (int i = 0; i < (int)query.eids.size(); i += step)
+          {
+            const EntityId &firstEid = query.eids[i + 0];
+            const EntityId &secondEid = query.eids[i + 1];
+
+            asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
+            assert(firstObject != nullptr);
+
             asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
             assert(secondObject != nullptr);
 
@@ -521,14 +569,11 @@ namespace script
             stageCtx->SetUserData(this, 1000);
 
             internal::set_arg_wrapped(stageCtx, 0, stage.mem);
-            firstObject->AddRef();
             internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
             internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
 
             stageCtx->Execute();
           }
-
-          firstObject->Release();
         }
       }
       else

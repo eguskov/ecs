@@ -26,29 +26,12 @@ namespace script
       void* get();
     };
 
-    struct IteratorWithFilter
-    {
-      ScriptQuery *sq = nullptr;
-      int pos = 0;
-
-      JFrameValue filter;
-
-      IteratorWithFilter() = default;
-      IteratorWithFilter(const IteratorWithFilter &assign);
-
-      IteratorWithFilter& operator=(const IteratorWithFilter &assign);
-      void operator++();
-      bool hasNext() const;
-      void* get();
-    };
-
     asITypeInfo *type = nullptr;
     Query *query = nullptr;
 
     ~ScriptQuery() {}
 
     Iterator perform();
-    IteratorWithFilter perform(const JFrameValue &m);
   };
 
   asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type);
