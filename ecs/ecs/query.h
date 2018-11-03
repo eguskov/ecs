@@ -55,8 +55,4 @@ struct Query
   QueryDesc desc;
 
   EntityVector eids;
-
-#ifdef ECS_PACK_QUERY_DATA
-  eastl::vector<int> data;
-#endif
 };

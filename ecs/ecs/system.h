@@ -281,11 +281,6 @@ struct RegSysSpec<D, R(Args...)> : RegSys
 
   void execStage(int count, const EntityId *eids, const RawArg &stage_or_event, Storage **storage) const
   {
-#ifdef ECS_PACK_QUERY_DATA
-    const auto &query = g_mgr->queries[id];
-    const int *queryData = query.data.data();
-#endif
-
     ExtraArguments args;
     args.stageOrEvent = stage_or_event;
 
@@ -293,18 +288,10 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     {
       EntityId eid = eids[i];
       args.eid = eid;
-#ifdef ECS_PACK_QUERY_DATA
-      const int *remapData = queryData;
-      const int offsetCount = queryData[ArgsCount];
-      const int *offsets = &queryData[ArgsCount + 1];
-      queryData += ArgsCount + offsetCount + 1;
-      execImpl(args, remapData, offsets, storage, Indices{});
-#else
       const auto &entity = g_mgr->entities[eid.index];
       const auto &templ = g_mgr->templates[entity.templateId];
       const auto &remap = templ.remaps[id];
       execImpl(args, remap.data(), entity.componentOffsets.data(), storage, Indices{});
-#endif
     }
   }
 
