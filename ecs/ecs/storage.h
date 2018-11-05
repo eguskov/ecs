@@ -8,6 +8,7 @@
 #define sassert(...)
 #endif
 
+// TODO: Remove allocation by free. With archtype it's useless here.
 struct Storage
 {
   eastl::string name;
@@ -63,6 +64,29 @@ struct Storage
     sassert((offset % elemSize) == 0);
     sassert(freeMask[offset / elemSize] == false);
     return *(T*)&dataCached[offset];
+  }
+
+  uint8_t* getRawByIndex(int idx)
+  {
+    sassert(dataCached == data());
+    // sassert(freeMask[idx] == false);
+    return dataCached + (idx * elemSize);
+  }
+
+  template <typename T>
+  const T& getByIndex(int idx) const
+  {
+    sassert(dataCached == data());
+    sassert(freeMask[idx] == false);
+    return *(T*)&dataCached[idx * elemSize];
+  }
+
+  template <typename T>
+  T& getByIndex(int idx)
+  {
+    sassert(dataCached == data());
+    sassert(freeMask[idx] == false);
+    return *(T*)&dataCached[idx * elemSize];
   }
 };
 

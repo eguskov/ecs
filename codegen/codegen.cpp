@@ -87,6 +87,25 @@ namespace utils
     return eastl::string(result.str().c_str());
   }
 
+  template<typename T, typename C>
+  static eastl::string join(
+    const typename eastl::vector<T>::const_iterator &from,
+    const typename eastl::vector<T>::const_iterator &to,
+    C func,
+    const eastl::string &token)
+  {
+    std::ostringstream result;
+    for (typename eastl::vector<T>::const_iterator i = from; i != to; i++)
+    {
+      auto s = func(i);
+      if (i != from)
+        result << token;
+      result << s;
+    }
+
+    return eastl::string(result.str().c_str());
+  }
+
   static eastl::vector<eastl::string> split(const eastl::string &str, char delim)
   {
     eastl::vector<eastl::string> elems;
@@ -219,6 +238,7 @@ void read_function_params(CXCursor cursor, T &parameters)
       auto &p = parameters.push_back();
       p.name = to_string(clang_getCursorSpelling(cursor));
       p.type = to_string(clang_getTypeSpelling(clang_getCursorType(cursor)));
+      p.pureType = std::regex_replace(p.type.c_str(), std::regex("(?:const|\\&|(?:\\s+))"), "").c_str();
     }
 
     return CXChildVisit_Continue;
@@ -292,6 +312,7 @@ int main(int argc, char* argv[])
     {
       eastl::string name;
       eastl::string type;
+      eastl::string pureType;
     };
 
     struct Function
@@ -638,9 +659,27 @@ int main(int argc, char* argv[])
       }, ", ");
     };
 
+    auto joinParametersFrom = [](const eastl::vector<VisitorState::Parameter> &parameters, int from)
+    {
+      return utils::join<VisitorState::Parameter>(parameters.begin() + from, parameters.end(),
+        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
+      {
+        return i->type + " " + i->name;
+      }, ", ");
+    };
+
     auto joinParameterNames = [](const eastl::vector<VisitorState::Parameter> &parameters)
     {
       return utils::join(parameters,
+        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
+      {
+        return "\"" + i->name + "\"";
+      }, ", ");
+    };
+
+    auto joinParameterNamesFrom = [](const eastl::vector<VisitorState::Parameter> &parameters, int from)
+    {
+      return utils::join<VisitorState::Parameter>(parameters.begin() + from, parameters.end(),
         [](eastl::vector<VisitorState::Parameter>::const_iterator i)
       {
         return "\"" + i->name + "\"";
@@ -703,7 +742,7 @@ int main(int argc, char* argv[])
     for (const auto &sys : state.systems)
     {
       out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
-      out << ", { " << joinParameterNames(sys.parameters) << " }";
+      out << ", { " << joinParameterNamesFrom(sys.parameters, 1) << " }";
       out << ", { " << joinParameterNames(sys.have) << " }";
       out << ", { " << joinParameterNames(sys.notHave) << " }";
       out << ", { " << joinParameterNames(sys.trackTrue) << " }";
@@ -736,36 +775,51 @@ int main(int argc, char* argv[])
       out << ", false); " << std::endl;
       out << std::endl;
 
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
 
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
       out << "  using SysType = RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>;" << std::endl;
       out << "  const auto &sys = _reg_sys_exec_" << q.name << ";" << std::endl;
       out << "  const auto &components = sys.queryDesc.components;" << std::endl;
-      out << "  const auto &query = g_mgr->queries[sys.id];" << std::endl;
-      out << "  auto *storage = &g_mgr->storages[0];" << std::endl;
-      out << "  ExtraArguments args;" << std::endl;
-      out << "  for (int i = 0; i < (int)query.eids.size(); ++i)" << std::endl;
+      out << "  auto &query = g_mgr->queries[sys.id];" << std::endl;
+      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
       out << "  {" << std::endl;
-      if (q.empty)
-        out << "    callback();" << std::endl;
-      else
+
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
       {
-        out << "    EntityId eid = query.eids[i];" << std::endl;
-
-        out << "    args.eid = eid;" << std::endl;
-
-        out << "    const auto &entity = g_mgr->entities[eid2idx(eid)];" << std::endl;
-        out << "    const auto &templ = g_mgr->templates[entity.templateId];" << std::endl;
-        out << "    const auto &remap = templ.remaps[sys.id];" << std::endl;
-        out << "    const int *offsets = entity.componentOffsets.data();" << std::endl;
-
-        out << "    const int argId[] = { " << argIdSeq(q.parameters.size()) << " };" << std::endl;
-        out << "    const int argOffset[] = { " << argOffsetSeq(q.parameters.size()) << " };" << std::endl;
-
-        out << "    callback(" << valuesSeq(q.parameters.size(), "SysType::") << ");" << std::endl;
+        const auto &p = q.parameters[i];
+        out << "    const int compIdx_" << p.name << " = query.desc.getComponentIndex(hash::cstr(\"" << p.name << "\"));" << std::endl;
       }
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        out << "    QueryChunk &chunk_" << p.name << " = query.chunks[compIdx_" << p.name << " + chunkIdx * query.componentsCount];" << std::endl;
+      }
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        out << "    auto it_" << p.name << " = chunk_" << p.name << ".begin<" << p.pureType << ">();" << std::endl;
+      }
+
+      out << "    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i";
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        out << ", ++it_" << p.name;
+      }
+      out << ")" << std::endl;
+      out << "      callback(";
+
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        if (i != 0)
+          out << ", ";
+        out << "*it_" << p.name;
+      }
+
+      out << ");" << std::endl;
 
       out << "  }" << std::endl;
       out << "}\n" << std::endl;
@@ -773,14 +827,44 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
       out << "{" << std::endl;
-      out << "  const auto &components = queryDesc.components;" << std::endl;
-      out << "  const int argId[] = { " << argIdSeq(sys.parameters.size()) << " };" << std::endl;
-      out << "  const int argOffset[] = { " << argOffsetSeq(sys.parameters.size()) << " };" << std::endl;
-      out << "  " << sys.name << "(";
-      out << valuesSeq(sys.parameters.size());
+      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
+      out << "  {" << std::endl;
+
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << "    const int compIdx_" << p.name << " = query.desc.getComponentIndex(hash::cstr(\"" << p.name << "\"));" << std::endl;
+      }
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << "    QueryChunk &chunk_" << p.name << " = query.chunks[compIdx_" << p.name << " + chunkIdx * query.componentsCount];" << std::endl;
+      }
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << "    auto it_" << p.name << " = chunk_" << p.name << ".begin<" << p.pureType << ">();" << std::endl;
+      }
+
+      out << "    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << ", ++it_" << p.name;
+      }
+      out << ")" << std::endl;
+      out << "      " << sys.name << "(*(" << sys.parameters[0].pureType << "*)args.stageOrEvent.mem";
+
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << ", *it_" << p.name;
+      }
+
       out << ");" << std::endl;
+      out << "  }" << std::endl;
       out << "}\n" << std::endl;
     }
 

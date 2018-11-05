@@ -17,41 +17,38 @@ template <> int RegCompSpec<PhysicsBody>::ID = -1;
 static RegCompSpec<EventOnPhysicsContact> _reg_event_EventOnPhysicsContact;
 int RegCompSpec<EventOnPhysicsContact>::ID = -1;
 
-static RegSysSpec<1721297381, decltype(init_physics_collision_handler)> _reg_sys_init_physics_collision_handler("init_physics_collision_handler", init_physics_collision_handler, { "ev", "eid", "phys_body", "collision_shape" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3790419289, decltype(init_physics_body_handler)> _reg_sys_init_physics_body_handler("init_physics_body_handler", init_physics_body_handler, { "ev", "phys_body", "pos" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3886467065, decltype(init_physics_world_handler)> _reg_sys_init_physics_world_handler("init_physics_world_handler", init_physics_world_handler, { "ev", "phys_world" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3068576552, decltype(update_physics)> _reg_sys_update_physics("update_physics", update_physics, { "stage", "phys_world" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2372555697, decltype(update_kinematic_physics_body)> _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", update_kinematic_physics_body, { "stage", "phys_body", "pos", "vel" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<745133916, decltype(update_physics_collisions)> _reg_sys_update_physics_collisions("update_physics_collisions", update_physics_collisions, { "stage", "phys_body", "collision_shape", "gravity", "is_on_ground", "pos", "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
-static RegSysSpec<881407812, decltype(physics_contact_handler)> _reg_sys_physics_contact_handler("physics_contact_handler", physics_contact_handler, { "ev", "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
-static RegSysSpec<209165139, decltype(check_physics_contacts)> _reg_sys_check_physics_contacts("check_physics_contacts", check_physics_contacts, { "stage", "phys_world" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2141609791, decltype(render_debug_physics)> _reg_sys_render_debug_physics("render_debug_physics", render_debug_physics, { "stage", "phys_world" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<1721297381, decltype(init_physics_collision_handler)> _reg_sys_init_physics_collision_handler("init_physics_collision_handler", init_physics_collision_handler, { "eid", "phys_body", "collision_shape" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<3790419289, decltype(init_physics_body_handler)> _reg_sys_init_physics_body_handler("init_physics_body_handler", init_physics_body_handler, { "phys_body", "pos" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<3886467065, decltype(init_physics_world_handler)> _reg_sys_init_physics_world_handler("init_physics_world_handler", init_physics_world_handler, { "phys_world" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<3068576552, decltype(update_physics)> _reg_sys_update_physics("update_physics", update_physics, { "phys_world" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2372555697, decltype(update_kinematic_physics_body)> _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", update_kinematic_physics_body, { "phys_body", "pos", "vel" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<745133916, decltype(update_physics_collisions)> _reg_sys_update_physics_collisions("update_physics_collisions", update_physics_collisions, { "phys_body", "collision_shape", "gravity", "is_on_ground", "pos", "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
+static RegSysSpec<881407812, decltype(physics_contact_handler)> _reg_sys_physics_contact_handler("physics_contact_handler", physics_contact_handler, { "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
+static RegSysSpec<209165139, decltype(check_physics_contacts)> _reg_sys_check_physics_contacts("check_physics_contacts", check_physics_contacts, { "phys_world" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2141609791, decltype(render_debug_physics)> _reg_sys_render_debug_physics("render_debug_physics", render_debug_physics, { "phys_world" }, {  }, {  }, {  }, {  }, true); 
 
 static __forceinline void exec_BricksQuery(const CollisionShape & collision_shape, const glm::vec2 & pos) {}
 
 static RegSysSpec<1315101757, decltype(exec_BricksQuery)> _reg_sys_exec_BricksQuery("exec_BricksQuery", exec_BricksQuery, { "collision_shape", "pos" }, { "wall" }, {  }, {  }, {  }, false); 
 
-template <> template <> __forceinline void RegSysSpec<1315101757, decltype(exec_BricksQuery)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const {}
+template <> template <> __forceinline void RegSysSpec<1315101757, decltype(exec_BricksQuery)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const {}
 
 template <typename C> void BricksQuery::exec(C callback)
 {
   using SysType = RegSysSpec<1315101757, decltype(exec_BricksQuery)>;
   const auto &sys = _reg_sys_exec_BricksQuery;
   const auto &components = sys.queryDesc.components;
-  const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storages[0];
-  ExtraArguments args;
-  for (int i = 0; i < (int)query.eids.size(); ++i)
+  auto &query = g_mgr->queries[sys.id];
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    EntityId eid = query.eids[i];
-    args.eid = eid;
-    const auto &entity = g_mgr->entities[eid2idx(eid)];
-    const auto &templ = g_mgr->templates[entity.templateId];
-    const auto &remap = templ.remaps[sys.id];
-    const int *offsets = entity.componentOffsets.data();
-    const int argId[] = { components[0].nameId, components[1].nameId };
-    const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+    const int compIdx_collision_shape = query.desc.getComponentIndex(hash::cstr("collision_shape"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    QueryChunk &chunk_collision_shape = query.chunks[compIdx_collision_shape + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    auto it_collision_shape = chunk_collision_shape.begin<CollisionShape>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_collision_shape, ++it_pos)
+      callback(*it_collision_shape, *it_pos);
   }
 }
 
@@ -59,100 +56,166 @@ static __forceinline void exec_MovigBricksQuery(const CollisionShape & collision
 
 static RegSysSpec<2996131765, decltype(exec_MovigBricksQuery)> _reg_sys_exec_MovigBricksQuery("exec_MovigBricksQuery", exec_MovigBricksQuery, { "collision_shape", "pos", "vel" }, { "auto_move", "wall" }, {  }, {  }, {  }, false); 
 
-template <> template <> __forceinline void RegSysSpec<2996131765, decltype(exec_MovigBricksQuery)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const {}
+template <> template <> __forceinline void RegSysSpec<2996131765, decltype(exec_MovigBricksQuery)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const {}
 
 template <typename C> void MovigBricksQuery::exec(C callback)
 {
   using SysType = RegSysSpec<2996131765, decltype(exec_MovigBricksQuery)>;
   const auto &sys = _reg_sys_exec_MovigBricksQuery;
   const auto &components = sys.queryDesc.components;
-  const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storages[0];
-  ExtraArguments args;
-  for (int i = 0; i < (int)query.eids.size(); ++i)
+  auto &query = g_mgr->queries[sys.id];
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    EntityId eid = query.eids[i];
-    args.eid = eid;
-    const auto &entity = g_mgr->entities[eid2idx(eid)];
-    const auto &templ = g_mgr->templates[entity.templateId];
-    const auto &remap = templ.remaps[sys.id];
-    const int *offsets = entity.componentOffsets.data();
-    const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-    const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<SysType::Argument<1>::Type, SysType::Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<SysType::Argument<2>::Type, SysType::Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+    const int compIdx_collision_shape = query.desc.getComponentIndex(hash::cstr("collision_shape"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    const int compIdx_vel = query.desc.getComponentIndex(hash::cstr("vel"));
+    QueryChunk &chunk_collision_shape = query.chunks[compIdx_collision_shape + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    auto it_collision_shape = chunk_collision_shape.begin<CollisionShape>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_collision_shape, ++it_pos, ++it_vel)
+      callback(*it_collision_shape, *it_pos, *it_vel);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1721297381, decltype(init_physics_collision_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<1721297381, decltype(init_physics_collision_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  init_physics_collision_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_eid = query.desc.getComponentIndex(hash::cstr("eid"));
+    const int compIdx_phys_body = query.desc.getComponentIndex(hash::cstr("phys_body"));
+    const int compIdx_collision_shape = query.desc.getComponentIndex(hash::cstr("collision_shape"));
+    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_phys_body = query.chunks[compIdx_phys_body + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_collision_shape = query.chunks[compIdx_collision_shape + chunkIdx * query.componentsCount];
+    auto it_eid = chunk_eid.begin<EntityId>();
+    auto it_phys_body = chunk_phys_body.begin<PhysicsBody>();
+    auto it_collision_shape = chunk_collision_shape.begin<CollisionShape>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_phys_body, ++it_collision_shape)
+      init_physics_collision_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_eid, *it_phys_body, *it_collision_shape);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<3790419289, decltype(init_physics_body_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<3790419289, decltype(init_physics_body_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  init_physics_body_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_body = query.desc.getComponentIndex(hash::cstr("phys_body"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    QueryChunk &chunk_phys_body = query.chunks[compIdx_phys_body + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    auto it_phys_body = chunk_phys_body.begin<PhysicsBody>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_body, ++it_pos)
+      init_physics_body_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_phys_body, *it_pos);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<3886467065, decltype(init_physics_world_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<3886467065, decltype(init_physics_world_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  init_physics_world_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_world = query.desc.getComponentIndex(hash::cstr("phys_world"));
+    QueryChunk &chunk_phys_world = query.chunks[compIdx_phys_world + chunkIdx * query.componentsCount];
+    auto it_phys_world = chunk_phys_world.begin<PhysicsWorld>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_world)
+      init_physics_world_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_phys_world);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<3068576552, decltype(update_physics)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<3068576552, decltype(update_physics)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  update_physics(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_world = query.desc.getComponentIndex(hash::cstr("phys_world"));
+    QueryChunk &chunk_phys_world = query.chunks[compIdx_phys_world + chunkIdx * query.componentsCount];
+    auto it_phys_world = chunk_phys_world.begin<PhysicsWorld>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_world)
+      update_physics(*(UpdateStage*)args.stageOrEvent.mem, *it_phys_world);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2372555697, decltype(update_kinematic_physics_body)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3>) const
+template <> template <> __forceinline void RegSysSpec<2372555697, decltype(update_kinematic_physics_body)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets) };
-  update_kinematic_physics_body(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_body = query.desc.getComponentIndex(hash::cstr("phys_body"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    const int compIdx_vel = query.desc.getComponentIndex(hash::cstr("vel"));
+    QueryChunk &chunk_phys_body = query.chunks[compIdx_phys_body + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    auto it_phys_body = chunk_phys_body.begin<PhysicsBody>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_body, ++it_pos, ++it_vel)
+      update_kinematic_physics_body(*(UpdateStage*)args.stageOrEvent.mem, *it_phys_body, *it_pos, *it_vel);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<745133916, decltype(update_physics_collisions)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
+template <> template <> __forceinline void RegSysSpec<745133916, decltype(update_physics_collisions)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId, components[3].nameId, components[4].nameId, components[5].nameId, components[6].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets), get_offset(remap[3], offsets), get_offset(remap[4], offsets), get_offset(remap[5], offsets), get_offset(remap[6], offsets) };
-  update_physics_collisions(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]), Value<Argument<3>::Type, Argument<3>::valueType>::get(args, storage, argId[3], argOffset[3]), Value<Argument<4>::Type, Argument<4>::valueType>::get(args, storage, argId[4], argOffset[4]), Value<Argument<5>::Type, Argument<5>::valueType>::get(args, storage, argId[5], argOffset[5]), Value<Argument<6>::Type, Argument<6>::valueType>::get(args, storage, argId[6], argOffset[6]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_body = query.desc.getComponentIndex(hash::cstr("phys_body"));
+    const int compIdx_collision_shape = query.desc.getComponentIndex(hash::cstr("collision_shape"));
+    const int compIdx_gravity = query.desc.getComponentIndex(hash::cstr("gravity"));
+    const int compIdx_is_on_ground = query.desc.getComponentIndex(hash::cstr("is_on_ground"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    const int compIdx_vel = query.desc.getComponentIndex(hash::cstr("vel"));
+    QueryChunk &chunk_phys_body = query.chunks[compIdx_phys_body + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_collision_shape = query.chunks[compIdx_collision_shape + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_gravity = query.chunks[compIdx_gravity + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    auto it_phys_body = chunk_phys_body.begin<PhysicsBody>();
+    auto it_collision_shape = chunk_collision_shape.begin<CollisionShape>();
+    auto it_gravity = chunk_gravity.begin<Gravity>();
+    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_body, ++it_collision_shape, ++it_gravity, ++it_is_on_ground, ++it_pos, ++it_vel)
+      update_physics_collisions(*(UpdateStage*)args.stageOrEvent.mem, *it_phys_body, *it_collision_shape, *it_gravity, *it_is_on_ground, *it_pos, *it_vel);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<881407812, decltype(physics_contact_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<881407812, decltype(physics_contact_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  physics_contact_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_vel = query.desc.getComponentIndex(hash::cstr("vel"));
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel)
+      physics_contact_handler(*(EventOnPhysicsContact*)args.stageOrEvent.mem, *it_vel);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<209165139, decltype(check_physics_contacts)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<209165139, decltype(check_physics_contacts)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  check_physics_contacts(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_world = query.desc.getComponentIndex(hash::cstr("phys_world"));
+    QueryChunk &chunk_phys_world = query.chunks[compIdx_phys_world + chunkIdx * query.componentsCount];
+    auto it_phys_world = chunk_phys_world.begin<PhysicsWorld>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_world)
+      check_physics_contacts(*(UpdateStage*)args.stageOrEvent.mem, *it_phys_world);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2141609791, decltype(render_debug_physics)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<2141609791, decltype(render_debug_physics)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  render_debug_physics(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_phys_world = query.desc.getComponentIndex(hash::cstr("phys_world"));
+    QueryChunk &chunk_phys_world = query.chunks[compIdx_phys_world + chunkIdx * query.componentsCount];
+    auto it_phys_world = chunk_phys_world.begin<PhysicsWorld>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_phys_world)
+      render_debug_physics(*(RenderDebugStage*)args.stageOrEvent.mem, *it_phys_world);
+  }
 }
 
 #endif // __CODEGEN__

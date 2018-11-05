@@ -1,5 +1,7 @@
 #pragma once
 
+#include <EASTL/hash_map.h>
+
 namespace hash
 {
   template <typename S> struct fnv_internal;
@@ -28,26 +30,76 @@ namespace hash
     }
   };
 
-  struct ConstHashedString
-  {
-    uint32_t hash = 0;
-    char const* const str;
-
-    constexpr ConstHashedString(char const* const s) : str(s), hash(fnv1<uint32_t>::hash(s)) {}
-  };
-
-
-  constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
   inline uint32_t str(const char *s) { return fnv1<uint32_t>::hash(s); }
+}
+
+struct ConstHashedString
+{
+  uint32_t hash = 0;
+  char const* const str;
+
+  constexpr ConstHashedString(char const* const s) : str(s), hash(hash::fnv1<uint32_t>::hash(s)) {}
+
+  bool operator==(const ConstHashedString &rhs) const { return hash == rhs.hash; }
+  bool operator<(const ConstHashedString &rhs) const { return hash < rhs.hash; }
+  bool operator>(const ConstHashedString &rhs) const { return hash > rhs.hash; }
+};
+
+namespace hash
+{
+  constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
 }
 
 struct HashedString
 {
+  bool isOwnMemory = false;
   uint32_t hash = 0;
-  // TODO: Replace with eastl::string. Because of script!
-  std::string str;
-  // eastl::string str;
+  const char *str = nullptr;
 
   HashedString() = default;
-  HashedString(const char *s) : str(s), hash(hash::str(s)) {}
+  ~HashedString()
+  {
+    if (isOwnMemory) ::free((void*)str);
+  }
+  HashedString(const char *s) : str(::_strdup(s)), hash(hash::str(s)), isOwnMemory(true) {}
+  HashedString(const ConstHashedString &s) : str(s.str), hash(s.hash), isOwnMemory(false) {}
+  HashedString(const HashedString &s)
+  {
+    *this = s;
+  }
+
+  HashedString& operator=(const HashedString &s)
+  {
+    if (this == &s)
+      return *this;
+    if (isOwnMemory && str)
+      ::free((void*)str);
+    hash = s.hash;
+    isOwnMemory = s.isOwnMemory;
+    if (isOwnMemory)
+      str = ::_strdup(s.str);
+    else
+      str = s.str;
+
+    return *this;
+  }
+
+  bool operator==(const HashedString &rhs) const { return hash == rhs.hash; }
+  bool operator<(const HashedString &rhs) const { return hash < rhs.hash; }
+  bool operator>(const HashedString &rhs) const { return hash > rhs.hash; }
 };
+
+inline HashedString hash_str(char const* const s) { return HashedString(s); }
+
+namespace eastl
+{
+  template <> struct hash<HashedString>
+  {
+    size_t operator()(const HashedString &val) const { return val.hash; }
+  };
+
+  template <> struct hash<ConstHashedString>
+  {
+    size_t operator()(const ConstHashedString &val) const { return val.hash; }
+  };
+}

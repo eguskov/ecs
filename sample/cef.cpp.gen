@@ -17,44 +17,49 @@ static RegSysSpec<1923709597, decltype(cef_click_outside_handler)> _reg_sys_cef_
 static RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)> _reg_sys_cef_toggle_dev_tools_handler("cef_toggle_dev_tools_handler", cef_toggle_dev_tools_handler, { "ev" }, { "webui" }, {  }, {  }, {  }, true); 
 static RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)> _reg_sys_cef_toggle_webui_handler("cef_toggle_webui_handler", cef_toggle_webui_handler, { "ev" }, { "webui" }, {  }, {  }, {  }, true); 
 
-template <> template <> __forceinline void RegSysSpec<2878479676, decltype(cef_ready_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
+template <> template <> __forceinline void RegSysSpec<2878479676, decltype(cef_ready_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_ready_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
+      cef_ready_handler(*(CEFEventOnReady*)args.stageOrEvent.mem);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2581954526, decltype(cef_after_created_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
+template <> template <> __forceinline void RegSysSpec<2581954526, decltype(cef_after_created_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_after_created_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
+      cef_after_created_handler(*(CEFEventOnAfterCreated*)args.stageOrEvent.mem);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<1923709597, decltype(cef_click_outside_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
+template <> template <> __forceinline void RegSysSpec<1923709597, decltype(cef_click_outside_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_click_outside_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
+      cef_click_outside_handler(*(cef::EventOnClickOutside*)args.stageOrEvent.mem);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
+template <> template <> __forceinline void RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_toggle_dev_tools_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
+      cef_toggle_dev_tools_handler(*(cef::CmdToggleDevTools*)args.stageOrEvent.mem);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const
+template <> template <> __forceinline void RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets) };
-  cef_toggle_webui_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
+      cef_toggle_webui_handler(*(cef::CmdToggleWebUI*)args.stageOrEvent.mem);
+  }
 }
 
 #endif // __CODEGEN__

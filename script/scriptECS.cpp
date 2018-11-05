@@ -30,7 +30,7 @@ namespace script
     eventId = -1;
     stageId = comp ? comp->id : -1;
 
-    for (size_t i = 0; i < params.size(); ++i)
+    for (size_t i = 1; i < params.size(); ++i)
     {
       const auto &param = params[i];
 
@@ -52,7 +52,7 @@ namespace script
         if (!desc)
           desc = mgr->getComponentDescByName(param.name.c_str());
         assert(desc != nullptr);
-        queryDesc.components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), desc });
+        queryDesc.components.push_back({ 0, mgr->getComponentNameId(param.name.c_str()), hash_str(param.name.c_str()), desc->size, desc });
 
         if ((param.flags & asTM_CONST) != 0)
           queryDesc.roComponents.push_back(i);
@@ -158,6 +158,7 @@ namespace script
         auto &c = out_components.emplace_back();
         c.desc = g_mgr->getComponentDescByName(doc[key][i].GetString());
         c.nameId = g_mgr->getComponentNameId(doc[key][i].GetString());
+        c.name = hash_str(doc[key][i].GetString());
         assert(c.desc != nullptr);
       }
     }
@@ -166,6 +167,7 @@ namespace script
       auto &c = out_components.emplace_back();
       c.desc = g_mgr->getComponentDescByName(doc[key].GetString());
       c.nameId = g_mgr->getComponentNameId(doc[key].GetString());
+      c.name = hash_str(doc[key].GetString());
       assert(c.desc != nullptr);
     }
   }
@@ -195,7 +197,7 @@ namespace script
       assert(type != nullptr);
 
       link.firstTypeId = type->GetTypeId();
-      link.firstNameId = g_mgr->getComponentNameId(match[2].str().c_str());
+      link.firstName = hash_str(match[2].str().c_str());
     }
 
     {
@@ -206,11 +208,11 @@ namespace script
       assert(type != nullptr);
 
       link.secondTypeId = type->GetTypeId();
-      link.secondNameId = g_mgr->getComponentNameId(match[2].str().c_str());
+      link.secondName = hash_str(match[2].str().c_str());
     }
 
-    assert(link.firstTypeId >= 0 && link.firstNameId >= 0);
-    assert(link.secondTypeId >= 0 && link.secondNameId >= 0);
+    assert(link.firstTypeId >= 0 && link.firstName.hash >= 0);
+    assert(link.secondTypeId >= 0 && link.secondName.hash >= 0);
   }
 
   bool ScriptECS::build(const char *name, const char *path)
@@ -255,9 +257,9 @@ namespace script
             process_metadata(doc, "$not-have", query.desc.notHaveComponents);
 
             for (const auto &c : query.desc.isTrueComponents)
-              g_mgr->enableChangeDetection(c.nameId);
+              g_mgr->enableChangeDetection(c.name);
             for (const auto &c : query.desc.isFalseComponents)
-              g_mgr->enableChangeDetection(c.nameId);
+              g_mgr->enableChangeDetection(c.name);
           }
 
           assert(type->GetPropertyCount() != 0 ||
@@ -285,7 +287,7 @@ namespace script
               desc = g_mgr->getComponentDescByName(name);
             assert(desc != nullptr);
 
-            query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), desc });
+            query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), hash_str(name), desc->size, desc });
           }
 
           g_mgr->invalidateQuery(query);
@@ -321,13 +323,13 @@ namespace script
               process_join(doc, module, sys.queryDesc);
 
               for (const auto &c : sys.queryDesc.isTrueComponents)
-                g_mgr->enableChangeDetection(c.nameId);
+                g_mgr->enableChangeDetection(c.name);
               for (const auto &c : sys.queryDesc.isFalseComponents)
-                g_mgr->enableChangeDetection(c.nameId);
+                g_mgr->enableChangeDetection(c.name);
               for (const auto &link : sys.queryDesc.joinLinks)
               {
-                g_mgr->enableChangeDetection(link.firstNameId);
-                g_mgr->enableChangeDetection(link.secondNameId);
+                g_mgr->enableChangeDetection(link.firstName);
+                g_mgr->enableChangeDetection(link.secondName);
               }
             }
           }
@@ -408,7 +410,7 @@ namespace script
     for (auto &it : dataQueries)
     {
       g_mgr->invalidateQuery(it.second);
-      std::cout << "invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.eids.size() << std::endl;
+      std::cout << "invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.entitiesCount << std::endl;
     }
 
     for (const auto &sys : systems)
@@ -419,43 +421,47 @@ namespace script
       query.desc = sys.queryDesc;
       if (sys.useJoin)
       {
-        query.eids.clear();
+        // query.eids.clear();
 
-        for (const QueryLink &link : query.desc.joinLinks)
-        {
-          auto first = dataQueries.find(link.firstTypeId);
-          auto second = dataQueries.find(link.secondTypeId);
-          assert(first != dataQueries.end());
-          assert(second != dataQueries.end());
+        // FIXME: Rewrite for archetypes
+        // for (const QueryLink &link : query.desc.joinLinks)
+        // {
+        //   auto first = dataQueries.find(link.firstTypeId);
+        //   auto second = dataQueries.find(link.secondTypeId);
+        //   assert(first != dataQueries.end());
+        //   assert(second != dataQueries.end());
 
-          Storage *firstStorage = g_mgr->storages[link.firstNameId];
-          Storage *secondStorage = g_mgr->storages[link.secondNameId];
+        //   Storage *firstStorage = g_mgr->storages[link.firstNameId];
+        //   Storage *secondStorage = g_mgr->storages[link.secondNameId];
 
-          const int firstNameId = link.firstNameId;
-          const int secondNameId = link.secondNameId;
-          const int firstElemSize = firstStorage->elemSize;
-          const int secondElemSize = secondStorage->elemSize;
-          assert(firstElemSize == secondElemSize);
+        //   const int firstNameId = link.firstNameId;
+        //   const int secondNameId = link.secondNameId;
+        //   const int firstElemSize = firstStorage->elemSize;
+        //   const int secondElemSize = secondStorage->elemSize;
+        //   assert(firstElemSize == secondElemSize);
 
-          for (const EntityId &firstEid : first->second.eids)
-          {
-            uint8_t *firstRaw = firstStorage->getRaw(g_mgr->entityDescs[firstEid.index].offsetsByNameId[firstNameId]);
-            for (const EntityId &secondEid : second->second.eids)
-            {
-              uint8_t *secondRaw = secondStorage->getRaw(g_mgr->entityDescs[secondEid.index].offsetsByNameId[secondNameId]);
-              if (::memcmp(firstRaw, secondRaw, firstElemSize) == 0)
-              {
-                query.eids.emplace_back() = firstEid;
-                query.eids.emplace_back() = secondEid;
-              }
-            }
-          }
-        }
+        //   for (const EntityId &firstEid : first->second.eids)
+        //   {
+        //     uint8_t *firstRaw = firstStorage->getRaw(g_mgr->entityDescs[firstEid.index].offsetsByNameId[firstNameId]);
+        //     for (const EntityId &secondEid : second->second.eids)
+        //     {
+        //       uint8_t *secondRaw = secondStorage->getRaw(g_mgr->entityDescs[secondEid.index].offsetsByNameId[secondNameId]);
+        //       if (::memcmp(firstRaw, secondRaw, firstElemSize) == 0)
+        //       {
+        //         query.eids.emplace_back() = firstEid;
+        //         query.eids.emplace_back() = secondEid;
+        //       }
+        //     }
+        //   }
+        // }
 
-        assert((query.eids.size() % query.desc.joinQueries.size()) == 0);
+        // assert((query.eids.size() % query.desc.joinQueries.size()) == 0);
       }
       else
+      {
         g_mgr->invalidateQuery(query);
+        std::cout << "invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount << std::endl;
+      }
     }
   }
 
@@ -464,7 +470,9 @@ namespace script
     auto &entity = g_mgr->entities[eid2idx(eid)];
     if (eid.generation != entity.eid.generation)
       return;
+
     const auto &templ = g_mgr->templates[entity.templateId];
+    const auto &archetype = g_mgr->archetypes[entity.archetypeId];
 
     for (const auto &sys : systems)
       if (sys.stageId == event_id)
@@ -479,16 +487,14 @@ namespace script
 
         if (ok)
         {
-          const auto &remap = remaps[entity.templateId][sys.id];
-
           eventCtx->Prepare(sys.fn);
           eventCtx->SetUserData(this, 1000);
           internal::set_arg_wrapped(eventCtx, 0, ev.mem);
-          for (int i = 1; i < (int)remap.size(); ++i)
+          int compIdx = 0;
+          for (const auto &c : sys.queryDesc.components)
           {
-            Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
-            const int offset = entity.componentOffsets[remap[i]];
-            internal::set_arg_wrapped(eventCtx, i, storage->getRaw(offset));
+            auto &storage = archetype.storages[archetype.getComponentIndex(c.name)];
+            internal::set_arg_wrapped(eventCtx, ++compIdx, storage.storage->getRawByIndex(entity.indexInArchetype));
           }
           eventCtx->Execute();
         }
@@ -498,7 +504,7 @@ namespace script
   void ScriptECS::tickStage(int stage_id, const RawArg &stage)
   {
     // TODO: Store quries in map by stageId
-    for (const auto &query : systemQueries)
+    for (auto &query : systemQueries)
     {
       if (query.stageId != stage_id)
         continue;
@@ -524,76 +530,77 @@ namespace script
         auto secondDataQuery = dataQueries.find(TypeId{ secondTypeId });
         assert(secondDataQuery != dataQueries.end());
 
-        if (query.desc.joinLinks.empty())
+        // FIXME: Rewrite for achetypes
+        // if (query.desc.joinLinks.empty())
+        // {
+        //   for (const auto &firstEid : firstDataQuery->second.eids)
+        //   {
+        //     asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
+        //     assert(firstObject != nullptr);
+
+        //     for (const auto &secondEid : secondDataQuery->second.eids)
+        //     {
+        //       asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
+        //       assert(secondObject != nullptr);
+
+        //       stageCtx->Prepare(systems[query.sysId].fn);
+        //       stageCtx->SetUserData(this, 1000);
+
+        //       internal::set_arg_wrapped(stageCtx, 0, stage.mem);
+        //       firstObject->AddRef();
+        //       internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
+        //       internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
+
+        //       stageCtx->Execute();
+        //     }
+
+        //     firstObject->Release();
+        //   }
+        // }
+        // else
+        // {
+        //   const int step = query.desc.joinQueries.size();
+        //   assert(step == 2);
+        //   for (int i = 0; i < (int)query.eids.size(); i += step)
+        //   {
+        //     const EntityId &firstEid = query.eids[i + 0];
+        //     const EntityId &secondEid = query.eids[i + 1];
+
+        //     asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
+        //     assert(firstObject != nullptr);
+
+        //     asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
+        //     assert(secondObject != nullptr);
+
+        //     stageCtx->Prepare(systems[query.sysId].fn);
+        //     stageCtx->SetUserData(this, 1000);
+
+        //     internal::set_arg_wrapped(stageCtx, 0, stage.mem);
+        //     internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
+        //     internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
+
+        //     stageCtx->Execute();
+        //   }
+        // }
+      }
+      else
+      {
+        for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
         {
-          for (const auto &firstEid : firstDataQuery->second.eids)
+          for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
           {
-            asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
-            assert(firstObject != nullptr);
-
-            for (const auto &secondEid : secondDataQuery->second.eids)
-            {
-              asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
-              assert(secondObject != nullptr);
-
-              stageCtx->Prepare(systems[query.sysId].fn);
-              stageCtx->SetUserData(this, 1000);
-
-              internal::set_arg_wrapped(stageCtx, 0, stage.mem);
-              firstObject->AddRef();
-              internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
-              internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
-
-              stageCtx->Execute();
-            }
-
-            firstObject->Release();
-          }
-        }
-        else
-        {
-          const int step = query.desc.joinQueries.size();
-          assert(step == 2);
-          for (int i = 0; i < (int)query.eids.size(); i += step)
-          {
-            const EntityId &firstEid = query.eids[i + 0];
-            const EntityId &secondEid = query.eids[i + 1];
-
-            asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
-            assert(firstObject != nullptr);
-
-            asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
-            assert(secondObject != nullptr);
-
             stageCtx->Prepare(systems[query.sysId].fn);
             stageCtx->SetUserData(this, 1000);
-
             internal::set_arg_wrapped(stageCtx, 0, stage.mem);
-            internal::set_arg_wrapped(stageCtx, 1 + firstQueryIndex, firstObject);
-            internal::set_arg_wrapped(stageCtx, 1 + secondQueryIndex, secondObject);
-
+            for (int compIdx = 0; compIdx < (int)query.desc.components.size(); ++compIdx)
+            {
+              QueryChunk &chunk = query.chunks[compIdx + chunkIdx * query.componentsCount];
+              internal::set_arg_wrapped(stageCtx, compIdx + 1, chunk.beginData + i * query.desc.components[compIdx].size);
+            }
             stageCtx->Execute();
           }
         }
       }
-      else
-        for (const auto &eid : query.eids)
-        {
-          const auto &entity = g_mgr->entities[eid.index];
-          const auto &templ = g_mgr->templates[entity.templateId];
-          const auto &remap = remaps[entity.templateId][query.sysId];
-
-          stageCtx->Prepare(systems[query.sysId].fn);
-          stageCtx->SetUserData(this, 1000);
-          internal::set_arg_wrapped(stageCtx, 0, stage.mem);
-          for (int i = 1; i < (int)remap.size(); ++i)
-          {
-            Storage *storage = g_mgr->storages[templ.components[remap[i]].nameId];
-            const int offset = entity.componentOffsets[remap[i]];
-            internal::set_arg_wrapped(stageCtx, i, storage->getRaw(offset));
-          }
-          stageCtx->Execute();
-        }
     }
   }
 }

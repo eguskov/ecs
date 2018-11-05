@@ -178,7 +178,7 @@ namespace script
     return sq;
   }
 
-  size_t* create_script_query_count(asITypeInfo *type, void *data)
+  int* create_script_query_count(asITypeInfo *type, void *data)
   {
     asIScriptContext *ctx = asGetActiveContext();
     assert(ctx != nullptr);
@@ -189,7 +189,7 @@ namespace script
     auto res = scriptECS->dataQueries.find(type->GetSubTypeId());
     assert(res != scriptECS->dataQueries.end());
 
-    return new (RawAllocator<size_t>::alloc()) size_t(res->second.eids.size());
+    return new (RawAllocator<int>::alloc()) size_t(res->second.entitiesCount);
   }
 
   int create_script_query_count_get(size_t *sz)

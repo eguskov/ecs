@@ -29,6 +29,11 @@ int screen_height = 600;
 
 bool g_enable_cef = false;
 
+std::string get_hashed_string(const HashedString &s)
+{
+  return std::string(s.str);
+}
+
 int main()
 {
   std::srand(unsigned(std::time(0)));
@@ -107,7 +112,7 @@ int main()
 
   script::register_component<HashedString>("HashedString");
   script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
-  script::register_component_property("HashedString", "string str", offsetof(HashedString, str));
+  script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
 
   double nextResetMinMax = 0.0;
 

@@ -94,7 +94,7 @@ void bind_trigger_to_enable_lift_action(const UpdateStage@ stage, NotBindedSwitc
     trigger.is_binded = true;
     trigger.action_eid = action.eid;
 
-    print("*** Action binded: "+trigger.key.str+" => "+action.key.str);
+    print("*** Action binded: "+trigger.key.str()+" => "+action.key.str());
   }
 }
 
@@ -103,7 +103,7 @@ void update_inactive_switch_triggers(const UpdateStage@ stage, const AlivePlayer
 {
   if (length(player.pos - trigger.pos) < 1.f)
   {
-    print("*** Activate SwitchTrigger: "+trigger.key.str);
+    print("*** Activate SwitchTrigger: "+trigger.key.str());
     trigger.is_active = true;
   }
 }
@@ -111,7 +111,7 @@ void update_inactive_switch_triggers(const UpdateStage@ stage, const AlivePlayer
 [system { "$join": [ "ActiveSwitchTrigger.action_eid", "InactiveEnableLiftAction.eid" ] }]
 void update_active_switch_triggers(const UpdateStage@ stage, const ActiveSwitchTrigger@ trigger, InactiveEnableLiftAction@ action)
 {
-  print("*** Activate EnableLiftAction: "+trigger.key.str+" => "+action.key.str);
+  print("*** Activate EnableLiftAction: "+trigger.key.str()+" => "+action.key.str());
   action.is_active = true;
 
   for (auto it = Query<InactiveLift>().perform(); it.hasNext(); ++it)
@@ -120,7 +120,7 @@ void update_active_switch_triggers(const UpdateStage@ stage, const ActiveSwitchT
     if (lift.key.hash == action.lift_key.hash)
     {
       lift.is_active = true;
-      print("*** Action lift: "+lift.key.str);
+      print("*** Action lift: "+lift.key.str());
     }
   }
 }

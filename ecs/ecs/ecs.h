@@ -19,6 +19,8 @@
 #define ECS_PULL(type) static int pull_##type = RegCompSpec<type>::ID;
 #define PULL_ESC_CORE ECS_PULL(bool);
 
+using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
+
 struct RegSys;
 extern RegSys *reg_sys_head;
 extern int reg_sys_count;
@@ -46,6 +48,7 @@ struct EntityTemplate
 {
   int size = 0;
   int docId = -1;
+  int archetypeId = -1;
 
   eastl::string name;
   eastl::bitvector<> compMask;
@@ -70,9 +73,12 @@ struct Entity
   // TODO: Is this needed here??
   EntityId eid;
   int templateId = -1;
+  int archetypeId = -1;
+
+  int indexInArchetype = -1;
 
   // TODO: Store as SoA in one array???
-  eastl::vector<int> componentOffsets;
+  // eastl::vector<int> componentOffsets;
 };
 
 struct EntityDesc
@@ -130,7 +136,45 @@ struct AsyncValue
   }
 };
 
-using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
+struct Archetype
+{
+  struct StorageDesc
+  {
+    HashedString name;
+    Storage *storage = nullptr;
+
+    operator Storage*() { return storage; }
+    Storage* operator->() { return storage; }
+  };
+
+  int entitiesCount = 0;
+  // TODO: Remove hash_map!
+  // eastl::hash_map<HashedString, Storage*> storageMap;
+  // TODO: Inplace allocation for Storage. In order to reduce memory hops.
+  eastl::vector<StorageDesc> storages;
+
+  ~Archetype()
+  {
+  }
+
+  void invalidate()
+  {
+    for (auto &s : storages)
+      s->invalidate();
+  }
+
+  void clear()
+  {
+    for (Storage *s : storages)
+      delete s;
+  }
+
+  bool hasCompontent(const HashedString &name) const;
+  bool hasCompontent(const ConstHashedString &name) const;
+
+  int getComponentIndex(const HashedString &name) const;
+  int getComponentIndex(const ConstHashedString &name) const;
+};
 
 struct EntityManager
 {
@@ -141,9 +185,10 @@ struct EntityManager
 
   eastl::vector<eastl::string> order;
   eastl::vector<EntityTemplate> templates;
-  eastl::vector<Storage*> storages;
+  eastl::vector<Archetype> archetypes;
+  // eastl::vector<Storage*> storages;
   eastl::vector<Entity> entities;
-  eastl::vector<EntityDesc> entityDescs;
+  // eastl::vector<EntityDesc> entityDescs;
   eastl::vector<eastl::string> componentNames;
   eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
@@ -155,7 +200,7 @@ struct EntityManager
   eastl::queue<EntityId> deleteQueue;
   eastl::queue<int> freeEntityQueue;
 
-  eastl::set<int> trackComponents;
+  eastl::set<HashedString> trackComponents;
 
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
@@ -186,8 +231,8 @@ struct EntityManager
 
   void invalidateQuery(Query &query);
 
-  void enableChangeDetection(int name_id);
-  void disableChangeDetection(int name_id);
+  void enableChangeDetection(const HashedString &name);
+  void disableChangeDetection(const HashedString &name);
 
   void fillFrameSnapshot(FrameSnapshot &snapshot) const;
   void checkFrameSnapshot(const FrameSnapshot &snapshot);

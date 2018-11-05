@@ -11,60 +11,69 @@ template <> int RegCompSpec<WebsocketServer>::ID = -1;
 static RegCompSpec<WSGetECSData> _reg_event_WSGetECSData;
 int RegCompSpec<WSGetECSData>::ID = -1;
 
-static RegSysSpec<1792234238, decltype(init_websocket_server_handler)> _reg_sys_init_websocket_server_handler("init_websocket_server_handler", init_websocket_server_handler, { "ev", "eid", "ws_server" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<4294383132, decltype(update_websocket_server)> _reg_sys_update_websocket_server("update_websocket_server", update_websocket_server, { "stage", "ws_server" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2741717703, decltype(ws_get_ecs_data)> _reg_sys_ws_get_ecs_data("ws_get_ecs_data", ws_get_ecs_data, { "ev", "ws_server" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<1792234238, decltype(init_websocket_server_handler)> _reg_sys_init_websocket_server_handler("init_websocket_server_handler", init_websocket_server_handler, { "eid", "ws_server" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<4294383132, decltype(update_websocket_server)> _reg_sys_update_websocket_server("update_websocket_server", update_websocket_server, { "ws_server" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2741717703, decltype(ws_get_ecs_data)> _reg_sys_ws_get_ecs_data("ws_get_ecs_data", ws_get_ecs_data, { "ws_server" }, {  }, {  }, {  }, {  }, true); 
 
 static __forceinline void exec_AllScriptsQuery(const script::ScriptComponent & script) {}
 
 static RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)> _reg_sys_exec_AllScriptsQuery("exec_AllScriptsQuery", exec_AllScriptsQuery, { "script" }, {  }, {  }, {  }, {  }, false); 
 
-template <> template <> __forceinline void RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0>) const {}
+template <> template <> __forceinline void RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0>) const {}
 
 template <typename C> void AllScriptsQuery::exec(C callback)
 {
   using SysType = RegSysSpec<1753107198, decltype(exec_AllScriptsQuery)>;
   const auto &sys = _reg_sys_exec_AllScriptsQuery;
   const auto &components = sys.queryDesc.components;
-  const auto &query = g_mgr->queries[sys.id];
-  auto *storage = &g_mgr->storages[0];
-  ExtraArguments args;
-  for (int i = 0; i < (int)query.eids.size(); ++i)
+  auto &query = g_mgr->queries[sys.id];
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    EntityId eid = query.eids[i];
-    args.eid = eid;
-    const auto &entity = g_mgr->entities[eid2idx(eid)];
-    const auto &templ = g_mgr->templates[entity.templateId];
-    const auto &remap = templ.remaps[sys.id];
-    const int *offsets = entity.componentOffsets.data();
-    const int argId[] = { components[0].nameId };
-    const int argOffset[] = { get_offset(remap[0], offsets) };
-    callback(Value<SysType::Argument<0>::Type, SysType::Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]));
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
+      callback(*it_script);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  init_websocket_server_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_eid = query.desc.getComponentIndex(hash::cstr("eid"));
+    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
+    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
+    auto it_eid = chunk_eid.begin<EntityId>();
+    auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_ws_server)
+      init_websocket_server_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_eid, *it_ws_server);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_server)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_server)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  update_websocket_server(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
+    QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
+    auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_ws_server)
+      update_websocket_server(*(UpdateStage*)args.stageOrEvent.mem, *it_ws_server);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2741717703, decltype(ws_get_ecs_data)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<2741717703, decltype(ws_get_ecs_data)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  ws_get_ecs_data(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
+    QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
+    auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_ws_server)
+      ws_get_ecs_data(*(WSGetECSData*)args.stageOrEvent.mem, *it_ws_server);
+  }
 }
 
 #endif // __CODEGEN__

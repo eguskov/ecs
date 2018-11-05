@@ -81,7 +81,7 @@ DEF_HAS_METHOD(require);
 struct RegSys
 {
   using Remap = eastl::fixed_vector<int, 32>;
-  using StageFunc = void(RegSys::*)(int count, const EntityId *eids, const RawArg&, Storage**) const;
+  using StageFunc = void(RegSys::*)(Query &query, const RawArg&/* , Storage** */) const;
 
   char *name = nullptr;
 
@@ -255,7 +255,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
   constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
 
   template <size_t... I>
-  __forceinline void execImpl(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<I...>) const;
+  __forceinline void execImpl(const ExtraArguments &args, Query &query, /* const int *remap, const int *offsets, Storage **storage, */ eastl::index_sequence<I...>) const;
 
   inline void operator()(const EntityVector &eids, const RawArg &stage, Storage **storage) const
   {
@@ -279,20 +279,22 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     execImpl(args, remap, offsets, storage, Indices{});
   }
 
-  void execStage(int count, const EntityId *eids, const RawArg &stage_or_event, Storage **storage) const
+  void execStage(Query &query, const RawArg &stage_or_event/* , Storage **storage */) const
   {
     ExtraArguments args;
     args.stageOrEvent = stage_or_event;
 
-    for (int i = 0; i < count; ++i)
-    {
-      EntityId eid = eids[i];
-      args.eid = eid;
-      const auto &entity = g_mgr->entities[eid.index];
-      const auto &templ = g_mgr->templates[entity.templateId];
-      const auto &remap = templ.remaps[id];
-      execImpl(args, remap.data(), entity.componentOffsets.data(), storage, Indices{});
-    }
+    execImpl(args, query, Indices{});
+
+    // for (int i = 0; i < count; ++i)
+    // {
+    //   EntityId eid = eids[i];
+    //   args.eid = eid;
+    //   const auto &entity = g_mgr->entities[eid.index];
+    //   const auto &templ = g_mgr->templates[entity.templateId];
+    //   const auto &remap = templ.remaps[id];
+    //   execImpl(args, remap.data(), entity.componentOffsets.data(), storage, Indices{});
+    // }
   }
 
   RegSysSpec(const char *name,
@@ -333,9 +335,12 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     assert(componentNames.size() == componentTypeNames.size());
     for (size_t i = 0; i < componentTypeNames.size(); ++i)
     {
+      // TODO: This check is bullshit! Generate a QueryDesc by codegen
+      if (!componentNames[i])
+        continue;
       const RegComp *desc = find_comp(componentTypeNames[i]);
       assert(desc != nullptr);
-      queryDesc.components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), desc });
+      queryDesc.components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), hash_str(componentNames[i]), desc->size, desc });
 
       if (arguments[i].isConst)
         queryDesc.roComponents.push_back(i);
@@ -349,6 +354,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
       auto &c = queryDesc.haveComponents[index++];
       c.desc = mgr->getComponentDescByName(n.c_str());
       c.nameId = mgr->getComponentNameId(n.c_str());
+      c.name = hash_str(n.c_str());
       assert(c.desc != nullptr);
     }
 
@@ -358,6 +364,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
       auto &c = queryDesc.notHaveComponents[index++];
       c.desc = mgr->getComponentDescByName(n.c_str());
       c.nameId = mgr->getComponentNameId(n.c_str());
+      c.name = hash_str(n.c_str());
       assert(c.desc != nullptr);
     }
 
@@ -367,6 +374,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
       auto &c = queryDesc.isTrueComponents[index++];
       c.desc = mgr->getComponentDescByName(n.c_str());
       c.nameId = mgr->getComponentNameId(n.c_str());
+      c.name = hash_str(n.c_str());
       assert(c.desc != nullptr);
     }
 
@@ -376,6 +384,7 @@ struct RegSysSpec<D, R(Args...)> : RegSys
       auto &c = queryDesc.isFalseComponents[index++];
       c.desc = mgr->getComponentDescByName(n.c_str());
       c.nameId = mgr->getComponentNameId(n.c_str());
+      c.name = hash_str(n.c_str());
       assert(c.desc != nullptr);
     }
 
@@ -399,6 +408,8 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     for (size_t compIdx = 0; compIdx < componentNames.size(); ++compIdx)
     {
       const char *name = componentNames[compIdx];
+      if (!name)
+        continue;
       const char *typeName = componentTypeNames[compIdx];
       const RegComp *desc = find_comp(typeName);
 

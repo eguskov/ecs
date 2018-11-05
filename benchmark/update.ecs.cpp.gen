@@ -7,12 +7,19 @@
 
 static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "stage", "vel", "pos" }, {  }, {  }, {  }, {  }, true); 
 
-template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  update_position(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_vel = query.desc.getComponentIndex(hash::cstr("vel"));
+    const int compIdx_pos = query.desc.getComponentIndex(hash::cstr("pos"));
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    auto it_vel = chunk_vel.begin<glm::vec3>();
+    auto it_pos = chunk_pos.begin<glm::vec3>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
+      update_position(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_pos);
+  }
 }
 
 #endif // __CODEGEN__

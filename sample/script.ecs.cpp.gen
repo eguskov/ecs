@@ -5,50 +5,73 @@
 
 #include "script.ecs.cpp"
 
-static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler, { "ev", "eid", "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler, { "ev", "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query, { "ev", "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<976357768, decltype(dispatch_event_script)> _reg_sys_dispatch_event_script("dispatch_event_script", dispatch_event_script, { "stage", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler, { "eid", "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler, { "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query, { "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script, { "script" }, {  }, {  }, {  }, {  }, true); 
+static RegSysSpec<976357768, decltype(dispatch_event_script)> _reg_sys_dispatch_event_script("dispatch_event_script", dispatch_event_script, { "script" }, {  }, {  }, {  }, {  }, true); 
 
-template <> template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1, 2>) const
+template <> template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId, components[2].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets), get_offset(remap[2], offsets) };
-  reload_script_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]), Value<Argument<2>::Type, Argument<2>::valueType>::get(args, storage, argId[2], argOffset[2]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_eid = query.desc.getComponentIndex(hash::cstr("eid"));
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_eid = chunk_eid.begin<EntityId>();
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_script)
+      reload_script_handler(*(CmdReloadScript*)args.stageOrEvent.mem, *it_eid, *it_script);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  build_script_handler(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
+      build_script_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_script);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  update_script_query(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
+      update_script_query(*(EventOnChangeDetected*)args.stageOrEvent.mem, *it_script);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  update_script(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
+      update_script(*(UpdateStage*)args.stageOrEvent.mem, *it_script);
+  }
 }
 
-template <> template <> __forceinline void RegSysSpec<976357768, decltype(dispatch_event_script)>::execImpl<>(const ExtraArguments &args, const int *remap, const int *offsets, Storage **storage, eastl::index_sequence<0, 1>) const
+template <> template <> __forceinline void RegSysSpec<976357768, decltype(dispatch_event_script)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
 {
-  const auto &components = queryDesc.components;
-  const int argId[] = { components[0].nameId, components[1].nameId };
-  const int argOffset[] = { get_offset(remap[0], offsets), get_offset(remap[1], offsets) };
-  dispatch_event_script(Value<Argument<0>::Type, Argument<0>::valueType>::get(args, storage, argId[0], argOffset[0]), Value<Argument<1>::Type, Argument<1>::valueType>::get(args, storage, argId[1], argOffset[1]));
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
+    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
+    auto it_script = chunk_script.begin<script::ScriptComponent>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
+      dispatch_event_script(*(DispatchEventStage*)args.stageOrEvent.mem, *it_script);
+  }
 }
 
 #endif // __CODEGEN__

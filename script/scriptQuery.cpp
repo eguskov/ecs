@@ -11,6 +11,7 @@ namespace script
 
 ScriptQuery::Iterator& ScriptQuery::Iterator::operator=(const ScriptQuery::Iterator &assign)
 {
+  // TODO: Iterate by chunkIdx
   pos = assign.pos;
   sq = assign.sq;
   assert(sq != nullptr);
@@ -19,7 +20,7 @@ ScriptQuery::Iterator& ScriptQuery::Iterator::operator=(const ScriptQuery::Itera
 
 bool ScriptQuery::Iterator::hasNext() const
 {
-  return pos < (int)sq->query->eids.size();
+  return pos < (int)sq->query->entitiesCount;
 }
 
 void ScriptQuery::Iterator::operator++()
@@ -35,27 +36,21 @@ void* ScriptQuery::Iterator::get()
   asIScriptObject *object = nullptr;
   callValue<asIScriptObject*>([&](asIScriptObject **obj) { object = *obj; object->AddRef(); }, fn);
 
-  const EntityId &eid = sq->query->eids[pos];
+  // const EntityId &eid = sq->query->eids[pos];
   const auto &entity = g_mgr->entities[eid.index];
-  const auto &templ = g_mgr->templates[entity.templateId];
+  // const auto &templ = g_mgr->templates[entity.templateId];
+  auto &archetype = g_mgr->archetypes[entity.archetypeId];
 
   for (const auto &c : sq->query->desc.components)
   {
-    if (c.desc->id == RegCompSpec<EntityId>::ID)
-    {
-      void *prop = object->GetAddressOfProperty(c.id);
-      *(uint8_t **)prop = (uint8_t *)&eid;
-      continue;
-    }
-
     bool ok = false;
-    for (const auto &tc : templ.components)
+    for (const auto &s : archetype.storages)
     {
-      if (c.nameId == tc.nameId)
+      if (c.name == s.name)
       {
         ok = true;
         void *prop = object->GetAddressOfProperty(c.id);
-        *(uint8_t **)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
+        *(uint8_t **)prop = s.storage->getRawByIndex(entity.indexInArchetype);
         break;
       }
     }
@@ -79,25 +74,19 @@ asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl:
   callValue<asIScriptObject*>([&](asIScriptObject **obj) { object = *obj; object->AddRef(); }, fn);
 
   const auto &entity = g_mgr->entities[eid.index];
-  const auto &templ = g_mgr->templates[entity.templateId];
+  // const auto &templ = g_mgr->templates[entity.templateId];
+  auto &archetype = g_mgr->archetypes[entity.archetypeId];
 
   for (const auto &c : components)
   {
-    if (c.nameId == 0 && c.desc->id == RegCompSpec<EntityId>::ID)
-    {
-      void *prop = object->GetAddressOfProperty(c.id);
-      *(uint8_t **)prop = g_mgr->storages[0]->getRaw(entity.componentOffsets.back());
-      continue;
-    }
-
     bool ok = false;
-    for (const auto &tc : templ.components)
+    for (const auto &s : archetype.storages)
     {
-      if (c.nameId == tc.nameId)
+      if (c.name == s.name)
       {
         ok = true;
         void *prop = object->GetAddressOfProperty(c.id);
-        *(uint8_t **)prop = g_mgr->storages[tc.nameId]->getRaw(entity.componentOffsets[tc.id]);
+        *(uint8_t **)prop = s.storage->getRawByIndex(entity.indexInArchetype);
         break;
       }
     }
