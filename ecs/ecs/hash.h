@@ -10,15 +10,15 @@ namespace hash
 
   template <> struct fnv_internal<uint32_t>
   {
-    constexpr static uint32_t default_offset_basis = 0x811C9DC5;
-    constexpr static uint32_t prime                = 0x01000193;
+    constexpr static uint32_t default_offset_basis = 0x811C9DC5UL;
+    constexpr static uint32_t prime                = 0x01000193UL;
   };
 
   template <> struct fnv1<uint32_t> : public fnv_internal<uint32_t>
   {
     constexpr static inline uint32_t hash(char const*const aString, const uint32_t val = default_offset_basis)
     {
-      return (aString[0] == '\0') ? val : hash( &aString[1], ( val * prime ) ^ uint32_t(aString[0]) );
+      return (aString[0] == '\0') ? val : hash(&aString[1], uint32_t(uint64_t(val) * uint64_t(prime)) ^ uint32_t(aString[0]));
     }
   };
 
@@ -26,11 +26,9 @@ namespace hash
   {
     constexpr static inline uint32_t hash(char const*const aString, const uint32_t val = default_offset_basis)
     {
-      return (aString[0] == '\0') ? val : hash( &aString[1], ( val ^ uint32_t(aString[0]) ) * prime);
+      return (aString[0] == '\0') ? val : hash(&aString[1], uint32_t(uint64_t(val ^ uint32_t(aString[0])) * uint64_t(prime)));
     }
   };
-
-  inline uint32_t str(const char *s) { return fnv1<uint32_t>::hash(s); }
 }
 
 struct ConstHashedString
@@ -38,7 +36,7 @@ struct ConstHashedString
   uint32_t hash = 0;
   char const* const str;
 
-  constexpr ConstHashedString(char const* const s) : str(s), hash(hash::fnv1<uint32_t>::hash(s)) {}
+  constexpr ConstHashedString(char const* const s) : str(s), hash(hash::fnv1a<uint32_t>::hash(s)) {}
 
   bool operator==(const ConstHashedString &rhs) const { return hash == rhs.hash; }
   bool operator<(const ConstHashedString &rhs) const { return hash < rhs.hash; }
@@ -47,7 +45,8 @@ struct ConstHashedString
 
 namespace hash
 {
-  constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
+  inline uint32_t str(const char *s) { return fnv1a<uint32_t>::hash(s); }
+  inline constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
 }
 
 struct HashedString

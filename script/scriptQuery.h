@@ -18,7 +18,8 @@ namespace script
     struct Iterator
     {
       ScriptQuery *sq = nullptr;
-      int pos = 0;
+      int chunkIdx = 0;
+      int posInChunk = 0;
 
       Iterator& operator=(const Iterator &assign);
       void operator++();

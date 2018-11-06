@@ -264,34 +264,34 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
     {
       bson.add("name", sys.desc->name);
 
-      bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstCompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
-        bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
+        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
       });
 
-      bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const ConstCompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
-        bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
+        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
       });
 
-      bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstCompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
-        bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
+        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
       });
 
-      bson_array_of_documents(bson, "isTrueComponents", sys.desc->queryDesc.isTrueComponents, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "isTrueComponents", sys.desc->queryDesc.isTrueComponents, [&](int, const ConstCompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
-        bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
+        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
       });
 
-      bson_array_of_documents(bson, "isFalseComponents", sys.desc->queryDesc.isFalseComponents, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "isFalseComponents", sys.desc->queryDesc.isFalseComponents, [&](int, const ConstCompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
-        bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
+        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
       });
     });
 

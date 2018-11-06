@@ -5,13 +5,66 @@
 
 #include "script.ecs.cpp"
 
-static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler, { "eid", "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler, { "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query, { "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script, { "script" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<976357768, decltype(dispatch_event_script)> _reg_sys_dispatch_event_script("dispatch_event_script", dispatch_event_script, { "script" }, {  }, {  }, {  }, {  }, true); 
+static constexpr ConstCompDesc reload_script_handler_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+};
+static constexpr ConstQueryDesc reload_script_handler_query_desc = {
+  make_const_array(reload_script_handler_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc build_script_handler_components[] = {
+  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+};
+static constexpr ConstQueryDesc build_script_handler_query_desc = {
+  make_const_array(build_script_handler_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_script_query_components[] = {
+  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+};
+static constexpr ConstQueryDesc update_script_query_query_desc = {
+  make_const_array(update_script_query_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_script_components[] = {
+  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+};
+static constexpr ConstQueryDesc update_script_query_desc = {
+  make_const_array(update_script_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc dispatch_event_script_components[] = {
+  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+};
+static constexpr ConstQueryDesc dispatch_event_script_query_desc = {
+  make_const_array(dispatch_event_script_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler_query_desc);
+static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler_query_desc);
+static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query_query_desc);
+static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script_query_desc);
+static RegSysSpec<976357768, decltype(dispatch_event_script)> _reg_sys_dispatch_event_script("dispatch_event_script", dispatch_event_script_query_desc);
 
-template <> template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+
+
+template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -22,11 +75,11 @@ template <> template <> __forceinline void RegSysSpec<1930591685, decltype(reloa
     auto it_eid = chunk_eid.begin<EntityId>();
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_script)
-      reload_script_handler(*(CmdReloadScript*)args.stageOrEvent.mem, *it_eid, *it_script);
+      reload_script_handler(*(CmdReloadScript*)stage_or_event.mem, *it_eid, *it_script);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -34,11 +87,11 @@ template <> template <> __forceinline void RegSysSpec<931559298, decltype(build_
     QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      build_script_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_script);
+      build_script_handler(*(EventOnEntityCreate*)stage_or_event.mem, *it_script);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -46,11 +99,11 @@ template <> template <> __forceinline void RegSysSpec<111269837, decltype(update
     QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      update_script_query(*(EventOnChangeDetected*)args.stageOrEvent.mem, *it_script);
+      update_script_query(*(EventOnChangeDetected*)stage_or_event.mem, *it_script);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -58,11 +111,11 @@ template <> template <> __forceinline void RegSysSpec<2830576908, decltype(updat
     QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      update_script(*(UpdateStage*)args.stageOrEvent.mem, *it_script);
+      update_script(*(UpdateStage*)stage_or_event.mem, *it_script);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<976357768, decltype(dispatch_event_script)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<976357768, decltype(dispatch_event_script)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -70,7 +123,7 @@ template <> template <> __forceinline void RegSysSpec<976357768, decltype(dispat
     QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      dispatch_event_script(*(DispatchEventStage*)args.stageOrEvent.mem, *it_script);
+      dispatch_event_script(*(DispatchEventStage*)stage_or_event.mem, *it_script);
   }
 }
 

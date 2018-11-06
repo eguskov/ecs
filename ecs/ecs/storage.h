@@ -69,7 +69,6 @@ struct Storage
   uint8_t* getRawByIndex(int idx)
   {
     sassert(dataCached == data());
-    // sassert(freeMask[idx] == false);
     return dataCached + (idx * elemSize);
   }
 

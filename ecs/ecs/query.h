@@ -3,6 +3,50 @@
 #include "entity.h"
 #include "hash.h"
 
+template <typename T>
+struct ConstArray
+{
+  const T *data;
+  int sz;
+  constexpr ConstArray(const T *d, int s) : data(d), sz(s) {}
+
+  int size() const { return sz; }
+
+  const T* begin() const { return data; }
+  const T* end() const { return data + sz; }
+
+  const T& operator[](int i) const { return data[i]; }
+};
+
+template <typename T, size_t N>
+constexpr ConstArray<T> make_const_array(T (&array)[N])
+{
+  return ConstArray<T>(array, N);
+}
+
+template <typename T>
+static constexpr ConstArray<T> make_empty_array()
+{
+  return ConstArray<T>(nullptr, 0);
+}
+
+struct ConstCompDesc
+{
+  ConstHashedString name;
+  int size;
+};
+
+constexpr ConstArray<const ConstCompDesc> empty_desc_array = make_empty_array<const ConstCompDesc>();
+
+struct ConstQueryDesc
+{
+  ConstArray<const ConstCompDesc> components;
+  ConstArray<const ConstCompDesc> haveComponents;
+  ConstArray<const ConstCompDesc> notHaveComponents;
+  ConstArray<const ConstCompDesc> isTrueComponents;
+  ConstArray<const ConstCompDesc> isFalseComponents;
+};
+
 struct CompDesc
 {
   int id;
@@ -10,6 +54,26 @@ struct CompDesc
   HashedString name;
   int size;
   const RegComp* desc;
+
+  CompDesc& operator=(const ConstCompDesc &d)
+  {
+    id = -1;
+    nameId = -1;
+    desc = nullptr;
+    name = d.name;
+    size = d.size;
+    return *this;
+  }
+};
+
+struct RegQuery
+{
+  ConstHashedString name;
+  ConstQueryDesc desc;
+
+  const RegQuery *next = nullptr;
+
+  RegQuery(const ConstHashedString &name, const ConstQueryDesc &desc);
 };
 
 struct QueryLink
@@ -37,6 +101,26 @@ struct QueryDesc
   eastl::vector<int> joinQueries;
   eastl::vector<QueryLink> joinLinks;
 
+  QueryDesc& operator=(const ConstQueryDesc &desc)
+  {
+    components.resize(desc.components.size());
+    for (int i = 0; i < desc.components.size(); ++i)
+      components[i] = desc.components.data[i];
+    haveComponents.resize(desc.haveComponents.size());
+    for (int i = 0; i < desc.haveComponents.size(); ++i)
+      haveComponents[i] = desc.haveComponents.data[i];
+    notHaveComponents.resize(desc.notHaveComponents.size());
+    for (int i = 0; i < desc.notHaveComponents.size(); ++i)
+      notHaveComponents[i] = desc.notHaveComponents.data[i];
+    isTrueComponents.resize(desc.isTrueComponents.size());
+    for (int i = 0; i < desc.isTrueComponents.size(); ++i)
+      isTrueComponents[i] = desc.isTrueComponents.data[i];
+    isFalseComponents.resize(desc.isFalseComponents.size());
+    for (int i = 0; i < desc.isFalseComponents.size(); ++i)
+      isFalseComponents[i] = desc.isFalseComponents.data[i];
+    return *this;
+  }
+
   int getComponentIndex(const ConstHashedString &name) const
   {
     for (int i = 0; i < (int)components.size(); ++i)
@@ -47,10 +131,8 @@ struct QueryDesc
 
   bool isValid() const
   {
-    for (const auto &c : components)
-      if (c.nameId >= 0)
-        return true;
     return
+      !components.empty() ||
       !joinQueries.empty() ||
       !haveComponents.empty() ||
       !notHaveComponents.empty() ||
@@ -130,8 +212,10 @@ struct Query
   int sysId = -1;
   int stageId = -1;
 
+  HashedString name;
   QueryDesc desc;
 
+  // TODO: This might be needed for Join queries
   // EntityVector eids;
 
   int componentsCount = 0;

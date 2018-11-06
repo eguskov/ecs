@@ -16,7 +16,10 @@ int reg_sys_count = 0;
 RegComp *reg_comp_head = nullptr;
 int reg_comp_count = 0;
 
-RegSys::RegSys(const char *_name, int _id, bool need_order) : id(_id), needOrder(need_order)
+RegQuery *reg_query_head = nullptr;
+int reg_query_count = 0;
+
+RegSys::RegSys(const char *_name, const ConstQueryDesc &query_desc, int _id) : id(_id), queryDesc(query_desc)
 {
   if (_name)
     name = ::_strdup(_name);
@@ -65,6 +68,13 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
+RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc) : name(_name), desc(_desc)
+{
+  next = reg_query_head;
+  reg_query_head = this;
+  ++reg_query_count;
+}
+
 bool EntityTemplate::hasCompontent(int type_id, int name_id) const
 {
   assert(name_id >= 0);
@@ -74,15 +84,6 @@ bool EntityTemplate::hasCompontent(int type_id, int name_id) const
   return false;
 }
 
-// bool EntityTemplate::hasCompontent(int type_id, const char *name) const
-// {
-//   assert(name && name[0]);
-//   for (const auto &c : components)
-//     if (c.desc->id == type_id && c.name == name)
-//       return true;
-//   return false;
-// }
-
 int EntityTemplate::getCompontentOffset(int type_id, int name_id) const
 {
   assert(name_id >= 0);
@@ -91,15 +92,6 @@ int EntityTemplate::getCompontentOffset(int type_id, int name_id) const
       return c.id;
   return -1;
 }
-
-// int EntityTemplate::getCompontentOffset(int type_id, const char *name) const
-// {
-//   assert(name && name[0]);
-//   for (const auto &c : components)
-//     if (c.desc->id == type_id && c.name == name)
-//       return c.id;
-//   return -1;
-// }
 
 void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
 {
@@ -174,9 +166,6 @@ EntityManager::~EntityManager()
 {
   for (auto &t : archetypes)
     t.clear();
-  // for (Storage *s : storages)
-  //   delete s;
-  // TODO: Call dtors for components
 }
 
 void EntityManager::init()
@@ -186,10 +175,6 @@ void EntityManager::init()
 
   componentNames.emplace_back() = "eid";
   componentDescByNames.emplace_back() = eidComp;
-
-  // storages.emplace_back() = componentDescByNames[0]->createStorage();
-  // storages[0]->name = componentNames[0];
-  // storages[0]->elemSize = eidComp->size;
 
   {
     FILE *file = nullptr;
@@ -254,7 +239,7 @@ void EntityManager::init()
     const_cast<RegSys*>(sys)->init(this);
 
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    systems.push_back({ sys->needOrder ? getSystemWeight(sys->name) : -1, sys });
+    systems.push_back({ getSystemWeight(sys->name), sys });
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
@@ -274,6 +259,15 @@ void EntityManager::init()
       enableChangeDetection(c.name);
     for (const auto &c : sys.desc->queryDesc.isFalseComponents)
       enableChangeDetection(c.name);
+  }
+
+  namedQueries.resize(reg_query_count);
+  int queryIdx = 0;
+  for (const RegQuery *query = reg_query_head; query; query = query->next, ++queryIdx)
+  {
+    assert(getQueryByName(query->name) == nullptr);
+    namedQueries[queryIdx].name = query->name;
+    namedQueries[queryIdx].desc = query->desc;
   }
 }
 
@@ -315,11 +309,25 @@ const RegComp* EntityManager::getComponentDescByName(const char *name) const
   return componentDescByNames[nameId];
 }
 
+const RegComp* EntityManager::getComponentDescByName(const ConstHashedString &name) const
+{
+  int nameId = getComponentNameId(name.str);
+  assert(nameId >= 0);
+  return componentDescByNames[nameId];
+}
+
+Query* EntityManager::getQueryByName(const ConstHashedString &name)
+{
+  for (auto &q : namedQueries)
+    if (q.name == name)
+      return &q;
+  return nullptr;
+}
+
 static void add_component_to_template(const char *comp_type, int comp_name_id,
   EntityTemplate &templ,
   eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names/* ,
-  eastl::vector<Storage*> &storages */)
+  eastl::vector<const RegComp*> &component_desc_by_names)
 {
   assert(comp_name_id >= 0 && comp_name_id < (int)component_names.size());
 
@@ -342,53 +350,28 @@ static void add_component_to_template(const char *comp_type, int comp_name_id,
   assert(desc != nullptr);
   assert(component_desc_by_names[nameId] == nullptr || component_desc_by_names[nameId] == desc);
   component_desc_by_names[nameId] = desc;
-
-  // if (component_names.size() > storages.size())
-  // {
-  //   const int size = storages.size();
-  //   storages.resize(component_names.size());
-  //   for (int i = size; i < (int)storages.size(); ++i)
-  //     storages[i] = nullptr;
-  // }
-
-  // auto &storage = storages[nameId];
-  // if (!storage)
-  // {
-  //   storage = desc->createStorage();
-  //   assert(storage != nullptr);
-  // }
-
-  // if (storage->elemSize <= 0)
-  // {
-  //   storage->name = component_names[comp_name_id];
-  //   storage->elemSize = desc->size;
-  // }
-
-  // assert(storage->elemSize == desc->size);
 }
 
 static void add_component_to_template(const char *comp_type, const char *comp_name,
   EntityTemplate &templ,
   eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names/* ,
-  eastl::vector<Storage*> &storages */)
+  eastl::vector<const RegComp*> &component_desc_by_names)
 {
-  add_component_to_template(comp_type, add_component_name(component_names, comp_name), templ, component_names, component_desc_by_names/* , storages */);
+  add_component_to_template(comp_type, add_component_name(component_names, comp_name), templ, component_names, component_desc_by_names);
 }
 
 static void process_extends(EntityManager *mgr,
   EntityTemplate &templ,
   const eastl::vector<const char*> &extends,
   eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names/* ,
-  eastl::vector<Storage*> &storages */)
+  eastl::vector<const RegComp*> &component_desc_by_names)
 {
   for (const auto &e : extends)
   {
     const int templateId = mgr->getTemplateId(e);
     templ.extends.push_back(templateId);
     for (const auto &c : mgr->templates[templateId].components)
-      add_component_to_template(c.desc->name, c.nameId, templ, component_names, component_desc_by_names/* , storages */);
+      add_component_to_template(c.desc->name, c.nameId, templ, component_names, component_desc_by_names);
   }
 }
 
@@ -401,10 +384,10 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.compMask.resize(reg_comp_count);
   templ.compMask.set(reg_comp_count, false);
 
-  process_extends(this, templ, extends, componentNames, componentDescByNames/* , storages */);
+  process_extends(this, templ, extends, componentNames, componentDescByNames);
 
   for (const auto &name : comp_names)
-    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames/* , storages */);
+    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)
@@ -425,10 +408,6 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   }
   templ.size = offset;
 
-  templ.remaps.resize(reg_sys_count);
-  for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    sys->initRemap(templ.components, templ.remaps[sys->id]);
-
   // TODO: Create arhcetypes by componets list. Not per template
   Archetype &type = archetypes.emplace_back();
   type.storages.resize(templ.components.size());
@@ -446,15 +425,12 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     storage.name = hash_str(componentNames[c.nameId].c_str());
     storage->name = componentNames[c.nameId];
     storage->elemSize = componentDescByNames[c.nameId]->size;
-
-    // type.storageMap[hash_str(componentNames[c.nameId].c_str())] = storage;
   }
 
   type.storages.emplace_back().storage = eidComp->createStorage();
   type.storages.back().name = hash::cstr("eid");
   type.storages.back()->name = eidComp->name;
   type.storages.back()->elemSize = eidComp->size;
-  // type.storageMap[hash::cstr("eid")] = type.storages.back();
 }
 
 void EntityManager::createEntity(const char *templ_name, const JValue &comps)
@@ -572,64 +548,25 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   archetypes[e.archetypeId].entitiesCount++;
 
-  // entityDescs.resize(entities.size());
-
-  // auto &entityDesc = entityDescs[e.eid.index];
-
-  // for (const auto &c : templ.components)
-  // {
-  //   auto &storage = storages[c.nameId];
-
-  //   uint8_t *mem = nullptr;
-  //   int offset = 0;
-  //   eastl::tie(mem, offset) = storage->allocate();
-
-  //   c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
-  //   e.componentOffsets.push_back(offset);
-
-  //   entityDesc.offsetsByNameId[c.nameId] = offset;
-  // }
-
-  // // eid
-  // {
-  //   uint8_t *mem = nullptr;
-  //   int offset = 0;
-  //   eastl::tie(mem, offset) = storages[0]->allocate();
-
-  //   JFrameAllocator allocator;
-
-  //   JFrameValue val(rapidjson::kObjectType);
-  //   JFrameValue eidVal(rapidjson::kNumberType);
-  //   eidVal.SetInt(e.eid.handle);
-  //   val.AddMember("$value", eastl::move(eidVal), allocator);
-
-  //   eidComp->init(mem, val);
-  //   e.componentOffsets.push_back(offset);
-
-  //   entityDesc.offsetsByNameId[0] = offset;
-  // }
-
+  int compId = 0;
+  auto &type = archetypes[templ.archetypeId];
+  for (const auto &c : templ.components)
   {
-    int compId = 0;
-    auto &type = archetypes[templ.archetypeId];
-    for (const auto &c : templ.components)
-    {
-      uint8_t *mem = nullptr;
-      int offset = 0;
-      eastl::tie(mem, offset) = type.storages[compId++]->allocate();
+    uint8_t *mem = nullptr;
+    int offset = 0;
+    eastl::tie(mem, offset) = type.storages[compId++]->allocate();
 
-      c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
-    }
+    c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
+  }
 
-    // eid
-    {
-      uint8_t *mem = nullptr;
-      int offset = 0;
-      eastl::tie(mem, offset) = type.storages.back()->allocate();
-      new (mem) EntityId(e.eid);
+  // eid
+  {
+    uint8_t *mem = nullptr;
+    int offset = 0;
+    eastl::tie(mem, offset) = type.storages.back()->allocate();
+    new (mem) EntityId(e.eid);
 
-      e.indexInArchetype = offset / sizeof(EntityId);
-    }
+    e.indexInArchetype = offset / sizeof(EntityId);
   }
 
   sendEventSync(e.eid, EventOnEntityCreate{});
@@ -650,43 +587,25 @@ void EntityManager::tick()
     {
       shouldInvalidateQueries = true;
 
-      // entityDescs[eid.index].offsetsByNameId.clear();
-
       const auto &templ = templates[entity.templateId];
 
-      // assert(templ.components.size() == entity.componentOffsets.size() - 1);
-
-      // int compIndex = 0;
-      // for (const auto &c : templ.components)
-      // {
-      //   auto &storage = storages[c.nameId];
-      //   const int offset = entity.componentOffsets[compIndex++];
-      //   storage->deallocate(offset);
-      // }
-
-      // // eid
-      // storages[0]->deallocate(entity.componentOffsets[compIndex]);
-
+      int compId = 0;
+      auto &type = archetypes[templ.archetypeId];
+      for (const auto &c : templ.components)
       {
-        int compId = 0;
-        auto &type = archetypes[templ.archetypeId];
-        for (const auto &c : templ.components)
-        {
-          auto &storage = type.storages[compId++];
-          const int offset = entity.indexInArchetype * storage->elemSize;
-          storage->deallocate(offset);
-        }
-
-        // eid
-        type.storages.back()->deallocate(entity.indexInArchetype * type.storages.back()->elemSize);
-
-        type.entitiesCount--;
+        auto &storage = type.storages[compId++];
+        const int offset = entity.indexInArchetype * storage->elemSize;
+        storage->deallocate(offset);
       }
+
+      // eid
+      type.storages.back()->deallocate(entity.indexInArchetype * type.storages.back()->elemSize);
+
+      type.entitiesCount--;
 
       entity.eid.generation = (entity.eid.generation + 1) % std::numeric_limits<uint16_t>::max();
       entity.ready = false;
       entity.indexInArchetype = -1;
-      // entity.componentOffsets.clear();
 
       freeEntityQueue.push(eid.index);
     }
@@ -703,9 +622,6 @@ void EntityManager::tick()
     createQueue.pop();
   }
 
-  // if (shouldInvalidateQueries)
-  //   for (auto &s : storages)
-  //     s->invalidate();
   if (shouldInvalidateQueries)
     for (auto &t : archetypes)
       t.invalidate();
@@ -731,10 +647,18 @@ void EntityManager::tick()
     queriesInvalidated = true;
     for (auto &q : queries)
       invalidateQuery(q);
+    for (auto &q : namedQueries)
+      invalidateQuery(q);
   }
   else
   {
     for (auto &q : queries)
+      if (q.dirty)
+      {
+        queriesInvalidated = true;
+        invalidateQuery(q);
+      }
+    for (auto &q : namedQueries)
       if (q.dirty)
       {
         queriesInvalidated = true;
@@ -803,6 +727,7 @@ void EntityManager::invalidateQuery(Query &query)
   query.entitiesCount = 0;
   query.chunks.clear();
   query.entitiesInChunk.clear();
+  query.componentsCount = query.desc.components.size();
 
   for (auto &type : archetypes)
   {
@@ -919,89 +844,6 @@ void EntityManager::invalidateQuery(Query &query)
   }
 }
 
-// void EntityManager::invalidateQuery(Query &query)
-// {
-//   assert(query.desc.isValid());
-
-//   query.dirty = false;
-//   query.eids.clear();
-
-//   for (auto &e : entities)
-//   {
-//     if (!e.ready)
-//       continue;
-
-//     const auto &templ = templates[e.templateId];
-
-//     bool ok = true;
-//     for (const auto &c : query.desc.components)
-//       if (c.desc->id != g_mgr->eidCompId && c.desc->id != query.stageId && !templ.hasCompontent(c.desc->id, c.nameId))
-//       {
-//         ok = false;
-//         break;
-//       }
-
-//     if (ok)
-//     {
-//       for (const auto &c : query.desc.haveComponents)
-//         if (!templ.hasCompontent(c.desc->id, c.nameId))
-//         {
-//           ok = false;
-//           break;
-//         }
-//     }
-
-//     if (ok)
-//     {
-//       for (const auto &c : query.desc.notHaveComponents)
-//         if (templ.hasCompontent(c.desc->id, c.nameId))
-//         {
-//           ok = false;
-//           break;
-//         }
-//     }
-
-//     if (ok)
-//     {
-//       for (const auto &c : query.desc.isTrueComponents)
-//       {
-//         const auto &entity = entities[eid2idx(e.eid)];
-//         if (!templ.hasCompontent(c.desc->id, c.nameId))
-//         {
-//           ok = false;
-//           break;
-//         }
-//         if (!archetypes[templ.archetypeId].storageMap[c.name]->getByIndex<bool>(entity.indexInArchetype))
-//         {
-//           ok = false;
-//           break;
-//         }
-//       }
-//     }
-
-//     if (ok)
-//     {
-//       for (const auto &c : query.desc.isFalseComponents)
-//       {
-//         const auto &entity = entities[eid2idx(e.eid)];
-//         if (!templ.hasCompontent(c.desc->id, c.nameId))
-//         {
-//           ok = false;
-//           break;
-//         }
-//         if (archetypes[templ.archetypeId].storageMap[c.name]->getByIndex<bool>(entity.indexInArchetype))
-//         {
-//           ok = false;
-//           break;
-//         }
-//       }
-//     }
-
-//     if (ok)
-//       query.eids.push_back(e.eid);
-//   }
-// }
-
 void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
 {
   // TODO: Optimize
@@ -1035,6 +877,8 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
         {
           for (auto &q : queries)
             q.dirty = true;
+          for (auto &q : namedQueries)
+            q.dirty = true;
           // break;
           // TODO: Correct way to interrupt the cycle
           return;
@@ -1042,15 +886,6 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
       }
     }
   }
-
-  // int i = 0;
-  // for (int nameId : trackComponents)
-  //   if (::memcmp(snapshot[i++], storages[nameId]->data(), storages[nameId]->size()))
-  //   {
-  //     for (auto &q : queries)
-  //       q.dirty = true;
-  //     break;
-  //   }
 }
 
 void EntityManager::tickStage(int stage_id, const RawArg &stage)
@@ -1062,7 +897,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      (sys.desc->*sys.desc->stageFn)(query, stage/* , storages.data() */);
+      sys.desc->exec(query, stage);
     }
 
   checkFrameSnapshot(snapshot);
@@ -1115,7 +950,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
           compIdx++;
         }
 
-        (sys.desc->*sys.desc->stageFn)(query, ev/* , &storages[0] */);
+        sys.desc->exec(query, ev);
       }
     }
 }
@@ -1131,7 +966,7 @@ void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
     if (sys.desc->eventId == event_id)
     {
       auto &query = queries[sys.desc->id];
-      (sys.desc->*sys.desc->stageFn)(query, ev/* , storages.data() */);
+      sys.desc->exec(query, ev);
     }
 }
 

@@ -62,29 +62,6 @@ namespace script
     }
   }
 
-  void ScriptSys::initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const
-  {
-    if (useJoin)
-      return;
-
-    remap.resize(componentNames.size());
-    eastl::fill(remap.begin(), remap.end(), -1);
-
-    for (size_t compIdx = 0; compIdx < componentNames.size(); ++compIdx)
-    {
-      const char *name = componentNames[compIdx].c_str();
-      const char *typeName = componentTypeNames[compIdx].c_str();
-      const RegComp *desc = find_comp(typeName);
-      if (!desc)
-        desc = g_mgr->getComponentDescByName(name);
-      assert(desc != nullptr);
-
-      for (size_t i = 0; i < template_comps.size(); ++i)
-        if (template_comps[i].desc->id == desc->id && template_comps[i].nameId == g_mgr->getComponentNameId(name))
-          remap[compIdx] = i;
-    }
-  }
-
   ScriptECS::~ScriptECS()
   {
     release();
@@ -111,7 +88,6 @@ namespace script
     loaded = assign.loaded;
 
     systems = assign.systems;
-    remaps = assign.remaps;
     dataQueries = assign.dataQueries;
     systemQueries = assign.systemQueries;
 
@@ -139,7 +115,6 @@ namespace script
     loaded = assign.loaded;
 
     systems = eastl::move(assign.systems);
-    remaps = eastl::move(assign.remaps);
     dataQueries = eastl::move(assign.dataQueries);
     systemQueries = eastl::move(assign.systemQueries);
 
@@ -224,7 +199,6 @@ namespace script
     }
 
     systems.clear();
-    remaps.clear();
     dataQueries.clear();
     systemQueries.clear();
 
@@ -288,6 +262,7 @@ namespace script
             assert(desc != nullptr);
 
             query.desc.components.push_back({ i, g_mgr->getComponentNameId(name), hash_str(name), desc->size, desc });
+            query.componentsCount = query.desc.components.size();
           }
 
           g_mgr->invalidateQuery(query);
@@ -366,15 +341,7 @@ namespace script
       sys.init(g_mgr, this);
     }
 
-    remaps.resize(g_mgr->templates.size());
-    for (auto &remap : remaps)
-      remap.resize(systems.size());
-
     systemQueries.resize(systems.size());
-
-    for (int templateId = 0; templateId < (int)g_mgr->templates.size(); ++templateId)
-      for (int sysId = 0; sysId < (int)systems.size(); ++sysId)
-        systems[sysId].initRemap(g_mgr->templates[templateId].components, remaps[templateId][sysId]);
 
     invalidateQueries();
 
@@ -402,7 +369,6 @@ namespace script
     dataQueries.clear();
     systemQueries.clear();
     systems.clear();
-    remaps.clear();
   }
 
   void ScriptECS::invalidateQueries()

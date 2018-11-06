@@ -5,9 +5,22 @@
 
 #include "update.ecs.cpp"
 
-static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "stage", "vel", "pos" }, {  }, {  }, {  }, {  }, true); 
+static constexpr ConstCompDesc update_position_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec3>::Size},
+  {hash::cstr("pos"), Desc<glm::vec3>::Size},
+};
+static constexpr ConstQueryDesc update_position_query_desc = {
+  make_const_array(update_position_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position_query_desc);
 
-template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+
+
+template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -18,7 +31,7 @@ template <> template <> __forceinline void RegSysSpec<1621823280, decltype(updat
     auto it_vel = chunk_vel.begin<glm::vec3>();
     auto it_pos = chunk_pos.begin<glm::vec3>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_position(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_pos);
+      update_position(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
   }
 }
 

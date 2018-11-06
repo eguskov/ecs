@@ -29,7 +29,6 @@ namespace script
     ScriptSys(asIScriptFunction *_fn);
 
     void init(const EntityManager *mgr, const ScriptECS *script_ecs);
-    void initRemap(const eastl::vector<CompDesc> &template_comps, RegSys::Remap &remap) const;
   };
 
   struct ScriptECS
@@ -40,7 +39,6 @@ namespace script
     asIScriptContext *stageCtx = nullptr;
 
     eastl::vector<ScriptSys> systems;
-    eastl::vector<eastl::vector<RegSys::Remap>> remaps;
     eastl::vector<Query> systemQueries;
 
     eastl::hash_map<TypeId, Query> dataQueries;

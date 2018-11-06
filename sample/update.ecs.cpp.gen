@@ -20,38 +20,347 @@ template <> int RegCompSpec<AnimGraph>::ID = -1;
 static RegCompSpec<AnimState> _reg_comp_anim_state("anim_state");
 template <> int RegCompSpec<AnimState>::ID = -1;
 
-static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler, { "texture" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position, { "vel", "pos" }, {  }, { "is_active" }, { "is_alive" }, {  }, true); 
-static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active, { "vel", "pos" }, {  }, {  }, { "is_active", "is_alive" }, {  }, true); 
-static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame, { "anim_graph", "anim_state", "frame" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1007297635, decltype(render_walls)> _reg_sys_render_walls("render_walls", render_walls, { "texture", "frame", "pos" }, { "wall" }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<2012399197, decltype(render_normal)> _reg_sys_render_normal("render_normal", render_normal, { "texture", "frame", "pos", "dir" }, {  }, { "wall" }, { "is_alive" }, {  }, true); 
-static RegSysSpec<484250714, decltype(read_controls)> _reg_sys_read_controls("read_controls", read_controls, { "user_input", "vel" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<1920783676, decltype(apply_controls)> _reg_sys_apply_controls("apply_controls", apply_controls, { "user_input", "is_on_ground", "jump", "vel", "dir" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3949714102, decltype(apply_jump)> _reg_sys_apply_jump("apply_jump", apply_jump, { "jump", "is_on_ground", "vel" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3962763712, decltype(apply_gravity)> _reg_sys_apply_gravity("apply_gravity", apply_gravity, { "gravity", "vel" }, {  }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<3962250550, decltype(update_collisions)> _reg_sys_update_collisions("update_collisions", update_collisions, { "collision_rect", "is_on_ground", "pos", "vel" }, { "user_input" }, {  }, {  }, {  }, true); 
-static RegSysSpec<1590712904, decltype(update_auto_move_collisions)> _reg_sys_update_auto_move_collisions("update_auto_move_collisions", update_auto_move_collisions, { "eid", "collision_rect", "pos", "vel", "dir" }, { "enemy" }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<2354991095, decltype(select_current_anim_frame)> _reg_sys_select_current_anim_frame("select_current_anim_frame", select_current_anim_frame, { "vel", "anim_graph", "is_on_ground", "texture", "anim_state" }, {  }, { "user_input" }, {  }, {  }, true); 
-static RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)> _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", select_current_anim_frame_for_player, { "vel", "anim_graph", "user_input", "is_on_ground", "texture", "anim_state" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<3007763911, decltype(validate_position)> _reg_sys_validate_position("validate_position", validate_position, { "pos" }, {  }, {  }, {  }, {  }, true); 
-static RegSysSpec<917788925, decltype(update_enemies_collisions)> _reg_sys_update_enemies_collisions("update_enemies_collisions", update_enemies_collisions, { "eid", "jump", "collision_rect", "pos", "vel", "dir" }, { "user_input" }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<1963192783, decltype(remove_death_fx)> _reg_sys_remove_death_fx("remove_death_fx", remove_death_fx, { "eid", "anim_state", "is_alive" }, {  }, {  }, { "is_alive" }, {  }, true); 
-static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("update_camera", update_camera, { "pos" }, { "user_input" }, {  }, {  }, {  }, true); 
-static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event, { "hud" }, {  }, {  }, {  }, {  }, true); 
+static constexpr ConstCompDesc load_texture_handler_components[] = {
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+};
+static constexpr ConstQueryDesc load_texture_handler_query_desc = {
+  make_const_array(load_texture_handler_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_position_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_position_not_have_components[] = {
+  {hash::cstr("is_active"), 0},
+};
+static constexpr ConstCompDesc update_position_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_position_query_desc = {
+  make_const_array(update_position_components),
+  empty_desc_array,
+  make_const_array(update_position_not_have_components),
+  make_const_array(update_position_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_position_for_active_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_position_for_active_is_true_components[] = {
+  {hash::cstr("is_active"), Desc<bool>::Size},
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_position_for_active_query_desc = {
+  make_const_array(update_position_for_active_components),
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(update_position_for_active_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_anim_frame_components[] = {
+  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
+  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+  {hash::cstr("frame"), Desc<glm::vec4>::Size},
+};
+static constexpr ConstQueryDesc update_anim_frame_query_desc = {
+  make_const_array(update_anim_frame_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc render_walls_components[] = {
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {hash::cstr("frame"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc render_walls_have_components[] = {
+  {hash::cstr("wall"), 0},
+};
+static constexpr ConstCompDesc render_walls_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc render_walls_query_desc = {
+  make_const_array(render_walls_components),
+  make_const_array(render_walls_have_components),
+  empty_desc_array,
+  make_const_array(render_walls_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc render_normal_components[] = {
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {hash::cstr("frame"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc render_normal_not_have_components[] = {
+  {hash::cstr("wall"), 0},
+};
+static constexpr ConstCompDesc render_normal_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc render_normal_query_desc = {
+  make_const_array(render_normal_components),
+  empty_desc_array,
+  make_const_array(render_normal_not_have_components),
+  make_const_array(render_normal_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc read_controls_components[] = {
+  {hash::cstr("user_input"), Desc<UserInput>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstQueryDesc read_controls_query_desc = {
+  make_const_array(read_controls_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc apply_controls_components[] = {
+  {hash::cstr("user_input"), Desc<UserInput>::Size},
+  {hash::cstr("is_on_ground"), Desc<bool>::Size},
+  {hash::cstr("jump"), Desc<Jump>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstQueryDesc apply_controls_query_desc = {
+  make_const_array(apply_controls_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc apply_jump_components[] = {
+  {hash::cstr("jump"), Desc<Jump>::Size},
+  {hash::cstr("is_on_ground"), Desc<bool>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstQueryDesc apply_jump_query_desc = {
+  make_const_array(apply_jump_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc apply_gravity_components[] = {
+  {hash::cstr("gravity"), Desc<Gravity>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc apply_gravity_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc apply_gravity_query_desc = {
+  make_const_array(apply_gravity_components),
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(apply_gravity_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_collisions_components[] = {
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("is_on_ground"), Desc<bool>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_collisions_have_components[] = {
+  {hash::cstr("user_input"), 0},
+};
+static constexpr ConstQueryDesc update_collisions_query_desc = {
+  make_const_array(update_collisions_components),
+  make_const_array(update_collisions_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_auto_move_collisions_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_auto_move_collisions_have_components[] = {
+  {hash::cstr("enemy"), 0},
+};
+static constexpr ConstCompDesc update_auto_move_collisions_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_auto_move_collisions_query_desc = {
+  make_const_array(update_auto_move_collisions_components),
+  make_const_array(update_auto_move_collisions_have_components),
+  empty_desc_array,
+  make_const_array(update_auto_move_collisions_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc select_current_anim_frame_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
+  {hash::cstr("is_on_ground"), Desc<bool>::Size},
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+};
+static constexpr ConstCompDesc select_current_anim_frame_not_have_components[] = {
+  {hash::cstr("user_input"), 0},
+};
+static constexpr ConstQueryDesc select_current_anim_frame_query_desc = {
+  make_const_array(select_current_anim_frame_components),
+  empty_desc_array,
+  make_const_array(select_current_anim_frame_not_have_components),
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc select_current_anim_frame_for_player_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
+  {hash::cstr("user_input"), Desc<UserInput>::Size},
+  {hash::cstr("is_on_ground"), Desc<bool>::Size},
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+};
+static constexpr ConstQueryDesc select_current_anim_frame_for_player_query_desc = {
+  make_const_array(select_current_anim_frame_for_player_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc validate_position_components[] = {
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstQueryDesc validate_position_query_desc = {
+  make_const_array(validate_position_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_enemies_collisions_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("jump"), Desc<Jump>::Size},
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_enemies_collisions_have_components[] = {
+  {hash::cstr("user_input"), 0},
+};
+static constexpr ConstCompDesc update_enemies_collisions_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_enemies_collisions_query_desc = {
+  make_const_array(update_enemies_collisions_components),
+  make_const_array(update_enemies_collisions_have_components),
+  empty_desc_array,
+  make_const_array(update_enemies_collisions_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc remove_death_fx_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc remove_death_fx_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc remove_death_fx_query_desc = {
+  make_const_array(remove_death_fx_components),
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(remove_death_fx_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_camera_components[] = {
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_camera_have_components[] = {
+  {hash::cstr("user_input"), 0},
+};
+static constexpr ConstQueryDesc update_camera_query_desc = {
+  make_const_array(update_camera_components),
+  make_const_array(update_camera_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc process_on_kill_event_components[] = {
+  {hash::cstr("hud"), Desc<HUD>::Size},
+};
+static constexpr ConstQueryDesc process_on_kill_event_query_desc = {
+  make_const_array(process_on_kill_event_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler_query_desc);
+static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position_query_desc);
+static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active_query_desc);
+static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame_query_desc);
+static RegSysSpec<1007297635, decltype(render_walls)> _reg_sys_render_walls("render_walls", render_walls_query_desc);
+static RegSysSpec<2012399197, decltype(render_normal)> _reg_sys_render_normal("render_normal", render_normal_query_desc);
+static RegSysSpec<484250714, decltype(read_controls)> _reg_sys_read_controls("read_controls", read_controls_query_desc);
+static RegSysSpec<1920783676, decltype(apply_controls)> _reg_sys_apply_controls("apply_controls", apply_controls_query_desc);
+static RegSysSpec<3949714102, decltype(apply_jump)> _reg_sys_apply_jump("apply_jump", apply_jump_query_desc);
+static RegSysSpec<3962763712, decltype(apply_gravity)> _reg_sys_apply_gravity("apply_gravity", apply_gravity_query_desc);
+static RegSysSpec<3962250550, decltype(update_collisions)> _reg_sys_update_collisions("update_collisions", update_collisions_query_desc);
+static RegSysSpec<1590712904, decltype(update_auto_move_collisions)> _reg_sys_update_auto_move_collisions("update_auto_move_collisions", update_auto_move_collisions_query_desc);
+static RegSysSpec<2354991095, decltype(select_current_anim_frame)> _reg_sys_select_current_anim_frame("select_current_anim_frame", select_current_anim_frame_query_desc);
+static RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)> _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", select_current_anim_frame_for_player_query_desc);
+static RegSysSpec<3007763911, decltype(validate_position)> _reg_sys_validate_position("validate_position", validate_position_query_desc);
+static RegSysSpec<917788925, decltype(update_enemies_collisions)> _reg_sys_update_enemies_collisions("update_enemies_collisions", update_enemies_collisions_query_desc);
+static RegSysSpec<1963192783, decltype(remove_death_fx)> _reg_sys_remove_death_fx("remove_death_fx", remove_death_fx_query_desc);
+static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("update_camera", update_camera_query_desc);
+static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event_query_desc);
 
-static __forceinline void exec_BricksQuery(const glm::vec4 & collision_rect, const glm::vec2 & pos) {}
+static constexpr ConstCompDesc BricksQuery_components[] = {
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc BricksQuery_have_components[] = {
+  {hash::cstr("wall"), 0},
+};
+static constexpr ConstQueryDesc BricksQuery_query_desc = {
+  make_const_array(BricksQuery_components),
+  make_const_array(BricksQuery_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc AliveEnemiesQuery_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+};
+static constexpr ConstCompDesc AliveEnemiesQuery_have_components[] = {
+  {hash::cstr("enemy"), 0},
+};
+static constexpr ConstCompDesc AliveEnemiesQuery_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc AliveEnemiesQuery_query_desc = {
+  make_const_array(AliveEnemiesQuery_components),
+  make_const_array(AliveEnemiesQuery_have_components),
+  empty_desc_array,
+  make_const_array(AliveEnemiesQuery_is_true_components),
+  empty_desc_array,
+};
 
-static RegSysSpec<1315101757, decltype(exec_BricksQuery)> _reg_sys_exec_BricksQuery("exec_BricksQuery", exec_BricksQuery, { "collision_rect", "pos" }, { "wall" }, {  }, {  }, {  }, false); 
-
-template <> template <> __forceinline void RegSysSpec<1315101757, decltype(exec_BricksQuery)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const {}
+static RegQuery _reg_query_BricksQuery(hash::cstr("update.ecs.cpp_BricksQuery"), BricksQuery_query_desc);
+static RegQuery _reg_query_AliveEnemiesQuery(hash::cstr("update.ecs.cpp_AliveEnemiesQuery"), AliveEnemiesQuery_query_desc);
 
 template <typename C> void BricksQuery::exec(C callback)
 {
-  using SysType = RegSysSpec<1315101757, decltype(exec_BricksQuery)>;
-  const auto &sys = _reg_sys_exec_BricksQuery;
-  const auto &components = sys.queryDesc.components;
-  auto &query = g_mgr->queries[sys.id];
+  auto &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_BricksQuery"));
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
     const int compIdx_collision_rect = query.desc.getComponentIndex(hash::cstr("collision_rect"));
@@ -65,18 +374,9 @@ template <typename C> void BricksQuery::exec(C callback)
   }
 }
 
-static __forceinline void exec_AliveEnemiesQuery(EntityId eid, const glm::vec4 & collision_rect, const glm::vec2 & pos, bool & is_alive, glm::vec2 & vel, AnimState & anim_state) {}
-
-static RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)> _reg_sys_exec_AliveEnemiesQuery("exec_AliveEnemiesQuery", exec_AliveEnemiesQuery, { "eid", "collision_rect", "pos", "is_alive", "vel", "anim_state" }, { "enemy" }, {  }, { "is_alive" }, {  }, false); 
-
-template <> template <> __forceinline void RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const {}
-
 template <typename C> void AliveEnemiesQuery::exec(C callback)
 {
-  using SysType = RegSysSpec<335811716, decltype(exec_AliveEnemiesQuery)>;
-  const auto &sys = _reg_sys_exec_AliveEnemiesQuery;
-  const auto &components = sys.queryDesc.components;
-  auto &query = g_mgr->queries[sys.id];
+  auto &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_AliveEnemiesQuery"));
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
     const int compIdx_eid = query.desc.getComponentIndex(hash::cstr("eid"));
@@ -102,7 +402,7 @@ template <typename C> void AliveEnemiesQuery::exec(C callback)
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -110,11 +410,11 @@ template <> template <> __forceinline void RegSysSpec<3448512920, decltype(load_
     QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
     auto it_texture = chunk_texture.begin<TextureAtlas>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture)
-      load_texture_handler(*(EventOnEntityCreate*)args.stageOrEvent.mem, *it_texture);
+      load_texture_handler(*(EventOnEntityCreate*)stage_or_event.mem, *it_texture);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -125,11 +425,11 @@ template <> template <> __forceinline void RegSysSpec<1621823280, decltype(updat
     auto it_vel = chunk_vel.begin<glm::vec2>();
     auto it_pos = chunk_pos.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_position(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_pos);
+      update_position(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<4245480229, decltype(update_position_for_active)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+template <> __forceinline void RegSysSpec<4245480229, decltype(update_position_for_active)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -140,11 +440,11 @@ template <> template <> __forceinline void RegSysSpec<4245480229, decltype(updat
     auto it_vel = chunk_vel.begin<glm::vec2>();
     auto it_pos = chunk_pos.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_position_for_active(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_pos);
+      update_position_for_active(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
+template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -158,11 +458,11 @@ template <> template <> __forceinline void RegSysSpec<510498044, decltype(update
     auto it_anim_state = chunk_anim_state.begin<AnimState>();
     auto it_frame = chunk_frame.begin<glm::vec4>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_anim_graph, ++it_anim_state, ++it_frame)
-      update_anim_frame(*(UpdateStage*)args.stageOrEvent.mem, *it_anim_graph, *it_anim_state, *it_frame);
+      update_anim_frame(*(UpdateStage*)stage_or_event.mem, *it_anim_graph, *it_anim_state, *it_frame);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1007297635, decltype(render_walls)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
+template <> __forceinline void RegSysSpec<1007297635, decltype(render_walls)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -176,11 +476,11 @@ template <> template <> __forceinline void RegSysSpec<1007297635, decltype(rende
     auto it_frame = chunk_frame.begin<glm::vec4>();
     auto it_pos = chunk_pos.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos)
-      render_walls(*(RenderStage*)args.stageOrEvent.mem, *it_texture, *it_frame, *it_pos);
+      render_walls(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<2012399197, decltype(render_normal)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4>) const
+template <> __forceinline void RegSysSpec<2012399197, decltype(render_normal)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -197,11 +497,11 @@ template <> template <> __forceinline void RegSysSpec<2012399197, decltype(rende
     auto it_pos = chunk_pos.begin<glm::vec2>();
     auto it_dir = chunk_dir.begin<float>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos, ++it_dir)
-      render_normal(*(RenderStage*)args.stageOrEvent.mem, *it_texture, *it_frame, *it_pos, *it_dir);
+      render_normal(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos, *it_dir);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -212,11 +512,11 @@ template <> template <> __forceinline void RegSysSpec<484250714, decltype(read_c
     auto it_user_input = chunk_user_input.begin<UserInput>();
     auto it_vel = chunk_vel.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_user_input, ++it_vel)
-      read_controls(*(UpdateStage*)args.stageOrEvent.mem, *it_user_input, *it_vel);
+      read_controls(*(UpdateStage*)stage_or_event.mem, *it_user_input, *it_vel);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1920783676, decltype(apply_controls)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
+template <> __forceinline void RegSysSpec<1920783676, decltype(apply_controls)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -236,11 +536,11 @@ template <> template <> __forceinline void RegSysSpec<1920783676, decltype(apply
     auto it_vel = chunk_vel.begin<glm::vec2>();
     auto it_dir = chunk_dir.begin<float>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_user_input, ++it_is_on_ground, ++it_jump, ++it_vel, ++it_dir)
-      apply_controls(*(UpdateStage*)args.stageOrEvent.mem, *it_user_input, *it_is_on_ground, *it_jump, *it_vel, *it_dir);
+      apply_controls(*(UpdateStage*)stage_or_event.mem, *it_user_input, *it_is_on_ground, *it_jump, *it_vel, *it_dir);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3949714102, decltype(apply_jump)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
+template <> __forceinline void RegSysSpec<3949714102, decltype(apply_jump)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -254,11 +554,11 @@ template <> template <> __forceinline void RegSysSpec<3949714102, decltype(apply
     auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
     auto it_vel = chunk_vel.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_jump, ++it_is_on_ground, ++it_vel)
-      apply_jump(*(UpdateStage*)args.stageOrEvent.mem, *it_jump, *it_is_on_ground, *it_vel);
+      apply_jump(*(UpdateStage*)stage_or_event.mem, *it_jump, *it_is_on_ground, *it_vel);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3962763712, decltype(apply_gravity)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2>) const
+template <> __forceinline void RegSysSpec<3962763712, decltype(apply_gravity)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -269,11 +569,11 @@ template <> template <> __forceinline void RegSysSpec<3962763712, decltype(apply
     auto it_gravity = chunk_gravity.begin<Gravity>();
     auto it_vel = chunk_vel.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_gravity, ++it_vel)
-      apply_gravity(*(UpdateStage*)args.stageOrEvent.mem, *it_gravity, *it_vel);
+      apply_gravity(*(UpdateStage*)stage_or_event.mem, *it_gravity, *it_vel);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3962250550, decltype(update_collisions)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4>) const
+template <> __forceinline void RegSysSpec<3962250550, decltype(update_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -290,11 +590,11 @@ template <> template <> __forceinline void RegSysSpec<3962250550, decltype(updat
     auto it_pos = chunk_pos.begin<glm::vec2>();
     auto it_vel = chunk_vel.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_collision_rect, ++it_is_on_ground, ++it_pos, ++it_vel)
-      update_collisions(*(UpdateStage*)args.stageOrEvent.mem, *it_collision_rect, *it_is_on_ground, *it_pos, *it_vel);
+      update_collisions(*(UpdateStage*)stage_or_event.mem, *it_collision_rect, *it_is_on_ground, *it_pos, *it_vel);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
+template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -314,11 +614,11 @@ template <> template <> __forceinline void RegSysSpec<1590712904, decltype(updat
     auto it_vel = chunk_vel.begin<glm::vec2>();
     auto it_dir = chunk_dir.begin<float>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_collision_rect, ++it_pos, ++it_vel, ++it_dir)
-      update_auto_move_collisions(*(UpdateStage*)args.stageOrEvent.mem, *it_eid, *it_collision_rect, *it_pos, *it_vel, *it_dir);
+      update_auto_move_collisions(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_collision_rect, *it_pos, *it_vel, *it_dir);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5>) const
+template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -338,11 +638,11 @@ template <> template <> __forceinline void RegSysSpec<2354991095, decltype(selec
     auto it_texture = chunk_texture.begin<TextureAtlas>();
     auto it_anim_state = chunk_anim_state.begin<AnimState>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_anim_graph, ++it_is_on_ground, ++it_texture, ++it_anim_state)
-      select_current_anim_frame(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_anim_graph, *it_is_on_ground, *it_texture, *it_anim_state);
+      select_current_anim_frame(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_anim_graph, *it_is_on_ground, *it_texture, *it_anim_state);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
+template <> __forceinline void RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -365,11 +665,11 @@ template <> template <> __forceinline void RegSysSpec<948899453, decltype(select
     auto it_texture = chunk_texture.begin<TextureAtlas>();
     auto it_anim_state = chunk_anim_state.begin<AnimState>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_anim_graph, ++it_user_input, ++it_is_on_ground, ++it_texture, ++it_anim_state)
-      select_current_anim_frame_for_player(*(UpdateStage*)args.stageOrEvent.mem, *it_vel, *it_anim_graph, *it_user_input, *it_is_on_ground, *it_texture, *it_anim_state);
+      select_current_anim_frame_for_player(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_anim_graph, *it_user_input, *it_is_on_ground, *it_texture, *it_anim_state);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<3007763911, decltype(validate_position)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<3007763911, decltype(validate_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -377,11 +677,11 @@ template <> template <> __forceinline void RegSysSpec<3007763911, decltype(valid
     QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
     auto it_pos = chunk_pos.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos)
-      validate_position(*(UpdateStage*)args.stageOrEvent.mem, *it_pos);
+      validate_position(*(UpdateStage*)stage_or_event.mem, *it_pos);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<917788925, decltype(update_enemies_collisions)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3, 4, 5, 6>) const
+template <> __forceinline void RegSysSpec<917788925, decltype(update_enemies_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -404,11 +704,11 @@ template <> template <> __forceinline void RegSysSpec<917788925, decltype(update
     auto it_vel = chunk_vel.begin<glm::vec2>();
     auto it_dir = chunk_dir.begin<float>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_jump, ++it_collision_rect, ++it_pos, ++it_vel, ++it_dir)
-      update_enemies_collisions(*(UpdateStage*)args.stageOrEvent.mem, *it_eid, *it_jump, *it_collision_rect, *it_pos, *it_vel, *it_dir);
+      update_enemies_collisions(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_jump, *it_collision_rect, *it_pos, *it_vel, *it_dir);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1963192783, decltype(remove_death_fx)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1, 2, 3>) const
+template <> __forceinline void RegSysSpec<1963192783, decltype(remove_death_fx)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -422,11 +722,11 @@ template <> template <> __forceinline void RegSysSpec<1963192783, decltype(remov
     auto it_anim_state = chunk_anim_state.begin<AnimState>();
     auto it_is_alive = chunk_is_alive.begin<bool>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_anim_state, ++it_is_alive)
-      remove_death_fx(*(UpdateStage*)args.stageOrEvent.mem, *it_eid, *it_anim_state, *it_is_alive);
+      remove_death_fx(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_anim_state, *it_is_alive);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1506347756, decltype(update_camera)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<1506347756, decltype(update_camera)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -434,11 +734,11 @@ template <> template <> __forceinline void RegSysSpec<1506347756, decltype(updat
     QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
     auto it_pos = chunk_pos.begin<glm::vec2>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos)
-      update_camera(*(UpdateStage*)args.stageOrEvent.mem, *it_pos);
+      update_camera(*(UpdateStage*)stage_or_event.mem, *it_pos);
   }
 }
 
-template <> template <> __forceinline void RegSysSpec<1381440062, decltype(process_on_kill_event)>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<0, 1>) const
+template <> __forceinline void RegSysSpec<1381440062, decltype(process_on_kill_event)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
@@ -446,7 +746,7 @@ template <> template <> __forceinline void RegSysSpec<1381440062, decltype(proce
     QueryChunk &chunk_hud = query.chunks[compIdx_hud + chunkIdx * query.componentsCount];
     auto it_hud = chunk_hud.begin<HUD>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_hud)
-      process_on_kill_event(*(EventOnKillEnemy*)args.stageOrEvent.mem, *it_hud);
+      process_on_kill_event(*(EventOnKillEnemy*)stage_or_event.mem, *it_hud);
   }
 }
 

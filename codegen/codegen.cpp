@@ -741,13 +741,72 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\", " << sys.name;
-      out << ", { " << joinParameterNamesFrom(sys.parameters, 1) << " }";
-      out << ", { " << joinParameterNames(sys.have) << " }";
-      out << ", { " << joinParameterNames(sys.notHave) << " }";
-      out << ", { " << joinParameterNames(sys.trackTrue) << " }";
-      out << ", { " << joinParameterNames(sys.trackFalse) << " }";
-      out << ", true); " << std::endl;
+      if (sys.parameters.size() > 1)
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_components[] = {" << std::endl;
+        for (int i = 1; i < (int)sys.parameters.size(); ++i)
+        {
+          const auto &p = sys.parameters[i];
+          out << "  {hash::cstr(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+
+      if (!sys.have.empty())
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_have_components[] = {" << std::endl;
+        for (const auto &p : sys.have)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!sys.notHave.empty())
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_not_have_components[] = {" << std::endl;
+        for (const auto &p : sys.notHave)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!sys.trackTrue.empty())
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_is_true_components[] = {" << std::endl;
+        for (const auto &p : sys.trackTrue)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!sys.trackFalse.empty())
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_is_false_components[] = {" << std::endl;
+        for (const auto &p : sys.trackFalse)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+
+      out << "static constexpr ConstQueryDesc " << sys.name << "_query_desc = {" << std::endl;
+      if (sys.parameters.size() <= 1) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_components)," << std::endl;
+      if (sys.have.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_have_components)," << std::endl;
+      if (sys.notHave.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_not_have_components)," << std::endl;
+      if (sys.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_is_true_components)," << std::endl;
+      if (sys.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_is_false_components)," << std::endl;
+      out << "};" << std::endl;
+    }
+
+    for (const auto &sys : state.systems)
+    {
+      out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")> _reg_sys_" << sys.name << "(\"" << sys.name << "\"";
+      out << ", " << sys.name << "_query_desc);" << std::endl;
     }
 
     if (!state.systems.empty())
@@ -764,25 +823,75 @@ int main(int argc, char* argv[])
 
     for (const auto &q : state.queries)
     {
-      out << "static __forceinline void exec_" << q.name << "(" << joinParameters(q.parameters) << ") {}\n" << std::endl;
+      out << "static constexpr ConstCompDesc " << q.name << "_components[] = {" << std::endl;
+      for (const auto &p : q.parameters)
+      {
+        out << "  {hash::cstr(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+      }
+      out << "};" << std::endl;
 
-      out << "static RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")> _reg_sys_exec_" << q.name << "(\"exec_" << q.name << "\", exec_" << q.name;
-      out << ", { " << joinParameterNames(q.parameters) << " }";
-      out << ", { " << joinParameterNames(q.have) << " }";
-      out << ", { " << joinParameterNames(q.notHave) << " }";
-      out << ", { " << joinParameterNames(q.trackTrue) << " }";
-      out << ", { " << joinParameterNames(q.trackFalse) << " }";
-      out << ", false); " << std::endl;
-      out << std::endl;
+      if (!q.have.empty())
+      {
+        out << "static constexpr ConstCompDesc " << q.name << "_have_components[] = {" << std::endl;
+        for (const auto &p : q.have)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!q.notHave.empty())
+      {
+        out << "static constexpr ConstCompDesc " << q.name << "_not_have_components[] = {" << std::endl;
+        for (const auto &p : q.notHave)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!q.trackTrue.empty())
+      {
+        out << "static constexpr ConstCompDesc " << q.name << "_is_true_components[] = {" << std::endl;
+        for (const auto &p : q.trackTrue)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
+      if (!q.trackFalse.empty())
+      {
+        out << "static constexpr ConstCompDesc " << q.name << "_is_false_components[] = {" << std::endl;
+        for (const auto &p : q.trackFalse)
+        {
+          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        }
+        out << "};" << std::endl;
+      }
 
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<" << seq(q.parameters.size()) << ">) const {}\n" << std::endl;
+      out << "static constexpr ConstQueryDesc " << q.name << "_query_desc = {" << std::endl;
+      out << "  make_const_array(" << q.name << "_components)," << std::endl;
+      if (q.have.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << q.name << "_have_components)," << std::endl;
+      if (q.notHave.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << q.name << "_not_have_components)," << std::endl;
+      if (q.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << q.name << "_is_true_components)," << std::endl;
+      if (q.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << q.name << "_is_false_components)," << std::endl;
+      out << "};" << std::endl;
+    }
 
+    out << std::endl;
+
+    for (const auto &q : state.queries)
+      out << "static RegQuery _reg_query_" << q.name << "(hash::cstr(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc);" << std::endl;
+
+    out << std::endl;
+
+    for (const auto &q : state.queries)
+    {
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
-      out << "  using SysType = RegSysSpec<" << hash::fnv1<uint32_t>::hash(q.name.c_str()) << ", decltype(exec_" << q.name << ")>;" << std::endl;
-      out << "  const auto &sys = _reg_sys_exec_" << q.name << ";" << std::endl;
-      out << "  const auto &components = sys.queryDesc.components;" << std::endl;
-      out << "  auto &query = g_mgr->queries[sys.id];" << std::endl;
+      out << "  auto &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
       out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
       out << "  {" << std::endl;
 
@@ -827,7 +936,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : state.systems)
     {
-      out << "template <> template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl<>(const ExtraArguments &args, Query &query, eastl::index_sequence<" << seq(sys.parameters.size()) << ">) const" << std::endl;
+      out << "template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl(const RawArg &stage_or_event, Query &query) const" << std::endl;
       out << "{" << std::endl;
       out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
       out << "  {" << std::endl;
@@ -855,7 +964,7 @@ int main(int argc, char* argv[])
         out << ", ++it_" << p.name;
       }
       out << ")" << std::endl;
-      out << "      " << sys.name << "(*(" << sys.parameters[0].pureType << "*)args.stageOrEvent.mem";
+      out << "      " << sys.name << "(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
 
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {

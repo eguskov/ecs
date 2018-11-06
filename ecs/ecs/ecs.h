@@ -53,7 +53,6 @@ struct EntityTemplate
   eastl::string name;
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
-  eastl::vector<RegSys::Remap> remaps;
   eastl::vector<int> extends;
 
   bool hasCompontent(int type_id, int name_id) const;
@@ -72,18 +71,10 @@ struct Entity
 
   // TODO: Is this needed here??
   EntityId eid;
+
   int templateId = -1;
   int archetypeId = -1;
-
   int indexInArchetype = -1;
-
-  // TODO: Store as SoA in one array???
-  // eastl::vector<int> componentOffsets;
-};
-
-struct EntityDesc
-{
-  eastl::hash_map<int, int> offsetsByNameId;
 };
 
 struct System
@@ -138,6 +129,7 @@ struct AsyncValue
 
 struct Archetype
 {
+  // TODO: Inplace Storage* allocation
   struct StorageDesc
   {
     HashedString name;
@@ -148,9 +140,6 @@ struct Archetype
   };
 
   int entitiesCount = 0;
-  // TODO: Remove hash_map!
-  // eastl::hash_map<HashedString, Storage*> storageMap;
-  // TODO: Inplace allocation for Storage. In order to reduce memory hops.
   eastl::vector<StorageDesc> storages;
 
   ~Archetype()
@@ -186,15 +175,13 @@ struct EntityManager
   eastl::vector<eastl::string> order;
   eastl::vector<EntityTemplate> templates;
   eastl::vector<Archetype> archetypes;
-  // eastl::vector<Storage*> storages;
   eastl::vector<Entity> entities;
-  // eastl::vector<EntityDesc> entityDescs;
   eastl::vector<eastl::string> componentNames;
   eastl::vector<const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
-  eastl::vector<QueryDesc> queryDescs;
+  eastl::vector<Query> namedQueries;
 
   eastl::queue<CreateQueueData> createQueue;
   eastl::queue<EntityId> deleteQueue;
@@ -217,6 +204,9 @@ struct EntityManager
   int getComponentNameId(const char *name) const;
   const char* getComponentName(int name_id) const;
   const RegComp* getComponentDescByName(const char *name) const;
+  const RegComp* getComponentDescByName(const ConstHashedString &name) const;
+
+  Query* getQueryByName(const ConstHashedString &name);
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
@@ -236,21 +226,6 @@ struct EntityManager
 
   void fillFrameSnapshot(FrameSnapshot &snapshot) const;
   void checkFrameSnapshot(const FrameSnapshot &snapshot);
-
-  template <typename T>
-  const T& getComponent(EntityId eid, const char *name)
-  {
-    const auto &e = entities[eid2idx(eid)];
-
-    const auto &templ = templates[e.templateId];
-    const auto &storage = storages[templ.storageId];
-
-    const RegComp *desc = find_comp(Desc<T>::name);
-    const int offset = templ.getCompontentOffset(desc->id, name);
-    assert(offset >= 0);
-
-    return *(T*)&storage.data[storage.size * e.memId + offset];
-  }
 
   void tick();
   void tickStage(int stage_id, const RawArg &stage);

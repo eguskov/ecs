@@ -80,12 +80,7 @@ DEF_HAS_METHOD(require);
 
 struct RegSys
 {
-  using Remap = eastl::fixed_vector<int, 32>;
-  using StageFunc = void(RegSys::*)(Query &query, const RawArg&/* , Storage** */) const;
-
   char *name = nullptr;
-
-  bool needOrder = true;
 
   int id = -1;
   int stageId = -1;
@@ -93,18 +88,23 @@ struct RegSys
 
   const RegSys *next = nullptr;
 
-  StageFunc stageFn = nullptr;
-
+  // TODO: Remove compMask
   eastl::bitvector<> compMask;
-  QueryDesc queryDesc;
+  ConstQueryDesc queryDesc;
 
-  RegSys(const char *_name, int _id, bool need_order = true);
+  RegSys(const char *_name, const ConstQueryDesc &query_desc, int _id);
   virtual ~RegSys();
 
   virtual void init(const EntityManager *mgr) = 0;
-  virtual void initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const = 0;
 
   bool hasCompontent(int id, const char *name) const;
+
+  virtual void execImpl(const RawArg &stage_or_event, Query &query) const = 0;
+
+  __forceinline void exec(Query &query, const RawArg &stage_or_event) const
+  {
+    execImpl(stage_or_event, query);
+  }
 };
 
 enum class ValueType
@@ -113,51 +113,6 @@ enum class ValueType
   kStage,
   kEvent,
   kComponent
-};
-
-struct ExtraArguments
-{
-  EntityId eid;
-  RawArg stageOrEvent;
-};
-
-template <typename T, ValueType ValueType>
-struct Value;
-
-template <typename T>
-struct Value<T, ValueType::kComponent>
-{
-  static __forceinline T get(const ExtraArguments &, Storage **storage, int comp_id, int offset)
-  {
-    return storage[comp_id]->get<typename eastl::remove_reference<T>::type>(offset);
-  }
-};
-
-template <typename T>
-struct Value<T, ValueType::kStage>
-{
-  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
-  {
-    return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
-  }
-};
-
-template <typename T>
-struct Value<T, ValueType::kEvent>
-{
-  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
-  {
-    return *(typename eastl::remove_reference<T>::type *)args.stageOrEvent.mem;
-  }
-};
-
-template <typename T>
-struct Value<T, ValueType::kEid>
-{
-  static __forceinline T get(const ExtraArguments &args, Storage**, int, int)
-  {
-    return *(typename eastl::remove_reference<T>::type *)&args.eid;
-  }
 };
 
 template <size_t D, typename T>
@@ -174,10 +129,6 @@ struct RegSysSpec<D, R(Args...)> : RegSys
 
   using SysType = R(*)(Args...);
   using SysFuncType = eastl::function<R(Args...)>;
-  using Indices = eastl::make_index_sequence<ArgsCount>;
-  using StringArray = eastl::array<const char*, ArgsCount>;
-  using StringList = std::initializer_list<const char*>;
-  using StringVector = eastl::vector<eastl::string>;
   using ReturnType = R;
 
   template <std::size_t N>
@@ -208,216 +159,24 @@ struct RegSysSpec<D, R(Args...)> : RegSys
     constexpr static ValueType valueType = getValueType();
   };
 
-  struct ArgumentDesc
-  {
-    bool isConst;
-    const char *name;
-  };
-
-  SysType sys;
   SysFuncType sysFunc;
-  StringArray componentNames;
-  StringVector haveNames;
-  StringVector notHaveNames;
-  StringVector isTrueNames;
-  StringVector isFalseNames;
 
-  template <std::size_t... I>
-  constexpr static auto createNames(eastl::index_sequence<I...>)
+  RegSysSpec(const char *name, const ConstQueryDesc &query_desc) : RegSys(name, query_desc, reg_sys_count)
   {
-    return StringArray{ {Argument<I>::CompDesc::name...} };
-  }
-
-  template <std::size_t... I>
-  constexpr static auto createArguments(eastl::index_sequence<I...>)
-  {
-    return eastl::array<ArgumentDesc, ArgsCount>{ { { Argument<I>::isConst, Argument<I>::CompDesc::name }... } };
-  }
-
-  constexpr static StringArray componentTypeNames = createNames(Indices{});
-  constexpr static eastl::array<ArgumentDesc, ArgsCount> arguments = createArguments(Indices{});
-
-  template <int N>
-  struct Counter
-  {
-    constexpr static int getValue(int acc)
-    {
-      return (Argument<N>::isComponent ? 0 : 1) + acc + Counter<N - 1>::getValue(acc);
-    }
-  };
-
-  template <>
-  struct Counter<-1>
-  {
-    constexpr static int getValue(int) { return 0; }
-  };
-
-  constexpr static int argumentsOffset = Counter<ArgsCount - 1>::getValue(0);
-
-  template <size_t... I>
-  __forceinline void execImpl(const ExtraArguments &args, Query &query, /* const int *remap, const int *offsets, Storage **storage, */ eastl::index_sequence<I...>) const;
-
-  inline void operator()(const EntityVector &eids, const RawArg &stage, Storage **storage) const
-  {
-    buffer.eid = eid;
-    buffer.stage = stage;
-
-    execImpl(remap, offsets, storage, Indices{});
-  }
-
-  inline void operator()(const EntityId &eid, const RegSys::Remap &remap, const int *offsets, Storage **storage) const
-  {
-    buffer.eid = eid;
-    execImpl(remap, offsets, storage, Indices{});
-  }
-
-  void execEid(const EntityVector &eids, const RegSys::Remap &remap, const int *offsets, Storage **storage) const
-  {
-    ExtraArguments args;
-    args.eid = eid;
-
-    execImpl(args, remap, offsets, storage, Indices{});
-  }
-
-  void execStage(Query &query, const RawArg &stage_or_event/* , Storage **storage */) const
-  {
-    ExtraArguments args;
-    args.stageOrEvent = stage_or_event;
-
-    execImpl(args, query, Indices{});
-
-    // for (int i = 0; i < count; ++i)
-    // {
-    //   EntityId eid = eids[i];
-    //   args.eid = eid;
-    //   const auto &entity = g_mgr->entities[eid.index];
-    //   const auto &templ = g_mgr->templates[entity.templateId];
-    //   const auto &remap = templ.remaps[id];
-    //   execImpl(args, remap.data(), entity.componentOffsets.data(), storage, Indices{});
-    // }
-  }
-
-  RegSysSpec(const char *name,
-    const SysType &_sys,
-    const StringArray &names,
-    const StringList &have,
-    const StringList &not_have,
-    const StringList &is_true,
-    const StringList &is_false,
-    bool need_order) :
-    RegSys(name, reg_sys_count, need_order),
-    sys(_sys),
-    componentNames(names)
-  {
-    stageFn = (StageFunc)&RegSysSpec::execStage;
-
     next = reg_sys_head;
     reg_sys_head = this;
     ++reg_sys_count;
-
-    for (const auto &n : have)
-      haveNames.emplace_back(n);
-    for (const auto &n : not_have)
-      notHaveNames.emplace_back(n);
-    for (const auto &n : is_true)
-      isTrueNames.emplace_back(n);
-    for (const auto &n : is_false)
-      isFalseNames.emplace_back(n);
-
-    queryDesc.haveComponents.resize(haveNames.size());
-    queryDesc.notHaveComponents.resize(notHaveNames.size());
-    queryDesc.isTrueComponents.resize(isTrueNames.size());
-    queryDesc.isFalseComponents.resize(isFalseNames.size());
   }
 
   void init(const EntityManager *mgr) override final
   {
-    assert(componentNames.size() == componentTypeNames.size());
-    for (size_t i = 0; i < componentTypeNames.size(); ++i)
-    {
-      // TODO: This check is bullshit! Generate a QueryDesc by codegen
-      if (!componentNames[i])
-        continue;
-      const RegComp *desc = find_comp(componentTypeNames[i]);
-      assert(desc != nullptr);
-      queryDesc.components.push_back({ 0, mgr->getComponentNameId(componentNames[i]), hash_str(componentNames[i]), desc->size, desc });
-
-      if (arguments[i].isConst)
-        queryDesc.roComponents.push_back(i);
-      else
-        queryDesc.rwComponents.push_back(i);
-    }
-
-    int index = 0;
-    for (const auto &n : haveNames)
-    {
-      auto &c = queryDesc.haveComponents[index++];
-      c.desc = mgr->getComponentDescByName(n.c_str());
-      c.nameId = mgr->getComponentNameId(n.c_str());
-      c.name = hash_str(n.c_str());
-      assert(c.desc != nullptr);
-    }
-
-    index = 0;
-    for (const auto &n : notHaveNames)
-    {
-      auto &c = queryDesc.notHaveComponents[index++];
-      c.desc = mgr->getComponentDescByName(n.c_str());
-      c.nameId = mgr->getComponentNameId(n.c_str());
-      c.name = hash_str(n.c_str());
-      assert(c.desc != nullptr);
-    }
-
-    index = 0;
-    for (const auto &n : isTrueNames)
-    {
-      auto &c = queryDesc.isTrueComponents[index++];
-      c.desc = mgr->getComponentDescByName(n.c_str());
-      c.nameId = mgr->getComponentNameId(n.c_str());
-      c.name = hash_str(n.c_str());
-      assert(c.desc != nullptr);
-    }
-
-    index = 0;
-    for (const auto &n : isFalseNames)
-    {
-      auto &c = queryDesc.isFalseComponents[index++];
-      c.desc = mgr->getComponentDescByName(n.c_str());
-      c.nameId = mgr->getComponentNameId(n.c_str());
-      c.name = hash_str(n.c_str());
-      assert(c.desc != nullptr);
-    }
-
-    compMask.resize(reg_comp_count);
-    compMask.set(reg_comp_count, false);
-
-    for (const auto &c : queryDesc.components)
-      compMask[c.desc->id] = true;
-
     if (Argument<0>::isStage)
       stageId = find_comp(Argument<0>::CompDesc::name)->id;
     if (Argument<0>::isEvent)
       eventId = find_comp(Argument<0>::CompDesc::name)->id;
   }
 
-  void initRemap(const eastl::vector<CompDesc> &template_comps, Remap &remap) const override final
-  {
-    remap.resize(componentNames.size());
-    eastl::fill(remap.begin(), remap.end(), -1);
-
-    for (size_t compIdx = 0; compIdx < componentNames.size(); ++compIdx)
-    {
-      const char *name = componentNames[compIdx];
-      if (!name)
-        continue;
-      const char *typeName = componentTypeNames[compIdx];
-      const RegComp *desc = find_comp(typeName);
-
-      for (size_t i = 0; i < template_comps.size(); ++i)
-        if (template_comps[i].desc->id == desc->id && template_comps[i].nameId == g_mgr->getComponentNameId(name))
-          remap[compIdx] = i;
-    }
-  }
+  virtual void execImpl(const RawArg &stage_or_event, Query &query) const override final;
 };
 
 const RegSys *find_sys(const char *name);
