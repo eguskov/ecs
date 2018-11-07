@@ -53,12 +53,12 @@ struct TextureAtlas
     assign.id = Texture2D {};
   }
 
-  TextureAtlas(const TextureAtlas&) { assert(false); }
-  void operator=(const TextureAtlas&) { assert(false); }
+  TextureAtlas(const TextureAtlas&) { ASSERT(false); }
+  void operator=(const TextureAtlas&) { ASSERT(false); }
 
   bool set(const JFrameValue &value)
   {
-    assert(value.HasMember("path"));
+    ASSERT(value.HasMember("path"));
     path = value["path"].GetString();
     return true;
   };
@@ -77,7 +77,7 @@ struct AnimGraph
 
   eastl::hash_map<eastl::string, Node> nodesMap;
 
-  void operator=(const AnimGraph&) { assert(false); }
+  void operator=(const AnimGraph&) { ASSERT(false); }
 
   bool set(const JFrameValue &value)
   {
@@ -108,7 +108,7 @@ struct AnimState
   double startTime = -1.0;
   eastl::string currentNode;
 
-  void operator=(const AnimState&) { assert(false); }
+  void operator=(const AnimState&) { ASSERT(false); }
 
   bool set(const JFrameValue &value)
   {

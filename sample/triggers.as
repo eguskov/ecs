@@ -59,16 +59,13 @@ class ActiveEnableLiftAction
   const HashedString@ key;
 }
 
-[system]
+[system { "$join": [ "NotBindedSwitchTrigger.action_key", "EnableLiftAction.key" ] }]
 void bind_trigger_to_enable_lift_action(const UpdateStage@ stage, NotBindedSwitchTrigger@ trigger, const EnableLiftAction@ action)
 {
-  if (action.key.hash == trigger.action_key.hash)
-  {
-    trigger.is_binded = true;
-    trigger.action_eid = action.eid;
+  trigger.is_binded = true;
+  trigger.action_eid = action.eid;
 
-    print("*** Action binded: "+trigger.key.str()+" => "+action.key.str());
-  }
+  print("*** Action binded: "+trigger.key.str()+" => "+action.key.str());
 }
 
 [system]

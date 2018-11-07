@@ -25,6 +25,7 @@ struct ScopeTime
 
     const double _d = diff.count();
 
+    // TODO: Remove this
     std::cout << "[" << name.c_str() << "]: " << _d << " ms (" << _d * 1e3 << " us" << ")" << std::endl;
   }
 };

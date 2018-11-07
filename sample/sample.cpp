@@ -70,8 +70,8 @@ int main()
     doc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
     delete[] buffer;
 
-    assert(doc.HasMember("$entities"));
-    assert(doc["$entities"].IsArray());
+    ASSERT(doc.HasMember("$entities"));
+    ASSERT(doc["$entities"].IsArray());
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JValue &ent = doc["$entities"][i];

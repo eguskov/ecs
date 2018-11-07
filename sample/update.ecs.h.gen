@@ -38,4 +38,6 @@ int RegCompSpec<EventOnKillEnemy>::ID = -1;
 static RegCompSpec<EventOnWallHit> _reg_event_EventOnWallHit;
 int RegCompSpec<EventOnWallHit>::ID = -1;
 
+
+
 #endif // __CODEGEN__

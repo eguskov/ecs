@@ -1,6 +1,6 @@
 #include "scriptECS.h"
 
-#include <assert.h>
+#include <ecs/debug.h>
 
 #include <iostream>
 #include <regex>
@@ -25,7 +25,7 @@ namespace script
   void ScriptSys::init(const EntityManager *mgr, const ScriptECS *script_ecs)
   {
     const RegComp *comp = find_comp(params[0].type.c_str());
-    assert(comp != nullptr);
+    ASSERT(comp != nullptr);
 
     eventId = -1;
     stageId = comp ? comp->id : -1;
@@ -46,12 +46,12 @@ namespace script
       }
       else
       {
-        assert(!useJoin);
+        ASSERT(!useJoin);
 
         const RegComp *desc = find_comp(componentTypeNames.back().c_str());
         if (!desc)
           desc = mgr->getComponentDescByName(param.name.c_str());
-        assert(desc != nullptr);
+        ASSERT(desc != nullptr);
         queryDesc.components.push_back({ 0, hash_str(param.name.c_str()), desc->size, desc });
 
         if ((param.flags & asTM_CONST) != 0)
@@ -133,7 +133,7 @@ namespace script
         auto &c = out_components.emplace_back();
         c.desc = g_mgr->getComponentDescByName(doc[key][i].GetString());
         c.name = hash_str(doc[key][i].GetString());
-        assert(c.desc != nullptr);
+        ASSERT(c.desc != nullptr);
       }
     }
     else
@@ -141,7 +141,7 @@ namespace script
       auto &c = out_components.emplace_back();
       c.desc = g_mgr->getComponentDescByName(doc[key].GetString());
       c.name = hash_str(doc[key].GetString());
-      assert(c.desc != nullptr);
+      ASSERT(c.desc != nullptr);
     }
   }
 
@@ -152,7 +152,7 @@ namespace script
 
     const JFrameValue &join = doc["$join"];
 
-    assert(join.IsArray() && join.Size() == 2);
+    ASSERT(join.IsArray() && join.Size() == 2);
 
     eastl::string first = join[0].GetString();
     eastl::string second = join[1].GetString();
@@ -164,42 +164,44 @@ namespace script
 
     {
       std::regex_search(first.cbegin(), first.cend(), match, re);
-      assert(match.size() == 3);
+      ASSERT(match.size() == 3);
 
       asITypeInfo *type = module.GetTypeInfoByName(match[1].str().c_str());
-      assert(type != nullptr);
+      ASSERT(type != nullptr);
 
       link.firstTypeId = type->GetTypeId();
       link.firstComponentName = hash_str(match[2].str().c_str());
 
       auto res = script_ecs->dataQueries.find(link.firstTypeId);
-      assert(res != script_ecs->dataQueries.end());
+      ASSERT(res != script_ecs->dataQueries.end());
 
-      assert(res->second.desc.getComponentIndex(link.firstComponentName) >= 0);
+      ASSERT(res->second.desc.getComponentIndex(link.firstComponentName) >= 0);
     }
 
     {
       std::regex_search(second.cbegin(), second.cend(), match, re);
-      assert(match.size() == 3);
+      ASSERT(match.size() == 3);
 
       asITypeInfo *type = module.GetTypeInfoByName(match[1].str().c_str());
-      assert(type != nullptr);
+      ASSERT(type != nullptr);
 
       link.secondTypeId = type->GetTypeId();
       link.secondComponentName = hash_str(match[2].str().c_str());
 
       auto res = script_ecs->dataQueries.find(link.secondTypeId);
-      assert(res != script_ecs->dataQueries.end());
+      ASSERT(res != script_ecs->dataQueries.end());
 
-      assert(res->second.desc.getComponentIndex(link.secondComponentName) >= 0);
+      ASSERT(res->second.desc.getComponentIndex(link.secondComponentName) >= 0);
     }
 
-    assert(link.firstTypeId >= 0 && link.firstComponentName.hash >= 0);
-    assert(link.secondTypeId >= 0 && link.secondComponentName.hash >= 0);
-    assert(g_mgr->getComponentDescByName(link.firstComponentName) != nullptr);
-    assert(g_mgr->getComponentDescByName(link.secondComponentName) != nullptr);
-    assert(g_mgr->getComponentDescByName(link.firstComponentName)->size == g_mgr->getComponentDescByName(link.secondComponentName)->size);
-    link.componentSize = g_mgr->getComponentDescByName(link.firstComponentName)->size;
+    ASSERT(link.firstTypeId >= 0 && link.firstComponentName.hash >= 0);
+    ASSERT(link.secondTypeId >= 0 && link.secondComponentName.hash >= 0);
+    ASSERT(g_mgr->getComponentDescByName(link.firstComponentName) != nullptr);
+    ASSERT(g_mgr->getComponentDescByName(link.secondComponentName) != nullptr);
+    ASSERT(g_mgr->getComponentDescByName(link.firstComponentName)->size == g_mgr->getComponentDescByName(link.secondComponentName)->size);
+    link.componentDesc = g_mgr->getComponentDescByName(link.firstComponentName);
+    link.componentSize = link.componentDesc->size;
+    ASSERT(link.componentDesc->hasEqual);
   }
 
   bool ScriptECS::build(const char *name, const char *path)
@@ -232,7 +234,7 @@ namespace script
 
           query.name = hash_str(internal::get_engine()->GetTypeInfoById(typeId.id)->GetName());
 
-          std::cout << "Add query: " << internal::get_engine()->GetTypeInfoById(typeId.id)->GetName() << std::endl;
+          DEBUG_LOG("Add query: " << internal::get_engine()->GetTypeInfoById(typeId.id)->GetName());
 
           if (match[1].length() > 0)
           {
@@ -250,12 +252,12 @@ namespace script
               g_mgr->enableChangeDetection(c.name);
           }
 
-          assert(type->GetPropertyCount() != 0 ||
+          ASSERT(type->GetPropertyCount() != 0 ||
             !query.desc.isTrueComponents.empty() ||
             !query.desc.isFalseComponents.empty() ||
             !query.desc.haveComponents.empty() ||
             !query.desc.notHaveComponents.empty());
-          assert(type->GetFactoryCount() != 0);
+          ASSERT(type->GetFactoryCount() != 0);
 
           for (int i = 0; i < (int)type->GetPropertyCount(); ++i)
           {
@@ -273,7 +275,7 @@ namespace script
             const RegComp *desc = find_comp(typeName);
             if (!desc)
               desc = g_mgr->getComponentDescByName(name);
-            assert(desc != nullptr);
+            ASSERT(desc != nullptr);
 
             query.desc.components.push_back({ i, hash_str(name), desc->size, desc });
             query.componentsCount = query.desc.components.size();
@@ -288,7 +290,7 @@ namespace script
         asIScriptFunction *fn = module.GetFunctionByIndex(i);
         eastl::string metadata = builder.GetMetadataStringForFunc(fn);
 
-        std::cout << "Add system: " << fn->GetName() << std::endl;
+        DEBUG_LOG("Add system: " << fn->GetName());
 
         std::cmatch match;
         std::regex re = std::regex("(?:\\s*)\\b(system|on_load|on_reload)\\b(?:\\s*)(.*)");
@@ -390,7 +392,7 @@ namespace script
     for (auto &it : dataQueries)
     {
       g_mgr->invalidateQuery(it.second);
-      std::cout << "invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.entitiesCount << std::endl;
+      DEBUG_LOG("invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.entitiesCount);
     }
 
     for (const auto &sys : systems)
@@ -407,8 +409,8 @@ namespace script
         {
           auto first = dataQueries.find(link.firstTypeId);
           auto second = dataQueries.find(link.secondTypeId);
-          assert(first != dataQueries.end());
-          assert(second != dataQueries.end());
+          ASSERT(first != dataQueries.end());
+          ASSERT(second != dataQueries.end());
 
           auto &firstQuery = first->second;
           auto &secondQuery = second->second;
@@ -418,7 +420,8 @@ namespace script
             auto secondEid = secondQuery.iter<EntityId>(hash::cstr("eid")).begin();
             for (const auto &secondRaw : secondQuery.iter(link.secondComponentName))
             {
-              if (::memcmp(firstRaw, secondRaw, link.componentSize) == 0)
+              // if (::memcmp(firstRaw, secondRaw, link.componentSize) == 0)
+              if (link.componentDesc->equal(firstRaw, secondRaw))
               {
                 query.eids.emplace_back() = *firstEid;
                 query.eids.emplace_back() = *secondEid;
@@ -429,13 +432,13 @@ namespace script
           }
         }
 
-        assert((query.eids.size() % query.desc.joinQueries.size()) == 0);
-        std::cout << "invalidate system join query: " << sys.fn->GetName() << "; count: " << query.entitiesCount << std::endl;
+        ASSERT((query.eids.size() % query.desc.joinQueries.size()) == 0);
+        DEBUG_LOG("invalidate system join query: " << sys.fn->GetName() << "; count: " << query.entitiesCount);
       }
       else
       {
         g_mgr->invalidateQuery(query);
-        std::cout << "invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount << std::endl;
+        DEBUG_LOG("invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount);
       }
     }
   }
@@ -496,31 +499,31 @@ namespace script
         uint32_t firstTypeId = query.desc.joinQueries[firstQueryIndex];
 
         asITypeInfo *firstType = internal::get_engine()->GetTypeInfoById(firstTypeId);
-        assert(firstType != nullptr);
+        ASSERT(firstType != nullptr);
 
         auto firstDataQuery = dataQueries.find(TypeId{ firstTypeId });
-        assert(firstDataQuery != dataQueries.end());
+        ASSERT(firstDataQuery != dataQueries.end());
 
         int secondQueryIndex = 1;
         uint32_t secondTypeId = query.desc.joinQueries[secondQueryIndex];
 
         asITypeInfo *secondType = internal::get_engine()->GetTypeInfoById(secondTypeId);
-        assert(secondType != nullptr);
+        ASSERT(secondType != nullptr);
 
         auto secondDataQuery = dataQueries.find(TypeId{ secondTypeId });
-        assert(secondDataQuery != dataQueries.end());
+        ASSERT(secondDataQuery != dataQueries.end());
 
         if (query.desc.joinLinks.empty())
         {
           for (const auto &firstEid : firstDataQuery->second.iter<EntityId>(hash::cstr("eid")))
           {
             asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
-            assert(firstObject != nullptr);
+            ASSERT(firstObject != nullptr);
 
             for (const auto &secondEid : secondDataQuery->second.iter<EntityId>(hash::cstr("eid")))
             {
               asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
-              assert(secondObject != nullptr);
+              ASSERT(secondObject != nullptr);
 
               stageCtx->Prepare(systems[query.sysId].fn);
               stageCtx->SetUserData(this, 1000);
@@ -539,17 +542,17 @@ namespace script
         else
         {
           const int step = query.desc.joinQueries.size();
-          assert(step == 2);
+          ASSERT(step == 2);
           for (int i = 0; i < (int)query.eids.size(); i += step)
           {
             const EntityId &firstEid = query.eids[i + 0];
             const EntityId &secondEid = query.eids[i + 1];
 
             asIScriptObject *firstObject = inject_components_into_struct(firstEid, firstDataQuery->second.desc.components, firstType);
-            assert(firstObject != nullptr);
+            ASSERT(firstObject != nullptr);
 
             asIScriptObject *secondObject = inject_components_into_struct(secondEid, secondDataQuery->second.desc.components, secondType);
-            assert(secondObject != nullptr);
+            ASSERT(secondObject != nullptr);
 
             stageCtx->Prepare(systems[query.sysId].fn);
             stageCtx->SetUserData(this, 1000);

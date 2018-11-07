@@ -1,8 +1,9 @@
 #include "core.h"
 
-static RegCompSpec<EntityId> _eid;
-int RegCompSpec<EntityId>::ID = -1;
+// static RegCompSpec<EntityId> _eid;
+// int RegCompSpec<EntityId>::ID = -1;
 
+REG_COMP_INIT(EntityId, eid);
 REG_COMP_INIT(bool, bool);
 REG_COMP_INIT(int, int);
 REG_COMP_INIT(float, float);
@@ -12,4 +13,4 @@ REG_COMP_INIT(glm::vec4, vec4);
 REG_COMP_INIT(eastl::string, string);
 REG_COMP_INIT(HashedString, hash_string);
 
-REG_COMP_ARR_INIT(glm::vec2, vec2, 2);
+// REG_COMP_ARR_INIT(glm::vec2, vec2, 2);

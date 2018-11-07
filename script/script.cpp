@@ -1,6 +1,6 @@
 #include "script.h"
 
-#include <assert.h>
+#include <ASSERT.h>
 
 #include <iostream>
 #include <regex>
@@ -44,7 +44,7 @@ namespace script
 
   static void print(const std::string &str)
   {
-    std::cout << "[Script]: " << str << std::endl;
+    DEBUG_LOG("[Script]: " << str);
   }
 
   static asIScriptEngine *engine = nullptr;
@@ -163,16 +163,16 @@ namespace script
     ScriptQuery *sq = new (RawAllocator<ScriptQuery>::alloc()) ScriptQuery;
 
     asIScriptContext *ctx = asGetActiveContext();
-    assert(ctx != nullptr);
+    ASSERT(ctx != nullptr);
 
     ScriptECS *scriptECS = (ScriptECS *)ctx->GetUserData(1000);
-    assert(scriptECS != nullptr);
+    ASSERT(scriptECS != nullptr);
 
     auto res = scriptECS->dataQueries.find(type->GetSubTypeId());
-    assert(res != scriptECS->dataQueries.end());
+    ASSERT(res != scriptECS->dataQueries.end());
 
     sq->type = engine->GetTypeInfoById(res->first.id);
-    assert(sq->type != nullptr);
+    ASSERT(sq->type != nullptr);
     sq->query = &res->second;
 
     return sq;
@@ -181,13 +181,13 @@ namespace script
   int* create_script_query_count(asITypeInfo *type, void *data)
   {
     asIScriptContext *ctx = asGetActiveContext();
-    assert(ctx != nullptr);
+    ASSERT(ctx != nullptr);
 
     ScriptECS *scriptECS = (ScriptECS *)ctx->GetUserData(1000);
-    assert(scriptECS != nullptr);
+    ASSERT(scriptECS != nullptr);
 
     auto res = scriptECS->dataQueries.find(type->GetSubTypeId());
-    assert(res != scriptECS->dataQueries.end());
+    ASSERT(res != scriptECS->dataQueries.end());
 
     return new (RawAllocator<int>::alloc()) int(res->second.entitiesCount);
   }
@@ -384,7 +384,7 @@ namespace script
   void* create_array_from_list(void *data)
   {
     asUINT num = *(asUINT*)data;
-    assert(num > 0);
+    ASSERT(num > 0);
 
     JFrameValue *arr = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kArrayType);
 
@@ -412,7 +412,7 @@ namespace script
       else
       {
         asITypeInfo *info = engine->GetTypeInfoById(typeId);
-        assert(info != nullptr);
+        ASSERT(info != nullptr);
         if (::strcmp(info->GetName(), "string") == 0)
         {
           push_array_string(*arr, *(std::string*)ptr);
@@ -429,7 +429,7 @@ namespace script
           ptr += sizeof(JFrameValue*);
         }
         else
-          assert(false);
+          ASSERT(false);
       }
     }
 
@@ -439,7 +439,7 @@ namespace script
   void* create_map_from_list(void *data)
   {
     asUINT num = *(asUINT*)data;
-    assert(num > 0);
+    ASSERT(num > 0);
 
     JFrameValue *m = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
 
@@ -470,7 +470,7 @@ namespace script
       else
       {
         asITypeInfo *info = engine->GetTypeInfoById(typeId);
-        assert(info != nullptr);
+        ASSERT(info != nullptr);
         if (::strcmp(info->GetName(), "string") == 0)
         {
           set_map_string(*m, key, *(std::string*)ptr);
@@ -487,7 +487,7 @@ namespace script
           ptr += sizeof(JFrameValue*);
         }
         else
-          assert(false);
+          ASSERT(false);
       }
     }
 
@@ -636,7 +636,7 @@ namespace script
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
-    assert(r >= 0);
+    ASSERT(r >= 0);
 
     engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
     engine->RegisterGlobalFunction("void delete_entity(const EntityId@)", asFUNCTION(delete_entity), asCALL_CDECL);
@@ -655,8 +655,8 @@ namespace script
 
   bool build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule&)> &callback)
   {
-    assert(engine != nullptr);
-    assert(name && name[0]);
+    ASSERT(engine != nullptr);
+    ASSERT(name && name[0]);
 
     if (engine->GetModule(name) != nullptr)
     {
@@ -665,14 +665,14 @@ namespace script
 
     CScriptBuilder builder;
     int r = builder.StartNewModule(engine, name);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     r = builder.AddSectionFromFile(path);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     r = builder.BuildModule();
-    assert(r >= 0);
+    ASSERT(r >= 0);
 
     asIScriptModule *module = engine->GetModule(name);
-    assert(module != nullptr);
+    ASSERT(module != nullptr);
 
     if (module)
       callback(builder, *module);
@@ -683,19 +683,19 @@ namespace script
   asIScriptModule* get_module(const char *name)
   {
     asIScriptModule *module = engine->GetModule(name);
-    assert(module != nullptr);
+    ASSERT(module != nullptr);
     return module;
   }
 
   asIScriptFunction* find_function_by_decl(asIScriptModule *module, const char *decl)
   {
-    assert(module != nullptr);
+    ASSERT(module != nullptr);
     return module->GetFunctionByDecl(decl);
   }
 
   asIScriptContext* find_free_context()
   {
-    assert(engine != nullptr);
+    ASSERT(engine != nullptr);
     asIScriptContext *ctx = engine->CreateContext();
     return ctx;
   }
@@ -703,28 +703,28 @@ namespace script
   bool register_component_property(const char *type, const char *decl, size_t offset)
   {
     int r = engine->RegisterObjectProperty(type, decl, offset);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     return r >= 0;
   }
 
   bool register_component_method(const char *type, const char *decl, const asSFuncPtr &f)
   {
     int r = engine->RegisterObjectMethod(type, decl, f, asCALL_THISCALL);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     return r >= 0;
   }
 
   bool register_component_function(const char *type, const char *decl, const asSFuncPtr &f)
   {
     int r = engine->RegisterObjectMethod(type, decl, f, asCALL_CDECL_OBJFIRST);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     return r >= 0;
   }
 
   bool register_function(const char *decl, const asSFuncPtr &f)
   {
     int r = engine->RegisterGlobalFunction(decl, f, asCALL_CDECL);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     return r >= 0;
   }
 
@@ -762,7 +762,7 @@ namespace script
   {
     asIScriptEngine *get_engine()
     {
-      assert(engine != nullptr);
+      ASSERT(engine != nullptr);
       return engine;
     }
 
@@ -798,7 +798,7 @@ namespace script
 
     void set_arg_wrapped(asIScriptContext *ctx, int i, void *data)
     {
-      assert(data != nullptr);
+      ASSERT(data != nullptr);
       ctx->SetArgAddress(i, data);
     }
   }

@@ -49,12 +49,15 @@ struct RegComp
   int id = -1;
   int size = 0;
 
+  bool hasEqual = false;
+
   const RegComp *next = nullptr;
 
   RegComp(const char *_name, int _size);
   virtual ~RegComp();
 
   virtual bool init(uint8_t *mem, const JFrameValue &value) const = 0;
+  virtual bool equal(uint8_t *lhs, uint8_t *rhs) const = 0;
 
   virtual Storage* createStorage() const { return nullptr; }
 };
@@ -108,7 +111,7 @@ struct ArrayComp
 
   bool set(const JFrameValue &value)
   {
-    assert(value.IsArray());
+    ASSERT(value.IsArray());
     for (int i = 0; i < Size; ++i)
       if (!CompSetter<ItemType>::set(&items[i], value[i]))
         return false;
@@ -126,6 +129,41 @@ struct ArrayComp
   }
 };
 
+template<class T, class EqualTo>
+struct HasOperatorRqualImpl
+{
+    template<class U, class V>
+    static auto test(U*) -> decltype(eastl::declval<U>() == eastl::declval<V>());
+    template<typename, typename>
+    static auto test(...) -> eastl::false_type;
+
+    using type = typename eastl::is_same<bool, decltype(test<T, EqualTo>(0))>::type;
+};
+
+template<class T, class EqualTo = T>
+struct HasOperatorEqual : HasOperatorRqualImpl<T, EqualTo>::type {};
+
+template <typename T, bool HasEqual>
+struct CompComparator;
+
+template <typename T>
+struct CompComparator<T, true>
+{
+  static bool equal(const T &lhs, const T &rhs)
+  {
+    return lhs == rhs;
+  }
+};
+
+template <typename T>
+struct CompComparator<T, false>
+{
+  static bool equal(const T &lhs, const T &rhs)
+  {
+    return false;
+  }
+};
+
 template <typename T>
 struct RegCompSpec : RegComp
 {
@@ -139,6 +177,11 @@ struct RegCompSpec : RegComp
     return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
   }
 
+  bool equal(uint8_t *lhs, uint8_t *rhs) const override final
+  {
+    return CompComparator<T, HasOperatorEqual<T>::value>::equal(*(T*)lhs, *(T*)rhs);
+  }
+
   Storage* createStorage() const override final
   {
     return new StorageSpec<CompType>;
@@ -147,6 +190,7 @@ struct RegCompSpec : RegComp
   RegCompSpec(const char *name) : RegComp(name, CompDesc::Size)
   {
     ID = id;
+    hasEqual = HasOperatorEqual<T>::value;
   }
 };
 

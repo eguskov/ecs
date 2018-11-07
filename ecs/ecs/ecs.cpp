@@ -105,7 +105,7 @@ void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &
 
 eastl::tuple<EventStream::Header, RawArg> EventStream::pop()
 {
-  assert(count > 0);
+  ASSERT(count > 0);
 
   if (count <= 0)
     return {};
@@ -175,13 +175,13 @@ void EntityManager::init()
       templatesDoc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
       delete [] buffer;
 
-      assert(templatesDoc.HasMember("$order"));
-      assert(templatesDoc["$order"].IsArray());
+      ASSERT(templatesDoc.HasMember("$order"));
+      ASSERT(templatesDoc["$order"].IsArray());
       for (int i = 0; i < (int)templatesDoc["$order"].Size(); ++i)
         order.emplace_back(templatesDoc["$order"][i].GetString());
 
-      assert(templatesDoc.HasMember("$templates"));
-      assert(templatesDoc["$templates"].IsArray());
+      ASSERT(templatesDoc.HasMember("$templates"));
+      ASSERT(templatesDoc["$templates"].IsArray());
       for (int i = 0; i < (int)templatesDoc["$templates"].Size(); ++i)
       {
         const JValue &templ = templatesDoc["$templates"][i];
@@ -200,14 +200,16 @@ void EntityManager::init()
 
           if (compIter->value.HasMember("$array"))
           {
+            #ifdef _DEBUG
             // Debug check
             std::ostringstream oss;
             oss << "[" << compIter->value["$array"].Size() << "]";
             std::string res = oss.str();
             int offset = type.GetStringLength() - (int)res.length();
-            assert(offset > 0);
+            ASSERT(offset > 0);
             const char *tail = type.GetString() + offset;
-            assert(::strcmp(res.c_str(), tail) == 0);
+            ASSERT(::strcmp(res.c_str(), tail) == 0);
+            #endif
           }
         }
 
@@ -247,7 +249,7 @@ void EntityManager::init()
   int queryIdx = 0;
   for (const RegQuery *query = reg_query_head; query; query = query->next, ++queryIdx)
   {
-    assert(getQueryByName(query->name) == nullptr);
+    ASSERT(getQueryByName(query->name) == nullptr);
     namedQueries[queryIdx].name = query->name;
     namedQueries[queryIdx].desc = query->desc;
   }
@@ -256,7 +258,7 @@ void EntityManager::init()
 int EntityManager::getSystemWeight(const char *name) const
 {
   auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name; });
-  assert(res != order.end());
+  ASSERT(res != order.end());
   return (int)(res - order.begin());
 }
 
@@ -303,8 +305,8 @@ static void add_component_to_template(const char *comp_type, const HashedString 
   templ.components.push_back({ 0, comp_name, find_comp(comp_type)->size, find_comp(comp_type) });
 
   const RegComp *desc = templ.components.back().desc;
-  assert(desc != nullptr);
-  assert(component_desc_by_names.find(comp_name) == component_desc_by_names.end() || component_desc_by_names[comp_name] == desc);
+  ASSERT(desc != nullptr);
+  ASSERT(component_desc_by_names.find(comp_name) == component_desc_by_names.end() || component_desc_by_names[comp_name] == desc);
   component_desc_by_names[comp_name] = desc;
 }
 
@@ -367,7 +369,7 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     const auto &c = templ.components[compId++];
 
     storage.storage = componentDescByNames[c.name]->createStorage();
-    assert(storage != nullptr);
+    ASSERT(storage != nullptr);
 
     storage.name = c.name;
     storage->elemSize = componentDescByNames[c.name]->size;
@@ -407,7 +409,7 @@ void EntityManager::deleteEntity(const EntityId &eid)
 
 void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
 {
-  assert(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
+  ASSERT(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
   asyncValues.emplace_back(eid, std::move(value));
   entities[eid2idx(eid)].ready = false;
 }
@@ -417,7 +419,7 @@ int EntityManager::getTemplateId(const char *name)
   for (size_t i = 0; i < templates.size(); ++i)
     if (templates[i].name == name)
       return i;
-  assert(false);
+  ASSERT(false);
   return -1;
 }
 
@@ -458,7 +460,7 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
       templateId = (int)i;
       break;
     }
-  assert(templateId >= 0);
+  ASSERT(templateId >= 0);
 
   auto &templ = templates[templateId];
 
@@ -618,7 +620,7 @@ void EntityManager::tick()
 
   const int streamIndex = currentEventStream;
   currentEventStream = (currentEventStream + 1) % events.size();
-  assert(currentEventStream != streamIndex);
+  ASSERT(currentEventStream != streamIndex);
 
   {
     FrameSnapshot snapshot;
@@ -671,7 +673,7 @@ int Archetype::getComponentIndex(const ConstHashedString &name) const
 
 void EntityManager::invalidateQuery(Query &query)
 {
-  assert(query.desc.isValid());
+  ASSERT(query.desc.isValid());
 
   query.dirty = false;
   query.chunksCount = 0;
@@ -712,7 +714,7 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      // TODO: Assert on type mismatch
+      // TODO: ASSERT on type mismatch
       for (const auto &c : query.desc.isTrueComponents)
         if (!type.hasCompontent(c.name))
         {
@@ -723,7 +725,7 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      // TODO: Assert on type mismatch
+      // TODO: ASSERT on type mismatch
       for (const auto &c : query.desc.isFalseComponents)
         if (!type.hasCompontent(c.name))
         {
@@ -734,7 +736,7 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      assert(type.entitiesCapacity == type.storages[0].storage->totalCount);
+      ASSERT(type.entitiesCapacity == type.storages[0].storage->totalCount);
 
       int begin = -1;
       for (int i = 0; i < type.entitiesCapacity; ++i)
@@ -867,7 +869,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
-  assert(!(eid == kInvalidEid));
+  ASSERT(!(eid == kInvalidEid));
   events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
 }
 
@@ -937,12 +939,12 @@ void EntityManager::enableChangeDetection(const HashedString &name)
 {
   if (name == hash::cstr("eid"))
     return;
-  std::cout << "enableChangeDetection: " << name.str << std::endl;
+  DEBUG_LOG("enableChangeDetection: " << name.str);
   trackComponents.insert(name);
 }
 
 void EntityManager::disableChangeDetection(const HashedString &name)
 {
-  std::cout << "disableChangeDetection: " << name.str << std::endl;
+  DEBUG_LOG("disableChangeDetection: " << name.str);
   trackComponents.erase(name);
 }

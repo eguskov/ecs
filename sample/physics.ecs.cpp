@@ -86,7 +86,7 @@ struct PhysicsWorld
 
   PhysDebugDraw debugDraw;
 
-  void operator=(const PhysicsWorld&) { assert(false); }
+  void operator=(const PhysicsWorld&) { ASSERT(false); }
 
   bool set(const JFrameValue &value)
   {
@@ -128,8 +128,8 @@ struct CollisionShape
   }
 
   CollisionShape() = default;
-  CollisionShape(const CollisionShape&) { assert(false); }
-  void operator=(const CollisionShape&) { assert(false); }
+  CollisionShape(const CollisionShape&) { ASSERT(false); }
+  void operator=(const CollisionShape&) { ASSERT(false); }
 
   bool set(const JFrameValue &value)
   {
@@ -177,8 +177,8 @@ struct PhysicsBody
     other.body = nullptr;
   }
 
-  PhysicsBody(const PhysicsBody&) { assert(false); }
-  void operator=(const PhysicsBody&) { assert(false); }
+  PhysicsBody(const PhysicsBody&) { ASSERT(false); }
+  void operator=(const PhysicsBody&) { ASSERT(false); }
 
   ~PhysicsBody()
   {
@@ -196,7 +196,7 @@ struct PhysicsBody
     else if (t == "dynamic")
       type = b2_dynamicBody;
     else
-      assert(false);
+      ASSERT(false);
 
     return true;
   }
@@ -210,11 +210,11 @@ static __forceinline void init_physics_collision_handler(
   PhysicsBody &phys_body,
   CollisionShape &collision_shape)
 {
-  assert(phys_body.body != nullptr);
+  ASSERT(phys_body.body != nullptr);
 
   for (auto s : collision_shape.shapes)
   {
-    assert(s.shape.Validate());
+    ASSERT(s.shape.Validate());
 
     b2FixtureDef def;
     def.shape = &s.shape;
@@ -232,7 +232,7 @@ static __forceinline void init_physics_body_handler(
   PhysicsBody &phys_body,
   const glm::vec2 &pos)
 {
-  assert(phys_body.body == nullptr);
+  ASSERT(phys_body.body == nullptr);
 
   b2BodyDef def;
   def.type = phys_body.type;
@@ -244,7 +244,7 @@ static __forceinline void init_physics_body_handler(
 DEF_SYS()
 static __forceinline void init_physics_world_handler(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
 {
-  assert(g_world == nullptr);
+  ASSERT(g_world == nullptr);
 
   g_world = new b2World({ 0.f, -9.81f });
   g_world->SetDebugDraw(&phys_world.debugDraw);
@@ -271,7 +271,7 @@ static __forceinline void update_kinematic_physics_body(
   const glm::vec2 &pos,
   const glm::vec2 &vel)
 {
-  assert(phys_body.type != b2_staticBody);
+  ASSERT(phys_body.type != b2_staticBody);
 
   phys_body.body->SetTransform({ pos.x, pos.y }, 0.f);
   phys_body.body->SetLinearVelocity({ vel.x, vel.y });
@@ -306,7 +306,7 @@ static __forceinline void update_physics_collisions(
     if (manifold.pointCount > 0 && glm::dot(myVel, vel) >= 0.f)
     {
       myVel += vel;
-      myVel.y -= gravity.mass * 9.8f * stage.dt;
+      // myVel.y = gravity.mass * 9.8f * stage.dt;
     }
   });
 
@@ -393,5 +393,7 @@ static __forceinline void check_physics_contacts(const UpdateStage &stage, const
 DEF_SYS()
 static __forceinline void render_debug_physics(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
 {
+#ifdef _DEBUG
   g_world->DrawDebugData();
+#endif
 }

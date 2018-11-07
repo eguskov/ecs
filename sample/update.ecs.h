@@ -46,9 +46,9 @@ struct TimerComponent
 
   bool set(const JFrameValue &value)
   {
-    assert(value.HasMember("time"));
+    ASSERT(value.HasMember("time"));
     time = value["time"].GetFloat();
-    assert(value.HasMember("period"));
+    ASSERT(value.HasMember("period"));
     period = value["period"].GetFloat();
     return true;
   }
@@ -61,7 +61,7 @@ struct NoHitTimerComponent
 
   bool set(const JFrameValue &value)
   {
-    assert(value.HasMember("time"));
+    ASSERT(value.HasMember("time"));
     time = value["time"].GetFloat();
     return true;
   }
@@ -76,11 +76,11 @@ struct ColorComponent
 
   bool set(const JFrameValue &value)
   {
-    assert(value.HasMember("r"));
+    ASSERT(value.HasMember("r"));
     r = (uint8_t)value["r"].GetInt();
-    assert(value.HasMember("g"));
+    ASSERT(value.HasMember("g"));
     g = (uint8_t)value["g"].GetInt();
-    assert(value.HasMember("b"));
+    ASSERT(value.HasMember("b"));
     b = (uint8_t)value["b"].GetInt();
     return true;
   }

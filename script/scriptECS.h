@@ -86,9 +86,9 @@ namespace script
 
     bool set(const JFrameValue &value)
     {
-      assert(value.HasMember("name"));
+      ASSERT(value.HasMember("name"));
       name = value["name"].GetString();
-      assert(value.HasMember("path"));
+      ASSERT(value.HasMember("path"));
       path = value["path"].GetString();
       return true;
     }

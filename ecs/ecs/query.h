@@ -102,6 +102,7 @@ struct QueryLink
   HashedString secondComponentName;
 
   int componentSize = -1;
+  const RegComp *componentDesc = nullptr;
 };
 
 // TODO: Use constexpr QueryDescs in codegen
@@ -426,21 +427,21 @@ struct Query
 
   inline RawInterator iter(int comp_idx)
   {
-    assert(comp_idx >= 0);
+    ASSERT(comp_idx >= 0);
     return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
   }
 
   inline RawInterator iter(const HashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
-    assert(compIdx >= 0);
+    ASSERT(compIdx >= 0);
     return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
   inline RawInterator iter(const ConstHashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
-    assert(compIdx >= 0);
+    ASSERT(compIdx >= 0);
     return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
@@ -448,7 +449,7 @@ struct Query
   inline Interator<T> iter(const ConstHashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
-    assert(compIdx >= 0);
+    ASSERT(compIdx >= 0);
     return Interator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 

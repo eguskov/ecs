@@ -4,37 +4,42 @@
 #include "ecs/entity.h"
 #include "ecs/hash.h"
 
-template <> struct Desc<EntityId> { constexpr static size_t Size = sizeof(EntityId); constexpr static char const* typeName = "EntityId"; constexpr static char const* name = "eid"; };
-template <>
-struct RegCompSpec<EntityId> : RegComp
-{
-  using CompType = EntityId;
-  using CompDesc = Desc<EntityId>;
+// template <> struct Desc<EntityId> { constexpr static size_t Size = sizeof(EntityId); constexpr static char const* typeName = "EntityId"; constexpr static char const* name = "eid"; };
+// template <>
+// struct RegCompSpec<EntityId> : RegComp
+// {
+//   using CompType = EntityId;
+//   using CompDesc = Desc<EntityId>;
 
-  static int ID;
+//   static int ID;
 
-  bool init(uint8_t *mem, const JFrameValue &value) const override final
-  {
-    return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
-  }
+//   bool init(uint8_t *mem, const JFrameValue &value) const override final
+//   {
+//     return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
+//   }
 
-  Storage* createStorage() const override final
-  {
-    return new StorageSpec<CompType>;
-  }
+//   bool equal(uint8_t *lhs, uint8_t *rhs) const override final
+//   {
+//     return (*(T*)lhs) == (*(T*)rhs);
+//   }
 
-  RegCompSpec() : RegComp("eid", sizeof(CompType))
-  {
-    ID = id;
-  }
-};
+//   Storage* createStorage() const override final
+//   {
+//     return new StorageSpec<CompType>;
+//   }
+
+//   RegCompSpec() : RegComp("eid", sizeof(CompType))
+//   {
+//     ID = id;
+//   }
+// };
 
 template <>
 struct Setter<bool>
 {
   static inline bool set(bool &v, const JFrameValue &value)
   {
-    assert(value.IsBool());
+    ASSERT(value.IsBool());
     v = value.GetBool();
     return true;
   }
@@ -45,7 +50,7 @@ struct Setter<int>
 {
   static inline bool set(int &v, const JFrameValue &value)
   {
-    assert(value.IsInt());
+    ASSERT(value.IsInt());
     v = value.GetInt();
     return true;
   }
@@ -56,7 +61,7 @@ struct Setter<float>
 {
   static inline bool set(float &v, const JFrameValue &value)
   {
-    assert(value.IsFloat());
+    ASSERT(value.IsFloat());
     v = value.GetFloat();
     return true;
   }
@@ -67,7 +72,7 @@ struct Setter<glm::vec2>
 {
   static inline bool set(glm::vec2 &vec, const JFrameValue &value)
   {
-    assert(value.IsArray() && value.Size() >= 2);
+    ASSERT(value.IsArray() && value.Size() >= 2);
     vec.x = value[0].GetFloat();
     vec.y = value[1].GetFloat();
     return true;
@@ -79,7 +84,7 @@ struct Setter<glm::vec3>
 {
   static inline bool set(glm::vec3 &vec, const JFrameValue &value)
   {
-    assert(value.IsArray() && value.Size() >= 3);
+    ASSERT(value.IsArray() && value.Size() >= 3);
     vec.x = value[0].GetFloat();
     vec.y = value[1].GetFloat();
     vec.z = value[2].GetFloat();
@@ -92,7 +97,7 @@ struct Setter<glm::vec4>
 {
   static inline bool set(glm::vec4 &vec, const JFrameValue &value)
   {
-    assert(value.IsArray() && value.Size() >= 4);
+    ASSERT(value.IsArray() && value.Size() >= 4);
     vec.x = value[0].GetFloat();
     vec.y = value[1].GetFloat();
     vec.z = value[2].GetFloat();
@@ -106,7 +111,7 @@ struct Setter<EntityId>
 {
   static inline bool set(EntityId &eid, const JFrameValue &value)
   {
-    assert(value.IsInt());
+    ASSERT(value.IsInt());
     eid = value.GetInt();
     return true;
   }
@@ -117,7 +122,7 @@ struct Setter<eastl::string>
 {
   static inline bool set(eastl::string &s, const JFrameValue &value)
   {
-    assert(value.IsString());
+    ASSERT(value.IsString());
     s = value.GetString();
     return true;
   }
@@ -128,12 +133,13 @@ struct Setter<HashedString>
 {
   static inline bool set(HashedString &s, const JFrameValue &value)
   {
-    assert(value.IsString());
+    ASSERT(value.IsString());
     s = hash_str(value.GetString());
     return true;
   }
 };
 
+REG_COMP(EntityId, eid);
 REG_COMP(bool, bool);
 REG_COMP(int, int);
 REG_COMP(float, float);
@@ -144,4 +150,4 @@ REG_COMP(eastl::string, string);
 REG_COMP(HashedString, hash_string);
 
 // TODO: Remove?
-REG_COMP_ARR(glm::vec2, vec2, 2);
+// REG_COMP_ARR(glm::vec2, vec2, 2);

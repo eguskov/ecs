@@ -1,8 +1,7 @@
 #include "scriptQuery.h"
 
 #include <ecs/ecs.h>
-
-#include <assert.h>
+#include <ecs/debug.h>
 
 #include "script.h"
 
@@ -14,7 +13,7 @@ ScriptQuery::Iterator& ScriptQuery::Iterator::operator=(const ScriptQuery::Itera
   chunkIdx = assign.chunkIdx;
   posInChunk = assign.posInChunk;
   sq = assign.sq;
-  assert(sq != nullptr);
+  ASSERT(sq != nullptr);
   return *this;
 }
 
@@ -37,7 +36,7 @@ void ScriptQuery::Iterator::operator++()
 
 void* ScriptQuery::Iterator::get()
 {
-  assert(sq->type != nullptr);
+  ASSERT(sq->type != nullptr);
 
   asIScriptFunction *fn = sq->type->GetFactoryByIndex(0);
   asIScriptObject *object = nullptr;

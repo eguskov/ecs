@@ -17,6 +17,7 @@
     using CompDesc = Desc<type>; \
     static int ID; \
     bool init(uint8_t *, const JFrameValue &) const override final { return true; } \
+    bool equal(uint8_t *, uint8_t *) const override final { return false; } \
     RegCompSpec() : RegComp(#type, sizeof(CompType)) { ID = id; } \
   }; \
 

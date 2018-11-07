@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <ecs/debug.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/array.h>
@@ -144,9 +144,9 @@ namespace script
     factoryDecl += "@ f()";
 
     int r = internal::get_engine()->RegisterObjectType(type, 0, asOBJ_REF | asOBJ_NOCOUNT);
-    assert(r >= 0);
+    ASSERT(r >= 0);
     r = internal::get_engine()->RegisterObjectBehaviour(type, asBEHAVE_FACTORY, factoryDecl.c_str(), asFUNCTION(RawAllocator<T>::alloc), asCALL_CDECL);
-    assert(r >= 0);
+    ASSERT(r >= 0);
 
     return true;
   }

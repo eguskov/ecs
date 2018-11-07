@@ -2,11 +2,7 @@
 
 #include "stdafx.h"
 
-#ifdef _DEBUG
-#define sassert(...) assert(__VA_ARGS__)
-#else
-#define sassert(...)
-#endif
+#include "debug.h"
 
 // TODO: Remove allocation by free. With archtype it's useless here.
 struct Storage
@@ -40,49 +36,49 @@ struct Storage
 
   uint8_t* getRaw(int offset)
   {
-    sassert(dataCached == data());
-    sassert((offset % elemSize) == 0);
-    sassert(freeMask[offset / elemSize] == false);
+    ASSERT(dataCached == data());
+    ASSERT((offset % elemSize) == 0);
+    ASSERT(freeMask[offset / elemSize] == false);
     return &dataCached[offset];
   }
 
   template <typename T>
   const T& get(int offset) const
   {
-    sassert(dataCached == data());
-    sassert((offset % elemSize) == 0);
-    sassert(freeMask[offset / elemSize] == false);
+    ASSERT(dataCached == data());
+    ASSERT((offset % elemSize) == 0);
+    ASSERT(freeMask[offset / elemSize] == false);
     return *(T*)&dataCached[offset];
   }
 
   template <typename T>
   T& get(int offset)
   {
-    sassert(dataCached == data());
-    sassert((offset % elemSize) == 0);
-    sassert(freeMask[offset / elemSize] == false);
+    ASSERT(dataCached == data());
+    ASSERT((offset % elemSize) == 0);
+    ASSERT(freeMask[offset / elemSize] == false);
     return *(T*)&dataCached[offset];
   }
 
   uint8_t* getRawByIndex(int idx)
   {
-    sassert(dataCached == data());
+    ASSERT(dataCached == data());
     return dataCached + (idx * elemSize);
   }
 
   template <typename T>
   const T& getByIndex(int idx) const
   {
-    sassert(dataCached == data());
-    sassert(freeMask[idx] == false);
+    ASSERT(dataCached == data());
+    ASSERT(freeMask[idx] == false);
     return *(T*)&dataCached[idx * elemSize];
   }
 
   template <typename T>
   T& getByIndex(int idx)
   {
-    sassert(dataCached == data());
-    sassert(freeMask[idx] == false);
+    ASSERT(dataCached == data());
+    ASSERT(freeMask[idx] == false);
     return *(T*)&dataCached[idx * elemSize];
   }
 };
@@ -126,7 +122,7 @@ struct StorageSpec final : Storage
   {
     if (lastFreeIndex >= 0)
     {
-      sassert(freeCount > 0);
+      ASSERT(freeCount > 0);
       --freeCount;
       const int i = lastFreeIndex;
       lastFreeIndex = -1;
@@ -147,7 +143,7 @@ struct StorageSpec final : Storage
           return eastl::make_tuple(mem, i * elemSize);
         }
 
-      sassert(false);
+      ASSERT(false);
     }
 
     const int i = nextAllocIndex;
@@ -172,9 +168,9 @@ struct StorageSpec final : Storage
   {
     const int i = offset / elemSize;
 
-    sassert((offset % elemSize) == 0);
-    sassert(i >= 0 && i < totalCount);
-    sassert(freeMask[i] == false);
+    ASSERT((offset % elemSize) == 0);
+    ASSERT(i >= 0 && i < totalCount);
+    ASSERT(freeMask[i] == false);
 
     if (i == totalCount - 1)
       nextAllocIndex = i;

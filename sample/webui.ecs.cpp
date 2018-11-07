@@ -168,7 +168,7 @@ static void send(const char *message, const WSEvent &ev)
 static void send_json_file(const char *name, const char *path, const WSEvent &ev)
 {
   char *buffer = get_file_content(path);
-  assert(buffer != nullptr);
+  ASSERT(buffer != nullptr);
 
   if (buffer)
   {
