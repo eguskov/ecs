@@ -11,8 +11,6 @@
 // TODO: Remove allocation by free. With archtype it's useless here.
 struct Storage
 {
-  eastl::string name;
-
   int freeCount = 0;
   int totalCount = 0;
   int elemSize = 0;

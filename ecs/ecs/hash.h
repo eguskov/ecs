@@ -83,6 +83,8 @@ struct HashedString
     return *this;
   }
 
+  operator bool() const { return hash != 0 && str != nullptr; }
+
   bool operator==(const HashedString &rhs) const { return hash == rhs.hash; }
   bool operator<(const HashedString &rhs) const { return hash < rhs.hash; }
   bool operator>(const HashedString &rhs) const { return hash > rhs.hash; }

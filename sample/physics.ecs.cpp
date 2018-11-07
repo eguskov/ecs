@@ -86,6 +86,8 @@ struct PhysicsWorld
 
   PhysDebugDraw debugDraw;
 
+  void operator=(const PhysicsWorld&) { assert(false); }
+
   bool set(const JFrameValue &value)
   {
     return true;
@@ -114,6 +116,20 @@ struct CollisionShape
   };
 
   eastl::vector<Shape> shapes;
+
+  CollisionShape(CollisionShape &&assign)
+  {
+    *this = eastl::move(assign);
+  }
+
+  void operator=(CollisionShape &&assign)
+  {
+    shapes = eastl::move(assign.shapes);
+  }
+
+  CollisionShape() = default;
+  CollisionShape(const CollisionShape&) { assert(false); }
+  void operator=(const CollisionShape&) { assert(false); }
 
   bool set(const JFrameValue &value)
   {
@@ -144,6 +160,15 @@ struct PhysicsBody
 
   PhysicsBody() = default;
   PhysicsBody(PhysicsBody &&other)
+  {
+    if (body)
+      g_world->DestroyBody(body);
+    type = other.type;
+    body = other.body;
+    other.body = nullptr;
+  }
+
+  void operator=(PhysicsBody &&other)
   {
     if (body)
       g_world->DestroyBody(body);

@@ -75,24 +75,6 @@ RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc) 
   ++reg_query_count;
 }
 
-bool EntityTemplate::hasCompontent(int type_id, int name_id) const
-{
-  assert(name_id >= 0);
-  for (const auto &c : components)
-    if (c.desc->id == type_id && c.nameId == name_id)
-      return true;
-  return false;
-}
-
-int EntityTemplate::getCompontentOffset(int type_id, int name_id) const
-{
-  assert(name_id >= 0);
-  for (const auto &c : components)
-    if (c.desc->id == type_id && c.nameId == name_id)
-      return c.id;
-  return -1;
-}
-
 void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
 {
   ++count;
@@ -173,8 +155,7 @@ void EntityManager::init()
   eidComp = find_comp("eid");
   eidCompId = eidComp->id;
 
-  componentNames.emplace_back() = "eid";
-  componentDescByNames.emplace_back() = eidComp;
+  componentDescByNames[hash::cstr("eid")] = eidComp;
 
   {
     FILE *file = nullptr;
@@ -251,6 +232,7 @@ void EntityManager::init()
     q.stageId = sys.desc->stageId > 0 ? sys.desc->stageId : sys.desc->eventId;
     q.sysId = sys.desc->id;
     q.desc = sys.desc->queryDesc;
+    q.name = hash_str(sys.desc->name);
   }
 
   for (const auto &sys : systems)
@@ -278,42 +260,28 @@ int EntityManager::getSystemWeight(const char *name) const
   return (int)(res - order.begin());
 }
 
-static int add_component_name(eastl::vector<eastl::string> &to, const char *name)
-{
-  auto it = eastl::find(to.begin(), to.end(), name);
-  if (it == to.end())
-  {
-    to.emplace_back(name);
-    return to.size() - 1;
-  }
-  return it - to.begin();
-}
-
-const char* EntityManager::getComponentName(int name_id) const
-{
-  if (name_id >= 0 && name_id < (int)componentNames.size())
-    return componentNames[name_id].c_str();
-  return nullptr;
-}
-
-int EntityManager::getComponentNameId(const char *name) const
-{
-  auto it = eastl::find(componentNames.begin(), componentNames.end(), name);
-  return it == componentNames.end() ? -1 : it - componentNames.begin();
-}
-
 const RegComp* EntityManager::getComponentDescByName(const char *name) const
 {
-  int nameId = getComponentNameId(name);
-  assert(nameId >= 0);
-  return componentDescByNames[nameId];
+  auto res = componentDescByNames.find(hash_str(name));
+  if (res == componentDescByNames.end())
+    return nullptr;
+  return res->second;
+}
+
+const RegComp* EntityManager::getComponentDescByName(const HashedString &name) const
+{
+  auto res = componentDescByNames.find(name);
+  if (res == componentDescByNames.end())
+    return nullptr;
+  return res->second;
 }
 
 const RegComp* EntityManager::getComponentDescByName(const ConstHashedString &name) const
 {
-  int nameId = getComponentNameId(name.str);
-  assert(nameId >= 0);
-  return componentDescByNames[nameId];
+  auto res = componentDescByNames.find(name);
+  if (res == componentDescByNames.end())
+    return nullptr;
+  return res->second;
 }
 
 Query* EntityManager::getQueryByName(const ConstHashedString &name)
@@ -324,54 +292,33 @@ Query* EntityManager::getQueryByName(const ConstHashedString &name)
   return nullptr;
 }
 
-static void add_component_to_template(const char *comp_type, int comp_name_id,
+static void add_component_to_template(const char *comp_type, const HashedString &comp_name,
   EntityTemplate &templ,
-  eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names)
+  eastl::hash_map<HashedString, const RegComp*> &component_desc_by_names)
 {
-  assert(comp_name_id >= 0 && comp_name_id < (int)component_names.size());
-
-  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.nameId == comp_name_id; });
+  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.name == comp_name; });
   if (res != templ.components.end())
     return;
 
-  templ.components.push_back({ 0, comp_name_id, hash_str(component_names[comp_name_id].c_str()), find_comp(comp_type)->size, find_comp(comp_type) });
+  templ.components.push_back({ 0, comp_name, find_comp(comp_type)->size, find_comp(comp_type) });
 
-  if (component_desc_by_names.size() < component_names.size())
-  {
-    const int size = component_names.size();
-    component_desc_by_names.resize(component_names.size());
-    for (int i = size; i < (int)component_names.size(); ++i)
-      component_desc_by_names[i] = nullptr;
-  }
-
-  const int nameId = templ.components.back().nameId;
   const RegComp *desc = templ.components.back().desc;
   assert(desc != nullptr);
-  assert(component_desc_by_names[nameId] == nullptr || component_desc_by_names[nameId] == desc);
-  component_desc_by_names[nameId] = desc;
-}
-
-static void add_component_to_template(const char *comp_type, const char *comp_name,
-  EntityTemplate &templ,
-  eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names)
-{
-  add_component_to_template(comp_type, add_component_name(component_names, comp_name), templ, component_names, component_desc_by_names);
+  assert(component_desc_by_names.find(comp_name) == component_desc_by_names.end() || component_desc_by_names[comp_name] == desc);
+  component_desc_by_names[comp_name] = desc;
 }
 
 static void process_extends(EntityManager *mgr,
   EntityTemplate &templ,
   const eastl::vector<const char*> &extends,
-  eastl::vector<eastl::string> &component_names,
-  eastl::vector<const RegComp*> &component_desc_by_names)
+  eastl::hash_map<HashedString, const RegComp*> &component_desc_by_names)
 {
   for (const auto &e : extends)
   {
     const int templateId = mgr->getTemplateId(e);
     templ.extends.push_back(templateId);
     for (const auto &c : mgr->templates[templateId].components)
-      add_component_to_template(c.desc->name, c.nameId, templ, component_names, component_desc_by_names);
+      add_component_to_template(c.desc->name, c.name, templ, component_desc_by_names);
   }
 }
 
@@ -384,16 +331,16 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   templ.compMask.resize(reg_comp_count);
   templ.compMask.set(reg_comp_count, false);
 
-  process_extends(this, templ, extends, componentNames, componentDescByNames);
+  process_extends(this, templ, extends, componentDescByNames);
 
   for (const auto &name : comp_names)
-    add_component_to_template(name.first, name.second, templ, componentNames, componentDescByNames);
+    add_component_to_template(name.first, name.second, templ, componentDescByNames);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
     [](const CompDesc &lhs, const CompDesc &rhs)
     {
       if (lhs.desc->id == rhs.desc->id)
-        return lhs.nameId < rhs.nameId;
+        return lhs.name < rhs.name;
       return lhs.desc->id < rhs.desc->id;
     });
 
@@ -419,17 +366,15 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   {
     const auto &c = templ.components[compId++];
 
-    storage.storage = componentDescByNames[c.nameId]->createStorage();
+    storage.storage = componentDescByNames[c.name]->createStorage();
     assert(storage != nullptr);
 
-    storage.name = hash_str(componentNames[c.nameId].c_str());
-    storage->name = componentNames[c.nameId];
-    storage->elemSize = componentDescByNames[c.nameId]->size;
+    storage.name = c.name;
+    storage->elemSize = componentDescByNames[c.name]->size;
   }
 
   type.storages.emplace_back().storage = eidComp->createStorage();
   type.storages.back().name = hash::cstr("eid");
-  type.storages.back()->name = eidComp->name;
   type.storages.back()->elemSize = eidComp->size;
 }
 
@@ -547,6 +492,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
   e.ready = true;
 
   archetypes[e.archetypeId].entitiesCount++;
+  if (archetypes[e.archetypeId].entitiesCount > archetypes[e.archetypeId].entitiesCapacity)
+  archetypes[e.archetypeId].entitiesCapacity = archetypes[e.archetypeId].entitiesCount;
 
   int compId = 0;
   auto &type = archetypes[templ.archetypeId];
@@ -556,7 +503,7 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
     int offset = 0;
     eastl::tie(mem, offset) = type.storages[compId++]->allocate();
 
-    c.desc->init(mem, tmpValue[getComponentName(c.nameId)]);
+    c.desc->init(mem, tmpValue[c.name.str]);
   }
 
   // eid
@@ -684,11 +631,15 @@ void EntityManager::tick()
       eastl::tie(header, ev) = events[streamIndex].pop();
 
       if (header.flags & EventStream::kBroadcast)
+      {
         sendEventBroadcastSync(header.eventId, ev);
+        tick(DispatchBroadcastEventStage{ header.eventId, ev });
+      }
       else
+      {
         sendEventSync(header.eid, header.eventId, ev);
-
-      tick(DispatchEventStage{ header.eid, header.eventId, ev });
+        tick(DispatchEventStage{ header.eid, header.eventId, ev });
+      }
     }
 
     checkFrameSnapshot(snapshot);
@@ -783,21 +734,25 @@ void EntityManager::invalidateQuery(Query &query)
 
     if (ok)
     {
-      int begin = -1;
-      for (int i = 0; i < type.entitiesCount; ++i)
-      {
-        ok = true;
+      assert(type.entitiesCapacity == type.storages[0].storage->totalCount);
 
-        for (const auto &c : query.desc.isTrueComponents)
-        {
-          const int compIdx = type.getComponentIndex(c.name);
-          auto &storage = type.storages[compIdx];
-          if (!storage->getByIndex<bool>(i))
+      int begin = -1;
+      for (int i = 0; i < type.entitiesCapacity; ++i)
+      {
+        // TODO: Find a better solution
+        ok = !type.storages[0].storage->freeMask[i];
+
+        if (ok)
+          for (const auto &c : query.desc.isTrueComponents)
           {
-            ok = false;
-            break;
+            const int compIdx = type.getComponentIndex(c.name);
+            auto &storage = type.storages[compIdx];
+            if (!storage->getByIndex<bool>(i))
+            {
+              ok = false;
+              break;
+            }
           }
-        }
 
         if (ok)
           for (const auto &c : query.desc.isFalseComponents)
@@ -811,18 +766,18 @@ void EntityManager::invalidateQuery(Query &query)
             }
           }
 
-        if (begin < 0)
+        if (ok && begin < 0)
           begin = i;
 
-        if (!ok || i == type.entitiesCount - 1)
+        if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
         {
-          const int componentsCount = query.desc.components.size();
+          const int entitiesInChunk = i - begin + (ok ? 1 : 0);
 
           ++query.chunksCount;
-          query.entitiesCount += i - begin + 1;
-          query.chunks.resize(query.chunks.size() + componentsCount);
+          query.entitiesCount += entitiesInChunk;
+          query.chunks.resize(query.chunks.size() + query.componentsCount + 1);
           query.entitiesInChunk.resize(query.chunksCount);
-          query.entitiesInChunk[query.chunksCount - 1] = i - begin + 1;
+          query.entitiesInChunk[query.chunksCount - 1] = entitiesInChunk;
 
           int compIdx = 0;
           for (const auto &c : query.desc.components)
@@ -831,11 +786,18 @@ void EntityManager::invalidateQuery(Query &query)
 
             QueryChunk chunk;
             chunk.beginData = storage->getRawByIndex(begin);
-            chunk.endData = storage->getRawByIndex(i + 1);
+            chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
 
-            query.chunks[compIdx + (query.chunksCount - 1) * componentsCount] = chunk;
+            query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
             compIdx++;
           }
+
+          auto &storage = type.storages[type.getComponentIndex(hash::cstr("eid"))];
+
+          QueryChunk chunk;
+          chunk.beginData = storage->getRawByIndex(begin);
+          chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
+          query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
 
           begin = -1;
         }
@@ -905,6 +867,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
+  assert(!(eid == kInvalidEid));
   events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
 }
 

@@ -54,9 +54,6 @@ struct EntityTemplate
   eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
   eastl::vector<int> extends;
-
-  bool hasCompontent(int type_id, int name_id) const;
-  int getCompontentOffset(int type_id, int name_id) const;
 };
 
 template <typename T>
@@ -140,6 +137,7 @@ struct Archetype
   };
 
   int entitiesCount = 0;
+  int entitiesCapacity = 0;
   eastl::vector<StorageDesc> storages;
 
   ~Archetype()
@@ -176,8 +174,7 @@ struct EntityManager
   eastl::vector<EntityTemplate> templates;
   eastl::vector<Archetype> archetypes;
   eastl::vector<Entity> entities;
-  eastl::vector<eastl::string> componentNames;
-  eastl::vector<const RegComp*> componentDescByNames;
+  eastl::hash_map<HashedString, const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
@@ -201,9 +198,8 @@ struct EntityManager
   void init();
 
   int getSystemWeight(const char *name) const;
-  int getComponentNameId(const char *name) const;
-  const char* getComponentName(int name_id) const;
   const RegComp* getComponentDescByName(const char *name) const;
+  const RegComp* getComponentDescByName(const HashedString &name) const;
   const RegComp* getComponentDescByName(const ConstHashedString &name) const;
 
   Query* getQueryByName(const ConstHashedString &name);

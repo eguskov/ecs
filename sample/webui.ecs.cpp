@@ -216,31 +216,31 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
-        c.name = g_mgr->getComponentName(comp.nameId);
+        c.name = comp.name.str;
       }
       for (const auto &comp : sys.queryDesc.haveComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
-        c.name = g_mgr->getComponentName(comp.nameId);
+        c.name = comp.name.str;
       }
       for (const auto &comp : sys.queryDesc.notHaveComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
-        c.name = g_mgr->getComponentName(comp.nameId);
+        c.name = comp.name.str;
       }
       for (const auto &comp : sys.queryDesc.isTrueComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
-        c.name = g_mgr->getComponentName(comp.nameId);
+        c.name = comp.name.str;
       }
       for (const auto &comp : sys.queryDesc.isFalseComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
-        c.name = g_mgr->getComponentName(comp.nameId);
+        c.name = comp.name.str;
       }
     }
   });
@@ -255,8 +255,8 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
 
       bson_array_of_documents(bson, "components", templ.components, [&](int, const CompDesc &comp)
       {
-        bson.add("name", g_mgr->getComponentName(comp.nameId));
         bson.add("type", comp.desc->name);
+        bson.add("name", comp.name.str);
       });
     });
 

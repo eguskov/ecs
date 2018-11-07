@@ -47,7 +47,7 @@ void* ScriptQuery::Iterator::get()
   for (const auto &c : sq->query->desc.components)
   {
     uint8_t *data = sq->query->chunks[compIdx + chunkIdx * sq->query->componentsCount].beginData;
-    void *prop = object->GetAddressOfProperty(compIdx);
+    void *prop = object->GetAddressOfProperty(compIdx++);
     *(uint8_t **)prop = data + posInChunk * c.size;
   }
 
@@ -63,6 +63,8 @@ ScriptQuery::Iterator ScriptQuery::perform()
 
 asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type)
 {
+  // TODO: Reuse asIScriptObject *object;
+  // TODO: Inject as SoA. Query result can be stored as Struct of Array in the script.
   asIScriptFunction *fn = type->GetFactoryByIndex(0);
   asIScriptObject *object = nullptr;
   callValue<asIScriptObject*>([&](asIScriptObject **obj) { object = *obj; object->AddRef(); }, fn);
@@ -70,20 +72,11 @@ asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl:
   const auto &entity = g_mgr->entities[eid.index];
   auto &archetype = g_mgr->archetypes[entity.archetypeId];
 
+  int compIdx = 0;
   for (const auto &c : components)
   {
-    bool ok = false;
-    for (const auto &s : archetype.storages)
-    {
-      if (c.name == s.name)
-      {
-        ok = true;
-        void *prop = object->GetAddressOfProperty(c.id);
-        *(uint8_t **)prop = s.storage->getRawByIndex(entity.indexInArchetype);
-        break;
-      }
-    }
-    assert(ok);
+    void *prop = object->GetAddressOfProperty(compIdx++);
+    *(uint8_t **)prop = archetype.storages[archetype.getComponentIndex(c.name)]->getRawByIndex(entity.indexInArchetype);
   }
 
   return object;

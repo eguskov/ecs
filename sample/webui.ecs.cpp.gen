@@ -62,9 +62,9 @@ static RegQuery _reg_query_AllScriptsQuery(hash::cstr("webui.ecs.cpp_AllScriptsQ
 template <typename C> void AllScriptsQuery::exec(C callback)
 {
   auto &query = *g_mgr->getQueryByName(hash::cstr("webui.ecs.cpp_AllScriptsQuery"));
+  static constexpr int compIdx_script = index_of_component<_countof(AllScriptsQuery_components)>::get(hash::cstr("script"), AllScriptsQuery_components);
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    const int compIdx_script = query.desc.getComponentIndex(hash::cstr("script"));
     QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
@@ -74,10 +74,10 @@ template <typename C> void AllScriptsQuery::exec(C callback)
 
 template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
+  static constexpr int compIdx_eid = index_of_component<_countof(init_websocket_server_handler_components)>::get(hash::cstr("eid"), init_websocket_server_handler_components);
+  static constexpr int compIdx_ws_server = index_of_component<_countof(init_websocket_server_handler_components)>::get(hash::cstr("ws_server"), init_websocket_server_handler_components);
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    const int compIdx_eid = query.desc.getComponentIndex(hash::cstr("eid"));
-    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
     QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
     QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
     auto it_eid = chunk_eid.begin<EntityId>();
@@ -89,9 +89,9 @@ template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_se
 
 template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_server)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
+  static constexpr int compIdx_ws_server = index_of_component<_countof(update_websocket_server_components)>::get(hash::cstr("ws_server"), update_websocket_server_components);
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
     QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
     auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_ws_server)
@@ -101,9 +101,9 @@ template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_
 
 template <> __forceinline void RegSysSpec<2741717703, decltype(ws_get_ecs_data)>::execImpl(const RawArg &stage_or_event, Query &query) const
 {
+  static constexpr int compIdx_ws_server = index_of_component<_countof(ws_get_ecs_data_components)>::get(hash::cstr("ws_server"), ws_get_ecs_data_components);
   for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
   {
-    const int compIdx_ws_server = query.desc.getComponentIndex(hash::cstr("ws_server"));
     QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
     auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_ws_server)

@@ -36,11 +36,22 @@ DEF_COMP(UserInput, user_input);
 struct TextureAtlas
 {
   eastl::string path;
-  eastl::weak_ptr<Texture2D> id;
+  Texture2D id;
 
   TextureAtlas() = default;
-  TextureAtlas(TextureAtlas &&other) = default;
-  ~TextureAtlas() = default;
+  TextureAtlas(TextureAtlas &&assign)
+  {
+    path = eastl::move(assign.path);
+    id = assign.id;
+    assign.id = Texture2D {};
+  }
+
+  void operator=(TextureAtlas &&assign)
+  {
+    path = eastl::move(assign.path);
+    id = assign.id;
+    assign.id = Texture2D {};
+  }
 
   TextureAtlas(const TextureAtlas&) { assert(false); }
   void operator=(const TextureAtlas&) { assert(false); }
@@ -65,6 +76,8 @@ struct AnimGraph
   };
 
   eastl::hash_map<eastl::string, Node> nodesMap;
+
+  void operator=(const AnimGraph&) { assert(false); }
 
   bool set(const JFrameValue &value)
   {
@@ -95,6 +108,8 @@ struct AnimState
   double startTime = -1.0;
   eastl::string currentNode;
 
+  void operator=(const AnimState&) { assert(false); }
+
   bool set(const JFrameValue &value)
   {
     currentNode = value["node"].GetString();
@@ -119,11 +134,11 @@ static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, Te
   if (it == texture_map.end())
   {
     auto id = eastl::make_shared<Texture2D>(LoadTexture(texture.path.c_str()));
-    texture.id = id;
+    texture.id = *id.get();
     texture_map[texture.path] = id;
   }
   else
-    texture.id = it->second;
+    texture.id = *it->second.get();
 }
 
 DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
@@ -183,7 +198,7 @@ static __forceinline void render_walls(
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(*texture.id.lock(), Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
 DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive))
@@ -196,7 +211,7 @@ static __forceinline void render_normal(
 {
   const float hw = screen_width * 0.5f;
   const float hh = screen_height * 0.5f;
-  DrawTextureRec(*texture.id.lock(), Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
 }
 
 //DEF_SYS()

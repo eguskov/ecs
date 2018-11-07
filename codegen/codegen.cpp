@@ -686,59 +686,6 @@ int main(int argc, char* argv[])
       }, ", ");
     };
 
-    auto seq = [](int count)
-    {
-      eastl::vector<int> vec;
-      vec.resize(count);
-      for (int i = 0; i < count; ++i)
-        vec[i] = i;
-
-      return utils::join(vec, ", ");
-    };
-
-    auto argIdSeq = [](int count)
-    {
-      eastl::vector<eastl::string> vec;
-      vec.resize(count);
-      for (int i = 0; i < count; ++i)
-      {
-        std::ostringstream oss;
-        // oss << "RegCompSpec<Argument<" << i << ">::PureType>::ID";
-        oss << "components[" << i << "].nameId";
-        vec[i].assign(oss.str().c_str());
-      }
-
-      return utils::join(vec, ", ");
-    };
-
-    auto argOffsetSeq = [](int count, const char *prefix = "")
-    {
-      eastl::vector<eastl::string> vec;
-      vec.resize(count);
-      for (int i = 0; i < count; ++i)
-      {
-        std::ostringstream oss;
-        oss << "get_offset(remap[" << i << "], offsets)";
-        vec[i].assign(oss.str().c_str());
-      }
-
-      return utils::join(vec, ", ");
-    };
-
-    auto valuesSeq = [](int count, const char *prefix = "")
-    {
-      eastl::vector<eastl::string> vec;
-      vec.resize(count);
-      for (int i = 0; i < count; ++i)
-      {
-        std::ostringstream oss;
-        oss << "Value<" << prefix << "Argument<" << i << ">::Type, " << prefix << "Argument<" << i << ">::valueType>::get(args, storage, argId[" << i << "], argOffset[" << i << "])";
-        vec[i].assign(oss.str().c_str());
-      }
-
-      return utils::join(vec, ", ");
-    };
-
     for (const auto &sys : state.systems)
     {
       if (sys.parameters.size() > 1)
@@ -892,14 +839,14 @@ int main(int argc, char* argv[])
       out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
       out << "{" << std::endl;
       out << "  auto &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
-      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
-      out << "  {" << std::endl;
-
       for (int i = 0; i < (int)q.parameters.size(); ++i)
       {
         const auto &p = q.parameters[i];
-        out << "    const int compIdx_" << p.name << " = query.desc.getComponentIndex(hash::cstr(\"" << p.name << "\"));" << std::endl;
+        out << "  static constexpr int compIdx_" << p.name << " = index_of_component<_countof(" << q.name << "_components)>::get(hash::cstr(\"" << p.name << "\"), " << q.name << "_components);" << std::endl;
       }
+      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
+      out << "  {" << std::endl;
+
       for (int i = 0; i < (int)q.parameters.size(); ++i)
       {
         const auto &p = q.parameters[i];
@@ -938,14 +885,14 @@ int main(int argc, char* argv[])
     {
       out << "template <> __forceinline void RegSysSpec<" << hash::fnv1<uint32_t>::hash(sys.name.c_str()) << ", decltype(" << sys.name << ")>::execImpl(const RawArg &stage_or_event, Query &query) const" << std::endl;
       out << "{" << std::endl;
-      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
-      out << "  {" << std::endl;
-
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
         const auto &p = sys.parameters[i];
-        out << "    const int compIdx_" << p.name << " = query.desc.getComponentIndex(hash::cstr(\"" << p.name << "\"));" << std::endl;
+        out << "  static constexpr int compIdx_" << p.name << " = index_of_component<_countof(" << sys.name << "_components)>::get(hash::cstr(\"" << p.name << "\"), " << sys.name << "_components);" << std::endl;
       }
+      out << "  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)" << std::endl;
+      out << "  {" << std::endl;
+
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
         const auto &p = sys.parameters[i];

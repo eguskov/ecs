@@ -36,3 +36,9 @@ static __forceinline void dispatch_event_script(const DispatchEventStage &stage,
 {
   script.scriptECS.sendEventSync(stage.eid, stage.eventId, stage.ev);
 }
+
+DEF_SYS()
+static __forceinline void dispatch_broadcast_event_script(const DispatchBroadcastEventStage &stage, script::ScriptComponent &script)
+{
+  script.scriptECS.sendBroadcastEventSync(stage.eventId, stage.ev);
+}

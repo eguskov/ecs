@@ -18,10 +18,32 @@ class Enemy
   const EntityId@ eid;
 }
 
+[query { "$have": [ "trigger" ] }]
+class Trigger
+{
+  const EntityId@ eid;
+}
+
+[query { "$have": [ "action" ] }]
+class Action
+{
+  const EntityId@ eid;
+}
+
 void create_level()
 {
   int w = 0;
   Array@ pattern = get_level(w);
+
+  create_entity("enable-lift-action", Map = {
+    {"key", "enable-lift-1"},
+    {"lift_key", "go-up-lift"}
+  });
+
+  create_entity("enable-lift-action", Map = {
+    {"key", "enable-lift-2"},
+    {"lift_key", "go-down-lift"}
+  });
 
   for (int i = 0; i < pattern.size(); ++i)
   {
@@ -118,6 +140,20 @@ void reload()
   }
 
   for (auto it = Query<Enemy>().perform(); it.hasNext(); ++it)
+  {
+    auto @block = it.get();
+    ++count;
+    delete_entity(block.eid);
+  }
+
+  for (auto it = Query<Action>().perform(); it.hasNext(); ++it)
+  {
+    auto @block = it.get();
+    ++count;
+    delete_entity(block.eid);
+  }
+
+  for (auto it = Query<Trigger>().perform(); it.hasNext(); ++it)
   {
     auto @block = it.get();
     ++count;

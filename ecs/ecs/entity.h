@@ -11,10 +11,10 @@ struct EntityId
       uint32_t index : 16;
       uint32_t generation : 16;
     };
-    uint32_t handle = 0;
+    uint32_t handle = 0xFFFFFFFF;
   };
 
-  EntityId(uint32_t h = 0) : handle(h) {}
+  EntityId(uint32_t h = 0xFFFFFFFF) : handle(h) {}
   bool operator==(const EntityId &rhs) const { return handle == rhs.handle; }
 };
 
@@ -29,3 +29,5 @@ inline int eid2idx(EntityId eid)
 }
 
 using EntityVector = eastl::vector<EntityId>;
+
+constexpr uint32_t kInvalidEid = 0xFFFFFFFF;

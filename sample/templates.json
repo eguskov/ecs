@@ -14,6 +14,7 @@
     "reload_script_handler",
     "build_script_handler",
     "update_script_query",
+    "dispatch_broadcast_event_script",
     "dispatch_event_script",
     "process_on_kill_event",
     "load_texture_handler",
@@ -1135,6 +1136,10 @@
     {
       "$name": "trigger",
       "$components": {
+        "trigger": {
+          "$type": "tag",
+          "$value": {}
+        },
         "key": {
           "$type": "hash_string",
           "$value": ""
@@ -1204,6 +1209,10 @@
     {
       "$name": "action",
       "$components": {
+        "action": {
+          "$type": "tag",
+          "$value": {}
+        },
         "key": {
           "$type": "hash_string",
           "$value": ""
@@ -1227,7 +1236,7 @@
         "lift_key": {
           "$type": "hash_string",
           "$value": ""
-        },
+        }
       }
     }
   ]

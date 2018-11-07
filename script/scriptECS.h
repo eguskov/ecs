@@ -39,7 +39,7 @@ namespace script
     asIScriptContext *stageCtx = nullptr;
 
     eastl::vector<ScriptSys> systems;
-    eastl::vector<Query> systemQueries;
+    eastl::vector<JoinQuery> systemQueries;
 
     eastl::hash_map<TypeId, Query> dataQueries;
 
@@ -57,6 +57,7 @@ namespace script
     void invalidateQueries();
 
     void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
+    void sendBroadcastEventSync(int event_id, const RawArg &ev);
     void tickStage(int stage_id, const RawArg &stage);
 
     template <typename S>

@@ -129,8 +129,7 @@ struct Setter<HashedString>
   static inline bool set(HashedString &s, const JFrameValue &value)
   {
     assert(value.IsString());
-    s.hash = hash::fnv1<uint32_t>::hash(value.GetString());
-    s.str = value.GetString();
+    s = hash_str(value.GetString());
     return true;
   }
 };
