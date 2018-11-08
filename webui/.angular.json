@@ -25,7 +25,7 @@
             ],
             "styles": [
               "app/assets/styles.css",
-              "./node_modules/@swimlane/ngx-ui/release/index.css",
+              "./node_modules/@swimlane/ngx-ui/index.css",
               "./node_modules/@swimlane/ngx-datatable/src/themes/bootstrap.scss"
             ],
             "scripts": []

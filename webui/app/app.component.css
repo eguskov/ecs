@@ -1,3 +1,41 @@
+.app {
+  display: flex;
+  flex-flow: row nowrap;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.app .navigation {
+  display: flex;
+  flex-shrink: 0;
+  position: relative;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  overflow: auto;
+}
+
+.app .main {
+  display: flex;
+  flex-grow: 1;
+  position: relative;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  overflow: auto;
+  width: 100%;
+  /* padding-top: 50px; */
+}
+
+.app .main .page {
+  width: 100%;
+  padding: 1.8em;
+  margin-bottom: 2em;
+}
+
 .online {
   color: green;
   font-weight: bold;
@@ -38,11 +76,12 @@
 }
 
 .ngx-tabs {
-  margin-bottom: 10px !important;
+  width: 100%;
+  /* margin-bottom: 10px !important; */
 }
 
 .ngx-tab-content {
-  padding-bottom: 0px !important;
+  /* padding-bottom: 0px !important; */
 }
 
 .pl-1 { padding-left: 1.8em }
@@ -52,3 +91,6 @@
 
 .ml-1 { margin-left: 1.8em }
 .mt-1 { margin-top: 1.8em }
+
+.mb-0 { margin-bottom: 0 !important; }
+.pb-0 { padding-bottom: 0 !important; }

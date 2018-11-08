@@ -121,6 +121,46 @@ export class AppService implements IMessageListener
 
     this._ecsTemplates.forEach(t =>
     {
+      t.$allComponents = Object.assign({}, t.$components);
+      const processExtends = (templ) =>
+      {
+        if (!templ.$extends)
+          return;
+        for (let e of templ.$extends)
+        {
+          let parent = this._ecsTemplates.find(t => t.$name == e);
+          for (let k in parent.$components)
+          {
+            if (t.$allComponents[k] === undefined)
+            {
+              t.$allComponents[k] = Object.assign({}, parent.$components[k]);
+            }
+          }
+          processExtends(parent);
+        }
+      };
+      processExtends(t);
+
+
+      t.$tags = [];
+      for (let k in t.$allComponents)
+      {
+        if (t.$allComponents[k].$type === 'tag')
+        {
+          t.$tags.push(k);
+        }
+        t.$allComponents[k].$valueStr = JSON.stringify(t.$allComponents[k].$value, null, 2);
+      }
+      t.$tags.sort();
+      for (let tag of t.$tags)
+      {
+        delete t.$allComponents[tag];
+      }
+
+      t.$allComponentsNames = Object.keys(t.$allComponents).sort();
+
+      console.log(t.$tags);
+
       for (let k in t.$components)
       {
         let c = t.$components[k];

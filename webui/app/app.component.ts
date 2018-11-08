@@ -1,14 +1,432 @@
-import { Component, OnInit, AfterViewInit, NgZone, ViewChild, ElementRef, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, AfterViewInit, NgZone, ViewChild, ElementRef, OnDestroy, ViewEncapsulation, HostListener, TemplateRef } from '@angular/core';
 
 import { StreamService } from './core/stream.service';
 import { CoreService } from './core/core.service';
 import { AppService, ECSTemplate, ECSSystem } from './app.service';
 import { Subscription } from 'rxjs/Subscription';
+import { Hotkey, DrawerService } from '@swimlane/ngx-ui';
 
 enum TemplateOrientation
 {
   kLeft,
   kRight
+}
+
+const ENTITY_EDITOR_WIDTH = /* 300 */ 0;
+const GRID_WIDTH = 48.0;
+const GRID_HEIGHT = 48.0;
+
+function clone(obj)
+{
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function isEqual(a, b): boolean
+{
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+@Component({
+  selector: 'entity-editor',
+  template:`
+    <h2>Components</h2>
+  `,
+  styleUrls: ['./app.component.css'],
+  encapsulation: ViewEncapsulation.None
+})
+export class EntityEditorComponent implements OnInit, OnDestroy
+{
+  constructor(public appService: AppService, private streamService: StreamService, public coreService: CoreService, private zone: NgZone)
+  {
+  }
+
+  ngOnInit(): void
+  {
+  }
+
+  ngOnDestroy(): void
+  {
+  }
+}
+
+@Component({
+  selector: 'level-editor',
+  template:`
+    <ng-template #editEntityTemplate>
+      <ngx-toolbar
+        [title]="'Edit Entity'">
+      </ngx-toolbar>
+      <section class="section mb-0 pb-0">
+        <button type="button" class="btn btn-primary" (click)="onSaveEntity($event)">Save</button>
+        <button type="button" class="btn btn-bordered ml-1" (click)="onCancelEntity($event)">Cancel</button>
+      </section>
+      <section class="section">
+        <ngx-select
+          [ngModel]="[selectedTemplate]"
+          (ngModelChange)="onSelectTemplate($event)"
+          label="Select a template">
+          <ngx-select-option *ngFor="let templ of appService.ecsTemplates" [name]="templ.$name" [value]="templ">
+          </ngx-select-option>
+        </ngx-select>
+        <div *ngIf="selectedTemplate">
+          <ngx-section *ngFor="let cn of selectedTemplate.$allComponentsNames"
+            class="shadow"
+            [sectionTitle]="cn"
+            [sectionCollapsed]="true">
+            <ngx-codemirror [(ngModel)]="selectedTemplate.$allComponents[cn].$valueStr" [config]="editorConfig">
+            </ngx-codemirror>
+          </ngx-section>
+        </div>
+      </section>
+    </ng-template>
+
+    <canvas #editorCanvas
+      width="1280"
+      height="680"
+      class="glow-blue-100"
+      (mouseleave)="onMouseLeave($event)"
+      (mousedown)="onMouseDown($event)"
+      (mouseup)="onMouseUp($event)"
+      (mousemove)="onMouseMove($event)"
+      (click)="onClick($event)"></canvas>
+  `,
+  styleUrls: ['./app.component.css'],
+  encapsulation: ViewEncapsulation.None
+})
+export class LevelEditorComponent implements OnInit, OnDestroy
+{
+  @ViewChild('editEntityTemplate') editEntityTemplate: TemplateRef<any>;
+
+  @ViewChild('editorRoot') root: ElementRef;
+  @ViewChild('editorCanvas') canvas: ElementRef;
+
+  ctx: CanvasRenderingContext2D = null;
+  width: number = 0;
+  height: number = 0;
+
+  selectedTemplate: any = null;
+
+  editorConfig = {
+    lineNumbers: true,
+    theme: 'dracula',
+    mode: {
+      name: 'json',
+      json: true
+    }
+  };
+
+  private _entites = [];
+  private _currentEntity: any = { $template: '', $components: {} };
+  private _lastEntity: any;
+
+  constructor(public appService: AppService, private streamService: StreamService, public coreService: CoreService, private zone: NgZone, private drawerService: DrawerService)
+  {
+    this._draw = this._draw.bind(this);
+  }
+
+  ngOnInit(): void
+  {
+  }
+
+  ngOnDestroy(): void
+  {
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event)
+  {
+    this.resize();
+  }
+
+  resize()
+  {
+    const body = document.querySelector('body');
+    const header = document.querySelector('.ngx-tabs-list');
+    (<HTMLCanvasElement>this.canvas.nativeElement).width = body.offsetWidth - ENTITY_EDITOR_WIDTH - 20;
+    (<HTMLCanvasElement>this.canvas.nativeElement).height = body.offsetHeight - header.clientHeight - 40;
+
+    this.width = (<HTMLCanvasElement>this.canvas.nativeElement).width;
+    this.height = (<HTMLCanvasElement>this.canvas.nativeElement).height;
+
+    this._drawX = 0.5 * this.width;
+    this._drawY = 0.5 * this.height;
+
+    console.log(`Context for LevelEditor is ready: ${this.width} x ${this.height}`);
+  }
+
+  ngAfterViewInit()
+  {
+    this.ctx = this.canvas.nativeElement.getContext('2d');
+
+    this.resize();
+
+    if (this.ctx)
+      this._draw();
+  }
+
+  _draw()
+  {
+    this.zone.runOutsideAngular(() =>
+    {
+      this.draw();
+      requestAnimationFrame(this._draw);
+    });
+  }
+
+  drawGrid()
+  {
+    let x = this._drawX;
+    let y = this._drawY;
+    while (x > 0)
+    {
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0.0);
+      this.ctx.lineTo(x, 0.0 + this.height);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      this.ctx.stroke();
+
+      x -= GRID_WIDTH;
+    }
+    while (y > 0)
+    {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0.0, y);
+      this.ctx.lineTo(0.0 + this.width, y);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      this.ctx.stroke();
+
+      y -= GRID_WIDTH;
+    }
+    x = this._drawX + GRID_WIDTH;
+    y = this._drawY + GRID_HEIGHT;
+    while (x < this.width)
+    {
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0.0);
+      this.ctx.lineTo(x, 0.0 + this.height);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      this.ctx.stroke();
+
+      x += GRID_WIDTH;
+    }
+    while (y < this.height)
+    {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0.0, y);
+      this.ctx.lineTo(0.0 + this.width, y);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      this.ctx.stroke();
+
+      y += GRID_WIDTH;
+    }
+
+    this.ctx.beginPath();
+    this.ctx.arc(this._drawX, this._drawY, 5, 0, 2 * Math.PI);
+    this.ctx.fillStyle = 'rgb(255, 255, 255, 0.1)';
+    this.ctx.fill();
+  }
+
+  private _gridX = 0;
+  private _gridY = 0;
+
+  draw()
+  {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.drawGrid();
+
+    if (this._addEntity || this._addLastEntity)
+    {
+      const x = this._drawX + 0.5 * GRID_WIDTH + Math.floor((this._mouseX - this._drawX) / GRID_WIDTH) * GRID_WIDTH;
+      const y = this._drawY + 0.5 * GRID_HEIGHT + Math.floor((this._mouseY - this._drawY) / GRID_HEIGHT) * GRID_HEIGHT;
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      this.ctx.fillStyle = this._addLastEntity ? 'rgb(0, 0, 255)' : 'rgb(255, 0, 0)';
+      this.ctx.fill();
+
+      this.ctx.font = '12pt Calibri';
+      this.ctx.textBaseline = 'top';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillStyle = 'rgb(255, 255, 255)';
+      if (this._addLastEntity)
+      {
+        this.ctx.fillText(`${this.selectedTemplate.$name} (${this._gridX}, ${this._gridY})`, x, y + 5);
+      }
+      else
+      {
+        this.ctx.fillText(`(${this._gridX}, ${this._gridY})`, x, y + 5);
+      }
+    }
+
+    for (let e of this._entites)
+    {
+      const x = this._drawX + e.$components.pos[0];
+      const y = this._drawY + e.$components.pos[1];
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      this.ctx.fillStyle = 'rgb(0, 255, 0)';
+      this.ctx.fill();
+
+      // TODO: Draw on hover
+      this.ctx.font = '8pt Calibri';
+      this.ctx.textBaseline = 'top';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillStyle = 'rgb(255, 255, 255)';
+      this.ctx.fillText(`${e.$template}`, x, y + 5);
+    }
+  }
+
+  private _editEntityDrawer: any;
+
+  onClick($event: MouseEvent)
+  {
+    if (this._skipNextClick)
+    {
+      this._skipNextClick = false;
+      return;
+    }
+
+    const clickX = $event.offsetX;
+    const clickY = $event.offsetY;
+
+    if (this._addEntity)
+    {
+      this._addEntity = false;
+      this._entityPosX = this._gridX;
+      this._entityPosY = this._gridY;
+      this._currentEntity = { $template: '', $components: {} };
+
+      this._editEntityDrawer = this.drawerService.create({
+        direction: 'bottom',
+        template: this.editEntityTemplate,
+        size: 80.0,
+        context: 'Alert Everyone!'
+      });
+    }
+    if (this._addLastEntity)
+    {
+      this._addLastEntity = false;
+      this._currentEntity = clone(this._lastEntity);
+      this._currentEntity.$components.pos = [ this._gridX, this._gridY ];
+      this._entites.push(this._currentEntity);
+      this._currentEntity = { $template: '', $components: {} };
+    }
+  }
+
+  private _drawX = 10;
+  private _drawY = 10;
+
+  private _drag = false;
+  private _skipNextClick = false;
+  private _dragX = 0;
+  private _dragY = 0;
+
+  private _mouseX = 0;
+  private _mouseY = 0;
+
+  private _dragDistX = 0;
+  private _dragDistY = 0;
+
+  onMouseDown($event: MouseEvent)
+  {
+    this._drag = true;
+    this._dragX = $event.offsetX;
+    this._dragY = $event.offsetY;
+  }
+
+  onMouseMove($event: MouseEvent)
+  {
+    this._mouseX = $event.offsetX;
+    this._mouseY = $event.offsetY;
+
+    this._gridX = 0.5 * GRID_WIDTH + Math.floor((this._mouseX - this._drawX) / GRID_WIDTH) * GRID_WIDTH;
+    this._gridY = 0.5 * GRID_HEIGHT + Math.floor((this._mouseY - this._drawY) / GRID_HEIGHT) * GRID_HEIGHT;
+
+    if (this._drag)
+    {
+      const dx = $event.offsetX - this._dragX;
+      const dy = $event.offsetY - this._dragY;
+
+      this._drawX += dx;
+      this._drawY += dy;
+
+      this._dragX = $event.offsetX;
+      this._dragY = $event.offsetY;
+
+      this._dragDistX += dx;
+      this._dragDistY += dy;
+      if (Math.abs(this._dragDistX) > 1 || Math.abs(this._dragDistY))
+      {
+        this._skipNextClick = true;
+      }
+    }
+  }
+
+  onMouseUp($event: MouseEvent)
+  {
+    this._drag = false;
+  }
+
+  onMouseLeave($event: MouseEvent)
+  {
+    this._drag = false;
+  }
+
+  private _addEntity = false;
+  private _addLastEntity = false;
+  private _entityPosX = 0;
+  private _entityPosY = 0;
+
+  startAddEntity()
+  {
+    this._addEntity = true;
+  }
+
+  startAddLastEntity()
+  {
+    if (this.selectedTemplate)
+      this._addLastEntity = true;
+  }
+
+  onSelectTemplate($event)
+  {
+    this.selectedTemplate = $event[0];
+
+    this._currentEntity = { $template: '', $components: {} };
+
+    for (let k in this.selectedTemplate.$allComponents)
+    {
+      this._currentEntity.$components[k] = this.selectedTemplate.$allComponents[k].$value;
+    }
+  }
+
+  onSaveEntity($event)
+  {
+    // TODO: Read values from CodeMirrior
+    this._currentEntity.$template = this.selectedTemplate.$name;
+    this._currentEntity.$components.pos = [ this._entityPosX, this._entityPosY ];
+    for (let k in this._currentEntity.$components)
+    {
+      if (isEqual(this.selectedTemplate.$allComponents[k], this._currentEntity.$components[k]))
+      {
+        delete this._currentEntity.$components[k];
+      }
+    }
+    console.log(this._currentEntity);
+    this._lastEntity = clone(this._currentEntity);
+    this._entites.push(this._currentEntity);
+    this._currentEntity = { $template: '', $components: {} };
+
+    this.drawerService.destroy(this._editEntityDrawer);
+  }
+
+  onCancelEntity($event)
+  {
+    this.drawerService.destroy(this._editEntityDrawer);
+  }
 }
 
 @Component({
@@ -19,6 +437,9 @@ enum TemplateOrientation
 })
 export class AppComponent implements OnInit, OnDestroy
 {
+  @ViewChild('entityEditor') entityEditor: EntityEditorComponent;
+  @ViewChild('levelEditor') levelEditor: LevelEditorComponent;
+
   @ViewChild('root') root: ElementRef;
   @ViewChild('canvas') canvas: ElementRef;
 
@@ -657,4 +1078,18 @@ export class AppComponent implements OnInit, OnDestroy
       y += sz.h + padding;
     }
   }
+
+  @Hotkey('ctrl+e', 'Add entity')
+  onKeyAddEntity()
+  {
+    this.levelEditor.startAddEntity();
+  }
+
+  @Hotkey('ctrl+shift+e', 'Add last entity')
+  onKeyAddLastEntity()
+  {
+    this.levelEditor.startAddLastEntity();
+  }
+
+  get entityEditorWidth() { return ENTITY_EDITOR_WIDTH; }
 }
