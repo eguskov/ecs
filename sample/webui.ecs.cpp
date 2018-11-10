@@ -13,20 +13,8 @@
 
 #include "script.ecs.h"
 
-struct WSEvent : Event
-{
-  mg_connection *conn = nullptr;
-
-  WSEvent() = default;
-  WSEvent(mg_connection *_conn) : conn(_conn) {}
-};
-
-struct WSGetECSData : WSEvent
-{
-  WSGetECSData() = default;
-  WSGetECSData(mg_connection *_conn) : WSEvent(_conn) {}
-}
-DEF_EVENT(WSGetECSData);
+static void ws_get_ecs_data(struct mg_connection *conn);
+static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc);
 
 static int is_websocket(const struct mg_connection *nc)
 {
@@ -55,9 +43,12 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
     //broadcast(nc, d);
     JDocument doc;
     doc.Parse(d.p, d.len);
-    if (doc.HasMember("cmd") && doc["cmd"] == "getECSData")
+    if (doc.HasMember("cmd"))
     {
-      g_mgr->sendEvent(eid, WSGetECSData{nc});
+      if (doc["cmd"] == "getECSData")
+        ws_get_ecs_data(nc);
+      else if (doc["cmd"] == "saveECSEntities")
+        ws_save_ecs_entities(nc, doc);
     }
     break;
   }
@@ -151,21 +142,21 @@ static char* get_file_content(const char *path)
   return buffer;
 }
 
-static void send(BsonStream &bson, const WSEvent &ev)
+static void send(BsonStream &bson, struct mg_connection *conn)
 {
   const uint8_t *d = nullptr;
   size_t sz = 0;
   eastl::tie(d, sz) = bson.closeAndGetData();
 
-  mg_send_websocket_frame(ev.conn, WEBSOCKET_OP_BINARY, d, sz);
+  mg_send_websocket_frame(conn, WEBSOCKET_OP_BINARY, d, sz);
 }
 
-static void send(const char *message, const WSEvent &ev)
+static void send(const char *message, struct mg_connection *conn)
 {
-  mg_send_websocket_frame(ev.conn, WEBSOCKET_OP_TEXT, message, ::strlen(message));
+  mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, message, ::strlen(message));
 }
 
-static void send_json_file(const char *name, const char *path, const WSEvent &ev)
+static void send_json_file(const char *name, const char *path, struct mg_connection *conn)
 {
   char *buffer = get_file_content(path);
   ASSERT(buffer != nullptr);
@@ -179,14 +170,13 @@ static void send_json_file(const char *name, const char *path, const WSEvent &ev
 
     delete[] buffer;
 
-    send(oss.str().c_str(), ev);
+    send(oss.str().c_str(), conn);
   }
 }
 
 DEF_QUERY(AllScriptsQuery);
 
-DEF_SYS()
-static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const WebsocketServer &ws_server)
+static void ws_get_ecs_data(struct mg_connection *conn)
 {
   struct SystemData
   {
@@ -307,8 +297,30 @@ static __forceinline void ws_get_ecs_data(const WSGetECSData &ev, const Websocke
     });
   });
 
-  send(bson, ev);
+  send(bson, conn);
 
-  send_json_file("getECSTemplates", "templates.json", ev);
-  send_json_file("getECSEntities", "entities.json", ev);
+  send_json_file("getECSTemplates", "templates.json", conn);
+  send_json_file("getECSEntities", "level_1.json", conn);
+}
+
+static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc)
+{
+  // TODO: Replace with allocation
+  static char writeBuffer[4 << 20];
+
+  JDocument docToSave;
+  docToSave.CopyFrom(doc["data"], docToSave.GetAllocator());
+
+  FILE *fp = nullptr;
+  ::fopen_s(&fp, "level_1.json", "wb");
+
+  if (fp)
+  {
+    rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+    rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+    docToSave.Accept(writer);
+    fclose(fp);
+
+    g_mgr->sendEventBroadcast(CmdReloadScript{});
+  }
 }

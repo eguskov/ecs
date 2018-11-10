@@ -499,6 +499,30 @@ namespace script
     g_mgr->createEntity(templ.c_str(), m);
   }
 
+  void create_entities_from_file(const std::string &filename)
+  {
+    // TODO: Replace with allocation
+    static char readBuffer[4 << 20];
+
+    FILE* fp = nullptr;
+    fopen_s(&fp, filename.c_str(), "rb");
+    if (fp)
+    {
+      rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+      JFrameDocument doc;
+      doc.ParseStream(is);
+      fclose(fp);
+
+      ASSERT(doc.HasMember("$entities"));
+      ASSERT(doc["$entities"].IsArray());
+      for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
+      {
+        const JFrameValue &ent = doc["$entities"][i];
+        g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
+      }
+    }
+  }
+
   void delete_entity(const EntityId &eid)
   {
     g_mgr->deleteEntity(eid);
@@ -639,6 +663,7 @@ namespace script
     ASSERT(r >= 0);
 
     engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
+    engine->RegisterGlobalFunction("void create_entities_from_file(string&in)", asFUNCTION(create_entities_from_file), asCALL_CDECL);
     engine->RegisterGlobalFunction("void delete_entity(const EntityId@)", asFUNCTION(delete_entity), asCALL_CDECL);
 
     return true;

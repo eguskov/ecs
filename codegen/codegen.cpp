@@ -523,9 +523,9 @@ int main(int argc, char* argv[])
         }
         else if (kind == CXCursor_CompoundStmt)
         {
-          eastl::string funcName = to_string(clang_getCursorSpelling(parent));
-          auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::Function &f) { return f.name == funcName; });
-          if (it != state.systems.end())
+          //eastl::string funcName = to_string(clang_getCursorSpelling(parent));
+          //auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::Function &f) { return f.name == funcName; });
+          //if (it != state.systems.end())
           {
             auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
             {
@@ -766,6 +766,7 @@ int main(int argc, char* argv[])
         auto &p = q.parameters.emplace_back();
         p.name = "eid";
         p.type = "EntityId";
+        p.pureType = "EntityId";
       }
 
     for (const auto &q : state.queries)

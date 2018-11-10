@@ -445,7 +445,7 @@ namespace script
 
   void ScriptECS::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
   {
-    auto &entity = g_mgr->entities[eid2idx(eid)];
+    auto &entity = g_mgr->entities[eid.index];
     if (eid.generation != entity.eid.generation)
       return;
 

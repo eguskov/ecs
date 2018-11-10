@@ -411,7 +411,8 @@ void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
 {
   ASSERT(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
   asyncValues.emplace_back(eid, std::move(value));
-  entities[eid2idx(eid)].ready = false;
+  if (eid.generation == entities[eid.index].eid.generation)
+    entities[eid.index].ready = false;
 }
 
 int EntityManager::getTemplateId(const char *name)
@@ -531,7 +532,7 @@ void EntityManager::tick()
   {
     EntityId eid = deleteQueue.front();
 
-    auto &entity = entities[eid2idx(eid)];
+    auto &entity = entities[eid.index];
     if (eid.generation == entity.eid.generation)
     {
       shouldInvalidateQueries = true;
@@ -582,8 +583,11 @@ void EntityManager::tick()
     {
       shouldInvalidateQueries = true;
 
-      entities[eid2idx(v.eid)].ready = ready;
-      sendEventSync(v.eid, EventOnEntityReady{});
+      if (v.eid.generation == entities[v.eid.index].eid.generation)
+      {
+        entities[v.eid.index].ready = ready;
+        sendEventSync(v.eid, EventOnEntityReady{});
+      }
     }
   }
 
@@ -875,6 +879,9 @@ void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 
 void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
+  if (eid.generation != entities[eid.index].eid.generation)
+    return;
+
   auto &e = entities[eid.index];
   auto &type = archetypes[e.archetypeId];
 

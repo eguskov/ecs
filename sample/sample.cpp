@@ -66,7 +66,7 @@ int main()
     ::fread(buffer, 1, sz, file);
     ::fclose(file);
 
-    JDocument doc;
+    JFrameDocument doc;
     doc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
     delete[] buffer;
 
@@ -74,7 +74,7 @@ int main()
     ASSERT(doc["$entities"].IsArray());
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
-      const JValue &ent = doc["$entities"][i];
+      const JFrameValue &ent = doc["$entities"][i];
       g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
     }
   }
