@@ -9,7 +9,6 @@
     <ngx-tabs>
       <ngx-tab title="Level Editor">
         <div style="display: flex; justify-content: flex-start;">
-          <div *ngIf="entityEditorWidth > 0" [style.width]="entityEditorWidth"><entity-editor #entityEditor></entity-editor></div>
           <level-editor #levelEditor></level-editor>
         </div>
       </ngx-tab>

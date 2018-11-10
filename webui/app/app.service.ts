@@ -55,12 +55,13 @@ export class AppService implements IMessageListener
   private _ecsComponentsByName: Dictionary<ECSComponent>;
 
   private _ecsTemplates: any;
+  private _ecsTemplatesWithPos: any;
   private _ecsEntities: any;
 
   private _processMessages = {
     'getECSData': d => this.processECSData(d),
     'getECSTemplates': d => { console.log(d); this.processECSTemplates(d.$templates); },
-    'getECSEntities': d => { console.log(d); this._ecsEntities = d; this._observer.next('ecsEntities'); },
+    'getECSEntities': d => { console.log(d); this._ecsEntities = d; this._ecsEntities.$entities.forEach(e => e.$templateObject = this._ecsTemplates.find(t => t.$name === e.$template)); this._observer.next('ecsEntities'); },
   };
 
   constructor(public coreService: CoreService)
@@ -159,7 +160,7 @@ export class AppService implements IMessageListener
 
       t.$allComponentsNames = Object.keys(t.$allComponents).sort();
 
-      console.log(t.$tags);
+      // console.log(t.$tags);
 
       for (let k in t.$components)
       {
@@ -167,6 +168,8 @@ export class AppService implements IMessageListener
         c.$valueStr = JSON.stringify(c.$value, null, 2);
       };
     });
+
+    this._ecsTemplatesWithPos = this._ecsTemplates.filter(t => t.$allComponents.pos !== undefined);
 
     this._observer.next('ecsTemplates');
   }
@@ -276,10 +279,16 @@ export class AppService implements IMessageListener
     this.coreService.sendCommand('getECSData', {});
   }
 
+  saveECSEntities(data): void
+  {
+    this.coreService.sendCommand('saveECSEntities', { data: data });
+  }
+
   get observable() { return this._observable; }
   get ecsData() { return this._ecsData; }
   get ecsComponents() { return this._ecsComponents; }
   get ecsComponentsByName() { return this._ecsComponentsByName; }
   get ecsTemplates() { return this._ecsTemplates; }
+  get ecsTemplatesWithPos() { return this._ecsTemplatesWithPos; }
   get ecsEntities() { return this._ecsEntities; }
 }

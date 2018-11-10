@@ -5,15 +5,16 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { CoreModule } from './core/core.module';
 
-import { AppComponent, LevelEditorComponent, EntityEditorComponent } from './app.component';
+import { AppComponent } from './app.component';
 
 import { NgxUIModule } from '@swimlane/ngx-ui';
 import { NgxDnDModule } from '@swimlane/ngx-dnd';
 import { AppService } from './app.service';
+import { LevelEditorComponent } from './leveleditor.component';
 
 @NgModule({
   imports: [BrowserModule, BrowserAnimationsModule, NgxUIModule, NgxDnDModule, CoreModule.forRoot()],
-  declarations: [AppComponent, LevelEditorComponent, EntityEditorComponent],
+  declarations: [AppComponent, LevelEditorComponent],
   bootstrap: [AppComponent],
   providers: [{ provide: APP_BASE_HREF, useValue: '/' }, AppService]
 })

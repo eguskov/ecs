@@ -84,6 +84,8 @@
   /* padding-bottom: 0px !important; */
 }
 
+.d-block { display: block; }
+
 .pl-1 { padding-left: 1.8em }
 .pt-1 { padding-top: 1.8em }
 .pb-1 { padding-bottom: 1.8em }
@@ -93,4 +95,5 @@
 .mt-1 { margin-top: 1.8em }
 
 .mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 1.8em !important; }
 .pb-0 { padding-bottom: 0 !important; }
