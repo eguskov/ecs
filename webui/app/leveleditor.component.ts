@@ -24,6 +24,160 @@ function isEqual(a, b): boolean
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function drawHead (ctx, x0, y0, x1, y1, x2, y2, style, color, width) {
+  if (typeof(x0) == 'string') {
+    x0 = parseInt(x0);
+  }
+  if (typeof(y0) == 'string') {
+    y0 = parseInt(y0);
+  }
+  if (typeof(x1) == 'string') {
+    x1 = parseInt(x1);
+  }
+  if (typeof(y1) == 'string') {
+    y1 = parseInt(y1);
+  }
+  if (typeof(x2) == 'string') {
+    x2 = parseInt(x2);
+  }
+  if (typeof(y2) == 'string') {
+    y2 = parseInt(y2);
+  }
+  
+  var radius = 3,
+      twoPI = 2 * Math.PI;
+  
+  ctx.save();
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  
+  switch (style) {
+    case 0:
+      var backdist = Math.sqrt(((x2 - x0) * (x2 - x0)) + ((y2 - y0) * (y2 - y0)));
+      ctx.arcTo(x1, y1, x0, y0, .55 * backdist);
+      ctx.fill();
+      break;
+    case 1:
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x0, y0);
+      ctx.fill();
+      break;
+    case 2:
+      ctx.stroke();
+      break;
+    case 3:
+      var cpx = (x0 + x1 + x2) / 3;
+      var cpy = (y0 + y1 + y2) / 3;
+      ctx.quadraticCurveTo(cpx, cpy, x0, y0);
+      ctx.fill();
+      break;
+    case 4:
+      var cp1x, cp1y, cp2x, cp2y, backdist: number;
+      var shiftamt = 5;
+      if (x2 == x0) {
+        backdist = y2 - y0;
+        cp1x = (x1 + x0) / 2;
+        cp2x = (x1 + x0) / 2;
+        cp1y = y1 + backdist / shiftamt;
+        cp2y = y1 - backdist / shiftamt;
+      } else {
+        backdist = Math.sqrt(((x2 - x0) * (x2 - x0)) + ((y2 - y0) * (y2 - y0)));
+        var xback = (x0 + x2) / 2;
+        var yback = (y0 + y2) / 2;
+        var xmid = (xback + x1) / 2;
+        var ymid = (yback + y1) / 2;
+        var m = (y2 - y0) / (x2 - x0);
+        var dx = (backdist / (2 * Math.sqrt(m * m + 1))) / shiftamt;
+        var dy = m * dx;
+        cp1x = xmid - dx;
+        cp1y = ymid - dy;
+        cp2x = xmid + dx;
+        cp2y = ymid + dy;
+      }
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x0, y0);
+      ctx.fill();
+      break;
+  }
+  ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, style, which, angle, d, color, width) {
+  if (typeof(x1) == 'string') {
+    x1 = parseInt(x1);
+  }
+  if (typeof(y1) == 'string') {
+    y1 = parseInt(y1);
+  }
+  if (typeof(x2) == 'string') {
+    x2 = parseInt(x2);
+  }
+  if (typeof(y2) == 'string') {
+    y2 = parseInt(y2);
+  }
+  style = typeof(style) != 'undefined' ? style : 3;
+  which = typeof(which) != 'undefined' ? which : 1;
+  angle = typeof(angle) != 'undefined' ? (angle * Math.PI / 180.0) : Math.PI / 9;
+  d = typeof(d) != 'undefined' ? d : 10;
+  color = typeof(color) != 'undefined' ? color : '#000';
+  width = typeof(width) != 'undefined' ? width : 1;
+  var toDrawHead = typeof(style) != 'function' ? drawHead : style;
+  var dist = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+  var ratio = (dist - d / 3) / dist;
+  var tox, toy, fromx, fromy;
+  if (which & 1) {
+    tox = Math.round(x1 + (x2 - x1) * ratio);
+    toy = Math.round(y1 + (y2 - y1) * ratio);
+  } else {
+    tox = x2;
+    toy = y2;
+  }
+  
+  if (which & 2) {
+    fromx = x1 + (x2 - x1) * (1 - ratio);
+    fromy = y1 + (y2 - y1) * (1 - ratio);
+  } else {
+    fromx = x1;
+    fromy = y1;
+  }
+  
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.moveTo(fromx, fromy);
+  ctx.lineTo(tox, toy);
+  ctx.stroke();
+  
+  var lineangle = Math.atan2(y2 - y1, x2 - x1);
+  var h = Math.abs(d / Math.cos(angle));
+  if (which & 1) {
+    var angle1 = lineangle + Math.PI + angle;
+    var topx = x2 + Math.cos(angle1) * h;
+    var topy = y2 + Math.sin(angle1) * h;
+    var angle2 = lineangle + Math.PI - angle;
+    var botx = x2 + Math.cos(angle2) * h;
+    var boty = y2 + Math.sin(angle2) * h;
+    toDrawHead(ctx, topx, topy, x2, y2, botx, boty, style, color, width);
+  }
+  
+  if (which & 2) {
+    var angle1 = lineangle + angle;
+    var topx = x1 + Math.cos(angle1) * h;
+    var topy = y1 + Math.sin(angle1) * h;
+    var angle2 = lineangle - angle;
+    var botx = x1 + Math.cos(angle2) * h;
+    var boty = y1 + Math.sin(angle2) * h;
+    toDrawHead(ctx, topx, topy, x1, y1, botx, boty, style, color, width);
+  }
+}
+
 @Component({
   selector: 'level-editor',
   templateUrl: './leveleditor.component.html',
@@ -293,7 +447,8 @@ export class LevelEditorComponent implements OnInit, OnDestroy
 
     for (let e of this._entities)
     {
-      const rect = e.$components.collision_shape;
+      const shape = e.$components.collision_shape;
+      const rect = e.$components.collision_rect;
       const auto_move = e.$components.auto_move;
       const vel = e.$components.vel;
 
@@ -304,9 +459,9 @@ export class LevelEditorComponent implements OnInit, OnDestroy
       this.ctx.fillStyle = 'rgb(0, 255, 0)';
       this.ctx.fill();
 
-      if (rect && rect[0] && rect[0].type === 'box')
+      if (shape && shape[0] && shape[0].type === 'box')
       {
-        const size = rect[0].size;
+        const size = shape[0].size;
         this.ctx.beginPath();
         this.ctx.rect(x, y, size[0], size[1]);
         this.ctx.fillStyle = 'rgb(0, 255, 0, 0.1)';
@@ -314,25 +469,31 @@ export class LevelEditorComponent implements OnInit, OnDestroy
 
         if (auto_move && vel)
         {
-          // this.ctx.save();
-          // this.ctx.translate(xOrigin, yOrigin);
-          // this.ctx.rotate(angle);
-          // // draw your arrow, with its origin at [0, 0]
-          // this.ctx.restore();
           const dst = [ vel[0] * auto_move.length, vel[1] * auto_move.length ];
-          this.ctx.beginPath();
-          this.ctx.moveTo(x + 0.5 * size[0], y + 0.5 * size[1]);
-          this.ctx.lineTo(x + 0.5 * size[0] + dst[0], y + 0.5 * size[1] + dst[1]);
-          this.ctx.lineWidth = 2;
-          this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
-          this.ctx.stroke();
+          drawArrow(this.ctx,
+            x + 0.5 * size[0], y + 0.5 * size[1],
+            x + 0.5 * size[0] + dst[0], y + 0.5 * size[1] + dst[1],
+            1, 1, 20, 10, 'rgba(0, 255, 0, 0.1)', 1); 
         }
       }
 
-      // this.ctx.beginPath();
-      // this.ctx.moveTo(x, y);
-      // this.ctx.lineTo(x - 0.5 * GRID_WIDTH, y - 0.5 * GRID_HEIGHT);
-      // this.ctx.stroke();
+      if (rect)
+      {
+        const size = [ rect[2], rect[3] ];
+        this.ctx.beginPath();
+        this.ctx.rect(x, y, size[0], size[1]);
+        this.ctx.fillStyle = 'rgb(0, 255, 0, 0.1)';
+        this.ctx.fill();
+
+        if (auto_move && vel)
+        {
+          const dst = [ vel[0] * auto_move.length, vel[1] * auto_move.length ];
+          drawArrow(this.ctx,
+            x + 0.5 * size[0], y + 0.5 * size[1],
+            x + 0.5 * size[0] + dst[0], y + 0.5 * size[1] + dst[1],
+            1, 1, 20, 10, 'rgba(0, 255, 0, 0.1)', 1); 
+        }
+      }
 
       const gx = x - 0.5 * SELECT_WIDTH;
       const gy = y - 0.5 * SELECT_HEIGHT;
