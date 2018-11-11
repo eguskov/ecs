@@ -4,36 +4,6 @@
 #include "ecs/entity.h"
 #include "ecs/hash.h"
 
-// template <> struct Desc<EntityId> { constexpr static size_t Size = sizeof(EntityId); constexpr static char const* typeName = "EntityId"; constexpr static char const* name = "eid"; };
-// template <>
-// struct RegCompSpec<EntityId> : RegComp
-// {
-//   using CompType = EntityId;
-//   using CompDesc = Desc<EntityId>;
-
-//   static int ID;
-
-//   bool init(uint8_t *mem, const JFrameValue &value) const override final
-//   {
-//     return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
-//   }
-
-//   bool equal(uint8_t *lhs, uint8_t *rhs) const override final
-//   {
-//     return (*(T*)lhs) == (*(T*)rhs);
-//   }
-
-//   Storage* createStorage() const override final
-//   {
-//     return new StorageSpec<CompType>;
-//   }
-
-//   RegCompSpec() : RegComp("eid", sizeof(CompType))
-//   {
-//     ID = id;
-//   }
-// };
-
 template <>
 struct Setter<bool>
 {
@@ -50,7 +20,7 @@ struct Setter<int>
 {
   static inline bool set(int &v, const JFrameValue &value)
   {
-    ASSERT(value.IsInt());
+    ASSERT(value.IsNumber());
     v = value.GetInt();
     return true;
   }
@@ -61,7 +31,7 @@ struct Setter<float>
 {
   static inline bool set(float &v, const JFrameValue &value)
   {
-    ASSERT(value.IsFloat());
+    ASSERT(value.IsNumber());
     v = value.GetFloat();
     return true;
   }
