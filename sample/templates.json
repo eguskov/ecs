@@ -919,7 +919,15 @@
             0,
             0
           ]
-        },
+        }
+      }
+    },
+    {
+      "$name": "base-textured-block",
+      "$extends": [
+        "base-block"
+      ],
+      "$components": {
         "texture": {
           "$type": "texture",
           "$value": {
@@ -931,7 +939,7 @@
     {
       "$name": "block-big",
       "$extends": [
-        "base-block"
+        "base-textured-block"
       ],
       "$components": {
         "collision_rect": {
@@ -1036,7 +1044,7 @@
     {
       "$name": "block",
       "$extends": [
-        "base-block"
+        "base-textured-block"
       ],
       "$components": {
         "collision_rect": {
@@ -1083,7 +1091,7 @@
     {
       "$name": "ground-block",
       "$extends": [
-        "base-block"
+        "base-textured-block"
       ],
       "$components": {
         "texture": {

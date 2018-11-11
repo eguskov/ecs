@@ -147,8 +147,6 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
   }
 }
 
-// TODO: Move to native code
-[system { "$is-true": ["is_active", "is_alive"] }]
 void update_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
 {
   if (!auto_move.jump)
@@ -168,6 +166,20 @@ void update_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, 
     dir = 1.f;
   else if (vel.x > 0.f)
     dir = -1.f;
+}
+
+// TODO: Move to native code
+[system { "$is-true": ["is_active", "is_alive"] }]
+void update_active_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
+{
+  update_auto_move(@stage, @auto_move, @vel, @dir);
+}
+
+// TODO: Move to native code
+[system { "$is-true": "is_alive", "$not-have": "is_active" }]
+void update_always_active_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
+{
+  update_auto_move(@stage, @auto_move, @vel, @dir);
 }
 
 [on_load]
