@@ -1,0 +1,18 @@
+html,body {
+  height: 100%;
+  margin: 0px;
+}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+  display: grid;
+}
+
+.icon-keyboard:before, .icon-arrow-down:before, .icon-arrow-right:before {
+  line-height: 40px !important;
+}
+
+.ngx-datatable .row-disabled {
+  opacity: 0.70;
+}

@@ -4,7 +4,6 @@ import { StreamService } from './core/stream.service';
 import { CoreService } from './core/core.service';
 import { AppService, ECSTemplate, ECSSystem } from './app.service';
 import { Subscription } from 'rxjs/Subscription';
-import { Hotkey, DrawerService } from '@swimlane/ngx-ui';
 import { LevelEditorComponent } from './leveleditor.component';
 
 enum TemplateOrientation
