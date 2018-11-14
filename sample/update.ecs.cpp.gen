@@ -299,6 +299,40 @@ static constexpr ConstQueryDesc process_on_kill_event_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
+static constexpr ConstCompDesc update_active_auto_move_components[] = {
+  {hash::cstr("auto_move"), Desc<AutoMove>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_active_auto_move_is_true_components[] = {
+  {hash::cstr("is_active"), Desc<bool>::Size},
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_active_auto_move_query_desc = {
+  make_const_array(update_active_auto_move_components),
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(update_active_auto_move_is_true_components),
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_always_active_auto_move_components[] = {
+  {hash::cstr("auto_move"), Desc<AutoMove>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_always_active_auto_move_not_have_components[] = {
+  {hash::cstr("is_active"), 0},
+};
+static constexpr ConstCompDesc update_always_active_auto_move_is_true_components[] = {
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
+  make_const_array(update_always_active_auto_move_components),
+  empty_desc_array,
+  make_const_array(update_always_active_auto_move_not_have_components),
+  make_const_array(update_always_active_auto_move_is_true_components),
+  empty_desc_array,
+};
 static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler_query_desc);
 static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position_query_desc);
 static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active_query_desc);
@@ -318,6 +352,8 @@ static RegSysSpec<917788925, decltype(update_enemies_collisions)> _reg_sys_updat
 static RegSysSpec<1963192783, decltype(remove_death_fx)> _reg_sys_remove_death_fx("remove_death_fx", remove_death_fx_query_desc);
 static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("update_camera", update_camera_query_desc);
 static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event_query_desc);
+static RegSysSpec<3126766469, decltype(update_active_auto_move)> _reg_sys_update_active_auto_move("update_active_auto_move", update_active_auto_move_query_desc);
+static RegSysSpec<4261438561, decltype(update_always_active_auto_move)> _reg_sys_update_always_active_auto_move("update_always_active_auto_move", update_always_active_auto_move_query_desc);
 
 static constexpr ConstCompDesc BricksQuery_components[] = {
   {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
@@ -747,6 +783,42 @@ template <> __forceinline void RegSysSpec<1381440062, decltype(process_on_kill_e
     auto it_hud = chunk_hud.begin<HUD>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_hud)
       process_on_kill_event(*(EventOnKillEnemy*)stage_or_event.mem, *it_hud);
+  }
+}
+
+template <> __forceinline void RegSysSpec<3126766469, decltype(update_active_auto_move)>::execImpl(const RawArg &stage_or_event, Query &query) const
+{
+  static constexpr int compIdx_auto_move = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("auto_move"), update_active_auto_move_components);
+  static constexpr int compIdx_vel = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("vel"), update_active_auto_move_components);
+  static constexpr int compIdx_dir = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("dir"), update_active_auto_move_components);
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    QueryChunk &chunk_auto_move = query.chunks[compIdx_auto_move + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
+    auto it_auto_move = chunk_auto_move.begin<AutoMove>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    auto it_dir = chunk_dir.begin<float>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_auto_move, ++it_vel, ++it_dir)
+      update_active_auto_move(*(UpdateStage*)stage_or_event.mem, *it_auto_move, *it_vel, *it_dir);
+  }
+}
+
+template <> __forceinline void RegSysSpec<4261438561, decltype(update_always_active_auto_move)>::execImpl(const RawArg &stage_or_event, Query &query) const
+{
+  static constexpr int compIdx_auto_move = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("auto_move"), update_always_active_auto_move_components);
+  static constexpr int compIdx_vel = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("vel"), update_always_active_auto_move_components);
+  static constexpr int compIdx_dir = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("dir"), update_always_active_auto_move_components);
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    QueryChunk &chunk_auto_move = query.chunks[compIdx_auto_move + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
+    auto it_auto_move = chunk_auto_move.begin<AutoMove>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    auto it_dir = chunk_dir.begin<float>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_auto_move, ++it_vel, ++it_dir)
+      update_always_active_auto_move(*(UpdateStage*)stage_or_event.mem, *it_auto_move, *it_vel, *it_dir);
   }
 }
 

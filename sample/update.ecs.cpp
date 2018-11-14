@@ -565,3 +565,36 @@ static __forceinline void process_on_kill_event(const EventOnKillEnemy &ev, HUD 
 {
   ++hud.killCount;
 }
+
+static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+{
+  if (!auto_move.jump)
+  {
+    if (glm::length(vel) > 0.f)
+      vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
+
+    auto_move.time -= stage.dt;
+    if (auto_move.time < 0.f)
+    {
+      auto_move.time = auto_move.duration;
+      vel = -vel;
+    }
+  }
+
+  if (vel.x < 0.f)
+    dir = 1.f;
+  else if (vel.x > 0.f)
+    dir = -1.f;
+}
+
+DEF_SYS(IS_TRUE(is_alive) IS_TRUE(is_active))
+static __forceinline void update_active_auto_move(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+{
+  update_auto_move_impl(stage, auto_move, vel, dir);
+}
+
+DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
+static __forceinline void update_always_active_auto_move(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+{
+  update_auto_move_impl(stage, auto_move, vel, dir);
+}

@@ -28,48 +28,48 @@ class Player
   const vec2@ vel;
 }
 
-[system { "$have": "spawner" }]
-void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
-{
-  // TODO: Implement more convenient way to do this
-  bool hasPlayer = false;
-  for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
-    hasPlayer = true;
+// [system { "$have": "spawner" }]
+// void update_spawner(const UpdateStage@ stage, TimerComponent@ spawn_timer)
+// {
+//   // TODO: Implement more convenient way to do this
+//   bool hasPlayer = false;
+//   for (auto it = Query<AlivePlayer>().perform(); it.hasNext(); ++it)
+//     hasPlayer = true;
 
-  if (!hasPlayer)
-    return;
+//   if (!hasPlayer)
+//     return;
 
-  if (Count<AliveEnemy>().get() > 0)
-    return;
+//   if (Count<AliveEnemy>().get() > 0)
+//     return;
 
-  spawn_timer.time -= stage.dt;
-  if (spawn_timer.time < 0.f)
-  {
-    spawn_timer.time = spawn_timer.period;
+//   spawn_timer.time -= stage.dt;
+//   if (spawn_timer.time < 0.f)
+//   {
+//     spawn_timer.time = spawn_timer.period;
 
-    // print("Spawn!");
+//     // print("Spawn!");
 
-    // create_entity("opossum", Map = {
-    //   {"pos", Array = { 0.f, 4.f }},
-    //   {"vel", Array = { -20.f, 0.f }}
-    // });
+//     // create_entity("opossum", Map = {
+//     //   {"pos", Array = { 0.f, 4.f }},
+//     //   {"vel", Array = { -20.f, 0.f }}
+//     // });
 
-    // create_entity("eagle", Map = {
-    //   {"pos", Array = { 128.f, -80.f }},
-    //   {"vel", Array = { 0.f, -1.f }}
-    // });
+//     // create_entity("eagle", Map = {
+//     //   {"pos", Array = { 128.f, -80.f }},
+//     //   {"vel", Array = { 0.f, -1.f }}
+//     // });
 
-    // create_entity("eagle", Map = {
-    //   {"pos", Array = { -64.f, -96.f }},
-    //   {"vel", Array = { -1.f, 0.f }}
-    // });
+//     // create_entity("eagle", Map = {
+//     //   {"pos", Array = { -64.f, -96.f }},
+//     //   {"vel", Array = { -1.f, 0.f }}
+//     // });
 
-    // create_entity("frog", Map = {
-    //   {"pos", Array = { 0.f, 6.f }},
-    //   {"vel", Array = { 0.f, 0.f }}
-    // });
-  }
-}
+//     // create_entity("frog", Map = {
+//     //   {"pos", Array = { 0.f, 6.f }},
+//     //   {"vel", Array = { 0.f, 0.f }}
+//     // });
+//   }
+// }
 
 [system { "$have": "player_spawner" }]
 void update_player_spawner(const UpdateStage@ stage)
@@ -145,41 +145,6 @@ void update_auto_jump(const UpdateStage@ stage, const boolean@ is_alive, Jump@ j
       vel.y = -40.f;
     }
   }
-}
-
-void update_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
-{
-  if (!auto_move.jump)
-  {
-    if (length(vel) > 0.f)
-      vel = (auto_move.length / auto_move.duration) * normalize(vel);
-
-    auto_move.time -= stage.dt;
-    if (auto_move.time < 0.f)
-    {
-      auto_move.time = auto_move.duration;
-      vel = -vel;
-    }
-  }
-
-  if (vel.x < 0.f)
-    dir = 1.f;
-  else if (vel.x > 0.f)
-    dir = -1.f;
-}
-
-// TODO: Move to native code
-[system { "$is-true": ["is_active", "is_alive"] }]
-void update_active_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
-{
-  update_auto_move(@stage, @auto_move, @vel, @dir);
-}
-
-// TODO: Move to native code
-[system { "$is-true": "is_alive", "$not-have": "is_active" }]
-void update_always_active_auto_move(const UpdateStage@ stage, AutoMove@ auto_move, vec2@ vel, real@ dir)
-{
-  update_auto_move(@stage, @auto_move, @vel, @dir);
 }
 
 [on_load]
