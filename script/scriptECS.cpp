@@ -419,7 +419,6 @@ namespace script
             auto secondEid = secondQuery.iter<EntityId>(hash::cstr("eid")).begin();
             for (const auto &secondRaw : secondQuery.iter(link.secondComponentName))
             {
-              // if (::memcmp(firstRaw, secondRaw, link.componentSize) == 0)
               if (link.componentDesc->equal(firstRaw, secondRaw))
               {
                 query.eids.emplace_back() = *firstEid;
