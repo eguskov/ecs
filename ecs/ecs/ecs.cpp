@@ -684,7 +684,7 @@ void EntityManager::invalidateQuery(Query &query)
   query.entitiesCount = 0;
   query.chunks.clear();
   query.entitiesInChunk.clear();
-  query.componentsCount = query.desc.components.size();
+  query.componentsCount = query.desc.components.size() + 1;
 
   for (auto &type : archetypes)
   {
@@ -781,7 +781,7 @@ void EntityManager::invalidateQuery(Query &query)
 
           ++query.chunksCount;
           query.entitiesCount += entitiesInChunk;
-          query.chunks.resize(query.chunks.size() + query.componentsCount + 1);
+          query.chunks.resize(query.chunks.size() + query.componentsCount);
           query.entitiesInChunk.resize(query.chunksCount);
           query.entitiesInChunk[query.chunksCount - 1] = entitiesInChunk;
 

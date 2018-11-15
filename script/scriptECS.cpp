@@ -278,7 +278,6 @@ namespace script
             ASSERT(desc != nullptr);
 
             query.desc.components.push_back({ i, hash_str(name), desc->size, desc });
-            query.componentsCount = query.desc.components.size();
           }
 
           g_mgr->invalidateQuery(query);

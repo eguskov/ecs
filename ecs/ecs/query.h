@@ -456,7 +456,7 @@ struct Query
   template <>
   inline Interator<EntityId> iter(const ConstHashedString &name)
   {
-    const int compIdx = componentsCount;
+    const int compIdx = componentsCount - 1;
     return Interator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
   }
 
