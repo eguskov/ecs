@@ -44,7 +44,12 @@ namespace script
 
   static void print(const std::string &str)
   {
-    DEBUG_LOG("[Script]: " << str);
+    DEBUG_LOG("[DEBUG Script]: " << str);
+  }
+
+  static void print_release(const std::string &str)
+  {
+    std::cout << "[Script]: " << str << std::endl;
   }
 
   static asIScriptEngine *engine = nullptr;
@@ -660,6 +665,8 @@ namespace script
 
     int r = 0;
     r = engine->RegisterGlobalFunction("void print(string &in)", asFUNCTION(print), asCALL_CDECL);
+    ASSERT(r >= 0);
+    r = engine->RegisterGlobalFunction("void print_release(string &in)", asFUNCTION(print_release), asCALL_CDECL);
     ASSERT(r >= 0);
 
     engine->RegisterGlobalFunction("void create_entity(string&in, Map@)", asFUNCTION(create_entity), asCALL_CDECL);
