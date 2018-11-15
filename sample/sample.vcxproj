@@ -84,7 +84,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Debug;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Debug;$(ProjectDir)..\cef\Release;$(ProjectDir)..\cef\libcef_dll_wrapper\Debug;$(ProjectDir)..\Box2D\Build\bin\x86\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;lua.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;mongoose.lib;libcef.lib;libcef_dll_wrapper.lib;Box2D.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;mongoose.lib;libcef.lib;libcef_dll_wrapper.lib;Box2D.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
