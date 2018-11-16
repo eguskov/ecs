@@ -47,13 +47,15 @@ int main()
 
   SetTargetFPS(60);
 
-  camera.target = Vector2{ 0.f, 0.f };
+  const float hw = 0.5f * screen_width;
+  const float hh = 0.5f * screen_height;
+  camera.target = Vector2{ hw, hh };
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
-  camera.zoom = 1.5f;
+  camera.zoom = 1.0f;
 
   FILE *file = nullptr;
-  ::fopen_s(&file, "entities.json", "rb");
+  ::fopen_s(&file, "entities_boids.json", "rb");
   if (file)
   {
     size_t sz = ::ftell(file);

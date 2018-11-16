@@ -33,10 +33,12 @@
     "update_physics_collisions",
     "update_physics",
     "update_kinematic_physics_body",
+    "update_boid",
     "remove_death_fx",
     "update_spawner",
     "update_position",
     "update_position_for_active",
+    "update_boid_position",
     "validate_position",
     "select_current_anim_frame",
     "select_current_anim_frame_for_player",
@@ -45,6 +47,7 @@
     "update_websocket_server",
     "render_walls",
     "render_normal",
+    "render_boid",
     "render_debug_physics"
   ],
   "$templates$v1": [
@@ -1286,6 +1289,42 @@
         "kill_player_action": {
           "$type": "tag",
           "$value": {}
+        }
+      }
+    },
+    {
+      "$name": "boid",
+      "$components": {
+        "boid": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "pos": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "vel": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "rotation": {
+          "$type": "float",
+          "$value": 0.0
+        },
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/boid.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            0,
+            0,
+            32,
+            32
+          ]
         }
       }
     }

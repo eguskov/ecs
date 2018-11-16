@@ -333,6 +333,52 @@ static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
   make_const_array(update_always_active_auto_move_is_true_components),
   empty_desc_array,
 };
+static constexpr ConstCompDesc update_boid_position_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_boid_position_have_components[] = {
+  {hash::cstr("boid"), 0},
+};
+static constexpr ConstQueryDesc update_boid_position_query_desc = {
+  make_const_array(update_boid_position_components),
+  make_const_array(update_boid_position_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc render_boid_components[] = {
+  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {hash::cstr("frame"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("rotation"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc render_boid_have_components[] = {
+  {hash::cstr("boid"), 0},
+};
+static constexpr ConstQueryDesc render_boid_query_desc = {
+  make_const_array(render_boid_components),
+  make_const_array(render_boid_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_boid_components[] = {
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("rotation"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_boid_have_components[] = {
+  {hash::cstr("boid"), 0},
+};
+static constexpr ConstQueryDesc update_boid_query_desc = {
+  make_const_array(update_boid_components),
+  make_const_array(update_boid_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler_query_desc);
 static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position_query_desc);
 static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active_query_desc);
@@ -354,6 +400,9 @@ static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("u
 static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event_query_desc);
 static RegSysSpec<3126766469, decltype(update_active_auto_move)> _reg_sys_update_active_auto_move("update_active_auto_move", update_active_auto_move_query_desc);
 static RegSysSpec<4261438561, decltype(update_always_active_auto_move)> _reg_sys_update_always_active_auto_move("update_always_active_auto_move", update_always_active_auto_move_query_desc);
+static RegSysSpec<3321105247, decltype(update_boid_position)> _reg_sys_update_boid_position("update_boid_position", update_boid_position_query_desc);
+static RegSysSpec<3068028142, decltype(render_boid)> _reg_sys_render_boid("render_boid", render_boid_query_desc);
+static RegSysSpec<4195794851, decltype(update_boid)> _reg_sys_update_boid("update_boid", update_boid_query_desc);
 
 static constexpr ConstCompDesc BricksQuery_components[] = {
   {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
@@ -819,6 +868,63 @@ template <> __forceinline void RegSysSpec<4261438561, decltype(update_always_act
     auto it_dir = chunk_dir.begin<float>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_auto_move, ++it_vel, ++it_dir)
       update_always_active_auto_move(*(UpdateStage*)stage_or_event.mem, *it_auto_move, *it_vel, *it_dir);
+  }
+}
+
+template <> __forceinline void RegSysSpec<3321105247, decltype(update_boid_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
+{
+  static constexpr int compIdx_vel = index_of_component<_countof(update_boid_position_components)>::get(hash::cstr("vel"), update_boid_position_components);
+  static constexpr int compIdx_pos = index_of_component<_countof(update_boid_position_components)>::get(hash::cstr("pos"), update_boid_position_components);
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
+      update_boid_position(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
+  }
+}
+
+template <> __forceinline void RegSysSpec<3068028142, decltype(render_boid)>::execImpl(const RawArg &stage_or_event, Query &query) const
+{
+  static constexpr int compIdx_texture = index_of_component<_countof(render_boid_components)>::get(hash::cstr("texture"), render_boid_components);
+  static constexpr int compIdx_frame = index_of_component<_countof(render_boid_components)>::get(hash::cstr("frame"), render_boid_components);
+  static constexpr int compIdx_pos = index_of_component<_countof(render_boid_components)>::get(hash::cstr("pos"), render_boid_components);
+  static constexpr int compIdx_vel = index_of_component<_countof(render_boid_components)>::get(hash::cstr("vel"), render_boid_components);
+  static constexpr int compIdx_rotation = index_of_component<_countof(render_boid_components)>::get(hash::cstr("rotation"), render_boid_components);
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_frame = query.chunks[compIdx_frame + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_rotation = query.chunks[compIdx_rotation + chunkIdx * query.componentsCount];
+    auto it_texture = chunk_texture.begin<TextureAtlas>();
+    auto it_frame = chunk_frame.begin<glm::vec4>();
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    auto it_rotation = chunk_rotation.begin<float>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos, ++it_vel, ++it_rotation)
+      render_boid(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos, *it_vel, *it_rotation);
+  }
+}
+
+template <> __forceinline void RegSysSpec<4195794851, decltype(update_boid)>::execImpl(const RawArg &stage_or_event, Query &query) const
+{
+  static constexpr int compIdx_pos = index_of_component<_countof(update_boid_components)>::get(hash::cstr("pos"), update_boid_components);
+  static constexpr int compIdx_vel = index_of_component<_countof(update_boid_components)>::get(hash::cstr("vel"), update_boid_components);
+  static constexpr int compIdx_rotation = index_of_component<_countof(update_boid_components)>::get(hash::cstr("rotation"), update_boid_components);
+  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
+  {
+    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
+    QueryChunk &chunk_rotation = query.chunks[compIdx_rotation + chunkIdx * query.componentsCount];
+    auto it_pos = chunk_pos.begin<glm::vec2>();
+    auto it_vel = chunk_vel.begin<glm::vec2>();
+    auto it_rotation = chunk_rotation.begin<float>();
+    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos, ++it_vel, ++it_rotation)
+      update_boid(*(UpdateStage*)stage_or_event.mem, *it_pos, *it_vel, *it_rotation);
   }
 }
 

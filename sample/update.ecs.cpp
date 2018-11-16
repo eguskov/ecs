@@ -4,6 +4,10 @@
 
 #include <EASTL/shared_ptr.h>
 
+#include <glm/glm.hpp>
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
+
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
 
@@ -597,4 +601,53 @@ DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
 static __forceinline void update_always_active_auto_move(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
 {
   update_auto_move_impl(stage, auto_move, vel, dir);
+}
+
+DEF_SYS(HAVE_COMP(boid))
+static __forceinline void update_boid_position(
+  const UpdateStage &stage,
+  const glm::vec2 &vel,
+  glm::vec2 &pos)
+{
+  pos += vel * stage.dt;
+}
+
+DEF_SYS(HAVE_COMP(boid))
+static __forceinline void render_boid(
+  const RenderStage &stage,
+  const TextureAtlas &texture,
+  const glm::vec4 &frame,
+  const glm::vec2 &pos,
+  const glm::vec2 &vel,
+  float rotation)
+{
+  const float hw = screen_width * 0.5f;
+  const float hh = screen_height * 0.5f;
+  Rectangle rect = { frame.x, frame.y, frame.z, frame.w };
+  Rectangle destRec = { hw + pos.x, hh - pos.y, fabsf(frame.z), fabsf(frame.w) };
+
+  DrawTexturePro(texture.id, rect, destRec, Vector2{ 0.5f * frame.z, 0.5f * frame.w }, -rotation, WHITE);
+}
+
+DEF_SYS(HAVE_COMP(boid))
+static __forceinline void update_boid(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &vel, float &rotation)
+{
+  if (glm::length(vel) == 0.f)
+    vel.x = 150.f;
+
+  const float hw = 0.5f * screen_width;
+  const float hh = 0.5f * screen_height;
+
+  float steeringDir = 0.f;
+
+  glm::vec2 futurePos = pos + vel * 1.5f;
+  if (futurePos.x >= hw || futurePos.x <= -hw || futurePos.y >= hh || futurePos.y <= -hh)
+    steeringDir = 10.f;
+
+  vel += steeringDir * glm::normalize(glm::vec2(-vel.y, vel.x));
+
+  const glm::vec2 dir = glm::normalize(vel);
+  rotation = glm::degrees(glm::acos(dir.x)) * glm::sign(vel.y);
+
+  vel = 150.f * dir;
 }
