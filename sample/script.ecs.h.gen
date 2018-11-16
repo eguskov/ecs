@@ -8,4 +8,6 @@
 static RegCompSpec<CmdReloadScript> _reg_event_CmdReloadScript;
 int RegCompSpec<CmdReloadScript>::ID = -1;
 
+
+
 #endif // __CODEGEN__
