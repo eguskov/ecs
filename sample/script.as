@@ -11,6 +11,7 @@ class AliveEnemy
 [query { "$is-true": "is_alive", "$have": "user_input" }]
 class AlivePlayer
 {
+  const EntityId@ eid;
   const vec2@ pos;
 }
 

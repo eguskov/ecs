@@ -1216,6 +1216,35 @@
       }
     },
     {
+      "$name": "zone-trigger",
+      "$extends": [
+        "trigger"
+      ],
+      "$components": {
+        "zone_trigger": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "action_key": {
+          "$type": "hash_string",
+          "$value": ""
+        },
+        "pos": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "collision_rect": {
+          "$type": "vec4",
+          "$value": [
+            0.0,
+            0.0,
+            32.0,
+            20.0
+          ]
+        }
+      }
+    },
+    {
       "$name": "action",
       "$components": {
         "action": {
@@ -1245,6 +1274,18 @@
         "lift_key": {
           "$type": "hash_string",
           "$value": ""
+        }
+      }
+    },
+    {
+      "$name": "kill-player-action",
+      "$extends": [
+        "action"
+      ],
+      "$components": {
+        "kill_player_action": {
+          "$type": "tag",
+          "$value": {}
         }
       }
     }
