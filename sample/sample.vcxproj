@@ -105,13 +105,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\script;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\mongoose;$(ProjectDir)..\raylib\src\external\glfw\include;$(ProjectDir)..\cef;$(ProjectDir)..\Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\script;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\mongoose;$(ProjectDir)..\raylib\src\external\glfw\include;$(ProjectDir)..\Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;script.lib;mongoose.lib;libcef.lib;libcef_dll_wrapper.lib;Box2D.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Release;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Release;$(ProjectDir)..\cef\Release;$(ProjectDir)..\cef\libcef_dll_wrapper\Release;$(ProjectDir)..\Box2D\Build\bin\x86\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;script.lib;mongoose.lib;Box2D.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Release;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Release;$(ProjectDir)..\Box2D\Build\bin\x86\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

@@ -2,6 +2,8 @@
 
 #include <ecs/ecs.h>
 
+#ifdef _DEBUG
+
 #include <include/base/cef_build.h>
 #include <include/cef_app.h>
 #include <include/cef_client.h>
@@ -13,6 +15,8 @@
 #include <include/wrapper/cef_closure_task.h>
 
 #include <windows.h>
+
+#endif
 
 #include <EASTL/list.h>
 
@@ -29,6 +33,9 @@ struct CEFEventOnAfterCreated : Event
 DEF_EVENT(CEFEventOnAfterCreated);
 
 static EntityId g_webui_eid;
+
+#ifdef _DEBUG
+
 static HWND g_main_window = nullptr;
 
 struct DevToolsHandler : public CefClient
@@ -222,6 +229,8 @@ struct WebUIApp : public CefApp, public CefBrowserProcessHandler
 
 static CefRefPtr<WebUIApp> g_app;
 
+#endif
+
 EntityId cef::get_eid()
 {
   return g_webui_eid;
@@ -229,6 +238,7 @@ EntityId cef::get_eid()
 
 void cef::init()
 {
+#ifdef _DEBUG
   g_webui_eid = g_mgr->createEntitySync("WebUI", JValue());
 
   CefEnableHighDPISupport();
@@ -243,22 +253,28 @@ void cef::init()
   g_app = new WebUIApp;
 
   CefInitialize(main_args, settings, g_app.get(), nullptr);
+#endif
 }
 
 void cef::update()
 {
+#ifdef _DEBUG
   CefDoMessageLoopWork();
+#endif
 }
 
 void cef::release()
 {
+#ifdef _DEBUG
   CefDoMessageLoopWork();
   CefShutdown();
+#endif
 }
 
 DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
 {
+#ifdef _DEBUG
   g_main_window = ::FindWindow(nullptr, "raylib [core] example - basic window");
 
   CefBrowserSettings browserSettings;
@@ -277,31 +293,40 @@ static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
 
   auto handler = g_app->handlers.front();
   CefBrowserHost::CreateBrowser(windowInfo, handler, "http://localhost:10010", browserSettings, NULL);
+#endif
 }
 
 DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_after_created_handler(const CEFEventOnAfterCreated &ev)
 {
+#ifdef _DEBUG
   ::SetFocus(g_main_window);
+#endif
 }
 
 DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_click_outside_handler(const cef::EventOnClickOutside &ev)
 {
+#ifdef _DEBUG
   ::SetFocus(g_main_window);
+#endif
 }
 
 DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_toggle_dev_tools_handler(const cef::CmdToggleDevTools &ev)
 {
+#ifdef _DEBUG
   g_app->handlers.front()->ToggleDevTools();
+#endif
 }
 
 DEF_SYS(HAVE_COMP(webui))
 static __forceinline void cef_toggle_webui_handler(const cef::CmdToggleWebUI &ev)
 {
+#ifdef _DEBUG
   HWND hWnd = g_app->handlers.front()->browsers.front()->GetHost()->GetWindowHandle();
 
   ::ShowWindow(hWnd, ::IsWindowVisible(hWnd) ? SW_HIDE : SW_SHOW);
   ::UpdateWindow(hWnd);
+#endif
 }

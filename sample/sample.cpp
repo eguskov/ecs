@@ -55,7 +55,7 @@ int main()
   camera.zoom = 1.0f;
 
   FILE *file = nullptr;
-  ::fopen_s(&file, "entities_boids.json", "rb");
+  ::fopen_s(&file, "entities.json", "rb");
   if (file)
   {
     size_t sz = ::ftell(file);
