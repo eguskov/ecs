@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2026
+# Visual Studio Express 14 for Windows Desktop
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ecs", "ecs\ecs.vcxproj", "{0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -26,8 +26,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "benchmark", "benchmark\benc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build", "git-build\build.vcxproj", "{3FA93787-2C60-4851-A138-3D1DB366ABEB}"
 	ProjectSection(ProjectDependencies) = postProject
-		{42208311-B000-4C8C-ADFB-BF94BD2222E8} = {42208311-B000-4C8C-ADFB-BF94BD2222E8}
-		{0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3} = {0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3}
+		{735C6650-280C-4068-8D41-74C8DD3D6D9C} = {735C6650-280C-4068-8D41-74C8DD3D6D9C}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "script", "script\script.vcxproj", "{735C6650-280C-4068-8D41-74C8DD3D6D9C}"

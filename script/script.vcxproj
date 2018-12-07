@@ -94,6 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

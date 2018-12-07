@@ -56,6 +56,19 @@
       "externalConsole": true,
       "preLaunchTask": "build release",
       "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
-    }
+    },
+    {
+      "name": "(Debug) GitBuild",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Debug\\build.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\..\\git-build",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build",
+      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+    },
   ]
 }

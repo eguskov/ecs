@@ -155,6 +155,17 @@ namespace script
     static constexpr ExecType execPtr = &opImplConv<T>::exec;
   };
 
+  template<>
+  struct opImplConv<JFrameValue>
+  {
+    static JFrameValue& exec(JFrameValue& v1)
+    {
+      return v1;
+    }
+    using ExecType = JFrameValue& (*) (JFrameValue&);
+    static constexpr ExecType execPtr = &opImplConv<JFrameValue>::exec;
+  };
+
   static void initIterator(asITypeInfo *type, void *data)
   {
   }
@@ -328,6 +339,48 @@ namespace script
     return m;
   }
 
+  bool get_map_bool(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()].GetBool();
+    return false;
+  }
+
+  int get_map_int(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()].GetInt();
+    return 0;
+  }
+
+  float get_map_float(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()].GetFloat();
+    return 0.f;
+  }
+
+  std::string get_map_string(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()].GetString();
+    return "";
+  }
+
+  const JFrameValue& get_map_map(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()];
+    return *(JFrameValue*)create_map();
+  }
+
+  const JFrameValue& get_map_array(const JFrameValue &m, const std::string &key)
+  {
+    if (m.IsObject() && m.HasMember(key.c_str()))
+      return m[key.c_str()];
+    return *(JFrameValue*)create_array();
+  }
+
   JFrameValue& push_array_bool(JFrameValue &arr, bool value)
   {
     JFrameValue jv(rapidjson::kNumberType);
@@ -381,9 +434,44 @@ namespace script
     return arr.Size();
   }
 
+  bool array_get_item_bool(const JFrameValue &arr, int index)
+  {
+    return arr[index].GetBool();
+  }
+
   int array_get_item_int(const JFrameValue &arr, int index)
   {
     return arr[index].GetInt();
+  }
+
+  float array_get_item_float(const JFrameValue &arr, int index)
+  {
+    return arr[index].GetFloat();
+  }
+
+  std::string array_get_item_string(const JFrameValue &arr, int index)
+  {
+    return arr[index].GetString();
+  }
+
+  const JFrameValue& array_get_item_map(const JFrameValue &arr, int index)
+  {
+    return arr[index];
+  }
+
+  const JFrameValue& array_get_item_array(const JFrameValue &arr, int index)
+  {
+    return arr[index];
+  }
+
+  bool is_map(const JFrameValue &v)
+  {
+    return v.IsObject();
+  }
+
+  bool is_array(const JFrameValue &v)
+  {
+    return v.IsArray();
   }
 
   void* create_array_from_list(void *data)
@@ -574,6 +662,13 @@ namespace script
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, string&in)", asFUNCTION(set_map_string), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, Map@)", asFUNCTION(set_map_map), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Map", "Map@ set(string&in, Array@)", asFUNCTION(set_map_array), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "bool getBool(string&in)", asFUNCTION(get_map_bool), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "int getInt(string&in)", asFUNCTION(get_map_int), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "float getFloat(string&in)", asFUNCTION(get_map_float), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "string getString(string&in)", asFUNCTION(get_map_string), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Map@ getMap(string&in)", asFUNCTION(get_map_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "Array@ getArray(string&in)", asFUNCTION(get_map_array), asCALL_CDECL_OBJFIRST);
+    register_component_function("Map", "Array@ opImplConv() const", asFUNCTION(opImplConv<JFrameValue>::execPtr));
 
     engine->RegisterObjectMethod("Array", "Array@ push(bool)", asFUNCTION(push_array_bool), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(int)", asFUNCTION(push_array_int), asCALL_CDECL_OBJFIRST);
@@ -582,7 +677,18 @@ namespace script
     engine->RegisterObjectMethod("Array", "Array@ push(Map@)", asFUNCTION(push_array_map), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "Array@ push(Array@)", asFUNCTION(push_array_array), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "int size()", asFUNCTION(array_get_size), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "bool getBool(int)", asFUNCTION(array_get_item_bool), asCALL_CDECL_OBJFIRST);
     engine->RegisterObjectMethod("Array", "int getInt(int)", asFUNCTION(array_get_item_int), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "float getFloat(int)", asFUNCTION(array_get_item_float), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "string getString(int)", asFUNCTION(array_get_item_string), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Map@ getMap(int)", asFUNCTION(array_get_item_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "Array@ getArray(int)", asFUNCTION(array_get_item_array), asCALL_CDECL_OBJFIRST);
+    register_component_function("Array", "Map@ opImplConv() const", asFUNCTION(opImplConv<JFrameValue>::execPtr));
+
+    engine->RegisterObjectMethod("Map", "bool isMap() const", asFUNCTION(is_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Map", "bool isArray() const", asFUNCTION(is_array), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "bool isMap() const", asFUNCTION(is_map), asCALL_CDECL_OBJFIRST);
+    engine->RegisterObjectMethod("Array", "bool isArray() const", asFUNCTION(is_array), asCALL_CDECL_OBJFIRST);
 
     engine->RegisterObjectType("Query<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
     engine->RegisterObjectBehaviour("Query<T>", asBEHAVE_FACTORY, "Query<T>@ f(int&in)", asFUNCTIONPR(create_script_query, (asITypeInfo*, void*), ScriptQuery*), asCALL_CDECL);

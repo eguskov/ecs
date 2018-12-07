@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -76,12 +76,16 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\script;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CallingConvention>Cdecl</CallingConvention>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <AdditionalOptions>/std:c++latest</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;curl\lib\libcurl.dll.a;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -100,15 +104,16 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\script;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;curl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <AdditionalOptions>/std:c++latest</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Release;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;script.lib;curl\lib\libcurl.dll.a;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
