@@ -76,11 +76,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Debug;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -100,14 +100,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Release;$(ProjectDir)..\sdk\angelscript\lib;$(ProjectDir)..\jemalloc\msvc\Win32\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Release;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

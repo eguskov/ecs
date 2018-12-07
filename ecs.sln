@@ -24,12 +24,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "benchmark", "benchmark\benc
 		{0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3} = {0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build", "git-build\build.vcxproj", "{3FA93787-2C60-4851-A138-3D1DB366ABEB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{42208311-B000-4C8C-ADFB-BF94BD2222E8} = {42208311-B000-4C8C-ADFB-BF94BD2222E8}
+		{0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3} = {0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "script", "script\script.vcxproj", "{735C6650-280C-4068-8D41-74C8DD3D6D9C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3} = {0CAB1E9C-BF51-43F7-984E-58F8F1DEABE3}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mongoose", "mongoose\mongoose\mongoose.vcxproj", "{37F5C0C0-2007-4466-B438-09F9A98AF6C1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mongoose", "libs\mongoose\mongoose\mongoose.vcxproj", "{37F5C0C0-2007-4466-B438-09F9A98AF6C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +77,14 @@ Global
 		{6ED80AE2-017F-486D-A275-E926B415A424}.Release|x64.Build.0 = Release|x64
 		{6ED80AE2-017F-486D-A275-E926B415A424}.Release|x86.ActiveCfg = Release|Win32
 		{6ED80AE2-017F-486D-A275-E926B415A424}.Release|x86.Build.0 = Release|Win32
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Debug|x64.ActiveCfg = Debug|x64
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Debug|x64.Build.0 = Debug|x64
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Debug|x86.ActiveCfg = Debug|Win32
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Debug|x86.Build.0 = Debug|Win32
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Release|x64.ActiveCfg = Release|x64
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Release|x64.Build.0 = Release|x64
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Release|x86.ActiveCfg = Release|Win32
+		{3FA93787-2C60-4851-A138-3D1DB366ABEB}.Release|x86.Build.0 = Release|Win32
 		{735C6650-280C-4068-8D41-74C8DD3D6D9C}.Debug|x64.ActiveCfg = Debug|x64
 		{735C6650-280C-4068-8D41-74C8DD3D6D9C}.Debug|x64.Build.0 = Debug|x64
 		{735C6650-280C-4068-8D41-74C8DD3D6D9C}.Debug|x86.ActiveCfg = Debug|Win32

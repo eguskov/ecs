@@ -80,7 +80,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\glm;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -93,7 +93,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\glm;$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

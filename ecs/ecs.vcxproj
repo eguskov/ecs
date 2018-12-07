@@ -90,7 +90,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\jemalloc\include;$(ProjectDir)..\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\sdk\angelscript\include;$(ProjectDir)..\libs\sdk\add_on;$(ProjectDir)..\libs\jemalloc\include;$(ProjectDir)..\libs\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -98,7 +98,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Debug;$(ProjectDir)..\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>raylibd.lib;EASTL.lib;angelscriptd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
@@ -116,12 +116,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\raylib\release\libs\win32\msvc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>raylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -134,7 +134,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\rapidjson\include;$(ProjectDir)..\raylib\src;$(ProjectDir)..\EASTL\include;$(ProjectDir)..\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\glm;$(ProjectDir)..\lua;$(ProjectDir)..\sdk\angelscript\include;$(ProjectDir)..\sdk\add_on;$(ProjectDir)..\jemalloc\include;$(ProjectDir)..\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\sdk\angelscript\include;$(ProjectDir)..\libs\sdk\add_on;$(ProjectDir)..\libs\jemalloc\include;$(ProjectDir)..\libs\jemalloc\include\msvc_compat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
@@ -144,7 +144,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>raylib.lib;EASTL.lib;angelscript.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\raylib\release\libs\win32\msvc;$(ProjectDir)..\EASTL\Release;$(ProjectDir)..\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Release;$(ProjectDir)..\libs\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
