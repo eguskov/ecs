@@ -532,7 +532,7 @@ namespace script
   void* create_map_from_list(void *data)
   {
     asUINT num = *(asUINT*)data;
-    ASSERT(num > 0);
+    // ASSERT(num > 0);
 
     JFrameValue *m = new (RawAllocator<JFrameValue>::alloc()) JFrameValue(rapidjson::kObjectType);
 

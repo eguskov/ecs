@@ -26,10 +26,11 @@
 /EASTL
 /jemalloc
 /raylib
-/sample/AS_DEBUG
+AS_DEBUG
 /sample/GPUCache
 /sample/blob_storage
 /sdk
 /cef
 /Box2D
 /build
+secret.json
