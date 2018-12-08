@@ -1,1 +1,7 @@
-{ "repo": "ecs", "tag": "v0.0.2" }
+{
+  "repo": "ecs",
+  "tag": "v0.0.2",
+  "body": "",
+  "draft": false,
+  "prerelease": true
+}

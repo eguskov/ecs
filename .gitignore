@@ -33,4 +33,5 @@ AS_DEBUG
 /cef
 /Box2D
 /build
+/git-tools
 secret.json

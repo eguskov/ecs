@@ -45,6 +45,30 @@ Map@ find_release(Array@ releases)
   return null;
 }
 
+Map@ create_release()
+{
+  Map@ release = find_release(api_releases(Map = {}));
+
+  if (release is null)
+  {
+    print("Upload new release with tag: "+settings.getString("tag"));
+
+    @release = api_releases(Map = {{"json", Map = {
+      {"tag_name", settings.getString("tag")},
+      {"target_commitish", "master"},
+      {"name", "Sample "+settings.getString("tag")},
+      {"body", settings.getString("body")},
+      {"draft", settings.getBool("draft")},
+      {"prerelease", settings.getBool("prerelease")}
+    }}});
+    // dump(release);
+  }
+  else
+    print("Update existing release with tag: "+settings.getString("tag"));
+
+  return release;
+}
+
 Map@ find_asset(string&in name, Array@ assets)
 {
   for (int i = 0; i < assets.size(); ++i)
@@ -77,41 +101,26 @@ void create_build()
   zip("../build", "build.zip");
 }
 
+void upload_asset(string&in build_name, Map@ release)
+{
+  Map@ asset = find_asset(build_name, release.getArray("assets"));
+
+  if (asset !is null)
+  {
+    print("Delete an old build: "+build_name);
+
+    Map@ resp = api_releases(Map = {{"method", "DELETE"}}, "assets/"+asset.getInt("id"));
+    // dump(resp);
+  }
+
+  print("Upload build: "+build_name);
+  upload_releases(Map = {{"zip", "build.zip"}}, ""+release.getInt("id")+"/assets?name="+build_name);
+}
+
 void main()
 {
   create_build();
 
-  Map@ release = find_release(api_releases(Map = {}));
-
-  if (release is null)
-  {
-    print("Upload new release with tag: "+settings.getString("tag"));
-
-    @release = api_releases(Map = {{"json", Map = {
-      {"tag_name", settings.getString("tag")},
-      {"target_commitish", "master"},
-      {"name", "Sample "+settings.getString("tag")},
-      {"body", ""},
-      {"draft", false},
-      {"prerelease", true}
-    }}});
-    dump(release);
-  }
-  else
-    print("Update existing release with tag: "+settings.getString("tag"));
-
-  string buildName = "build.zip";
-
-  Map@ asset = find_asset(buildName, release.getArray("assets"));
-
-  if (asset !is null)
-  {
-    print("Delete an old build: "+buildName);
-
-    Map@ resp = api_releases(Map = {{"method", "DELETE"}}, "assets/"+asset.getInt("id"));
-    dump(resp);
-  }
-
-  print("Upload build: "+buildName);
-  upload_releases(Map = {{"zip", "build.zip"}}, ""+release.getInt("id")+"/assets?name="+buildName);
+  Map@ release = create_release();
+  upload_asset("build.zip", release);
 }

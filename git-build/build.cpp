@@ -187,8 +187,11 @@ JFrameValue* http(const JFrameValue &params)
     chunk = curl_slist_append(chunk, "User-Agent: Build Tool");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
-    curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_easy_setopt(curl, CURLOPT_USERPWD, params["auth"].GetString());
+    if (params.HasMember("auth"))
+    {
+      curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+      curl_easy_setopt(curl, CURLOPT_USERPWD, params["auth"].GetString());
+    }
 
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK)
