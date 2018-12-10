@@ -116,6 +116,8 @@ int main()
   script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
   script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
 
+  script::save_all_bindings_to_file("_native.json");
+
   double nextResetMinMax = 0.0;
 
   float minDelta = 1000.f;

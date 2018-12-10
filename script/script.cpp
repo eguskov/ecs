@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <regex>
+#include <fstream>
 
 #include <ecs/ecs.h>
 #include <ecs/component.h>
@@ -25,6 +26,10 @@
 #include <scriptmath/scriptmath.h>
 #include <scriptdictionary/scriptdictionary.h>
 #include <scriptbuilder/scriptbuilder.h>
+
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 
 #include "scriptECS.h"
 #include "scriptQuery.h"
@@ -627,14 +632,14 @@ namespace script
 
     engine->SetMessageCallback(asFUNCTION(message), 0, asCALL_CDECL);
 
-    RegisterScriptHandle(engine);
+    // RegisterScriptHandle(engine);
     RegisterScriptArray(engine, true);
     // TODO: Replace std::string with eastl::string
     // TODO: Optimize string's cache if possible
     RegisterStdString(engine);
     RegisterStdStringUtils(engine);
     RegisterScriptMath(engine);
-    RegisterScriptDictionary(engine);
+    // RegisterScriptDictionary(engine);
 
     engine->RegisterObjectType("QueryIterator<class T>", sizeof(ScriptQuery::Iterator), asOBJ_VALUE | asOBJ_TEMPLATE | asGetTypeTraits<ScriptQuery::Iterator>());
     engine->RegisterObjectBehaviour("QueryIterator<T>", asBEHAVE_CONSTRUCT, "void f(int&in)", asFUNCTIONPR(initIterator, (asITypeInfo*, void*), void), asCALL_CDECL_OBJLAST);
@@ -816,6 +821,163 @@ namespace script
       callback(builder, *module);
 
     return module != nullptr;
+  }
+
+  template <typename T, typename Allocator>
+  struct set_helper;
+
+  template <typename Allocator>
+  struct set_helper<const char*, Allocator>
+  {
+    static void set(JFrameValue &jv, const char *value, Allocator &allocator) { jv.SetString(value, allocator); }
+  };
+
+  template <typename Allocator>
+  struct set_helper<int, Allocator>
+  {
+    static void set(JFrameValue &jv, int value, Allocator &allocator) { jv.SetInt(value); }
+  };
+
+  template <typename Allocator>
+  struct set_helper<JFrameValue, Allocator>
+  {
+    static void set(JFrameValue &jv, const JFrameValue &value, Allocator &allocator) { jv.SetObject(); jv.CopyFrom(value, allocator); }
+  };
+
+  template <typename T, typename Allocator>
+  static void add_member(const char *key, const T &value, JFrameValue &dst, Allocator &allocator)
+  {
+    JFrameValue jk, jv;
+
+    set_helper<decltype(key), Allocator>::set(jk, key, allocator);
+    set_helper<T, Allocator>::set(jv, value, allocator);
+
+    dst.AddMember(eastl::move(jk), eastl::move(jv), allocator);
+  }
+
+  template <typename Allocator>
+  static void add_type(const char *key, int type_id, JFrameValue &dst, Allocator &allocator)
+  {
+    if (type_id == asTYPEID_VOID)
+      add_member<const char*>(key, "void", dst, allocator);
+    else if (type_id == asTYPEID_BOOL)
+      add_member<const char*>(key, "bool", dst, allocator);
+    else if (type_id == asTYPEID_INT8)
+      add_member<const char*>(key, "int8", dst, allocator);
+    else if (type_id == asTYPEID_INT16)
+      add_member<const char*>(key, "int16", dst, allocator);
+    else if (type_id == asTYPEID_INT32)
+      add_member<const char*>(key, "int32", dst, allocator);
+    else if (type_id == asTYPEID_INT64)
+      add_member<const char*>(key, "int64", dst, allocator);
+    else if (type_id == asTYPEID_UINT8)
+      add_member<const char*>(key, "uint8", dst, allocator);
+    else if (type_id == asTYPEID_UINT16)
+      add_member<const char*>(key, "uint16", dst, allocator);
+    else if (type_id == asTYPEID_UINT32)
+      add_member<const char*>(key, "uint32", dst, allocator);
+    else if (type_id == asTYPEID_UINT64)
+      add_member<const char*>(key, "uint64", dst, allocator);
+    else if (type_id == asTYPEID_FLOAT)
+      add_member<const char*>(key, "float", dst, allocator);
+    else if (type_id == asTYPEID_DOUBLE)
+      add_member<const char*>(key, "double", dst, allocator);
+    else
+      add_member(key, engine->GetTypeInfoById(type_id)->GetName(), dst, allocator);
+  }
+
+  template <typename Allocator>
+  static void add_function(const asIScriptFunction *fn, JFrameValue &dst, Allocator &allocator)
+  {
+    add_member("name", fn->GetName(), dst, allocator);
+    add_member("decl", fn->GetDeclaration(false), dst, allocator);
+    add_type("return", fn->GetReturnTypeId(), dst, allocator);
+
+    JFrameValue params(rapidjson::kArrayType);
+    for (int j = 0; j < (int)fn->GetParamCount(); ++j)
+    {
+      JFrameValue paramItem(rapidjson::kObjectType);
+      int typeId = -1;
+      fn->GetParam(j, &typeId);
+      add_type("type", typeId, paramItem, allocator);
+      params.PushBack(eastl::move(paramItem), allocator);
+    }
+    add_member("params", params, dst, allocator);
+  }
+
+  bool save_all_bindings_to_file(const char *filename)
+  {
+    if (!engine)
+      return false;
+
+    JFrameDocument doc;
+    auto &docObject = doc.SetObject();
+    auto &docAlloc = doc.GetAllocator();
+
+    std::ofstream ofs(filename, std::ofstream::out);
+    if (ofs.fail())
+    {
+      DEBUG_LOG("Error: cannot open file: " << filename);
+      return false;
+    }
+
+    JFrameValue funcs(rapidjson::kArrayType);
+    for (int i = 0; i < (int)engine->GetGlobalFunctionCount(); ++i)
+    {
+      const asIScriptFunction *fn = engine->GetGlobalFunctionByIndex(i);
+
+      JFrameValue item(rapidjson::kObjectType);
+      add_function(fn, item, docAlloc);
+
+      funcs.PushBack(eastl::move(item), docAlloc);
+    }
+    add_member("funcs", funcs, docObject, docAlloc);
+
+    JFrameValue types(rapidjson::kArrayType);
+    for (int i = 0; i < (int)engine->GetObjectTypeCount(); ++i)
+    {
+      asITypeInfo *info = engine->GetObjectTypeByIndex(i);
+
+      JFrameValue item(rapidjson::kObjectType);
+      add_member("name", info->GetName(), item, docAlloc);
+      add_member<int>("flags", info->GetFlags(), item, docAlloc);
+
+      JFrameValue props(rapidjson::kArrayType);
+      for (int j = 0; j < (int)info->GetPropertyCount(); ++j)
+      {
+        JFrameValue paramItem(rapidjson::kObjectType);
+        const char *name = nullptr;
+        int typeId = -1;
+        info->GetProperty(j, &name, &typeId);
+        add_member("name", name, paramItem, docAlloc);
+        add_type("type", typeId, paramItem, docAlloc);
+        props.PushBack(eastl::move(paramItem), docAlloc);
+      }
+      add_member("props", props, item, docAlloc);
+
+      JFrameValue methods(rapidjson::kArrayType);
+      for (int j = 0; j < (int)info->GetMethodCount(); ++j)
+      {
+        const asIScriptFunction *fn = info->GetMethodByIndex(j);
+
+        JFrameValue methodItem(rapidjson::kObjectType);
+        add_function(fn, methodItem, docAlloc);
+
+        methods.PushBack(eastl::move(methodItem), docAlloc);
+      }
+      add_member("methods", methods, item, docAlloc);
+
+      types.PushBack(eastl::move(item), docAlloc);
+    }
+    add_member("types", types, docObject, docAlloc);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    writer.SetIndent(' ', 2);
+    doc.Accept(writer);
+    ofs << buffer.GetString() << std::endl;
+
+    return true;
   }
 
   asIScriptModule* get_module(const char *name)

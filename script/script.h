@@ -87,6 +87,8 @@ namespace script
 
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);
 
+  bool save_all_bindings_to_file(const char *filename);
+
   asIScriptModule* get_module(const char *name);
   asIScriptFunction* find_function_by_decl(asIScriptModule *module, const char *decl);
 
