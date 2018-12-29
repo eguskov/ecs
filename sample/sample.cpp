@@ -17,6 +17,10 @@
 
 #include <raylib.h>
 
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
+
 #include "update.ecs.h"
 
 #include "cef.h"
@@ -34,9 +38,77 @@ std::string get_hashed_string(const HashedString &s)
   return std::string(s.str);
 }
 
-int main()
+void script_init()
+{
+  script::init();
+
+  // TODO: Codegen for script bindings
+  script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
+  script::register_component_property("EventOnKillEnemy", "vec2 pos", offsetof(EventOnKillEnemy, pos));
+
+  script::register_component<EventOnWallHit>("EventOnWallHit");
+  script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
+  script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
+  script::register_component_property("EventOnWallHit", "vec2 vel", offsetof(EventOnWallHit, vel));
+
+  script::register_component<UpdateStage>("UpdateStage");
+  script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
+  script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
+
+  script::register_component<AutoMove>("AutoMove");
+  script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
+  script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
+  script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
+  script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
+
+  script::register_component<Jump>("Jump");
+  script::register_component_property("Jump", "bool active", offsetof(Jump, active));
+  script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
+  script::register_component_property("Jump", "float height", offsetof(Jump, height));
+  script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
+
+  script::register_component<TimerComponent>("TimerComponent");
+  script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
+  script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
+
+  script::register_component<HashedString>("HashedString");
+  script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
+  script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
+
+  script::save_all_bindings_to_file("_native.json");
+}
+
+bool process_script_command(int argc, char *argv[])
+{
+  if (argc < 3)
+    return false;
+
+  if (::strcmp(argv[1], "--compile") == 0 && ::strlen(argv[2]) > 0)
+  {
+    JFrameDocument res;
+    res.SetObject();
+
+    script::inspect_module(argv[2], argv[2], res);
+    script::save_all_bindings_to_document(res);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    res.Accept(writer);
+    std::cout << buffer.GetString() << std::endl;
+    return true;
+  }
+
+  return false;
+}
+
+int main(int argc, char *argv[])
 {
   std::srand(unsigned(std::time(0)));
+
+  script_init();
+
+  if (process_script_command(argc, argv))
+    return 0;
 
   EntityManager::create();
 
@@ -80,43 +152,6 @@ int main()
       g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
     }
   }
-
-  script::init();
-
-  // TODO: Codegen for script bindings
-  script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
-  script::register_component_property("EventOnKillEnemy", "vec2 pos", offsetof(EventOnKillEnemy, pos));
-
-  script::register_component<EventOnWallHit>("EventOnWallHit");
-  script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
-  script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
-  script::register_component_property("EventOnWallHit", "vec2 vel", offsetof(EventOnWallHit, vel));
-
-  script::register_component<UpdateStage>("UpdateStage");
-  script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
-  script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
-
-  script::register_component<AutoMove>("AutoMove");
-  script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
-  script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
-  script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
-  script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
-
-  script::register_component<Jump>("Jump");
-  script::register_component_property("Jump", "bool active", offsetof(Jump, active));
-  script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
-  script::register_component_property("Jump", "float height", offsetof(Jump, height));
-  script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
-
-  script::register_component<TimerComponent>("TimerComponent");
-  script::register_component_property("TimerComponent", "float time", offsetof(TimerComponent, time));
-  script::register_component_property("TimerComponent", "float period", offsetof(TimerComponent, period));
-
-  script::register_component<HashedString>("HashedString");
-  script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
-  script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
-
-  script::save_all_bindings_to_file("_native.json");
 
   double nextResetMinMax = 0.0;
 

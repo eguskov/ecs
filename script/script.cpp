@@ -910,16 +910,29 @@ namespace script
     if (!engine)
       return false;
 
-    JFrameDocument doc;
-    auto &docObject = doc.SetObject();
-    auto &docAlloc = doc.GetAllocator();
-
     std::ofstream ofs(filename, std::ofstream::out);
     if (ofs.fail())
     {
       DEBUG_LOG("Error: cannot open file: " << filename);
       return false;
     }
+
+    JFrameDocument doc;
+    auto &docObject = doc.SetObject();
+    save_all_bindings_to_document(doc);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    writer.SetIndent(' ', 2);
+    doc.Accept(writer);
+    ofs << buffer.GetString() << std::endl;
+
+    return true;
+  }
+
+  void save_all_bindings_to_document(JFrameValue &doc)
+  {
+    auto &docAlloc = json_frame_allocator;
 
     JFrameValue funcs(rapidjson::kArrayType);
     for (int i = 0; i < (int)engine->GetGlobalFunctionCount(); ++i)
@@ -931,7 +944,7 @@ namespace script
 
       funcs.PushBack(eastl::move(item), docAlloc);
     }
-    add_member("funcs", funcs, docObject, docAlloc);
+    add_member("funcs", funcs, doc, docAlloc);
 
     JFrameValue types(rapidjson::kArrayType);
     for (int i = 0; i < (int)engine->GetObjectTypeCount(); ++i)
@@ -969,13 +982,115 @@ namespace script
 
       types.PushBack(eastl::move(item), docAlloc);
     }
-    add_member("types", types, docObject, docAlloc);
+    add_member("types", types, doc, docAlloc);
+  }
 
-    rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-    writer.SetIndent(' ', 2);
-    doc.Accept(writer);
-    ofs << buffer.GetString() << std::endl;
+  void save_all_bindings_to_document(asIScriptModule *module, JFrameValue &doc)
+  {
+    auto &docAlloc = json_frame_allocator;
+
+    JFrameValue funcs(rapidjson::kArrayType);
+    for (int i = 0; i < (int)module->GetFunctionCount(); ++i)
+    {
+      const asIScriptFunction *fn = module->GetFunctionByIndex(i);
+
+      JFrameValue item(rapidjson::kObjectType);
+      add_function(fn, item, docAlloc);
+
+      funcs.PushBack(eastl::move(item), docAlloc);
+    }
+    add_member("funcs", funcs, doc, docAlloc);
+
+    JFrameValue types(rapidjson::kArrayType);
+    for (int i = 0; i < (int)module->GetObjectTypeCount(); ++i)
+    {
+      asITypeInfo *info = module->GetObjectTypeByIndex(i);
+
+      JFrameValue item(rapidjson::kObjectType);
+      add_member("name", info->GetName(), item, docAlloc);
+      add_member<int>("flags", info->GetFlags(), item, docAlloc);
+
+      JFrameValue props(rapidjson::kArrayType);
+      for (int j = 0; j < (int)info->GetPropertyCount(); ++j)
+      {
+        JFrameValue paramItem(rapidjson::kObjectType);
+        const char *name = nullptr;
+        int typeId = -1;
+        info->GetProperty(j, &name, &typeId);
+        add_member("name", name, paramItem, docAlloc);
+        add_type("type", typeId, paramItem, docAlloc);
+        props.PushBack(eastl::move(paramItem), docAlloc);
+      }
+      add_member("props", props, item, docAlloc);
+
+      JFrameValue methods(rapidjson::kArrayType);
+      for (int j = 0; j < (int)info->GetMethodCount(); ++j)
+      {
+        const asIScriptFunction *fn = info->GetMethodByIndex(j);
+
+        JFrameValue methodItem(rapidjson::kObjectType);
+        add_function(fn, methodItem, docAlloc);
+
+        methods.PushBack(eastl::move(methodItem), docAlloc);
+      }
+      add_member("methods", methods, item, docAlloc);
+
+      types.PushBack(eastl::move(item), docAlloc);
+    }
+    add_member("types", types, doc, docAlloc);
+  }
+
+  static void json_message(const asSMessageInfo *msg, void *param)
+  {
+    JFrameValue &messages = *(JFrameDocument*)param;
+
+    const char *type = "error";
+    if (msg->type == asMSGTYPE_WARNING)
+      type = "warning";
+    else if (msg->type == asMSGTYPE_INFORMATION)
+      type = "info";
+
+    JFrameValue m(rapidjson::kObjectType);
+
+    add_member("type", type, m, json_frame_allocator);
+    add_member("section", msg->section, m, json_frame_allocator);
+    add_member("row", msg->row, m, json_frame_allocator);
+    add_member("col", msg->col, m, json_frame_allocator);
+    add_member("message", msg->message, m, json_frame_allocator);
+
+    messages.PushBack(eastl::move(m), json_frame_allocator);
+  }
+
+  bool inspect_module(const char *name, const char *path, JFrameDocument &out_result)
+  {
+    ASSERT(engine != nullptr);
+    ASSERT(name && name[0]);
+
+    JFrameValue messages(rapidjson::kArrayType);
+    engine->SetMessageCallback(asFUNCTION(json_message), &messages, asCALL_CDECL);
+    out_result.AddMember("messages", eastl::move(messages), json_frame_allocator);
+
+    // TODO: Error codes
+
+    CScriptBuilder builder;
+    int r = builder.StartNewModule(engine, name);
+    if (r < 0)
+      return false;
+    builder.AddSectionFromFile(path);
+    if (r < 0)
+      return false;
+    builder.BuildModule();
+    if (r < 0)
+      return false;
+
+    if (asIScriptModule *module = engine->GetModule(name))
+    {
+      JFrameValue moduleObj(rapidjson::kObjectType);
+      save_all_bindings_to_document(module, moduleObj);
+      out_result.AddMember("script", eastl::move(moduleObj), json_frame_allocator);
+
+      engine->DiscardModule(name);
+    }
 
     return true;
   }

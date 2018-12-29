@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ecs/debug.h>
+#include <io/json.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/array.h>
@@ -86,8 +87,11 @@ namespace script
   void release();
 
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);
+  bool inspect_module(const char *name, const char *path, JFrameDocument &out_result);
 
   bool save_all_bindings_to_file(const char *filename);
+  void save_all_bindings_to_document(JFrameValue &doc);
+  void save_all_bindings_to_document(asIScriptModule *module, JFrameValue &doc);
 
   asIScriptModule* get_module(const char *name);
   asIScriptFunction* find_function_by_decl(asIScriptModule *module, const char *decl);
