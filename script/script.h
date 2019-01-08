@@ -87,6 +87,7 @@ namespace script
   void release();
 
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);
+  bool compile_module(const char *name, const char *path, JFrameDocument &out_result);
   bool inspect_module(const char *name, const char *path, JFrameDocument &out_result);
 
   bool save_all_bindings_to_file(const char *filename);

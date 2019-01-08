@@ -1,8 +1,3 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import {
 	createConnection,
 	TextDocuments,
@@ -20,27 +15,25 @@ import {
 } from 'vscode-languageserver';
 
 import { exec } from 'child_process';
-import * as peg from 'pegjs';
 import { readFile } from 'fs';
+import * as path from 'path';
 
-// Create a connection for the server. The connection uses Node's IPC as a transport.
-// Also include all preview / proposed LSP features.
+import * as peg from 'pegjs';
+import { uriToFilePath } from 'vscode-languageserver/lib/files';
+
 let connection = createConnection(ProposedFeatures.all);
 
-// Create a simple text document manager. The text document manager
-// supports full document sync only
 let documents: TextDocuments = new TextDocuments();
 
 let hasConfigurationCapability: boolean = false;
 let hasWorkspaceFolderCapability: boolean = false;
 let hasDiagnosticRelatedInformationCapability: boolean = false;
 
+let parsedScripts: Map<string, any> = new Map();
+
 connection.onInitialize((params: InitializeParams) => {
-	console.log('>>> onInitialized 1');
 	let capabilities = params.capabilities;
 
-	// Does the client support the `workspace/configuration` request?
-	// If not, we will fall back using global settings
 	hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
 	hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);
 	hasDiagnosticRelatedInformationCapability =
@@ -51,7 +44,6 @@ connection.onInitialize((params: InitializeParams) => {
 	return {
 		capabilities: {
 			textDocumentSync: documents.syncKind,
-			// Tell the client that the server supports code completion
 			completionProvider: {
 				resolveProvider: true
 			}
@@ -60,9 +52,7 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
-	console.log('>>> onInitialized 2');
 	if (hasConfigurationCapability) {
-		// Register for all configuration changes.
 		connection.client.register(
 			DidChangeConfigurationNotification.type,
 			undefined
@@ -75,35 +65,29 @@ connection.onInitialized(() => {
 	}
 });
 
-// The example settings
-interface ExampleSettings {
-	maxNumberOfProblems: number;
+interface ServerSettings {
+	pathToScriptCompiler: string;
+	scriptWorkingDirectory: string;
 }
 
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
-let globalSettings: ExampleSettings = defaultSettings;
+const defaultSettings: ServerSettings = { pathToScriptCompiler: '', scriptWorkingDirectory: '' };
+let globalSettings: ServerSettings = defaultSettings;
 
-// Cache the settings of all open documents
-let documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+let documentSettings: Map<string, Thenable<ServerSettings>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
 	if (hasConfigurationCapability) {
-		// Reset all cached document settings
 		documentSettings.clear();
 	} else {
-		globalSettings = <ExampleSettings>(
-			(change.settings.languageServerExample || defaultSettings)
+		globalSettings = <ServerSettings>(
+			(change.settings.angelscript || defaultSettings)
 		);
 	}
 
-	// Revalidate all open text documents
 	documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
+function getDocumentSettings(resource: string): Thenable<ServerSettings> {
 	if (!hasConfigurationCapability) {
 		return Promise.resolve(globalSettings);
 	}
@@ -111,40 +95,51 @@ function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 	if (!result) {
 		result = connection.workspace.getConfiguration({
 			scopeUri: resource,
-			section: 'languageServerExample'
+			section: 'angelscript'
 		});
 		documentSettings.set(resource, result);
 	}
 	return result;
 }
 
-// Only keep settings for open documents
 documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
+	parsedScripts.delete(e.document.uri);
 });
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
+documents.onDidSave(async e => {
+	validateTextDocument(e.document);
+	parsedScripts.delete(e.document.uri);
 });
 
-async function getBlockGrammar(): Promise<string> {
+async function getScriptTokens(doc: TextDocument) {
+	let res = parsedScripts.get(doc.uri);
+	if (!res) {
+		let text = doc.getText();
+		let scriptParser = await getScriptParser();
+		res = scriptParser.parse(text);
+		parsedScripts.set(doc.uri, res);
+	}
+	return res;
+}
+
+async function getScriptParser(): Promise<any> {
 	return new Promise<any>((resolve, reject) => {
 		readFile(`${__dirname}/../block.grammar.pegjs`, (err, content) => {
 			if (!!err) {
 				reject(err);
 			}
 			else {
-				resolve(content.toString());
+				resolve(peg.generate(content.toString()));
 			}
 		});
 	});
 }
 
-async function compileScript(): Promise<any> {
-	return new Promise<any>((resolve, reject) => {
-		exec("D:/projects/ecs/Debug/sample.exe --compile script.as", { cwd: 'D:/projects/ecs/sample' }, (_, stdout) => {
+async function execScript(doc: TextDocument, command: string): Promise<any> {
+	return new Promise<any>(async (resolve, reject) => {
+		let settings = await getDocumentSettings(doc.uri);
+		exec(`${settings.pathToScriptCompiler} ${command}`, { cwd: settings.scriptWorkingDirectory }, (_, stdout) => {
 			try {
 				resolve(JSON.parse(stdout));
 			}
@@ -155,50 +150,36 @@ async function compileScript(): Promise<any> {
 	});
 }
 
+async function inspectScript(doc: TextDocument): Promise<any> {
+	let settings = await getDocumentSettings(doc.uri);
+	let p = path.relative(settings.scriptWorkingDirectory, uriToFilePath(doc.uri));
+	return execScript(doc, `--inspect ${p}`);
+}
+
+async function compileScript(doc: TextDocument): Promise<any> {
+	let settings = await getDocumentSettings(doc.uri);
+	let p = path.relative(settings.scriptWorkingDirectory, uriToFilePath(doc.uri));
+	return execScript(doc, `--compile ${p}`);
+}
+
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
-	let settings = await getDocumentSettings(textDocument.uri);
-
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	let text = textDocument.getText();
-	let pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
-
-	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
-		let diagnosic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
-			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length)
-			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnosic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnosic.range)
-					},
-					message: 'Spelling matters'
+	let script = await compileScript(textDocument);
+	if (!!script.messages) {
+		for (let m of script.messages) {
+			let diagnosic: Diagnostic = {
+				severity: m.type == 'error' ? DiagnosticSeverity.Error : m.type == 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Information,
+				range: {
+					start: Position.create(m.row - 1, m.col - 1),
+					end: Position.create(m.row, 0)
 				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnosic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
+				message: m.message,
+				source: 'as'
+			};
+			diagnostics.push(diagnosic);
 		}
-		diagnostics.push(diagnosic);
 	}
 
-	// Send the computed diagnostics to VSCode.
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
@@ -298,7 +279,23 @@ function expressionExtend(doc: TextDocument, pos: Position): string[] {
 	return !!match ? match[0].split('.') : [];
 }
 
-function getLocalVars(tokens: any) {
+async function getCurrentFunction(doc: TextDocument, pos: Position) {
+	let tokens = await getScriptTokens(doc);
+	let offset = doc.offsetAt(pos);
+
+	for (let t of tokens) {
+		if (!!t.statement && t.statement === "function") {
+			if (offset >= t.location.start.offset && offset <= t.location.end.offset)
+			{
+				return t;
+			}
+		}
+	}
+
+	return null;
+}
+
+function getLocalVars(tokens: any, recursive = true) {
 	let res = [];
 	if (!!tokens.body) {
 		tokens = tokens.body;
@@ -307,14 +304,21 @@ function getLocalVars(tokens: any) {
 		if (!!token.statement && token.statement === 'var') {
 			res.push(token);
 		}
-		// if (!!token.body) {
-		// 	res = res.concat(getLocalVars())
-		// }
+		if (recursive && !!token.body) {
+			res = res.concat(getLocalVars(token.body, false));
+		}
 	}
 	return res;
 }
 
-function resolveVarType(name: string, localVars: any[]): any | null {
+function resolveVarType(name: string, localVars: any[], func: any): any | null {
+	if (func && !!func.args) {
+		for (let v of func.args) {
+			if (v.name === name) {
+				return v.type;
+			}
+		}	
+	}
 	for (let v of localVars) {
 		if (v.name === name) {
 			return v.type;
@@ -323,79 +327,95 @@ function resolveVarType(name: string, localVars: any[]): any | null {
 	return null;
 }
 
-// This handler provides the initial list of the completion items.
+function findByName(name: string, data: any) {
+	for (let t of data) {
+		if (t.name === name) {
+			return t;
+		}
+	}
+	return null;
+}
+
+function findType(name: string, scriptData: any) {
+	if (!!scriptData.script && !!scriptData.script.types) {
+		let t = findByName(name, scriptData.script.types);
+		if (t) {
+			return t;
+		}
+	}
+	if (!!scriptData.types) {
+		let t = findByName(name, scriptData.types);
+		if (t) {
+			return t;
+		}
+	}
+	return null;
+}
+
 connection.onCompletion(
 	async (textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-
-		let blockGrammar = await getBlockGrammar();
-		let script = await compileScript();
-
-		let blockParser = peg.generate(blockGrammar);
-
 		let doc = documents.get(textDocumentPosition.textDocument.uri);
 		let pos = textDocumentPosition.position;
-		// let linePrefix = doc.getText(Range.create(pos.line, 0, pos.line, pos.character));
+
+		let scriptParser = await getScriptParser();
+		let scriptData = await inspectScript(doc);
+		let func = await getCurrentFunction(doc, pos);
+		
 		let block = blockExtend(doc, pos);
 		let word = wordExtend(doc, pos);
 		let expr = expressionExtend(doc, pos);
 
+		if (func) {
+			block = blockExtend(doc, Position.create(func.body.location.start.line - 1, func.body.location.start.column));
+		}
+		
 		let localVars = [];
 
 		try {
 			// TODO: Extend block in case of not resolved variable
-			let tokens = blockParser.parse(block);
+			let tokens = scriptParser.parse(block);
 			let tmpLocalVars = getLocalVars(tokens);
 
 			// TODO: Resolve chain a.b.c.d
-			if ((!!script.types || (!!script.script && !!script.script.types)) && expr.length > 1) {
-				let type = resolveVarType(expr[0], tmpLocalVars);
+			if ((!!scriptData.types || (!!scriptData.script && !!scriptData.script.types)) && expr.length > 1) {
+				let type = resolveVarType(expr[0], tmpLocalVars, func);
 				if (!!type) {
 					let res = [];
-					if (!!script.script && !!script.script.types) {
-						for (let t of script.script.types) {
-							if (t.name === type.name) {
-								for (let p of t.props) {
-									res.push({
-										label: p.name,
-										kind: CompletionItemKind.Property,
-										detail: p.type
-									});
-								}
-								for (let f of t.methods) {
-									res.push({
-										label: f.name,
-										kind: CompletionItemKind.Method,
-										detail: f.decl
-									});
-								}
-							}
+					let t = findType(type.name, scriptData);
+					if (t && expr.length > 2) {
+						let pt = findByName(expr[1], t.props);
+						if (pt) {
+							t = findType(pt.type, scriptData);
 						}
 					}
-					if (!!script.types) {
-						for (let t of script.types) {
-							if (t.name === type.name) {
-								for (let p of t.props) {
-									res.push({
-										label: p.name,
-										kind: CompletionItemKind.Property,
-										detail: p.type
-									});
-								}
-								for (let f of t.methods) {
-									res.push({
-										label: f.name,
-										kind: CompletionItemKind.Method,
-										detail: f.decl
-									});
-								}
-							}
+					if (t) {
+						for (let p of t.props) {
+							res.push({
+								label: p.name,
+								kind: CompletionItemKind.Property,
+								detail: p.type
+							});
+						}
+						for (let f of t.methods) {
+							res.push({
+								label: f.name,
+								kind: CompletionItemKind.Method,
+								detail: f.decl
+							});
 						}
 					}
 					return res;
 				}
+			}
+
+			if (func && !!func.args) {
+				for (let v of func.args) {
+					localVars.push({
+						label: v.name,
+						kind: CompletionItemKind.Variable,
+						detail: v.decl
+					});
+				}	
 			}
 
 			for (let v of tmpLocalVars) {
@@ -412,8 +432,8 @@ connection.onCompletion(
 
 		let res = localVars;
 		// Native
-		if (!!script.funcs) {
-			for (let f of script.funcs) {
+		if (!!scriptData.funcs) {
+			for (let f of scriptData.funcs) {
 				res.push({
 					label: f.name,
 					kind: CompletionItemKind.Function,
@@ -421,8 +441,8 @@ connection.onCompletion(
 				});
 			}
 		}
-		if (!!script.types) {
-			for (let t of script.types) {
+		if (!!scriptData.types) {
+			for (let t of scriptData.types) {
 				res.push({
 					label: t.name,
 					kind: CompletionItemKind.Class
@@ -430,9 +450,9 @@ connection.onCompletion(
 			}
 		}
 		// Script
-		if (!!script.script) {
-			if (!!script.script.funcs) {
-				for (let f of script.script.funcs) {
+		if (!!scriptData.script) {
+			if (!!scriptData.script.funcs) {
+				for (let f of scriptData.script.funcs) {
 					res.push({
 						label: f.name,
 						kind: CompletionItemKind.Function,
@@ -440,8 +460,8 @@ connection.onCompletion(
 					});
 				}
 			}
-			if (!!script.script.types) {
-				for (let t of script.script.types) {
+			if (!!scriptData.script.types) {
+				for (let t of scriptData.script.types) {
 					res.push({
 						label: t.name,
 						kind: CompletionItemKind.Class
@@ -450,45 +470,11 @@ connection.onCompletion(
 			}
 		}
 		return res;
-
-		// return [
-		// 	{
-		// 		label: 'TypeScript',
-		// 		kind: CompletionItemKind.Text,
-		// 		data: 1
-		// 	},
-		// 	{
-		// 		label: 'JavaScript',
-		// 		kind: CompletionItemKind.Text,
-		// 		data: 2
-		// 	}
-		// ];
 	}
 );
 
-// This handler resolves additional information for the item selected in
-// the completion list.
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
-
-		// exec("D:/projects/ecs/Debug/sample.exe --compile script.as", { cwd: 'D:/projects/ecs/sample' }, (_, stdout) => {
-		// 	try {
-		// 		let json = JSON.parse(stdout);
-		// 		console.log(json);
-		// 	}
-		// 	catch (jsonErr) {
-		// 		console.log(jsonErr);
-		// 	}
-		// });
-
-		// if (item.data === 1) {
-		// 	(item.detail = 'TypeScript details'),
-		// 		(item.documentation = 'TypeScript documentation');
-		// } else if (item.data === 2) {
-		// 	(item.detail = 'JavaScript details'),
-		// 		(item.documentation = 'JavaScript documentation');
-		// }
-
 		return item;
 	}
 );
@@ -513,9 +499,6 @@ connection.onDidCloseTextDocument((params) => {
 });
 */
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
 documents.listen(connection);
 
-// Listen on the connection
 connection.listen();

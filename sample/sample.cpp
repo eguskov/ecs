@@ -75,7 +75,15 @@ void script_init()
   script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
   script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
 
-  script::save_all_bindings_to_file("_native.json");
+  // script::save_all_bindings_to_file("_native.json");
+}
+
+void print_document(const JFrameDocument &doc)
+{
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  doc.Accept(writer);
+  std::cout << buffer.GetString() << std::endl;
 }
 
 bool process_script_command(int argc, char *argv[])
@@ -88,13 +96,22 @@ bool process_script_command(int argc, char *argv[])
     JFrameDocument res;
     res.SetObject();
 
+    script::compile_module(argv[2], argv[2], res);
+
+    print_document(res);
+
+    return true;
+  }
+  else if (::strcmp(argv[1], "--inspect") == 0 && ::strlen(argv[2]) > 0)
+  {
+    JFrameDocument res;
+    res.SetObject();
+
     script::inspect_module(argv[2], argv[2], res);
     script::save_all_bindings_to_document(res);
 
-    rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-    res.Accept(writer);
-    std::cout << buffer.GetString() << std::endl;
+    print_document(res);
+
     return true;
   }
 
@@ -108,7 +125,10 @@ int main(int argc, char *argv[])
   script_init();
 
   if (process_script_command(argc, argv))
+  {
+    script::release();
     return 0;
+  }
 
   EntityManager::create();
 

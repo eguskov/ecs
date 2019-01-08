@@ -1,15 +1,15 @@
 {
-	"name": "lsp-sample-server",
-	"description": "Example implementation of a language server in node.",
+	"name": "vs-angelscript-lsp",
+	"description": "Language server for AngelScript",
 	"version": "1.0.0",
-	"author": "Microsoft Corporation",
+	"author": "eguskov",
 	"license": "MIT",
 	"engines": {
 		"node": "*"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/eguskov/ecs"
 	},
 	"dependencies": {
 		"vscode-languageserver": "^4.1.3",

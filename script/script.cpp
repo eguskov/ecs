@@ -1061,14 +1061,15 @@ namespace script
     messages.PushBack(eastl::move(m), json_frame_allocator);
   }
 
-  bool inspect_module(const char *name, const char *path, JFrameDocument &out_result)
+  bool compile_module(const char *name, const char *path, JFrameDocument &out_result)
   {
     ASSERT(engine != nullptr);
     ASSERT(name && name[0]);
 
+    engine->ClearMessageCallback();
+
     JFrameValue messages(rapidjson::kArrayType);
     engine->SetMessageCallback(asFUNCTION(json_message), &messages, asCALL_CDECL);
-    out_result.AddMember("messages", eastl::move(messages), json_frame_allocator);
 
     // TODO: Error codes
 
@@ -1080,7 +1081,21 @@ namespace script
     if (r < 0)
       return false;
     builder.BuildModule();
+
+    out_result.AddMember("messages", eastl::move(messages), json_frame_allocator);
+
     if (r < 0)
+      return false;
+
+    return true;
+  }
+
+  bool inspect_module(const char *name, const char *path, JFrameDocument &out_result)
+  {
+    ASSERT(engine != nullptr);
+    ASSERT(name && name[0]);
+
+    if (!compile_module(name, path, out_result))
       return false;
 
     if (asIScriptModule *module = engine->GetModule(name))

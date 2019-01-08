@@ -1,46 +1,41 @@
 {
-	"name": "lsp-sample",
-	"description": "A language server example",
-	"author": "Microsoft Corporation",
+	"name": "vs-angelscript",
+	"description": "AngelScript language server",
+	"author": "eguskov",
 	"license": "MIT",
 	"version": "1.0.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/eguskov/ecs"
 	},
-	"publisher": "vscode-samples",
+	"publisher": "eguskov",
 	"categories": [],
 	"keywords": [
-		"multi-root ready"
+		"angelscript"
 	],
 	"engines": {
 		"vscode": "^1.23.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:angelscript"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Example configuration",
+			"title": "AngelScript configuration",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
+				"angelscript.pathToScriptCompiler": {
 					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
-				},
-				"languageServerExample.trace.server": {
-					"scope": "window",
 					"type": "string",
-					"enum": [
-						"off",
-						"messages",
-						"verbose"
-					],
-					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
+					"default": "D:/projects/ecs/Debug/sample.exe",
+					"description": "Path to script compiler that provides information about a script."
+				},
+				"angelscript.scriptWorkingDirectory": {
+					"scope": "resource",
+					"type": "string",
+					"default": "D:/projects/ecs/sample",
+					"description": "Path to script working directory"
 				}
 			}
 		}
@@ -49,8 +44,7 @@
 		"vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
-		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd .."
 	},
 	"devDependencies": {
 		"@types/mocha": "^5.2.0",

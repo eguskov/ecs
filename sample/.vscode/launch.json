@@ -5,11 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Attach",
+      "type": "cppvsdbg",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    },
+    {
       "name": "(Debug) Sample",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
-      "args": [],
+      "args": ["--compile", "script.as"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

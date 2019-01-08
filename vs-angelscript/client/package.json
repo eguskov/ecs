@@ -1,13 +1,13 @@
 {
-	"name": "lsp-sample-client",
+	"name": "vs-angelscript-client",
 	"description": "VSCode part of a language server",
-	"author": "Microsoft Corporation",
+	"author": "eguskov",
 	"license": "MIT",
 	"version": "0.0.1",
-	"publisher": "vscode",
+	"publisher": "eguskov",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/eguskov/ecs"
 	},
 	"engines": {
 		"vscode": "^1.23.0"
