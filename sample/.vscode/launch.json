@@ -15,7 +15,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
-      "args": ["--compile", "script.as"],
+      "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

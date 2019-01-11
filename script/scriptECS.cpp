@@ -443,6 +443,8 @@ namespace script
 
   void ScriptECS::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
   {
+    script::debug::attach(eventCtx);
+
     auto &entity = g_mgr->entities[eid.index];
     if (eid.generation != entity.eid.generation)
       return;
@@ -484,6 +486,8 @@ namespace script
 
   void ScriptECS::tickStage(int stage_id, const RawArg &stage)
   {
+    script::debug::attach(stageCtx);
+
     // TODO: Store quries in map by stageId
     for (auto &query : systemQueries)
     {

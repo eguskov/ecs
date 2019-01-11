@@ -52,6 +52,24 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "build AngelScript",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Debug",
+        "/p:Platform=\"Win32\"",
+        "/t:build",
+        "${workspaceRoot}\\..\\libs\\angelscript\\angelscript\\projects\\msvc2015\\angelscript.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "reload script",
       "type": "shell",
       "command": "curl",

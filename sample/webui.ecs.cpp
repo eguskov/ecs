@@ -13,8 +13,97 @@
 
 #include "script.ecs.h"
 
-static void ws_get_ecs_data(struct mg_connection *conn);
+static char* get_file_content(const char *path)
+{
+  char *buffer = nullptr;
+
+  FILE *file = nullptr;
+  ::fopen_s(&file, path, "rb");
+  if (file)
+  {
+    size_t sz = ::ftell(file);
+    ::fseek(file, 0, SEEK_END);
+    sz = ::ftell(file) - sz;
+    ::fseek(file, 0, SEEK_SET);
+
+    buffer = new char[sz + 1];
+    buffer[sz] = '\0';
+    ::fread(buffer, 1, sz, file);
+    ::fclose(file);
+  }
+
+  return buffer;
+}
+
+static void send(BsonStream &bson, struct mg_connection *conn)
+{
+  const uint8_t *d = nullptr;
+  size_t sz = 0;
+  eastl::tie(d, sz) = bson.closeAndGetData();
+
+  mg_send_websocket_frame(conn, WEBSOCKET_OP_BINARY, d, sz);
+}
+
+static void send(const char *message, struct mg_connection *conn)
+{
+  mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, message, ::strlen(message));
+}
+
+static void send_json_file(const char *name, const char *path, struct mg_connection *conn)
+{
+  char *buffer = get_file_content(path);
+  ASSERT(buffer != nullptr);
+
+  if (buffer)
+  {
+    std::ostringstream oss;
+    oss << "{ \"" << name << "\": ";
+    oss << buffer;
+    oss << " }";
+
+    delete[] buffer;
+
+    send(oss.str().c_str(), conn);
+  }
+}
+
+static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&);
 static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc);
+
+static void send_ok(struct mg_connection *conn)
+{
+  BsonStream bson;
+  bson_document(bson, "script::debug::enable", [&]()
+  {
+    bson.add("status", "ok");
+  });
+  send(bson, conn);
+}
+
+static void ws_script_debug_attach(struct mg_connection *conn, const JDocument&)
+{
+  script::debug::enable();
+  send_ok(conn);
+}
+
+static void ws_script_debug_add_breakpoint(struct mg_connection *conn, const JDocument &doc)
+{
+  send_ok(conn);
+}
+
+struct WSCommand
+{
+  const char *name;
+  void (*handler)(struct mg_connection*, const JDocument&);
+};
+
+constexpr WSCommand commands[] = {
+  {"getECSData", &ws_get_ecs_data},
+  {"saveECSEntities", &ws_save_ecs_entities},
+
+  {"script::debug::attach", &ws_script_debug_attach},
+  {"script::debug::add_breakpoint", &ws_script_debug_add_breakpoint},
+};
 
 static int is_websocket(const struct mg_connection *nc)
 {
@@ -45,10 +134,14 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
     doc.Parse(d.p, d.len);
     if (doc.HasMember("cmd"))
     {
-      if (doc["cmd"] == "getECSData")
-        ws_get_ecs_data(nc);
-      else if (doc["cmd"] == "saveECSEntities")
-        ws_save_ecs_entities(nc, doc);
+      for (const auto &c : commands)
+      {
+        if (doc["cmd"] == c.name)
+        {
+          c.handler(nc, doc);
+          break;
+        }
+      }
     }
     break;
   }
@@ -120,63 +213,9 @@ static __forceinline void update_websocket_server(const UpdateStage &stage, Webs
   mg_mgr_poll(&ws_server.mgr, 0);
 }
 
-static char* get_file_content(const char *path)
-{
-  char *buffer = nullptr;
-
-  FILE *file = nullptr;
-  ::fopen_s(&file, path, "rb");
-  if (file)
-  {
-    size_t sz = ::ftell(file);
-    ::fseek(file, 0, SEEK_END);
-    sz = ::ftell(file) - sz;
-    ::fseek(file, 0, SEEK_SET);
-
-    buffer = new char[sz + 1];
-    buffer[sz] = '\0';
-    ::fread(buffer, 1, sz, file);
-    ::fclose(file);
-  }
-
-  return buffer;
-}
-
-static void send(BsonStream &bson, struct mg_connection *conn)
-{
-  const uint8_t *d = nullptr;
-  size_t sz = 0;
-  eastl::tie(d, sz) = bson.closeAndGetData();
-
-  mg_send_websocket_frame(conn, WEBSOCKET_OP_BINARY, d, sz);
-}
-
-static void send(const char *message, struct mg_connection *conn)
-{
-  mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, message, ::strlen(message));
-}
-
-static void send_json_file(const char *name, const char *path, struct mg_connection *conn)
-{
-  char *buffer = get_file_content(path);
-  ASSERT(buffer != nullptr);
-
-  if (buffer)
-  {
-    std::ostringstream oss;
-    oss << "{ \"" << name << "\": ";
-    oss << buffer;
-    oss << " }";
-
-    delete[] buffer;
-
-    send(oss.str().c_str(), conn);
-  }
-}
-
 DEF_QUERY(AllScriptsQuery);
 
-static void ws_get_ecs_data(struct mg_connection *conn)
+static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&)
 {
   struct SystemData
   {

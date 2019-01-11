@@ -88,10 +88,10 @@ void print_document(const JFrameDocument &doc)
 
 bool process_script_command(int argc, char *argv[])
 {
-  if (argc < 3)
+  if (argc < 2)
     return false;
 
-  if (::strcmp(argv[1], "--compile") == 0 && ::strlen(argv[2]) > 0)
+  if (::strcmp(argv[1], "--compile") == 0 && argc > 2 && ::strlen(argv[2]) > 0)
   {
     JFrameDocument res;
     res.SetObject();
@@ -102,7 +102,7 @@ bool process_script_command(int argc, char *argv[])
 
     return true;
   }
-  else if (::strcmp(argv[1], "--inspect") == 0 && ::strlen(argv[2]) > 0)
+  else if (::strcmp(argv[1], "--inspect") == 0 && argc > 2 && ::strlen(argv[2]) > 0)
   {
     JFrameDocument res;
     res.SetObject();

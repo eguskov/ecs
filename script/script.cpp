@@ -5,6 +5,7 @@
 #include <iostream>
 #include <regex>
 #include <fstream>
+#include <sstream>
 
 #include <ecs/ecs.h>
 #include <ecs/component.h>
@@ -26,6 +27,7 @@
 #include <scriptmath/scriptmath.h>
 #include <scriptdictionary/scriptdictionary.h>
 #include <scriptbuilder/scriptbuilder.h>
+#include <debugger/debugger.h>
 
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -58,6 +60,7 @@ namespace script
   }
 
   static asIScriptEngine *engine = nullptr;
+  static CDebugger *dbg = nullptr;
 
   template<typename T>
   static T& alloc_result(const T &v)
@@ -792,8 +795,58 @@ namespace script
     if (!engine)
       return;
 
+    if (dbg)
+    {
+      delete dbg;
+      dbg = nullptr;
+    }
+
     engine->Release();
     engine = nullptr;
+  }
+
+  static std::string debug_string_to_string(void *obj, int /* expandMembers */, CDebugger * /* dbg */)
+  {
+    // We know the received object is a string
+    std::string *val = reinterpret_cast<std::string*>(obj);
+
+    // Format the output string
+    // TODO: Should convert non-readable characters to escape sequences
+    std::ostringstream s;
+    s << "(len=" << val->length() << ") \"";
+    if (val->length() < 20)
+      s << *val << "\"";
+    else
+      s << val->substr(0, 20) << "...";
+
+    return s.str();
+  }
+
+  void debug::enable()
+  {
+    // Create the debugger instance and store it so the context callback can attach
+    // it to the scripts contexts that will be used to execute the scripts
+    dbg = new CDebugger();
+
+    // Let the debugger hold an engine pointer that can be used by the callbacks
+    dbg->SetEngine(engine);
+
+    // Register the to-string callbacks so the user can see the contents of strings
+    dbg->RegisterToStringCallback(engine->GetTypeInfoByName("string"), debug_string_to_string);
+    // dbg->RegisterToStringCallback(engine->GetTypeInfoByName("array"), ArrayToString);
+
+    // Allow the user to initialize the debugging before moving on
+    // cout << "Debugging, waiting for commands. Type 'h' for help." << endl;
+    // dbg->TakeCommands(0);
+  }
+
+  void debug::attach(asIScriptContext *ctx)
+  {
+    if (dbg)
+    {
+      ctx->SetLineCallback(asMETHOD(CDebugger, LineCallback), dbg, asCALL_THISCALL);
+      dbg->AddFuncBreakPoint("update_player_spawner");
+    }
   }
 
   bool build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule&)> &callback)

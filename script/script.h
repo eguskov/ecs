@@ -86,6 +86,12 @@ namespace script
   bool init();
   void release();
 
+  namespace debug
+  {
+    void enable();
+    void attach(asIScriptContext *ctx);
+  }
+
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);
   bool compile_module(const char *name, const char *path, JFrameDocument &out_result);
   bool inspect_module(const char *name, const char *path, JFrameDocument &out_result);
