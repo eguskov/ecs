@@ -254,6 +254,7 @@ int main(int argc, char* argv[])
   char path[MAX_PATH];
   ::GetCurrentDirectory(MAX_PATH, path);
 
+  // TODO: Remove path hardcode or rewrite codegen on AngelScript
   const char *clangArgs[] = {
     "-xc++",
     "-std=c++14",
@@ -269,17 +270,17 @@ int main(int argc, char* argv[])
     "-fms-compatibility",
     "-fms-extensions",
     "-fmsc-version=1900",
-    "-I../rapidjson/include",
     "-I../ecs",
-    "-I../glm",
     "-I../script",
-    "-I../mongoose",
-    "-I../sdk/angelscript/include",
-    "-I../sdk/add_on",
-    "-I../EASTL/include",
-    "-I../EASTL/test/packages/EABase/include/Common",
-    "-I../raylib/src",
-    "-I../Box2D",
+    "-I../libs/rapidjson/include",
+    "-I../libs/glm",
+    "-I../libs/mongoose",
+    "-I../libs/angelscript/angelscript/include",
+    "-I../libs/angelscript/add_on",
+    "-I../libs/EASTL/include",
+    "-I../libs/EASTL/test/packages/EABase/include/Common",
+    "-I../libs/raylib/src",
+    "-I../libs/Box2D",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/include",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/atlmfc/include",
     "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Auxiliary/VS/include",
