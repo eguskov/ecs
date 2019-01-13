@@ -1,6 +1,8 @@
 #include "debugger.h"
 #include <iostream>  // cout
 #include <sstream>   // stringstream
+#include <thread>
+#include <chrono>
 #include <stdlib.h>  // atoi
 #include <assert.h>  // assert
 
@@ -13,6 +15,7 @@ CDebugger::CDebugger()
 	m_action = CONTINUE;
 	m_lastFunction = 0;
 	m_engine = 0;
+	isSuspended.store(0);
 }
 
 CDebugger::~CDebugger()
@@ -211,7 +214,14 @@ void CDebugger::LineCallback(asIScriptContext *ctx)
 	s << (file ? file : "{unnamed}") << ":" << lineNbr << "; " << ctx->GetFunction()->GetDeclaration() << endl;
 	Output(s.str());
 
-	TakeCommands(ctx);
+	// TakeCommands(ctx);
+
+	isSuspended.store(1);
+
+	while (isSuspended.load() == 1)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
 }
 
 bool CDebugger::CheckBreakPoint(asIScriptContext *ctx)

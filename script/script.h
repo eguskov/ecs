@@ -90,6 +90,8 @@ namespace script
   {
     void enable();
     void attach(asIScriptContext *ctx);
+    void add_breakpoint(const char *file, int line);
+    bool is_suspended();
   }
 
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);

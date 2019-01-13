@@ -843,10 +843,18 @@ namespace script
   void debug::attach(asIScriptContext *ctx)
   {
     if (dbg)
-    {
       ctx->SetLineCallback(asMETHOD(CDebugger, LineCallback), dbg, asCALL_THISCALL);
-      dbg->AddFuncBreakPoint("update_player_spawner");
-    }
+  }
+
+  void debug::add_breakpoint(const char *file, int line)
+  {
+    if (dbg)
+      dbg->AddFileBreakPoint(file, line);
+  }
+
+  bool debug::is_suspended()
+  {
+    return dbg ? dbg->isSuspended.load() == 1 : false;
   }
 
   bool build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule&)> &callback)

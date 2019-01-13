@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <atomic>
 
 BEGIN_AS_NAMESPACE
 
@@ -53,6 +54,8 @@ public:
 	// by callbacks that need it. This will hold a reference to the engine.
 	virtual void SetEngine(asIScriptEngine *engine);
 	virtual asIScriptEngine *GetEngine();
+
+	std::atomic<int> isSuspended;
 	
 protected:
 	enum DebugAction

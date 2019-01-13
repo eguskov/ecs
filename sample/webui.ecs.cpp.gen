@@ -5,33 +5,6 @@
 
 #include "webui.ecs.cpp"
 
-static RegCompSpec<WebsocketServer> _reg_comp_websocket_server("websocket_server");
-template <> int RegCompSpec<WebsocketServer>::ID = -1;
-
-static constexpr ConstCompDesc init_websocket_server_handler_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("ws_server"), Desc<WebsocketServer>::Size},
-};
-static constexpr ConstQueryDesc init_websocket_server_handler_query_desc = {
-  make_const_array(init_websocket_server_handler_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_websocket_server_components[] = {
-  {hash::cstr("ws_server"), Desc<WebsocketServer>::Size},
-};
-static constexpr ConstQueryDesc update_websocket_server_query_desc = {
-  make_const_array(update_websocket_server_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static RegSysSpec<1792234238, decltype(init_websocket_server_handler)> _reg_sys_init_websocket_server_handler("init_websocket_server_handler", init_websocket_server_handler_query_desc);
-static RegSysSpec<4294383132, decltype(update_websocket_server)> _reg_sys_update_websocket_server("update_websocket_server", update_websocket_server_query_desc);
-
 static constexpr ConstCompDesc AllScriptsQuery_components[] = {
   {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
 };
@@ -55,33 +28,6 @@ template <typename C> void AllScriptsQuery::exec(C callback)
     auto it_script = chunk_script.begin<script::ScriptComponent>();
     for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
       callback(*it_script);
-  }
-}
-
-template <> __forceinline void RegSysSpec<1792234238, decltype(init_websocket_server_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_eid = index_of_component<_countof(init_websocket_server_handler_components)>::get(hash::cstr("eid"), init_websocket_server_handler_components);
-  static constexpr int compIdx_ws_server = index_of_component<_countof(init_websocket_server_handler_components)>::get(hash::cstr("ws_server"), init_websocket_server_handler_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_ws_server)
-      init_websocket_server_handler(*(EventOnEntityCreate*)stage_or_event.mem, *it_eid, *it_ws_server);
-  }
-}
-
-template <> __forceinline void RegSysSpec<4294383132, decltype(update_websocket_server)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_ws_server = index_of_component<_countof(update_websocket_server_components)>::get(hash::cstr("ws_server"), update_websocket_server_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_ws_server = query.chunks[compIdx_ws_server + chunkIdx * query.componentsCount];
-    auto it_ws_server = chunk_ws_server.begin<WebsocketServer>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_ws_server)
-      update_websocket_server(*(UpdateStage*)stage_or_event.mem, *it_ws_server);
   }
 }
 

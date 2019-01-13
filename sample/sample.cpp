@@ -24,6 +24,7 @@
 #include "update.ecs.h"
 
 #include "cef.h"
+#include "webui.h"
 
 PULL_ESC_CORE;
 
@@ -134,6 +135,8 @@ int main(int argc, char *argv[])
 
   if (g_enable_cef)
     cef::init();
+
+  webui::init("127.0.0.1:10112");
 
   InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
 
@@ -250,8 +253,12 @@ int main(int argc, char *argv[])
     if (g_enable_cef)
       cef::update();
 
+    webui::update();
+
     clear_frame_mem();
   }
+
+  webui::release();
 
   EntityManager::release();
   script::release();

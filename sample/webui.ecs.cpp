@@ -1,3 +1,5 @@
+#include "webui.h"
+
 #include <ecs/ecs.h>
 
 #include <scriptECS.h>
@@ -9,9 +11,66 @@
 #include <bson.h>
 #include <bsonUtils.h>
 
+#include <EASTL/queue.h>
+
 #include <sstream>
+#include <atomic>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <chrono>
 
 #include "script.ecs.h"
+
+struct WebsocketServer
+{
+  struct mg_mgr mgr;
+  struct mg_connection *nc = nullptr;
+
+  ~WebsocketServer()
+  {
+    mg_mgr_free(&mgr);
+  }
+
+  void init(const char *address);
+
+  void poll()
+  {
+    mg_mgr_poll(&mgr, 100);
+  }
+};
+
+struct QueueItem
+{
+  struct mg_connection *conn;
+
+  JDocument doc;
+
+  using Handler = eastl::function<void (const JDocument&, BsonStream&)>;
+  Handler handler;
+
+  QueueItem() = default;
+  QueueItem(const QueueItem &assign) :
+    conn(assign.conn),
+    handler(assign.handler)
+  {
+    doc.CopyFrom(assign.doc, doc.GetAllocator());
+  }
+
+  QueueItem& operator=(const QueueItem &assign)
+  {
+    if (this == &assign)
+      return *this;
+
+    new (this) QueueItem(assign);
+
+    return *this;
+  }
+};
+
+static WebsocketServer *server = nullptr;
+
+static void run_on_main_thread_and_wait(struct mg_connection *conn, const JDocument &doc, QueueItem::Handler &&handler);
 
 static char* get_file_content(const char *path)
 {
@@ -70,39 +129,48 @@ static void send_json_file(const char *name, const char *path, struct mg_connect
 static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&);
 static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc);
 
-static void send_ok(struct mg_connection *conn)
+static void send_ok(const char *cmd, struct mg_connection *conn)
 {
   BsonStream bson;
-  bson_document(bson, "script::debug::enable", [&]()
+  bson_document(bson, cmd, [&]()
   {
     bson.add("status", "ok");
   });
   send(bson, conn);
 }
 
-static void ws_script_debug_attach(struct mg_connection *conn, const JDocument&)
+static void ws_script_debug_attach(struct mg_connection *conn, const JDocument &doc)
 {
-  script::debug::enable();
-  send_ok(conn);
+  run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream&)
+  {
+    script::debug::enable();
+  });
 }
 
 static void ws_script_debug_add_breakpoint(struct mg_connection *conn, const JDocument &doc)
 {
-  send_ok(conn);
+  if (script::debug::is_suspended())
+    script::debug::add_breakpoint(doc["file"].GetString(), doc["line"].GetInt());
+  else
+    run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+    {
+      script::debug::add_breakpoint(doc["file"].GetString(), doc["line"].GetInt());
+    });
 }
 
 struct WSCommand
 {
   const char *name;
   void (*handler)(struct mg_connection*, const JDocument&);
+  bool shouldSendOk;
 };
 
 constexpr WSCommand commands[] = {
-  {"getECSData", &ws_get_ecs_data},
-  {"saveECSEntities", &ws_save_ecs_entities},
+  {"getECSData", &ws_get_ecs_data, false},
+  {"saveECSEntities", &ws_save_ecs_entities, false},
 
-  {"script::debug::attach", &ws_script_debug_attach},
-  {"script::debug::add_breakpoint", &ws_script_debug_add_breakpoint},
+  {"script::debug::attach", &ws_script_debug_attach, true},
+  {"script::debug::add_breakpoint", &ws_script_debug_add_breakpoint, true},
 };
 
 static int is_websocket(const struct mg_connection *nc)
@@ -112,10 +180,6 @@ static int is_websocket(const struct mg_connection *nc)
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
-  EntityId eid;
-  if (nc->user_data)
-    eid = (uint32_t)nc->user_data;
-
   switch (ev)
   {
   case MG_EV_WEBSOCKET_HANDSHAKE_DONE:
@@ -139,6 +203,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
         if (doc["cmd"] == c.name)
         {
           c.handler(nc, doc);
+          if (c.shouldSendOk)
+            send_ok(c.name, nc);
           break;
         }
       }
@@ -160,10 +226,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
   }
 }
 
-static void handle_reload_script(struct mg_connection *nc, int ev, void *ev_data)
+static void handle_reload_script(struct mg_connection *conn, int ev, void *ev_data)
 {
-  mg_printf(nc, "HTTP/1.0 200 OK\r\n\r\n");
-  nc->flags |= MG_F_SEND_AND_CLOSE;
+  mg_printf(conn, "HTTP/1.0 200 OK\r\n\r\n");
+  conn->flags |= MG_F_SEND_AND_CLOSE;
 
   struct http_message *hm = (struct http_message *) ev_data;
   if (hm->body.len > 0)
@@ -171,69 +237,125 @@ static void handle_reload_script(struct mg_connection *nc, int ev, void *ev_data
     JDocument doc;
     doc.Parse(hm->body.p, hm->body.len);
 
-    if (doc.HasMember("script"))
+    run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream&)
     {
-      g_mgr->sendEventBroadcast(CmdReloadScript{});
-    }
+      if (doc.HasMember("script"))
+      {
+        g_mgr->sendEventBroadcast(CmdReloadScript{});
+      }
+    });
   }
 }
 
-struct WebsocketServer
+void WebsocketServer::init(const char *address)
 {
-  struct mg_mgr mgr;
-  struct mg_connection *nc = nullptr;
+  mg_mgr_init(&mgr, nullptr);
+  nc = mg_bind(&mgr, address, ev_handler);
 
-  ~WebsocketServer()
+  mg_set_protocol_http_websocket(nc);
+  nc->user_data = (void*)this;
+
+  mg_register_http_endpoint(nc, "/reload_script", handle_reload_script);
+}
+
+static std::atomic<int> server_terminated = 1;
+static std::atomic<int> queue_processed = 0;
+static std::thread server_thread;
+
+static std::mutex run_on_main_thread_mutex;
+static eastl::queue<QueueItem> run_on_main_thread_queue;
+
+static void webui_thread_routine()
+{
+  while (server_terminated.load() != 1)
   {
-    mg_mgr_free(&mgr);
+    server->poll();
+  }
+}
+
+void webui::init(const char *address)
+{
+  server = new WebsocketServer;
+  server->init(address);
+
+  server_terminated.store(0);
+  server_thread = std::thread(webui_thread_routine);
+}
+
+void webui::release()
+{
+  server_terminated.store(1);
+  if (server_thread.joinable())
+    server_thread.join();
+  delete server;
+}
+
+void webui::update()
+{
+  if (server_terminated.load() == 1)
+  {
+    std::lock_guard<std::mutex> lock(run_on_main_thread_mutex);
+    decltype(run_on_main_thread_queue) tmp;
+    run_on_main_thread_queue.swap(tmp);
+    return;
   }
 
-  bool set(const JFrameValue &value)
+  std::lock_guard<std::mutex> lock(run_on_main_thread_mutex);
+  while (!run_on_main_thread_queue.empty())
   {
-    return true;
-  };
-}
-DEF_COMP(WebsocketServer, websocket_server);
+    QueueItem &item = run_on_main_thread_queue.front();
 
-DEF_SYS()
-static __forceinline void init_websocket_server_handler(const EventOnEntityCreate &ev, const EntityId &eid, WebsocketServer &ws_server)
-{
-  mg_mgr_init(&ws_server.mgr, nullptr);
-  ws_server.nc = mg_bind(&ws_server.mgr, "127.0.0.1:10112", ev_handler);
+    BsonStream bson;
+    item.handler(item.doc, bson);
+    send(bson, item.conn);
 
-  mg_set_protocol_http_websocket(ws_server.nc);
-  ws_server.nc->user_data = (void*)(uint32_t)eid.handle;
+    run_on_main_thread_queue.pop();
+  }
 
-  mg_register_http_endpoint(ws_server.nc, "/reload_script", handle_reload_script);
+  queue_processed.store(1);
 }
 
-DEF_SYS()
-static __forceinline void update_websocket_server(const UpdateStage &stage, WebsocketServer &ws_server)
+static void run_on_main_thread_and_wait(struct mg_connection *conn, const JDocument &doc, QueueItem::Handler &&handler)
 {
-  mg_mgr_poll(&ws_server.mgr, 0);
+  {
+    std::lock_guard<std::mutex> lock(run_on_main_thread_mutex);
+
+    run_on_main_thread_queue.emplace_back();
+    QueueItem &item = run_on_main_thread_queue.back();
+    item.conn = conn;
+    item.doc.CopyFrom(doc, item.doc.GetAllocator());
+    item.handler = eastl::move(handler);
+
+    queue_processed.store(0);
+  }
+
+  while (queue_processed.load() != 1)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
 }
 
 DEF_QUERY(AllScriptsQuery);
 
-static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&)
+struct SystemData
 {
-  struct SystemData
+  struct ComponentData
   {
-    struct ComponentData
-    {
-      eastl::string type;
-      eastl::string name;
-    };
-
+    eastl::string type;
     eastl::string name;
-    eastl::vector<ComponentData> components;
-    eastl::vector<ComponentData> haveComponents;
-    eastl::vector<ComponentData> notHaveComponents;
-    eastl::vector<ComponentData> isTrueComponents;
-    eastl::vector<ComponentData> isFalseComponents;
   };
-  eastl::vector<SystemData> scriptSystems;
 
+  eastl::string name;
+  eastl::vector<ComponentData> components;
+  eastl::vector<ComponentData> haveComponents;
+  eastl::vector<ComponentData> notHaveComponents;
+  eastl::vector<ComponentData> isTrueComponents;
+  eastl::vector<ComponentData> isFalseComponents;
+};
+
+static void gather_script_data(eastl::vector<SystemData> &scriptSystems)
+{
+  // TODO: Use query without codegen
   AllScriptsQuery::exec([&](const script::ScriptComponent &script)
   {
     for (const auto &sys : script.scriptECS.systems)
@@ -273,70 +395,75 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&)
       }
     }
   });
+}
 
-  BsonStream bson;
-
-  bson_document(bson, "getECSData", [&]()
+static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
+{
+  run_on_main_thread_and_wait(conn, doc, [](const JDocument &, BsonStream &bson)
   {
-    bson_array_of_documents(bson, "templates", g_mgr->templates, [&](int, const EntityTemplate &templ)
+    eastl::vector<SystemData> scriptSystems;
+    gather_script_data(scriptSystems);
+
+    bson_document(bson, "getECSData", [&]()
     {
-      bson.add("name", templ.name);
-
-      bson_array_of_documents(bson, "components", templ.components, [&](int, const CompDesc &comp)
+      bson_array_of_documents(bson, "templates", g_mgr->templates, [&](int, const EntityTemplate &templ)
       {
-        bson.add("type", comp.desc->name);
-        bson.add("name", comp.name.str);
-      });
-    });
+        bson.add("name", templ.name);
 
-    bson_array_of_documents(bson, "systems", g_mgr->systems, [&](int, const System &sys)
-    {
-      bson.add("name", sys.desc->name);
-
-      bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstCompDesc &comp)
-      {
-        bson.add("name", comp.name.str);
-        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        bson_array_of_documents(bson, "components", templ.components, [&](int, const CompDesc &comp)
+        {
+          bson.add("type", comp.desc->name);
+          bson.add("name", comp.name.str);
+        });
       });
 
-      bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const ConstCompDesc &comp)
+      bson_array_of_documents(bson, "systems", g_mgr->systems, [&](int, const System &sys)
       {
-        bson.add("name", comp.name.str);
-        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        bson.add("name", sys.desc->name);
+
+        bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstCompDesc &comp)
+        {
+          bson.add("name", comp.name.str);
+          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        });
+
+        bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const ConstCompDesc &comp)
+        {
+          bson.add("name", comp.name.str);
+          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        });
+
+        bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstCompDesc &comp)
+        {
+          bson.add("name", comp.name.str);
+          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        });
+
+        bson_array_of_documents(bson, "isTrueComponents", sys.desc->queryDesc.isTrueComponents, [&](int, const ConstCompDesc &comp)
+        {
+          bson.add("name", comp.name.str);
+          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        });
+
+        bson_array_of_documents(bson, "isFalseComponents", sys.desc->queryDesc.isFalseComponents, [&](int, const ConstCompDesc &comp)
+        {
+          bson.add("name", comp.name.str);
+          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
+        });
       });
 
-      bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstCompDesc &comp)
+      bson_array_of_documents(bson, "scriptSystems", scriptSystems, [&](int, const SystemData &sys)
       {
-        bson.add("name", comp.name.str);
-        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
-      });
+        bson.add("name", sys.name);
 
-      bson_array_of_documents(bson, "isTrueComponents", sys.desc->queryDesc.isTrueComponents, [&](int, const ConstCompDesc &comp)
-      {
-        bson.add("name", comp.name.str);
-        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
-      });
-
-      bson_array_of_documents(bson, "isFalseComponents", sys.desc->queryDesc.isFalseComponents, [&](int, const ConstCompDesc &comp)
-      {
-        bson.add("name", comp.name.str);
-        bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
-      });
-    });
-
-    bson_array_of_documents(bson, "scriptSystems", scriptSystems, [&](int, const SystemData &sys)
-    {
-      bson.add("name", sys.name);
-
-      bson_array_of_documents(bson, "components", sys.components, [&](int, const SystemData::ComponentData &comp)
-      {
-        bson.add("name", comp.name);
-        bson.add("type", comp.type);
+        bson_array_of_documents(bson, "components", sys.components, [&](int, const SystemData::ComponentData &comp)
+        {
+          bson.add("name", comp.name);
+          bson.add("type", comp.type);
+        });
       });
     });
   });
-
-  send(bson, conn);
 
   send_json_file("getECSTemplates", "templates.json", conn);
   send_json_file("getECSEntities", "level_1.json", conn);
@@ -344,22 +471,25 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument&)
 
 static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc)
 {
-  // TODO: Replace with allocation
-  static char writeBuffer[4 << 20];
-
-  JDocument docToSave;
-  docToSave.CopyFrom(doc["data"], docToSave.GetAllocator());
-
-  FILE *fp = nullptr;
-  ::fopen_s(&fp, "level_1.json", "wb");
-
-  if (fp)
+  run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
   {
-    rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
-    rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
-    docToSave.Accept(writer);
-    fclose(fp);
+    // TODO: Replace with allocation
+    char writeBuffer[4 << 20];
 
-    g_mgr->sendEventBroadcast(CmdReloadScript{});
-  }
+    JDocument docToSave;
+    docToSave.CopyFrom(doc["data"], docToSave.GetAllocator());
+
+    FILE *fp = nullptr;
+    ::fopen_s(&fp, "level_1.json", "wb");
+
+    if (fp)
+    {
+      rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+      rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+      docToSave.Accept(writer);
+      fclose(fp);
+
+      g_mgr->sendEventBroadcast(CmdReloadScript{});
+    }
+  });
 }

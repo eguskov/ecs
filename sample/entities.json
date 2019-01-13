@@ -1,10 +1,6 @@
 {
   "$entities": [
     {
-      "$template": "server",
-      "$components": {}
-    },
-    {
       "$template": "PhysicsWorld",
       "$components": {}
     },

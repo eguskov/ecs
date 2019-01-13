@@ -273,7 +273,9 @@ export class MockDebugSession extends LoggingDebugSession {
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 
-		let reply: string | undefined = undefined;
+    let reply: string | undefined = undefined;
+    
+    this.sendEvent(new OutputEvent(`>>>> evaluateRequest\n`));
 
 		if (args.context === 'repl') {
 			// 'evaluate' supports to create and delete breakpoints from the 'repl':

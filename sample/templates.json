@@ -6,7 +6,7 @@
     "cef_toggle_webui_handler",
     "cef_click_outside_handler",
     "init_websocket_server_handler",
-    "ws_get_ecs_data",
+    "update_websocket_server",
     "init_physics_world_handler",
     "init_physics_body_handler",
     "init_physics_collision_handler",
@@ -44,7 +44,6 @@
     "select_current_anim_frame_for_player",
     "update_anim_frame",
     "update_camera",
-    "update_websocket_server",
     "render_walls",
     "render_normal",
     "render_boid",
@@ -136,15 +135,6 @@
       "$components": {
         "webui": {
           "$type": "tag",
-          "$value": {}
-        }
-      }
-    },
-    {
-      "$name": "server",
-      "$components": {
-        "ws_server": {
-          "$type": "websocket_server",
           "$value": {}
         }
       }

@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 
-import { client, IMessage } from 'websocket';
+import { client, IMessage, connection } from 'websocket';
 import * as BSON from 'bson';
 
 export interface MockBreakpoint {
@@ -25,7 +25,7 @@ export class MockRuntime extends EventEmitter {
 	private _sourceLines: string[];
 
 	// This is the next line that will be 'executed'
-	private _currentLine = 0;
+	// private _currentLine = 0;
 
 	// maps from sourceFile to array of Mock breakpoints
 	private _breakPoints = new Map<string, MockBreakpoint[]>();
@@ -35,7 +35,9 @@ export class MockRuntime extends EventEmitter {
   private _breakpointId = 1;
   
   private _wsClient = new client();
-  private _wsConnection;
+  private _wsConnection: connection | null;
+
+  private _breakpointsOnConnect: any = [];
 
 	constructor() {
     super();
@@ -82,7 +84,17 @@ export class MockRuntime extends EventEmitter {
       });
 
       // this.sendCommand('getECSData', {});
-      this.sendCommand('script::debug::enable', {});
+      this.sendCommand('script::debug::attach', {});
+
+      for (let bp of this._breakpointsOnConnect) {
+        this.sendCommand("script::debug::add_breakpoint", bp);
+        
+        const mbp = <MockBreakpoint> { verified: true, line: bp.line - 1, id: this._breakpointId++ };
+        this.sendEvent('breakpointValidated', mbp);
+
+        this.sendEvent('stopOnBreakpoint');
+      }
+      this._breakpointsOnConnect = [];
     });
   }
   
@@ -97,7 +109,7 @@ export class MockRuntime extends EventEmitter {
 	 */
 	public start(program: string, stopOnEntry: boolean) {
 		this.loadSource(program);
-		this._currentLine = -1;
+		// this._currentLine = -1;
 
 		this.verifyBreakpoints(this._sourceFile);
 
@@ -115,9 +127,9 @@ export class MockRuntime extends EventEmitter {
     this._wsClient.connect('ws://localhost:10112/');
 
 		this.loadSource(program);
-		this._currentLine = -1;
+		// this._currentLine = -1;
 
-		this.verifyBreakpoints(this._sourceFile);
+		// this.verifyBreakpoints(this._sourceFile);
 
 		if (stopOnEntry) {
 			// we step once
@@ -148,23 +160,33 @@ export class MockRuntime extends EventEmitter {
 	 */
 	public stack(startFrame: number, endFrame: number): any {
 
-		const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
+		// const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
 
-		const frames = new Array<any>();
-		// every word of the current line becomes a stack frame.
-		for (let i = startFrame; i < Math.min(endFrame, words.length); i++) {
-			const name = words[i];	// use a word of the line as the stackframe name
-			frames.push({
-				index: i,
-				name: `${name}(${i})`,
-				file: this._sourceFile,
-				line: this._currentLine
-			});
-		}
-		return {
-			frames: frames,
-			count: words.length
-		};
+		// const frames = new Array<any>();
+		// // every word of the current line becomes a stack frame.
+		// for (let i = startFrame; i < Math.min(endFrame, words.length); i++) {
+		// 	const name = words[i];	// use a word of the line as the stackframe name
+		// 	frames.push({
+		// 		index: i,
+		// 		name: `${name}(${i})`,
+		// 		file: this._sourceFile,
+		// 		line: this._currentLine
+		// 	});
+		// }
+		// return {
+		// 	frames: frames,
+		// 	count: words.length
+    // };
+
+    const frames = new Array<any>();
+    frames.push({
+      index: startFrame,
+      name: `name(${startFrame})`,
+      file: this._sourceFile,
+      line: 77
+    });
+    
+    return { frames: frames, count: 0 };
 	}
 
 	/*
@@ -173,7 +195,14 @@ export class MockRuntime extends EventEmitter {
 	public setBreakPoint(path: string, line: number) : MockBreakpoint {
     this.sendEvent('log', `>>>> setBreakPoint`);
 
-		const bp = <MockBreakpoint> { verified: false, line, id: this._breakpointId++ };
+    // if (this._wsConnection) {
+    //   this.sendCommand("script::debug::add_breakpoint", { file: "script.as", line: line });
+    // }
+    // else {
+    //   this._breakpointsOnConnect.push({ file: "script.as", line: line + 1 });
+    // }
+
+		const bp = <MockBreakpoint> { verified: true, line, id: this._breakpointId++ };
 		// let bps = this._breakPoints.get(path);
 		// if (!bps) {
 		// 	bps = new Array<MockBreakpoint>();
@@ -181,7 +210,9 @@ export class MockRuntime extends EventEmitter {
 		// }
 		// bps.push(bp);
 
-		// this.verifyBreakpoints(path);
+    // this.verifyBreakpoints(path);
+    this.sendEvent('breakpointValidated', bp);
+    this.sendEvent('stopOnBreakpoint');
 
 		return bp;
 	}
