@@ -16,6 +16,8 @@ CDebugger::CDebugger()
 	m_lastFunction = 0;
 	m_engine = 0;
 	isSuspended.store(0);
+	isFirstHit.store(0);
+	currentCtx = nullptr;
 }
 
 CDebugger::~CDebugger()
@@ -216,7 +218,9 @@ void CDebugger::LineCallback(asIScriptContext *ctx)
 
 	// TakeCommands(ctx);
 
+	currentCtx = ctx;
 	isSuspended.store(1);
+	isFirstHit.store(1);
 
 	while (isSuspended.load() == 1)
 	{
@@ -808,6 +812,33 @@ void CDebugger::AddFileBreakPoint(const string &file, int lineNbr)
 
 	BreakPoint bp(actual, lineNbr, false);
 	m_breakPoints.push_back(bp);
+}
+
+void CDebugger::RemoveFileBreakPoint(const std::string &file, int lineNbr)
+{
+	// Store just file name, not entire path
+	size_t r = file.find_last_of("\\/");
+	string actual;
+	if( r != string::npos )
+		actual = file.substr(r+1);
+	else
+		actual = file;
+
+	// Trim the file name
+	size_t b = actual.find_first_not_of(" \t");
+	size_t e = actual.find_last_not_of(" \t");
+	actual = actual.substr(b, e != string::npos ? e-b+1 : string::npos);
+
+	for (int i = m_breakPoints.size(); i >= 0; --i)
+	{
+		if (m_breakPoints[i].name == actual && m_breakPoints[i].lineNbr == lineNbr)
+			m_breakPoints.erase(m_breakPoints.begin() + i);
+	}
+}
+
+void CDebugger::RemoveAllBreakPoints()
+{
+	m_breakPoints.clear();
 }
 
 void CDebugger::PrintHelp()

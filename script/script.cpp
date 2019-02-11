@@ -824,20 +824,23 @@ namespace script
 
   void debug::enable()
   {
-    // Create the debugger instance and store it so the context callback can attach
-    // it to the scripts contexts that will be used to execute the scripts
+    if (debug::is_enabled())
+      return;
+
     dbg = new CDebugger();
 
-    // Let the debugger hold an engine pointer that can be used by the callbacks
     dbg->SetEngine(engine);
 
-    // Register the to-string callbacks so the user can see the contents of strings
     dbg->RegisterToStringCallback(engine->GetTypeInfoByName("string"), debug_string_to_string);
-    // dbg->RegisterToStringCallback(engine->GetTypeInfoByName("array"), ArrayToString);
+  }
 
-    // Allow the user to initialize the debugging before moving on
-    // cout << "Debugging, waiting for commands. Type 'h' for help." << endl;
-    // dbg->TakeCommands(0);
+  void debug::resume()
+  {
+    if (dbg && dbg->isSuspended.load() == 1)
+    {
+      dbg->InterpretCommand("c", dbg->currentCtx);
+      dbg->isSuspended.store(0);
+    }
   }
 
   void debug::attach(asIScriptContext *ctx)
@@ -852,9 +855,75 @@ namespace script
       dbg->AddFileBreakPoint(file, line);
   }
 
+  void debug::remove_breakpoint(const char *file, int line)
+  {
+    if (dbg)
+      dbg->RemoveFileBreakPoint(file, line);
+  }
+
+  void debug::remove_all_breakpoints()
+  {
+    if (dbg)
+      dbg->RemoveAllBreakPoints();
+  }
+
+  void debug::step_into()
+  {
+    if (dbg)
+    {
+      dbg->InterpretCommand("s", dbg->currentCtx);
+      dbg->isSuspended.store(0);
+    }
+  }
+
+  void debug::step_out()
+  {
+    if (dbg)
+    {
+      dbg->InterpretCommand("o", dbg->currentCtx);
+      dbg->isSuspended.store(0);
+    }
+  }
+
+  void debug::step_over()
+  {
+    if (dbg)
+    {
+      dbg->InterpretCommand("n", dbg->currentCtx);
+      dbg->isSuspended.store(0);
+    }
+  }
+
+  bool debug::is_enabled()
+  {
+    return dbg != nullptr;
+  }
+
   bool debug::is_suspended()
   {
     return dbg ? dbg->isSuspended.load() == 1 : false;
+  }
+
+  bool debug::is_first_hit()
+  {
+    return dbg ? dbg->isFirstHit.load() == 1 : false;
+  }
+
+  int debug::get_current_line()
+  {
+    if (!dbg)
+      return -1;
+
+    asIScriptContext *ctx = dbg->currentCtx;
+    ASSERT(ctx != nullptr);
+
+    return ctx->GetExceptionLineNumber();
+  }
+
+  void debug::reset_first_hit()
+  {
+    if (dbg)
+      dbg->isFirstHit.store(0);
   }
 
   bool build_module(const char *name, const char *path, const eastl::function<void(CScriptBuilder&, asIScriptModule&)> &callback)
@@ -964,6 +1033,36 @@ namespace script
       params.PushBack(eastl::move(paramItem), allocator);
     }
     add_member("params", params, dst, allocator);
+  }
+
+  static const char* type_to_string(int type_id)
+  {
+    if (type_id == asTYPEID_VOID)
+      return "void";
+    else if (type_id == asTYPEID_BOOL)
+      return "bool";
+    else if (type_id == asTYPEID_INT8)
+      return "int8";
+    else if (type_id == asTYPEID_INT16)
+      return "int16";
+    else if (type_id == asTYPEID_INT32)
+      return "int32";
+    else if (type_id == asTYPEID_INT64)
+      return "int64";
+    else if (type_id == asTYPEID_UINT8)
+      return "uint8";
+    else if (type_id == asTYPEID_UINT16)
+      return "uint16";
+    else if (type_id == asTYPEID_UINT32)
+      return "uint32";
+    else if (type_id == asTYPEID_UINT64)
+      return "uint64";
+    else if (type_id == asTYPEID_FLOAT)
+      return "float";
+    else if (type_id == asTYPEID_DOUBLE)
+      return "double";
+
+    return engine->GetTypeInfoById(type_id)->GetName();
   }
 
   bool save_all_bindings_to_file(const char *filename)
@@ -1169,6 +1268,56 @@ namespace script
     }
 
     return true;
+  }
+
+  void debug::get_callstack(JFrameDocument &res)
+  {
+    res.SetArray();
+
+    if (!dbg)
+      return;
+
+    asIScriptContext *ctx = dbg->currentCtx;
+    ASSERT(ctx != nullptr);
+
+    for (asUINT n = 0; n < ctx->GetCallstackSize(); n++)
+    {
+      JFrameValue frame(rapidjson::kObjectType);
+      add_member("line", (int)ctx->GetLineNumber(n), frame, res.GetAllocator());
+      add_member("function", ctx->GetFunction(n)->GetDeclaration(), frame, res.GetAllocator());
+      res.PushBack(eastl::move(frame), res.GetAllocator());
+    }
+  }
+
+  void debug::get_local_vars(JFrameDocument &res)
+  {
+    res.SetArray();
+
+    if (!dbg)
+      return;
+
+    asIScriptContext *ctx = dbg->currentCtx;
+    ASSERT(ctx != nullptr);
+
+    asIScriptFunction *func = ctx->GetFunction();
+    if (!func)
+      return;
+
+    for (asUINT n = 0; n < func->GetVarCount(); n++)
+      if (ctx->IsVarInScope(n))
+      {
+        int typeId = 0;
+        const char *name = nullptr;
+        func->GetVar(n, &name, &typeId);
+
+        JFrameValue var(rapidjson::kObjectType);
+        add_member("decl", func->GetVarDecl(n), var, res.GetAllocator());
+        add_member("name", name, var, res.GetAllocator());
+        add_member("type", type_to_string(typeId), var, res.GetAllocator());
+        std::string value = dbg->ToString(ctx->GetAddressOfVar(n), ctx->GetVarTypeId(n), 3, ctx->GetEngine());
+        add_member("value", value.c_str(), var, res.GetAllocator());
+        res.PushBack(eastl::move(var), res.GetAllocator());
+      }
   }
 
   asIScriptModule* get_module(const char *name)

@@ -54,12 +54,11 @@ export class MockDebugSession extends LoggingDebugSession {
 		super("mock-debug.txt");
 
 		// this debugger uses zero-based lines and columns
-		this.setDebuggerLinesStartAt1(false);
-		this.setDebuggerColumnsStartAt1(false);
+		this.setDebuggerLinesStartAt1(true);
+		this.setDebuggerColumnsStartAt1(true);
 
 		this._runtime = new MockRuntime();
 
-		// setup event handlers
 		this._runtime.on('stopOnEntry', () => {
 			this.sendEvent(new StoppedEvent('entry', MockDebugSession.THREAD_ID));
 		});
@@ -80,10 +79,6 @@ export class MockDebugSession extends LoggingDebugSession {
 			e.body.source = this.createSource(filePath);
 			e.body.line = this.convertDebuggerLineToClient(line);
 			e.body.column = this.convertDebuggerColumnToClient(column);
-			this.sendEvent(e);
-		});
-		this._runtime.on('log', (msg) => {
-			const e: DebugProtocol.OutputEvent = new OutputEvent(`${msg}\n`);
 			this.sendEvent(e);
 		});
 		this._runtime.on('end', () => {
@@ -107,7 +102,7 @@ export class MockDebugSession extends LoggingDebugSession {
 		response.body.supportsEvaluateForHovers = true;
 
 		// make VS Code to show a 'step back' button
-		response.body.supportsStepBack = true;
+		response.body.supportsStepBack = false;
 
 		this.sendResponse(response);
 
@@ -115,7 +110,14 @@ export class MockDebugSession extends LoggingDebugSession {
 		// we request them early by sending an 'initializeRequest' to the frontend.
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 		this.sendEvent(new InitializedEvent());
-	}
+  }
+  
+  protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): Promise<void>
+  {
+    await this._runtime.clearBreakpoints('');
+    await this._runtime.disconnect();
+    this.sendResponse(response);
+  }
 
 	/**
 	 * Called at the end of the configuration sequence.
@@ -152,25 +154,24 @@ export class MockDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
   }
 
-	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
+	protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): Promise<void> {
 
 		const path = <string>args.source.path;
-		const clientLines = args.lines || [];
+		// const clientLines = args.lines || [];
 
 		// clear all breakpoints for this file
-		this._runtime.clearBreakpoints(path);
+    await this._runtime.clearBreakpoints(path);
 
-		// set and verify breakpoint locations
-		const actualBreakpoints = clientLines.map(l => {
-			let { verified, line, id } = this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
-			const bp = <DebugProtocol.Breakpoint> new Breakpoint(verified, this.convertDebuggerLineToClient(line));
-			bp.id= id;
-			return bp;
-		});
+    let breakpoints = new Array<MockBreakpoint>();
+    if (!!args.breakpoints) {
+      for (let bp of args.breakpoints) {
+        breakpoints.push(await this._runtime.setBreakPoint(path, bp.line));
+      }
+    }
 
 		// send back the actual breakpoint positions
 		response.body = {
-			breakpoints: actualBreakpoints
+			breakpoints: breakpoints
 		};
 		this.sendResponse(response);
 	}
@@ -186,13 +187,13 @@ export class MockDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
+	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): Promise<void> {
 
 		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
 		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
 		const endFrame = startFrame + maxLevels;
 
-		const stk = this._runtime.stack(startFrame, endFrame);
+		const stk = await this._runtime.stack(startFrame, endFrame);
 
 		response.body = {
 			stackFrames: stk.frames.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
@@ -201,42 +202,56 @@ export class MockDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
-
+	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
+    // TODO: frameId in StackFrame (Function). Resolve variables by frameId.
 		const frameReference = args.frameId;
 		const scopes = new Array<Scope>();
 		scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
-		scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
+    scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
+    
+    let vars = await this._runtime.getLocalVars();
+    for (let v of vars) {
+      this._variableHandles.create(v.name);
+    }
 
 		response.body = {
 			scopes: scopes
-		};
+    };
 		this.sendResponse(response);
 	}
 
-	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
-
-		const variables = new Array<DebugProtocol.Variable>();
-		const id = this._variableHandles.get(args.variablesReference);
+	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): Promise<void> {
+    const variables = new Array<DebugProtocol.Variable>();
+    const id = this._variableHandles.get(args.variablesReference);
+    logger.warn(`id= ${id}`);
 		if (id !== null) {
-			variables.push({
-				name: id + "_i",
-				type: "integer",
-				value: "123",
-				variablesReference: 0
-			});
-			variables.push({
-				name: id + "_f",
-				type: "float",
-				value: "3.14",
-				variablesReference: 0
-			});
-			variables.push({
-				name: id + "_s",
-				type: "string",
-				value: "hello world",
-				variablesReference: 0
-			});
+      let vars = await this._runtime.getLocalVars();
+      for (let v of vars) {
+        variables.push({
+          name: v.name,
+          type: v.type,
+          value: v.value,
+          variablesReference: 0
+        })
+      }
+			// variables.push({
+			// 	name: id + "_i",
+			// 	type: "integer",
+			// 	value: "123",
+			// 	variablesReference: 0
+			// });
+			// variables.push({
+			// 	name: id + "_f",
+			// 	type: "float",
+			// 	value: "3.14",
+			// 	variablesReference: 0
+			// });
+			// variables.push({
+			// 	name: id + "_s",
+			// 	type: "string",
+			// 	value: "hello world",
+			// 	variablesReference: 0
+			// });
 			variables.push({
 				name: id + "_o",
 				type: "object",
@@ -256,22 +271,32 @@ export class MockDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments) : void {
-		this._runtime.continue(true);
+	// protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments) : void {
+	// 	this._runtime.continue(true);
+	// 	this.sendResponse(response);
+  // }
+   
+  protected async stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments) {
+		this._runtime.stepIn();
 		this.sendResponse(response);
- 	}
-
-	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step();
+  }
+  
+  protected async stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments) {
+		this._runtime.stepOut();
 		this.sendResponse(response);
 	}
 
-	protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
-		this._runtime.step(true);
+	protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments) {
+		this._runtime.stepOver();
 		this.sendResponse(response);
-	}
+  }
 
-	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
+	// protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
+	// 	this._runtime.step(true);
+	// 	this.sendResponse(response);
+	// }
+
+	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): Promise<void> {
 
     let reply: string | undefined = undefined;
     
@@ -281,7 +306,7 @@ export class MockDebugSession extends LoggingDebugSession {
 			// 'evaluate' supports to create and delete breakpoints from the 'repl':
 			const matches = /new +([0-9]+)/.exec(args.expression);
 			if (matches && matches.length === 2) {
-				const mbp = this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
+				const mbp = await this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 				const bp = <DebugProtocol.Breakpoint> new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile));
 				bp.id= mbp.id;
 				this.sendEvent(new BreakpointEvent('new', bp));

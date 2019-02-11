@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 
 import { client, IMessage, connection } from 'websocket';
 import * as BSON from 'bson';
+import { logger } from 'vscode-debugadapter';
 
 export interface MockBreakpoint {
 	id: number;
@@ -36,72 +37,135 @@ export class MockRuntime extends EventEmitter {
   
   private _wsClient = new client();
   private _wsConnection: connection | null;
+  private _wsResponses = new Map<number, any>();
+  private _wsRequestId = 0;
 
-  private _breakpointsOnConnect: any = [];
+  // private _breakpointsOnConnect: any = [];
 
 	constructor() {
     super();
-
-    this.on('wsSend', this.sendCommand.bind(this));
-    
-    this._wsClient.on('connectFailed', (err) => {
-      this.sendEvent('log', `>>>> Fail: ${err}`);
-      this._wsConnection = null;
-    });
-
-    this._wsClient.on('connect', (conn) => {
-      this.sendEvent('log', `>>>> Success`);
-      this._wsConnection = conn;
-
-      conn.on('message', (data: IMessage) => {
-        let text = !!data.utf8Data ? data.utf8Data : '{}';
-        let binary = !!data.binaryData ? data.binaryData : null;
-        let obj: any = {};
-        if (binary)
-        {
-          try {
-            obj = BSON.deserialize(binary);
-          }
-          catch (err) {
-            this.sendEvent('log', `>>>> ERROR: ${err}`);
-          }
-        }
-        else if (text)
-          obj = JSON.parse(text);
-
-        if (!!obj.getECSData) {  
-          this.sendEvent('log', `>>>> getECSData: ${data}`);
-        }
-        else if (!!obj.getECSTemplates) {  
-          this.sendEvent('log', `>>>> getECSTemplates: ${data}`);
-        }
-        else if (!!obj.getECSEntities) {  
-          this.sendEvent('log', `>>>> getECSEntities: ${data}`);
-        }
-        else {
-          this.sendEvent('log', `>>>> Message: ${JSON.stringify(obj)}`);
-        }
-      });
-
-      // this.sendCommand('getECSData', {});
-      this.sendCommand('script::debug::attach', {});
-
-      for (let bp of this._breakpointsOnConnect) {
-        this.sendCommand("script::debug::add_breakpoint", bp);
-        
-        const mbp = <MockBreakpoint> { verified: true, line: bp.line - 1, id: this._breakpointId++ };
-        this.sendEvent('breakpointValidated', mbp);
-
-        this.sendEvent('stopOnBreakpoint');
-      }
-      this._breakpointsOnConnect = [];
-    });
   }
   
-  private sendCommand(command: string, args: any) {
-    if (this._wsConnection) {
-      this._wsConnection.sendUTF(JSON.stringify(Object.assign(args, { cmd: command })));
-    }
+  // private sendCommand(command: string, args: any) {
+  //   if (this._wsConnection) {
+  //     this._wsConnection.sendUTF(JSON.stringify(Object.assign(args, { cmd: command })));
+  //   }
+  // }
+
+  private async getConnection(): Promise<connection> {
+    return new Promise<connection>((resolve, reject) => {
+      if (this._wsConnection) {
+        resolve(this._wsConnection);
+      }
+      else {
+        this._wsClient.removeAllListeners('connect');
+        this._wsClient.removeAllListeners('connectFailed');
+
+        this._wsClient.on('connectFailed', (err) => {
+          logger.warn(`Fail: ${err}`);
+          this._wsConnection = null;
+          reject(null);
+        });
+    
+        this._wsClient.on('connect', (conn) => {
+          logger.warn(`Success`);
+          this._wsConnection = conn;
+    
+          conn.on('message', (data: IMessage) => {
+            let text = !!data.utf8Data ? data.utf8Data : '{}';
+            let binary = !!data.binaryData ? data.binaryData : null;
+            let obj: any = {};
+
+            if (binary)
+            {
+              try {
+                obj = BSON.deserialize(binary);
+              }
+              catch (err) {
+                logger.warn(`ERROR: ${err}`);
+              }
+            }
+            else if (text)
+              obj = JSON.parse(text);
+  
+            if (!!obj.$requestId)
+            {
+              logger.warn(`Got Message[${obj.cmd} - ${obj.$requestId}]: ${JSON.stringify(obj)}`);
+              this._wsResponses.set(obj.$requestId, obj);
+            }
+            else if (!!obj.hit_breakpoint)
+            {
+              logger.warn(`hit_breakpoint`);
+              this.sendEvent('stopOnBreakpoint');
+            }
+    
+            // if (!!obj.getECSData) {  
+            //   logger.warn(`getECSData: ${data}`);
+            // }
+            // else if (!!obj.getECSTemplates) {  
+            //   logger.warn(`getECSTemplates: ${data}`);
+            // }
+            // else if (!!obj.getECSEntities) {  
+            //   logger.warn(`getECSEntities: ${data}`);
+            // }
+            // else {
+            //   logger.warn(`Message: ${JSON.stringify(obj)}`);
+            // }
+          });
+
+          conn.on('error', (err) => {
+            logger.warn(`Error: ${err}`);
+            this._wsConnection = null;
+          });
+
+          conn.on('close', (code: number, desc: string) => {
+            logger.warn(`Closed: code: ${code}; desc: ${desc};`);
+            this._wsConnection = null;
+          });
+
+          resolve(conn);
+        });
+
+        this._wsClient.connect('ws://localhost:10112/');
+      }
+    });
+  }
+
+  private async execCommand(command: string, args: any): Promise<any> {
+    return new Promise<any>(async (resolve, reject) => {
+      let conn = await this.getConnection();
+      if (!conn) {
+        reject(null);
+        return;
+      }
+
+      this._wsRequestId++;
+
+      const requestId = this._wsRequestId;
+      let timeout = 10000;
+
+      let msg = JSON.stringify(Object.assign(args, { cmd: command, $requestId: requestId }));
+      logger.warn(`Send Message: ${msg}`);
+
+      conn.sendUTF(msg);
+
+      const id = setInterval(() => {
+        const res = this._wsResponses.get(requestId);
+        
+        if (res) {
+          resolve(res);
+          this._wsResponses.delete(requestId);
+          clearInterval(id);
+        }
+
+        timeout -= 10;
+        if (timeout <= 0) {
+          logger.warn(`TIMEOUT: ${requestId}`);
+          reject(null);
+          clearInterval(id);
+        }
+      }, 10);
+    });
   }
 
 	/**
@@ -122,9 +186,8 @@ export class MockRuntime extends EventEmitter {
 		}
   }
   
-	public attach(program: string, stopOnEntry: boolean) {
-    this.sendEvent('log', `>>>> Start`);
-    this._wsClient.connect('ws://localhost:10112/');
+	public async attach(program: string, stopOnEntry: boolean) {
+    logger.warn(`attach`);
 
 		this.loadSource(program);
 		// this._currentLine = -1;
@@ -139,26 +202,51 @@ export class MockRuntime extends EventEmitter {
 			// we just start to run until we hit a breakpoint or an exception
 			this.continue();
 		}
-	}
+  }
+  
+  public async disconnect() {
+    await this.execCommand("script::debug::resume", {});
+  }
 
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public continue(reverse = false) {
-		this.run(reverse, undefined);
+	public async continue(reverse = false) {
+    this.run(reverse, undefined);
+    await this.execCommand("script::debug::resume", {});
 	}
 
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public step(reverse = false, event = 'stopOnStep') {
-		this.run(reverse, event);
-	}
+	public async step(reverse = false, event = 'stopOnStep') {
+    this.run(reverse, event);
+    await this.execCommand("script::debug::step", {});
+  }
+
+	public async stepIn() {
+    await this.execCommand("script::debug::step_in", {});
+  }
+
+	public async stepOut() {
+    await this.execCommand("script::debug::step_out", {});
+  }
+
+	public async stepOver() {
+    await this.execCommand("script::debug::step_over", {});
+    this.sendEvent('stopOnStep');
+  }
+  
+  public async getLocalVars(): Promise<any> {
+    let resp = await this.execCommand("script::debug::get_local_vars", {});
+    return resp.localVars;
+  }
 
 	/**
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
-	public stack(startFrame: number, endFrame: number): any {
+	public async stack(startFrame: number, endFrame: number): Promise<any> {
+    let resp = await this.execCommand("script::debug::get_callstack", {});
 
 		// const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
 
@@ -179,21 +267,24 @@ export class MockRuntime extends EventEmitter {
     // };
 
     const frames = new Array<any>();
-    frames.push({
-      index: startFrame,
-      name: `name(${startFrame})`,
-      file: this._sourceFile,
-      line: 77
-    });
+    for (let i = startFrame; i < Math.min(endFrame, resp.callstack.length); i++) {
+      const frame = resp.callstack[i];
+      frames.push({
+        index: i,
+        name: frame.function,
+        file: this._sourceFile,
+        line: frame.line
+      });
+    }
     
-    return { frames: frames, count: 0 };
+    return { frames: frames, count: resp.callstack.length };
 	}
 
 	/*
 	 * Set breakpoint in file with given line.
 	 */
-	public setBreakPoint(path: string, line: number) : MockBreakpoint {
-    this.sendEvent('log', `>>>> setBreakPoint`);
+	public async setBreakPoint(path: string, line: number) : Promise<MockBreakpoint> {
+    logger.warn(`setBreakPoint`);
 
     // if (this._wsConnection) {
     //   this.sendCommand("script::debug::add_breakpoint", { file: "script.as", line: line });
@@ -201,6 +292,11 @@ export class MockRuntime extends EventEmitter {
     // else {
     //   this._breakpointsOnConnect.push({ file: "script.as", line: line + 1 });
     // }
+
+    await this.execCommand('script::debug::enable', {});
+
+    let resp = await this.execCommand("script::debug::add_breakpoint", { file: "script.as", line: line });
+    logger.warn(`setBreakPoint: resp: ${JSON.stringify(resp)}`);
 
 		const bp = <MockBreakpoint> { verified: true, line, id: this._breakpointId++ };
 		// let bps = this._breakPoints.get(path);
@@ -212,9 +308,8 @@ export class MockRuntime extends EventEmitter {
 
     // this.verifyBreakpoints(path);
     this.sendEvent('breakpointValidated', bp);
-    this.sendEvent('stopOnBreakpoint');
 
-		return bp;
+		return Promise.resolve(bp);
 	}
 
 	/*
@@ -236,8 +331,9 @@ export class MockRuntime extends EventEmitter {
 	/*
 	 * Clear all breakpoints for file.
 	 */
-	public clearBreakpoints(path: string): void {
-		this._breakPoints.delete(path);
+	public async clearBreakpoints(path: string): Promise<void> {
+    this._breakPoints.delete(path);
+    await this.execCommand('script::debug::remove_all_breakpoints', {});
 	}
 
 	// private methods

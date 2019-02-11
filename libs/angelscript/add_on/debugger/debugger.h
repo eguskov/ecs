@@ -37,6 +37,8 @@ public:
 	virtual void PrintHelp();
 	virtual void AddFileBreakPoint(const std::string &file, int lineNbr);
 	virtual void AddFuncBreakPoint(const std::string &func);
+	virtual void RemoveFileBreakPoint(const std::string &file, int lineNbr);
+	virtual void RemoveAllBreakPoints();
 	virtual void ListBreakPoints();
 	virtual void ListLocalVariables(asIScriptContext *ctx);
 	virtual void ListGlobalVariables(asIScriptContext *ctx);
@@ -56,7 +58,8 @@ public:
 	virtual asIScriptEngine *GetEngine();
 
 	std::atomic<int> isSuspended;
-	
+	std::atomic<int> isFirstHit;
+	asIScriptContext *currentCtx;
 protected:
 	enum DebugAction
 	{

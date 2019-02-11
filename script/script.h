@@ -89,9 +89,24 @@ namespace script
   namespace debug
   {
     void enable();
+    void resume();
     void attach(asIScriptContext *ctx);
     void add_breakpoint(const char *file, int line);
+    void remove_breakpoint(const char *file, int line);
+    void remove_all_breakpoints();
+    void step_into();
+    void step_out();
+    void step_over();
+
     bool is_suspended();
+    bool is_enabled();
+    bool is_first_hit();
+    void reset_first_hit();
+
+    int get_current_line();
+
+    void get_callstack(JFrameDocument &res);
+    void get_local_vars(JFrameDocument &res);
   }
 
   bool build_module(const char *name, const char *path, const eastl::function<void (CScriptBuilder&, asIScriptModule&)> &callback);

@@ -139,23 +139,166 @@ static void send_ok(const char *cmd, struct mg_connection *conn)
   send(bson, conn);
 }
 
-static void ws_script_debug_attach(struct mg_connection *conn, const JDocument &doc)
+static void run_script_debug_on_main_thread_and_wait(struct mg_connection *conn, const JDocument &doc, QueueItem::Handler &&handler)
 {
-  run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream&)
+  if (script::debug::is_suspended())
+  {
+    BsonStream bson;
+    handler(doc, bson);
+    if (doc.HasMember("$requestId") && doc["$requestId"].IsInt())
+    {
+      bson.add("cmd", doc["cmd"].GetString());
+      bson.add("$requestId", doc["$requestId"].GetInt());
+      send(bson, conn);
+    }
+  }
+  else
+    run_on_main_thread_and_wait(conn, doc, eastl::move(handler));
+}
+
+static void ws_script_debug_enable(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
   {
     script::debug::enable();
   });
 }
 
+static void ws_script_debug_resume(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::resume();
+  });
+}
+
 static void ws_script_debug_add_breakpoint(struct mg_connection *conn, const JDocument &doc)
 {
-  if (script::debug::is_suspended())
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
     script::debug::add_breakpoint(doc["file"].GetString(), doc["line"].GetInt());
-  else
-    run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  });
+}
+
+static void ws_script_debug_remove_breakpoint(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::remove_breakpoint(doc["file"].GetString(), doc["line"].GetInt());
+  });
+}
+
+static void ws_script_debug_remove_all_breakpoints(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::remove_all_breakpoints();
+  });
+}
+
+static void ws_script_debug_step_into(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::step_into();
+  });
+}
+
+static void ws_script_debug_step_out(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::step_out();
+  });
+}
+
+static void ws_script_debug_step_over(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    script::debug::step_over();
+  });
+}
+
+static void json_to_bson(const JFrameValue &json, BsonStream &bson)
+{
+  // bool IsNull()   const { return data_.f.flags == kNullFlag; }
+  // bool IsFalse()  const { return data_.f.flags == kFalseFlag; }
+  // bool IsTrue()   const { return data_.f.flags == kTrueFlag; }
+  // bool IsBool()   const { return (data_.f.flags & kBoolFlag) != 0; }
+  // bool IsObject() const { return data_.f.flags == kObjectFlag; }
+  // bool IsArray()  const { return data_.f.flags == kArrayFlag; }
+  // bool IsNumber() const { return (data_.f.flags & kNumberFlag) != 0; }
+  // bool IsInt()    const { return (data_.f.flags & kIntFlag) != 0; }
+  // bool IsUint()   const { return (data_.f.flags & kUintFlag) != 0; }
+  // bool IsInt64()  const { return (data_.f.flags & kInt64Flag) != 0; }
+  // bool IsUint64() const { return (data_.f.flags & kUint64Flag) != 0; }
+  // bool IsDouble() const { return (data_.f.flags & kDoubleFlag) != 0; }
+  // bool IsString() const { return (data_.f.flags & kStringFlag) != 0; }
+
+  for (auto it = json.MemberBegin(); it != json.MemberEnd(); ++it)
+  {
+    const JFrameValue &v = it->value;
+    if (v.IsInt())
+      bson.add(it->name.GetString(), v.GetInt());
+    else if (v.IsFloat())
+      bson.add(it->name.GetString(), v.GetFloat());
+    else if (v.IsString())
+      bson.add(it->name.GetString(), v.GetString());
+    else if (v.IsObject())
     {
-      script::debug::add_breakpoint(doc["file"].GetString(), doc["line"].GetInt());
-    });
+      bson.begin(it->name.GetString());
+      json_to_bson(v, bson);
+      bson.end();
+    }
+    else if (v.IsArray())
+    {
+      bson.beginArray(it->name.GetString());
+      for (BsonStream::StringIndex i; i.idx() < (int)v.Size(); i.increment())
+      {
+        bson.begin(i.str());
+        json_to_bson(v[i.idx()], bson);
+        bson.end();
+      }
+      bson.end();
+    }
+  }
+}
+
+static void ws_script_debug_get_callstack(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    JFrameDocument res;
+    script::debug::get_callstack(res);
+
+    bson.beginArray("callstack");
+    for (BsonStream::StringIndex i; i.idx() < (int)res.Size(); i.increment())
+    {
+      bson.begin(i.str());
+      json_to_bson(res[i.idx()], bson);
+      bson.end();
+    }
+    bson.end();
+  });
+}
+
+static void ws_script_debug_get_local_vars(struct mg_connection *conn, const JDocument &doc)
+{
+  run_script_debug_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
+  {
+    JFrameDocument res;
+    script::debug::get_local_vars(res);
+
+    bson.beginArray("localVars");
+    for (BsonStream::StringIndex i; i.idx() < (int)res.Size(); i.increment())
+    {
+      bson.begin(i.str());
+      json_to_bson(res[i.idx()], bson);
+      bson.end();
+    }
+    bson.end();
+  });
 }
 
 struct WSCommand
@@ -169,8 +312,17 @@ constexpr WSCommand commands[] = {
   {"getECSData", &ws_get_ecs_data, false},
   {"saveECSEntities", &ws_save_ecs_entities, false},
 
-  {"script::debug::attach", &ws_script_debug_attach, true},
-  {"script::debug::add_breakpoint", &ws_script_debug_add_breakpoint, true},
+  {"script::debug::enable", &ws_script_debug_enable, false},
+  {"script::debug::resume", &ws_script_debug_resume, false},
+  {"script::debug::add_breakpoint", &ws_script_debug_add_breakpoint, false},
+  {"script::debug::remove_breakpoint", &ws_script_debug_remove_breakpoint, false},
+  {"script::debug::remove_all_breakpoints", &ws_script_debug_remove_all_breakpoints, false},
+  {"script::debug::step_into", &ws_script_debug_step_into, false},
+  {"script::debug::step_out", &ws_script_debug_step_out, false},
+  {"script::debug::step_over", &ws_script_debug_step_over, false},
+
+  {"script::debug::get_callstack", &ws_script_debug_get_callstack, false},
+  {"script::debug::get_local_vars", &ws_script_debug_get_local_vars, false},
 };
 
 static int is_websocket(const struct mg_connection *nc)
@@ -269,6 +421,19 @@ static void webui_thread_routine()
 {
   while (server_terminated.load() != 1)
   {
+    if (script::debug::is_enabled() && script::debug::is_first_hit())
+    {
+      for (struct mg_connection *conn = server->mgr.active_connections; conn != nullptr; conn = conn->next)
+      {
+        BsonStream bson;
+        bson.begin("hit_breakpoint");
+        bson.add("line", script::debug::get_current_line());
+        bson.end();
+        send(bson, conn);
+      }
+      script::debug::reset_first_hit();
+    }
+
     server->poll();
   }
 }
@@ -300,19 +465,25 @@ void webui::update()
     return;
   }
 
-  std::lock_guard<std::mutex> lock(run_on_main_thread_mutex);
-  while (!run_on_main_thread_queue.empty())
   {
-    QueueItem &item = run_on_main_thread_queue.front();
+    std::lock_guard<std::mutex> lock(run_on_main_thread_mutex);
+    while (!run_on_main_thread_queue.empty())
+    {
+      QueueItem &item = run_on_main_thread_queue.front();
 
-    BsonStream bson;
-    item.handler(item.doc, bson);
-    send(bson, item.conn);
+      BsonStream bson;
+      item.handler(item.doc, bson);
+      if (item.doc.HasMember("$requestId") && item.doc["$requestId"].IsInt())
+      {
+        bson.add("$requestId", item.doc["$requestId"].GetInt());
+        send(bson, item.conn);
+      }
 
-    run_on_main_thread_queue.pop();
+      run_on_main_thread_queue.pop();
+    }
+
+    queue_processed.store(1);
   }
-
-  queue_processed.store(1);
 }
 
 static void run_on_main_thread_and_wait(struct mg_connection *conn, const JDocument &doc, QueueItem::Handler &&handler)
