@@ -1,0 +1,25 @@
+{
+  "$entities": [
+    {
+      "$template": "PhysicsWorld",
+      "$components": {}
+    },
+    {
+      "$template": "script",
+      "$components": {
+        "script": {
+          "name": "level_1",
+          "path": "script.as"
+        }
+      }
+    },
+    {
+      "$template": "enemy_spawner",
+      "$components": {}
+    },
+    {
+      "$template": "player_spawner",
+      "$components": {}
+    }
+  ]
+}

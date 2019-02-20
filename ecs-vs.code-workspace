@@ -1,122 +1,173 @@
 {
-	"folders": [
-		{
-			"path": "webui"
-		},
-		{
-			"path": "sample"
-		},
-		{
-			"path": "ecs"
-		},
-		{
-			"path": "script"
-		},
-		{
-			"path": "codegen"
-		},
-		{
-			"path": "git-build"
-		}
-	],
-	"settings": {
-		"explorer.autoReveal": false,
-		"files.exclude": {
-			"**/Debug": true,
-			"**/Release": true,
-			"**/x64": true,
-			"**/*.vcxproj.user": true,
-			"**/.git": true,
-			"**/.svn": true,
-			"**/.hg": true,
-			"**/CVS": true,
-			"**/.DS_Store": true
-		},
-		"files.associations": {
-			"*.blk": "blk",
-			"*.gen": "cpp",
-			"xhash": "cpp",
-			"vector": "cpp",
-			"future": "cpp",
-			"system_error": "cpp",
-			"xlocale": "cpp",
-			"*.tcc": "cpp",
-			"deque": "cpp",
-			"array": "cpp",
-			"unordered_map": "cpp",
-			"unordered_set": "cpp",
-			"initializer_list": "cpp",
-			"string_view": "cpp",
-			"fstream": "cpp",
-			"istream": "cpp",
-			"optional": "cpp",
-			"ostream": "cpp",
-			"sstream": "cpp",
-			"streambuf": "cpp",
-			"thread": "cpp",
-			"tuple": "cpp",
-			"iosfwd": "cpp",
-			"random": "cpp",
-			"*.m": "cpp",
-			"memory": "cpp",
-			"xmemory0": "cpp",
-			"*.rh": "cpp",
-			"iterator": "cpp",
-			"list": "cpp",
-			"map": "cpp",
-			"regex": "cpp",
-			"xstring": "cpp",
-			"xtree": "cpp",
-			"xutility": "cpp",
-			"xiosbase": "cpp",
-			"string": "cpp",
-			"chrono": "cpp",
-			"functional": "cpp",
-			"xlocmon": "cpp",
-			"xtr1common": "cpp",
-			"ratio": "cpp",
-			"type_traits": "cpp",
-			"utility": "cpp",
-			"algorithm": "cpp",
-			"atomic": "cpp",
-			"cmath": "cpp",
-			"condition_variable": "cpp",
-			"cstddef": "cpp",
-			"cstdint": "cpp",
-			"cstdio": "cpp",
-			"cstdlib": "cpp",
-			"cstring": "cpp",
-			"ctime": "cpp",
-			"cwchar": "cpp",
-			"exception": "cpp",
-			"resumable": "cpp",
-			"ios": "cpp",
-			"iostream": "cpp",
-			"limits": "cpp",
-			"locale": "cpp",
-			"mutex": "cpp",
-			"new": "cpp",
-			"set": "cpp",
-			"stdexcept": "cpp",
-			"xthread": "cpp",
-			"typeinfo": "cpp",
-			"xfacet": "cpp",
-			"xlocbuf": "cpp",
-			"xlocinfo": "cpp",
-			"xlocmes": "cpp",
-			"xlocnum": "cpp",
-			"xloctime": "cpp",
-			"xmemory": "cpp",
-			"xstddef": "cpp",
-			"filesystem": "cpp",
-			"codecvt": "cpp",
-			"iomanip": "cpp"
-		},
-		"editor.renderWhitespace": "all",
-		// "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},
-		// "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
-		// "terminal.integrated.shellArgs.windows": [
-        // "/k D:\\cmder\\vendor\\init.bat"
-		// ]
-	}
+  "folders": [
+    {
+      "path": "webui"
+    },
+    {
+      "path": "sample"
+    },
+    {
+      "path": "ecs"
+    },
+    {
+      "path": "script"
+    },
+    {
+      "path": "codegen"
+    },
+    {
+      "path": "git-build"
+    },
+    {
+      "path": "tests"
+    }
+  ],
+  "settings": {
+    "explorer.autoReveal": false,
+    "files.exclude": {
+      "**/Debug": true,
+      "**/Release": true,
+      "**/x64": true,
+      "**/*.vcxproj.user": true,
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true
+    },
+    "files.associations": {
+      "*.blk": "blk",
+      "*.gen": "cpp",
+      "xhash": "cpp",
+      "vector": "cpp",
+      "future": "cpp",
+      "system_error": "cpp",
+      "xlocale": "cpp",
+      "*.tcc": "cpp",
+      "deque": "cpp",
+      "array": "cpp",
+      "unordered_map": "cpp",
+      "unordered_set": "cpp",
+      "initializer_list": "cpp",
+      "string_view": "cpp",
+      "fstream": "cpp",
+      "istream": "cpp",
+      "optional": "cpp",
+      "ostream": "cpp",
+      "sstream": "cpp",
+      "streambuf": "cpp",
+      "thread": "cpp",
+      "tuple": "cpp",
+      "iosfwd": "cpp",
+      "random": "cpp",
+      "*.m": "cpp",
+      "memory": "cpp",
+      "xmemory0": "cpp",
+      "*.rh": "cpp",
+      "iterator": "cpp",
+      "list": "cpp",
+      "map": "cpp",
+      "regex": "cpp",
+      "xstring": "cpp",
+      "xtree": "cpp",
+      "xutility": "cpp",
+      "xiosbase": "cpp",
+      "string": "cpp",
+      "chrono": "cpp",
+      "functional": "cpp",
+      "xlocmon": "cpp",
+      "xtr1common": "cpp",
+      "ratio": "cpp",
+      "type_traits": "cpp",
+      "utility": "cpp",
+      "algorithm": "cpp",
+      "atomic": "cpp",
+      "cmath": "cpp",
+      "condition_variable": "cpp",
+      "cstddef": "cpp",
+      "cstdint": "cpp",
+      "cstdio": "cpp",
+      "cstdlib": "cpp",
+      "cstring": "cpp",
+      "ctime": "cpp",
+      "cwchar": "cpp",
+      "exception": "cpp",
+      "resumable": "cpp",
+      "ios": "cpp",
+      "iostream": "cpp",
+      "limits": "cpp",
+      "locale": "cpp",
+      "mutex": "cpp",
+      "new": "cpp",
+      "set": "cpp",
+      "stdexcept": "cpp",
+      "xthread": "cpp",
+      "typeinfo": "cpp",
+      "xfacet": "cpp",
+      "xlocbuf": "cpp",
+      "xlocinfo": "cpp",
+      "xlocmes": "cpp",
+      "xlocnum": "cpp",
+      "xloctime": "cpp",
+      "xmemory": "cpp",
+      "xstddef": "cpp",
+      "filesystem": "cpp",
+      "codecvt": "cpp",
+      "iomanip": "cpp"
+    },
+    "editor.renderWhitespace": "all",
+    "editor.tokenColorCustomizations": {
+      "textMateRules": [
+        {
+          "scope": "googletest.failed",
+          "settings": {
+            "foreground": "#f00"
+          }
+        },
+        {
+          "scope": "googletest.passed",
+          "settings": {
+            "foreground": "#0f0"
+          }
+        },
+        {
+          "scope": "googletest.run",
+          "settings": {
+            "foreground": "#0f0"
+          }
+        }
+      ]
+    },
+    "launch": {
+      "configurations": [
+        {
+          "name": "(Debug) Tests",
+          "type": "cppvsdbg",
+          "request": "launch",
+          "program": "${workspaceFolder}\\..\\Debug\\tests.exe",
+          "args": [],
+          "stopAtEntry": false,
+          "cwd": "${workspaceFolder}\\..\\tests",
+          "environment": [],
+          "externalConsole": true,
+          // "preLaunchTask": "build",
+          "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+        }
+      ],
+      "compounds": []
+    },
+    "gtest-adapter.debugTitle": "(Debug) Tests",
+    "gtest-adapter.mainConfig": "(Debug) Tests",
+    "gtest-adapter.debugConfig": [
+      "(Debug) Tests"
+    ],
+    "gtest-adapter.supportLocation": true,
+    "gtest-adapter.showCodeLens": false,
+    "gtest-adapter.runAfterBuild": true,
+    // "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},
+    // "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
+    // "terminal.integrated.shellArgs.windows": [
+    // "/k D:\\cmder\\vendor\\init.bat"
+    // ]
+  }
 }

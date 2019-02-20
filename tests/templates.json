@@ -1,0 +1,251 @@
+{
+  "$order": [],
+  "$templates": [
+    {
+      "$name": "test-templ-for-values",
+      "$components": {
+        "tag-comp": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "bool-comp": {
+          "$type": "bool",
+          "$value": true
+        },
+        "float-comp": {
+          "$type": "float",
+          "$value": 666.6
+        },
+        "int-comp": {
+          "$type": "int",
+          "$value": 28
+        },
+        "string-comp": {
+          "$type": "string",
+          "$value": "hello"
+        },
+        "hash-string-comp": {
+          "$type": "hash_string",
+          "$value": "hello, world"
+        },
+        "vec2-comp": {
+          "$type": "vec2",
+          "$value": [
+            1.2,
+            3.4
+          ]
+        },
+        "vec3-comp": {
+          "$type": "vec3",
+          "$value": [
+            1.2,
+            3.4,
+            5.6
+          ]
+        },
+        "vec4-comp": {
+          "$type": "vec4",
+          "$value": [
+            1.2,
+            3.4,
+            5.6,
+            7.8
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-extends-single",
+      "$extends": [ "test-templ-for-values" ],
+      "$components": {
+        "float-comp": {
+          "$type": "float",
+          "$value": 777.8
+        },
+        "vec2-comp": {
+          "$type": "vec2",
+          "$value": [
+            9.9,
+            10.10
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-extends-chain",
+      "$extends": [ "test-templ-for-extends-single" ],
+      "$components": {
+        "string-comp": {
+          "$type": "string",
+          "$value": "hello, again!"
+        },
+        "vec3-comp": {
+          "$type": "vec3",
+          "$value": [
+            7.7,
+            7.7,
+            9.9
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-inlcule-in-multiple",
+      "$components": {
+        "extra-comp": {
+          "$type": "string",
+          "$value": "extra!"
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-extends-multiple",
+      "$extends": [ "test-templ-for-extends-chain", "test-templ-for-inlcule-in-multiple" ],
+      "$components": {
+        "string-comp": {
+          "$type": "string",
+          "$value": "hello, again!"
+        },
+        "vec3-comp": {
+          "$type": "vec3",
+          "$value": [
+            7.7,
+            7.7,
+            9.9
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-queries-1",
+      "$components": {
+        "tag-test": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "pos": {
+          "$type": "vec3",
+          "$value": [
+            1.2,
+            3.4,
+            5.6
+          ]
+        },
+        "vel": {
+          "$type": "vec3",
+          "$value": [
+            1.2,
+            3.4,
+            5.6
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-queries-2",
+      "$components": {
+        "tag-test": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "flag": {
+          "$type": "bool",
+          "$value": true
+        },
+        "float-comp": {
+          "$type": "float",
+          "$value": 666.6
+        },
+        "int-comp": {
+          "$type": "int",
+          "$value": 28
+        },
+        "string-comp": {
+          "$type": "string",
+          "$value": "hello"
+        },
+        "hash-string-comp": {
+          "$type": "hash_string",
+          "$value": "hello, world"
+        },
+        "vec2-comp": {
+          "$type": "vec2",
+          "$value": [
+            1.2,
+            3.4
+          ]
+        },
+        "vec3-comp": {
+          "$type": "vec3",
+          "$value": [
+            1.2,
+            3.4,
+            5.6
+          ]
+        },
+        "vec4-comp": {
+          "$type": "vec4",
+          "$value": [
+            1.2,
+            3.4,
+            5.6,
+            7.8
+          ]
+        }
+      }
+    },
+    {
+      "$name": "test-templ-for-queries-3",
+      "$components": {
+        "tag-comp": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "bool-comp": {
+          "$type": "bool",
+          "$value": true
+        },
+        "float-comp": {
+          "$type": "float",
+          "$value": 666.6
+        },
+        "int-comp": {
+          "$type": "int",
+          "$value": 28
+        },
+        "string-comp": {
+          "$type": "string",
+          "$value": "hello"
+        },
+        "hash-string-comp": {
+          "$type": "hash_string",
+          "$value": "hello, world"
+        },
+        "vec2-comp": {
+          "$type": "vec2",
+          "$value": [
+            1.2,
+            3.4
+          ]
+        },
+        "vec3-comp": {
+          "$type": "vec3",
+          "$value": [
+            1.2,
+            3.4,
+            5.6
+          ]
+        },
+        "vec4-comp": {
+          "$type": "vec4",
+          "$value": [
+            1.2,
+            3.4,
+            5.6,
+            7.8
+          ]
+        }
+      }
+    }
+  ]
+}
