@@ -203,197 +203,175 @@ struct PhysicsBody
 }
 DEF_COMP(PhysicsBody, phys_body);
 
-DEF_SYS()
-static __forceinline void init_physics_collision_handler(
-  const EventOnEntityCreate &ev,
-  const EntityId &eid,
-  PhysicsBody &phys_body,
-  CollisionShape &collision_shape)
+struct init_physics_collision_handler
 {
-  ASSERT(phys_body.body != nullptr);
-
-  for (auto s : collision_shape.shapes)
+  ECS_RUN(const EventOnEntityCreate &ev, const EntityId &eid, PhysicsBody &phys_body, CollisionShape &collision_shape)
   {
-    ASSERT(s.shape.Validate());
+    ASSERT(phys_body.body != nullptr);
 
-    b2FixtureDef def;
-    def.shape = &s.shape;
-    def.density = s.density;
-    def.friction = s.friction;
-    def.isSensor = s.isSensor;
-    def.userData = (void*)eid.handle;
-    s.fixture = phys_body.body->CreateFixture(&def);
+    for (auto s : collision_shape.shapes)
+    {
+      ASSERT(s.shape.Validate());
+
+      b2FixtureDef def;
+      def.shape = &s.shape;
+      def.density = s.density;
+      def.friction = s.friction;
+      def.isSensor = s.isSensor;
+      def.userData = (void*)eid.handle;
+      s.fixture = phys_body.body->CreateFixture(&def);
+    }
   }
-}
+};
 
-DEF_SYS()
-static __forceinline void init_physics_body_handler(
-  const EventOnEntityCreate &ev,
-  PhysicsBody &phys_body,
-  const glm::vec2 &pos)
+struct init_physics_body_handler
 {
-  ASSERT(phys_body.body == nullptr);
-
-  b2BodyDef def;
-  def.type = phys_body.type;
-  def.position.Set(pos.x, pos.y);
-
-  phys_body.body = g_world->CreateBody(&def);
-}
-
-DEF_SYS()
-static __forceinline void init_physics_world_handler(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
-{
-  ASSERT(g_world == nullptr);
-
-  g_world = new b2World({ 0.f, -9.81f });
-  g_world->SetDebugDraw(&phys_world.debugDraw);
-  phys_world.debugDraw.AppendFlags(b2Draw::e_shapeBit);
-}
-
-DEF_SYS()
-static __forceinline void update_physics(const UpdateStage &stage, PhysicsWorld &phys_world)
-{
-  const float physDt = 1.f / 60.f;
-  const int curTick = (int)ceil(stage.total / (double)physDt);
-
-  if (curTick > phys_world.atTick)
+  ECS_RUN(const EventOnEntityCreate &ev, PhysicsBody &phys_body, const glm::vec2 &pos)
   {
-    g_world->Step(physDt, 3, 2);
-    phys_world.atTick = curTick;
+    ASSERT(phys_body.body == nullptr);
+
+    b2BodyDef def;
+    def.type = phys_body.type;
+    def.position.Set(pos.x, pos.y);
+
+    phys_body.body = g_world->CreateBody(&def);
   }
-}
+};
 
-DEF_SYS()
-static __forceinline void update_kinematic_physics_body(
-  const UpdateStage &stage,
-  PhysicsBody &phys_body,
-  const glm::vec2 &pos,
-  const glm::vec2 &vel)
+struct init_physics_world_handler
 {
-  ASSERT(phys_body.type != b2_staticBody);
-
-  phys_body.body->SetTransform({ pos.x, pos.y }, 0.f);
-  phys_body.body->SetLinearVelocity({ vel.x, vel.y });
-}
-
-DEF_QUERY(BricksQuery, HAVE_COMP(wall));
-DEF_QUERY(MovigBricksQuery, HAVE_COMP(wall) HAVE_COMP(auto_move));
-
-DEF_SYS(HAVE_COMP(user_input))
-static __forceinline void update_physics_collisions(
-  const UpdateStage &stage,
-  const PhysicsBody &phys_body,
-  const CollisionShape &collision_shape,
-  const Gravity &gravity,
-  bool &is_on_ground,
-  glm::vec2 &pos,
-  glm::vec2 &vel)
-{
-  glm::vec2 myPos = pos;
-  glm::vec2 myVel = vel;
-  const CollisionShape &myCollisionShape = collision_shape;
-  const PhysicsBody &myPhysBody = phys_body;
-
-  MovigBricksQuery::exec([&](const CollisionShape &collision_shape, const glm::vec2 &pos, const glm::vec2 &vel)
+  ECS_RUN(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
   {
-    b2Transform xfA = { { pos.x, pos.y }, b2Rot{0.f} };
-    b2Transform xfB = { { myPos.x, myPos.y }, b2Rot{0.f} };
+    ASSERT(g_world == nullptr);
 
-    b2Manifold manifold;
-    b2CollidePolygons(&manifold, &collision_shape.shapes[1].shape, xfA, &myCollisionShape.shapes[0].shape, xfB);
+    g_world = new b2World({ 0.f, -9.81f });
+    g_world->SetDebugDraw(&phys_world.debugDraw);
+    phys_world.debugDraw.AppendFlags(b2Draw::e_shapeBit);
+  }
+};
 
-    if (manifold.pointCount > 0 && glm::dot(myVel, vel) >= 0.f)
-    {
-      myVel += vel;
-      // myVel.y = gravity.mass * 9.8f * stage.dt;
-    }
-  });
-
-  BricksQuery::exec([&](const CollisionShape &collision_shape, const glm::vec2 &pos)
-  {
-    const float minD = myCollisionShape.shapes[0].shape.m_radius + collision_shape.shapes[0].shape.m_radius;
-
-    b2Transform xfA = { { pos.x, pos.y }, b2Rot{0.f} };
-    b2Transform xfB = { { myPos.x, myPos.y }, b2Rot{0.f} };
-
-    b2Manifold manifold;
-    b2CollidePolygons(&manifold, &collision_shape.shapes[0].shape, xfA, &myCollisionShape.shapes[0].shape, xfB);
-
-    int pointIndex = -1;
-    for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
-    {
-      b2WorldManifold worldManifold;
-      worldManifold.Initialize(&manifold, xfA, collision_shape.shapes[0].shape.m_radius, xfB, myCollisionShape.shapes[0].shape.m_radius);
-
-      const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-      const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
-
-      const float dy = myCollisionShape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - myPos.y);
-      const float d = -worldManifold.separations[i];
-
-      if (normal.x != 0.f && dy <= minD)
-        continue;
-
-      pointIndex = i;
-    }
-
-    if (pointIndex >= 0)
-    {
-      b2WorldManifold worldManifold;
-      worldManifold.Initialize(&manifold, xfA, myCollisionShape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
-
-      const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-      const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
-
-      if (normal.y < 0.f)
-        is_on_ground = true;
-
-      const float d = -worldManifold.separations[pointIndex];
-      const float proj = glm::dot(myVel, normal);
-      myVel += glm::max(-proj, 0.f) * normal;
-      myPos += glm::max(d - minD, 0.f) * normal;
-    }
-  });
-
-  pos = myPos;
-  vel = myVel;
-}
-
-DEF_SYS(HAVE_COMP(user_input))
-static __forceinline void physics_contact_handler(const EventOnPhysicsContact &ev, glm::vec2 &vel)
+struct update_physics
 {
-  // if (glm::dot(vel, ev.vel) >= 0.f)
-  //   vel += ev.vel;
-}
-
-DEF_SYS()
-static __forceinline void check_physics_contacts(const UpdateStage &stage, const PhysicsWorld &phys_world)
-{
-  for (b2Contact *c = g_world->GetContactList(); c; c = c->GetNext())
+  ECS_RUN(const UpdateStage &stage, PhysicsWorld &phys_world)
   {
-    if (c->IsTouching())
+    const float physDt = 1.f / 60.f;
+    const int curTick = (int)ceil(stage.total / (double)physDt);
+
+    if (curTick > phys_world.atTick)
     {
-      if (c->GetFixtureA()->IsSensor())
+      g_world->Step(physDt, 3, 2);
+      phys_world.atTick = curTick;
+    }
+  }
+};
+
+struct update_kinematic_physics_body
+{
+  ECS_RUN( const UpdateStage &stage, PhysicsBody &phys_body, const glm::vec2 &pos, const glm::vec2 &vel)
+  {
+    ASSERT(phys_body.type != b2_staticBody);
+
+    phys_body.body->SetTransform({ pos.x, pos.y }, 0.f);
+    phys_body.body->SetLinearVelocity({ vel.x, vel.y });
+  }
+};
+
+struct Brick
+{
+  ECS_QUERY;
+
+  QL_HAVE(wall);
+
+  const CollisionShape &collision_shape;
+  const glm::vec2 &pos;
+};
+
+struct MovingBrick
+{
+  ECS_QUERY;
+
+  QL_HAVE(wall, auto_move);
+
+  const CollisionShape &collision_shape;
+  const glm::vec2 &pos;
+  const glm::vec2 &vel;
+};
+
+struct update_physics_collisions
+{
+  QL_HAVE(user_input);
+
+  ECS_RUN(const UpdateStage &stage, const PhysicsBody &phys_body, const CollisionShape &collision_shape, const Gravity &gravity, bool &is_on_ground, glm::vec2 &pos, glm::vec2 &vel)
+  {
+    MovingBrick::foreach([&](MovingBrick &&brick)
+    {
+      b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
+      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+
+      b2Manifold manifold;
+      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[1].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+
+      if (manifold.pointCount > 0 && glm::dot(vel, brick.vel) >= 0.f)
       {
-        // EntityId eidB = (uint32_t)c->GetFixtureB()->GetUserData();
-        // const b2Vec2 &velA = c->GetFixtureA()->GetBody()->GetLinearVelocity();
-        // g_mgr->sendEvent(eidB, EventOnPhysicsContact{ {velA.x, velA.y} });
+        vel += brick.vel;
+        // myVel.y = gravity.mass * 9.8f * stage.dt;
       }
-      else if (c->GetFixtureB()->IsSensor())
-      {
-        // EntityId eidA = (uint32_t)c->GetFixtureA()->GetUserData();
-        // const b2Vec2 &velB = c->GetFixtureB()->GetBody()->GetLinearVelocity();
-        // g_mgr->sendEvent(eidA, EventOnPhysicsContact{ {velB.x, velB.y} });
-      }
-    }
-  }
-}
+    });
 
-DEF_SYS()
-static __forceinline void render_debug_physics(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
+    Brick::foreach([&](Brick &&brick)
+    {
+      const float minD = collision_shape.shapes[0].shape.m_radius + brick.collision_shape.shapes[0].shape.m_radius;
+
+      b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
+      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+
+      b2Manifold manifold;
+      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[0].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+
+      int pointIndex = -1;
+      for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
+      {
+        b2WorldManifold worldManifold;
+        worldManifold.Initialize(&manifold, xfA, brick.collision_shape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
+
+        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
+        const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
+
+        const float dy = collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - pos.y);
+        const float d = -worldManifold.separations[i];
+
+        if (normal.x != 0.f && dy <= minD)
+          continue;
+
+        pointIndex = i;
+      }
+
+      if (pointIndex >= 0)
+      {
+        b2WorldManifold worldManifold;
+        worldManifold.Initialize(&manifold, xfA, collision_shape.shapes[0].shape.m_radius, xfB, brick.collision_shape.shapes[0].shape.m_radius);
+
+        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
+        const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
+
+        if (normal.y < 0.f)
+          is_on_ground = true;
+
+        const float d = -worldManifold.separations[pointIndex];
+        const float proj = glm::dot(vel, normal);
+        vel += glm::max(-proj, 0.f) * normal;
+        pos += glm::max(d - minD, 0.f) * normal;
+      }
+    });
+  }
+};
+
+struct render_debug_physics
 {
-#ifdef _DEBUG
-  g_world->DrawDebugData();
-#endif
-}
+  ECS_RUN(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
+  {
+  #ifdef _DEBUG
+    g_world->DrawDebugData();
+  #endif
+  }
+};

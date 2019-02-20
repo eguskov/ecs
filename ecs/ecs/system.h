@@ -9,58 +9,69 @@
 
 struct EntityManager;
 
-#define __DEF_QUERY(name) struct name { template <typename C> static void exec(C); }
+#define QL_EVAL0(...) __VA_ARGS__
+#define QL_EVAL1(...) QL_EVAL0(QL_EVAL0(QL_EVAL0(__VA_ARGS__)))
+#define QL_EVAL2(...) QL_EVAL1(QL_EVAL1(QL_EVAL1(__VA_ARGS__)))
+#define QL_EVAL3(...) QL_EVAL2(QL_EVAL2(QL_EVAL2(__VA_ARGS__)))
+#define QL_EVAL4(...) QL_EVAL3(QL_EVAL3(QL_EVAL3(__VA_ARGS__)))
+#define QL_EVAL(...)  QL_EVAL4(QL_EVAL4(QL_EVAL4(__VA_ARGS__)))
+
+#define QL_END(...)
+#define QL_OUT
+#define QL_COMMA ,
+
+#define QL_FOREACH_GET_END2() 0, QL_END
+#define QL_FOREACH_GET_END1(...) QL_FOREACH_GET_END2
+#define QL_FOREACH_GET_END(...) QL_FOREACH_GET_END1
+
+#define QL_FOREACH_NEXT0(test, next, ...) next QL_OUT
+#define QL_FOREACH_NEXT1(test, next) QL_FOREACH_NEXT0(test, next, 0)
+#define QL_FOREACH_NEXT(test, next)  QL_FOREACH_NEXT1(QL_FOREACH_GET_END test, next)
+
+#define QL_FOREACH0(f, x, peek, ...) f(x) QL_FOREACH_NEXT(peek, QL_FOREACH1)(f, peek, __VA_ARGS__)
+#define QL_FOREACH1(f, x, peek, ...) f(x) QL_FOREACH_NEXT(peek, QL_FOREACH0)(f, peek, __VA_ARGS__)
+
+#define QL_FOREACH_COMMA_NEXT1(test, next) QL_FOREACH_NEXT0(test, QL_COMMA next, 0)
+#define QL_FOREACH_COMMA_NEXT(test, next)  QL_FOREACH_COMMA_NEXT1(QL_FOREACH_GET_END test, next)
+
+#define QL_FOREACH_COMMA0(f, x, peek, ...) f(x) QL_FOREACH_COMMA_NEXT(peek, QL_FOREACH_COMMA1)(f, peek, __VA_ARGS__)
+#define QL_FOREACH_COMMA1(f, x, peek, ...) f(x) QL_FOREACH_COMMA_NEXT(peek, QL_FOREACH_COMMA0)(f, peek, __VA_ARGS__)
+
+#define QL_FOREACH(f, ...) QL_EVAL(QL_FOREACH1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+#define QL_FOREACH_COMMA(f, ...) QL_EVAL(QL_FOREACH_COMMA1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
 
 #ifdef __CODEGEN__
-#define DEF_SYS(...) __VA_ARGS__ __attribute__((annotate("@system")))
-#define DEF_QUERY(name, ...) __DEF_QUERY(name) __VA_ARGS__ __attribute__((annotate("@query")))
-#define HAVE_COMP(name) __attribute__((annotate("@have: " #name)))
-#define NOT_HAVE_COMP(name) __attribute__((annotate("@not-have: " #name)))
-#define IS_TRUE(name) __attribute__((annotate("@is-true: " #name)))
-#define IS_FALSE(name) __attribute__((annotate("@is-false: " #name)))
+  struct ql_component {};
+  #define QL_COMPONENT(x) ql_component x;
+
+  #define QL_HAVE(...) struct ql_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
+  #define QL_NOT_HAVE(...) struct ql_not_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
+  #define QL_WHERE(expr) struct ql_where { static constexpr char const *ql_expr = #expr; };
+  #define QL_JOIN(expr) struct ql_join { static constexpr char const *ql_expr = #expr; };
+
+  #define ECS_QUERY struct ecs_query {};
+  #define ECS_SYSTEM struct ecs_system {};
 #else
-#define DEF_SYS(...)
-#define DEF_QUERY(name, ...) __DEF_QUERY(name);
-#define HAVE_COMP(...)
-#define NOT_HAVE_COMP(...)
-#define IS_TRUE(...)
-#define IS_FALSE(...)
+  #define QL_HAVE(...)
+  #define QL_NOT_HAVE(...)
+  #define QL_WHERE(...)
+  #define QL_JOIN(...)
+
+  #define ECS_QUERY template <typename Callable> static __forceinline void foreach(Callable);
+  #define ECS_SYSTEM
 #endif
 
-#define REG_SYS_BASE(func, ...) \
-  template <> struct Desc<decltype(func)> { constexpr static char const* name = #func; }; \
-  static RegSysSpec<decltype(func)> _##func(#func, &func, {__VA_ARGS__}); \
+#define ECS_RUN ECS_SYSTEM; static __forceinline void run
 
-#define REG_SYS(func, ...) \
-  REG_SYS_BASE(func, __VA_ARGS__) \
+#define GET_COMPONENT_VALUE(c, t) t c = type.storages[type.getComponentIndex(hash::cstr(#c))].storage->getByIndex<t>(entity_idx)
+#define GET_COMPONENT_VALUE_ITER(c, t) auto it_##c = query.chunks[compIdx_##c + chunkIdx * query.componentsCount].begin<t>()
+#define GET_COMPONENT_ITER(q, c, t) auto c = query.iter<t>(index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components))
+#define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components)
+#define GET_COMPONENT(q, i, t, c) i.get<t>(index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components))
 
-#define REG_SYS_1(func, ...) \
-  REG_SYS_BASE(func, "", __VA_ARGS__) \
-
-#define REG_SYS_2(func, ...) \
-  REG_SYS_BASE(func, "", "", __VA_ARGS__) \
-
-#define DEF_HAS_METHOD(method) \
-  template <typename T> \
-  struct has_##method \
-  { \
-    struct has { char d[1]; }; \
-    struct notHas { char d[2]; }; \
-    template <typename C> static has test(decltype(&C::require)); \
-    template <typename C> static notHas test(...); \
-    static constexpr bool value = sizeof(test<T>(0)) == sizeof(has); \
-  }; \
-
-#define HAS_METHOD(T, method) \
-  typename = typename eastl::enable_if<has_##method<T>::value>::type \
-
-#define NOT_HAVE_METHOD(T, method) \
-  typename = typename eastl::enable_if<!has_##method<T>::value>::type \
-
-__forceinline int get_offset(int remap, const int *offsets)
-{
-  return remap >= 0 ? offsets[remap] : -1;
-}
+struct RegSys;
+extern RegSys *reg_sys_head;
+extern int reg_sys_count;
 
 struct RawArg
 {
@@ -76,35 +87,46 @@ struct RawArgSpec : RawArg
   RawArgSpec() : RawArg(Size, &buffer[0]) {}
 };
 
-DEF_HAS_METHOD(require);
-
 struct RegSys
 {
+  enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
+  using SystemCallback = void (*)(const RawArg &stage_or_event, Query &query);
+
   char *name = nullptr;
+  char *stageName = nullptr;
 
   int id = -1;
   int stageId = -1;
-  int eventId = -1;
+
+  Mode mode = Mode::FROM_INTERNAL_QUERY;
 
   const RegSys *next = nullptr;
 
   // TODO: Remove compMask
   eastl::bitvector<> compMask;
   ConstQueryDesc queryDesc;
+  SystemCallback sys = nullptr;
 
-  RegSys(const char *_name, const ConstQueryDesc &query_desc, int _id);
+  RegSys(const char *_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc) : id(reg_sys_count), sys(_sys), queryDesc(query_desc)
+  {
+    next = reg_sys_head;
+    reg_sys_head = this;
+    ++reg_sys_count;
+
+    if (_name)
+      name = ::_strdup(_name);
+    if (stage_name)
+      stageName = ::_strdup(stage_name);
+  }
+
+  RegSys(const char *_name, SystemCallback _sys, const char *stage_name) : RegSys(_name, _sys, stage_name, empty_query_desc)
+  {
+    mode = Mode::FROM_EXTERNAL_QUERY;
+  }
+
   virtual ~RegSys();
 
-  virtual void init(const EntityManager *mgr) = 0;
-
   bool hasCompontent(int id, const char *name) const;
-
-  virtual void execImpl(const RawArg &stage_or_event, Query &query) const = 0;
-
-  __forceinline void exec(Query &query, const RawArg &stage_or_event) const
-  {
-    execImpl(stage_or_event, query);
-  }
 };
 
 enum class ValueType
@@ -113,70 +135,6 @@ enum class ValueType
   kStage,
   kEvent,
   kComponent
-};
-
-template <size_t D, typename T>
-struct RegSysSpec;
-
-template<size_t D, class R, class... Args>
-struct RegSysSpec<D, R(*)(Args...)> : RegSysSpec<D, R(Args...)> {};
-
-template<size_t D, class R, class... Args>
-struct RegSysSpec<D, R(Args...)> : RegSys
-{
-  static constexpr std::size_t Hash = D;
-  static constexpr std::size_t ArgsCount = sizeof...(Args);
-
-  using SysType = R(*)(Args...);
-  using SysFuncType = eastl::function<R(Args...)>;
-  using ReturnType = R;
-
-  template <std::size_t N>
-  struct Argument
-  {
-    static_assert(N < ArgsCount, "error: invalid parameter index.");
-
-    using Type = typename eastl::tuple_element<N, eastl::tuple<Args...>>::type;
-    using PureType = typename eastl::remove_const<typename eastl::remove_reference<Type>::type>::type;
-    using CompType = RegCompSpec<PureType>;
-    using CompDesc = typename CompType::CompDesc;
-
-    constexpr static bool isEid = eastl::is_same<EntityId, PureType>::value;
-    constexpr static bool isStage = eastl::is_base_of<Stage, PureType>::value;
-    constexpr static bool isEvent = eastl::is_base_of<Event, PureType>::value;
-    constexpr static bool isComponent = !isEid && !isStage && !isEvent;
-    constexpr static bool isConst = !eastl::is_reference<Type>::value || eastl::is_const<typename eastl::remove_reference<Type>::type>::value;
-
-    constexpr static ValueType getValueType()
-    {
-      return
-        isEid ? ValueType::kEid :
-        isStage ? ValueType::kStage :
-        isEvent ? ValueType::kEvent :
-        ValueType::kComponent;
-    }
-
-    constexpr static ValueType valueType = getValueType();
-  };
-
-  SysFuncType sysFunc;
-
-  RegSysSpec(const char *name, const ConstQueryDesc &query_desc) : RegSys(name, query_desc, reg_sys_count)
-  {
-    next = reg_sys_head;
-    reg_sys_head = this;
-    ++reg_sys_count;
-  }
-
-  void init(const EntityManager *mgr) override final
-  {
-    if (Argument<0>::isStage)
-      stageId = find_comp(Argument<0>::CompDesc::name)->id;
-    if (Argument<0>::isEvent)
-      eventId = find_comp(Argument<0>::CompDesc::name)->id;
-  }
-
-  virtual void execImpl(const RawArg &stage_or_event, Query &query) const override final;
 };
 
 const RegSys *find_sys(const char *name);

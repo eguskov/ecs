@@ -1,3 +1,4 @@
+#ifdef _DEBUG
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
@@ -121,3 +122,4 @@ TEST_F(QueryTest, Select_Join)
 
   CHECK_QUERY_COUNT(q, 30ul);
 }
+#endif

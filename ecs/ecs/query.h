@@ -3,6 +3,10 @@
 #include "entity.h"
 #include "hash.h"
 
+#include <EASTL/functional.h>
+
+struct Archetype;
+
 template <typename T>
 struct ConstArray
 {
@@ -65,6 +69,15 @@ struct index_of_component<N, -1>
   }
 };
 
+constexpr ConstQueryDesc empty_query_desc
+{
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array
+};
+
 struct CompDesc
 {
   int id;
@@ -82,14 +95,18 @@ struct CompDesc
   }
 };
 
+using filter_t = eastl::function<bool(const Archetype&, int)>;
+
 struct RegQuery
 {
   ConstHashedString name;
   ConstQueryDesc desc;
 
+  filter_t filter;
+
   const RegQuery *next = nullptr;
 
-  RegQuery(const ConstHashedString &name, const ConstQueryDesc &desc);
+  RegQuery(const ConstHashedString &name, const ConstQueryDesc &desc, filter_t &&f = nullptr);
 };
 
 struct QueryLink
@@ -120,6 +137,8 @@ struct QueryDesc
 
   eastl::vector<int> joinQueries;
   eastl::vector<QueryLink> joinLinks;
+
+  filter_t filter;
 
   QueryDesc& operator=(const ConstQueryDesc &desc)
   {
@@ -231,12 +250,80 @@ struct QueryChunk
 
   uint8_t *beginData = nullptr;
   uint8_t *endData = nullptr;
+  uint32_t elemSize = 0;
 };
 
 // TODO: Query unittest
 struct Query
 {
-  struct RawInterator
+  struct AllIterator
+  {
+    int idx = 0;
+    int chunkIdx = 0;
+    int componentsCount = 0;
+    int chunksCount = 0;
+
+    const int *entitiesInChunk = nullptr;
+    QueryChunk *chunks = nullptr;
+
+    AllIterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int chunk_idx = 0) :
+      chunks(_chunks),
+      entitiesInChunk(entities_in_chunk),
+      componentsCount(components_count),
+      chunksCount(chunks_count),
+      chunkIdx(chunk_idx)
+    {
+    }
+
+    bool operator==(const AllIterator &rhs) const
+    {
+      return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
+    }
+
+    bool operator!=(const AllIterator &rhs) const
+    {
+      return !(operator==(rhs));
+    }
+
+    void operator++()
+    {
+      ++idx;
+      if (idx >= entitiesInChunk[chunkIdx])
+      {
+        idx = 0;
+        ++chunkIdx;
+      }
+    }
+
+    uint8_t* getRaw(int comp_idx)
+    {
+      auto &chunk = chunks[comp_idx + chunkIdx * componentsCount];
+      return chunk.beginData + idx * chunk.elemSize;
+    }
+
+    template<typename T>
+    T& get(int comp_idx)
+    {
+      return *(T*)getRaw(comp_idx);
+    }
+
+    inline AllIterator operator*()
+    {
+      return *this;
+    }
+
+    inline AllIterator begin()
+    {
+      return *this;
+    }
+
+    inline AllIterator end()
+    {
+      return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
+    }
+  };
+
+  struct RawIterator
   {
     int idx = 0;
     int chunkIdx = 0;
@@ -248,7 +335,7 @@ struct Query
     const int *entitiesInChunk = nullptr;
     QueryChunk *chunks = nullptr;
 
-    RawInterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
+    RawIterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
@@ -259,12 +346,12 @@ struct Query
     {
     }
 
-    bool operator==(const RawInterator &rhs) const
+    bool operator==(const RawIterator &rhs) const
     {
       return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
     }
 
-    bool operator!=(const RawInterator &rhs) const
+    bool operator!=(const RawIterator &rhs) const
     {
       return !(operator==(rhs));
     }
@@ -290,21 +377,21 @@ struct Query
       return *(T*)(chunks[compIdx + chunkIdx * componentsCount].beginData + idx * compSize);
     }
 
-    inline RawInterator begin()
+    inline RawIterator begin()
     {
       return *this;
     }
 
-    inline RawInterator end()
+    inline RawIterator end()
     {
-      return RawInterator(nullptr, -1, nullptr, -1, -1, -1, chunksCount);
+      return RawIterator(nullptr, -1, nullptr, -1, -1, -1, chunksCount);
     }
   };
 
   template <typename T>
-  struct Interator
+  struct Iterator
   {
-    using Self = Interator<T>;
+    using Self = Iterator<T>;
 
     int idx = 0;
     int chunkIdx = 0;
@@ -316,7 +403,7 @@ struct Query
     const int *entitiesInChunk = nullptr;
     QueryChunk *chunks = nullptr;
 
-    Interator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
+    Iterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
@@ -327,12 +414,12 @@ struct Query
     {
     }
 
-    bool operator==(const Interator &rhs) const
+    bool operator==(const Iterator &rhs) const
     {
       return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
     }
 
-    bool operator!=(const Interator &rhs) const
+    bool operator!=(const Iterator &rhs) const
     {
       return !(operator==(rhs));
     }
@@ -363,101 +450,63 @@ struct Query
     }
   };
 
-  template <>
-  struct Interator<EntityId>
-  {
-    using Self = Interator<EntityId>;
-
-    int idx = 0;
-    int chunkIdx = 0;
-    int compIdx = 0;
-    int compSize = 0;
-    int componentsCount = 0;
-    int chunksCount = 0;
-
-    const int *entitiesInChunk = nullptr;
-    QueryChunk *chunks = nullptr;
-
-    Interator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
-      chunks(_chunks),
-      entitiesInChunk(entities_in_chunk),
-      componentsCount(components_count),
-      chunksCount(chunks_count),
-      compIdx(comp_idx),
-      compSize(comp_size),
-      chunkIdx(chunk_idx)
-    {
-    }
-
-    bool operator==(const Interator &rhs) const
-    {
-      return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
-    }
-
-    bool operator!=(const Interator &rhs) const
-    {
-      return !(operator==(rhs));
-    }
-
-    void operator++()
-    {
-      ++idx;
-      if (idx >= entitiesInChunk[chunkIdx])
-      {
-        idx = 0;
-        ++chunkIdx;
-      }
-    }
-
-    EntityId& operator*()
-    {
-      return *(EntityId*)(chunks[compIdx + chunkIdx * componentsCount].beginData + idx * compSize);
-    }
-
-    inline Self begin()
-    {
-      return *this;
-    }
-
-    inline Self end()
-    {
-      return Self(nullptr, -1, nullptr, -1, -1, -1, chunksCount);
-    }
-  };
-
-  inline RawInterator iter(int comp_idx)
+  inline RawIterator iter(int comp_idx)
   {
     ASSERT(comp_idx >= 0);
-    return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
+    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
   }
 
-  inline RawInterator iter(const HashedString &name)
+  inline RawIterator iter(const HashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
     ASSERT(compIdx >= 0);
-    return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
+    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
-  inline RawInterator iter(const ConstHashedString &name)
+  inline RawIterator iter(const ConstHashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
     ASSERT(compIdx >= 0);
-    return RawInterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
+    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
   template <typename T>
-  inline Interator<T> iter(const ConstHashedString &name)
+  inline Iterator<T> iter(const ConstHashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
     ASSERT(compIdx >= 0);
-    return Interator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
+    return Iterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
   template <>
-  inline Interator<EntityId> iter(const ConstHashedString &name)
+  inline Iterator<EntityId> iter(const ConstHashedString &name)
   {
     const int compIdx = componentsCount - 1;
-    return Interator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
+    return Iterator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
+  }
+
+  template <typename T>
+  inline Iterator<T> iter(int comp_idx)
+  {
+    ASSERT(comp_idx >= 0 && comp_idx < (int)desc.components.size());
+    return Iterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
+  }
+
+  template <>
+  inline Iterator<EntityId> iter(int)
+  {
+    const int compIdx = componentsCount - 1;
+    return Iterator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
+  }
+
+  inline AllIterator begin()
+  {
+    return AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
+  }
+
+  inline AllIterator end()
+  {
+    return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
   }
 
   bool dirty = false;

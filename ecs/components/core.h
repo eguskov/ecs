@@ -109,6 +109,8 @@ struct Setter<HashedString>
   }
 };
 
+struct Tag DEF_EMPTY_COMP(Tag, tag);
+
 REG_COMP(EntityId, eid);
 REG_COMP(bool, bool);
 REG_COMP(int, int);

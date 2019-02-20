@@ -14,9 +14,10 @@
         "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/cppwinrt",
         "C:/Program Files (x86)/Windows Kits/NETFXSDK/4.6.1/Include/um",
         "${workspaceFolder}/**",
-        "${workspaceFolder}/../EASTL/include",
-        "${workspaceFolder}/../EASTL/test/packages/EABase/include/Common",
-        "${workspaceFolder}/../LLVM/include"
+        "${workspaceFolder}/../libs/EASTL/include",
+        "${workspaceFolder}/../libs/EASTL/test/packages/EABase/include/Common",
+        "${workspaceFolder}/../libs/LLVM/include",
+        "${workspaceFolder}/../libs/PEGTL/include/tao"
       ],
       "defines": [
         "_DEBUG"

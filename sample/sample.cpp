@@ -21,6 +21,11 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
 
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+#include <log4cplus/configurator.h>
+#include <log4cplus/initializer.h>
+
 #include "update.ecs.h"
 
 #include "cef.h"
@@ -121,6 +126,16 @@ bool process_script_command(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+  log4cplus::initialize();
+
+  log4cplus::BasicConfigurator config;
+  config.configure();
+
+  log4cplus::Logger logger = log4cplus::Logger::getRoot();
+  LOG4CPLUS_WARN_FMT(logger, "%s, %s!", "Hello", "World");
+
+  stacktrace::init();
+
   std::srand(unsigned(std::time(0)));
 
   script_init();
@@ -138,7 +153,7 @@ int main(int argc, char *argv[])
 
   webui::init("127.0.0.1:10112");
 
-  InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
+  InitWindow(screen_width, screen_height, "ECS Sample");
 
   SetTargetFPS(60);
 
@@ -246,8 +261,6 @@ int main(int argc, char *argv[])
 
     g_mgr->tick(RenderHUDStage{});
 
-    // g_mgr->tick(RenderDebugStage{});
-
     EndDrawing();
 
     if (g_enable_cef)
@@ -270,6 +283,10 @@ int main(int argc, char *argv[])
 
   if (g_enable_cef)
     cef::release();
+
+  stacktrace::release();
+
+  log4cplus::deinitialize();
 
   return 0;
 }

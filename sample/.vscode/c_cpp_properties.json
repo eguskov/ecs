@@ -28,7 +28,8 @@
         "${workspaceFolder}/../libs/jemalloc/include/msvc_compat",
         "${workspaceFolder}/../libs/raylib/src/external/glfw/include",
         "${workspaceFolder}/../libs/cef",
-        "${workspaceFolder}/../libs/Box2D"
+        "${workspaceFolder}/../libs/Box2D",
+        "${workspaceFolder}/../libs/log4cplus/include"
       ],
       "defines": [
         "_DEBUG",

@@ -66,88 +66,56 @@ static constexpr ConstQueryDesc dispatch_broadcast_event_script_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static RegSysSpec<1930591685, decltype(reload_script_handler)> _reg_sys_reload_script_handler("reload_script_handler", reload_script_handler_query_desc);
-static RegSysSpec<931559298, decltype(build_script_handler)> _reg_sys_build_script_handler("build_script_handler", build_script_handler_query_desc);
-static RegSysSpec<111269837, decltype(update_script_query)> _reg_sys_update_script_query("update_script_query", update_script_query_query_desc);
-static RegSysSpec<2830576908, decltype(update_script)> _reg_sys_update_script("update_script", update_script_query_desc);
-static RegSysSpec<976357768, decltype(dispatch_event_script)> _reg_sys_dispatch_event_script("dispatch_event_script", dispatch_event_script_query_desc);
-static RegSysSpec<4039917412, decltype(dispatch_broadcast_event_script)> _reg_sys_dispatch_broadcast_event_script("dispatch_broadcast_event_script", dispatch_broadcast_event_script_query_desc);
 
 
 
-template <> __forceinline void RegSysSpec<1930591685, decltype(reload_script_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void reload_script_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_eid = index_of_component<_countof(reload_script_handler_components)>::get(hash::cstr("eid"), reload_script_handler_components);
-  static constexpr int compIdx_script = index_of_component<_countof(reload_script_handler_components)>::get(hash::cstr("script"), reload_script_handler_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_script)
-      reload_script_handler(*(CmdReloadScript*)stage_or_event.mem, *it_eid, *it_script);
-  }
+  for (auto i : query)
+    reload_script_handler::run(*(CmdReloadScript*)stage_or_event.mem,
+      GET_COMPONENT(reload_script_handler, i, EntityId, eid),
+      GET_COMPONENT(reload_script_handler, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_reload_script_handler("reload_script_handler", &reload_script_handler_run, "CmdReloadScript", reload_script_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<931559298, decltype(build_script_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void build_script_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_script = index_of_component<_countof(build_script_handler_components)>::get(hash::cstr("script"), build_script_handler_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      build_script_handler(*(EventOnEntityCreate*)stage_or_event.mem, *it_script);
-  }
+  for (auto i : query)
+    build_script_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
+      GET_COMPONENT(build_script_handler, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_build_script_handler("build_script_handler", &build_script_handler_run, "EventOnEntityCreate", build_script_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<111269837, decltype(update_script_query)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_script_query_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_script = index_of_component<_countof(update_script_query_components)>::get(hash::cstr("script"), update_script_query_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      update_script_query(*(EventOnChangeDetected*)stage_or_event.mem, *it_script);
-  }
+  for (auto i : query)
+    update_script_query::run(*(EventOnChangeDetected*)stage_or_event.mem,
+      GET_COMPONENT(update_script_query, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_update_script_query("update_script_query", &update_script_query_run, "EventOnChangeDetected", update_script_query_query_desc);
 
-template <> __forceinline void RegSysSpec<2830576908, decltype(update_script)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_script_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_script = index_of_component<_countof(update_script_components)>::get(hash::cstr("script"), update_script_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      update_script(*(UpdateStage*)stage_or_event.mem, *it_script);
-  }
+  for (auto i : query)
+    update_script::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_script, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_update_script("update_script", &update_script_run, "UpdateStage", update_script_query_desc);
 
-template <> __forceinline void RegSysSpec<976357768, decltype(dispatch_event_script)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void dispatch_event_script_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_script = index_of_component<_countof(dispatch_event_script_components)>::get(hash::cstr("script"), dispatch_event_script_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      dispatch_event_script(*(DispatchEventStage*)stage_or_event.mem, *it_script);
-  }
+  for (auto i : query)
+    dispatch_event_script::run(*(DispatchEventStage*)stage_or_event.mem,
+      GET_COMPONENT(dispatch_event_script, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_dispatch_event_script("dispatch_event_script", &dispatch_event_script_run, "DispatchEventStage", dispatch_event_script_query_desc);
 
-template <> __forceinline void RegSysSpec<4039917412, decltype(dispatch_broadcast_event_script)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void dispatch_broadcast_event_script_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_script = index_of_component<_countof(dispatch_broadcast_event_script_components)>::get(hash::cstr("script"), dispatch_broadcast_event_script_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      dispatch_broadcast_event_script(*(DispatchBroadcastEventStage*)stage_or_event.mem, *it_script);
-  }
+  for (auto i : query)
+    dispatch_broadcast_event_script::run(*(DispatchBroadcastEventStage*)stage_or_event.mem,
+      GET_COMPONENT(dispatch_broadcast_event_script, i, script::ScriptComponent, script));
 }
+static RegSys _reg_sys_dispatch_broadcast_event_script("dispatch_broadcast_event_script", &dispatch_broadcast_event_script_run, "DispatchBroadcastEventStage", dispatch_broadcast_event_script_query_desc);
 
 #endif // __CODEGEN__

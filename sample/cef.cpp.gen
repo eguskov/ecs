@@ -61,57 +61,42 @@ static constexpr ConstQueryDesc cef_toggle_webui_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static RegSysSpec<2878479676, decltype(cef_ready_handler)> _reg_sys_cef_ready_handler("cef_ready_handler", cef_ready_handler_query_desc);
-static RegSysSpec<2581954526, decltype(cef_after_created_handler)> _reg_sys_cef_after_created_handler("cef_after_created_handler", cef_after_created_handler_query_desc);
-static RegSysSpec<1923709597, decltype(cef_click_outside_handler)> _reg_sys_cef_click_outside_handler("cef_click_outside_handler", cef_click_outside_handler_query_desc);
-static RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)> _reg_sys_cef_toggle_dev_tools_handler("cef_toggle_dev_tools_handler", cef_toggle_dev_tools_handler_query_desc);
-static RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)> _reg_sys_cef_toggle_webui_handler("cef_toggle_webui_handler", cef_toggle_webui_handler_query_desc);
 
 
 
-template <> __forceinline void RegSysSpec<2878479676, decltype(cef_ready_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void cef_ready_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
-      cef_ready_handler(*(CEFEventOnReady*)stage_or_event.mem);
-  }
+  for (auto i : query)
+    cef_ready_handler::run(*(CEFEventOnReady*)stage_or_event.mem);
 }
+static RegSys _reg_sys_cef_ready_handler("cef_ready_handler", &cef_ready_handler_run, "CEFEventOnReady", cef_ready_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<2581954526, decltype(cef_after_created_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void cef_after_created_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
-      cef_after_created_handler(*(CEFEventOnAfterCreated*)stage_or_event.mem);
-  }
+  for (auto i : query)
+    cef_after_created_handler::run(*(CEFEventOnAfterCreated*)stage_or_event.mem);
 }
+static RegSys _reg_sys_cef_after_created_handler("cef_after_created_handler", &cef_after_created_handler_run, "CEFEventOnAfterCreated", cef_after_created_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<1923709597, decltype(cef_click_outside_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void cef_click_outside_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
-      cef_click_outside_handler(*(cef::EventOnClickOutside*)stage_or_event.mem);
-  }
+  for (auto i : query)
+    cef_click_outside_handler::run(*(cef::EventOnClickOutside*)stage_or_event.mem);
 }
+static RegSys _reg_sys_cef_click_outside_handler("cef_click_outside_handler", &cef_click_outside_handler_run, "cef::EventOnClickOutside", cef_click_outside_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<1305942589, decltype(cef_toggle_dev_tools_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void cef_toggle_dev_tools_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
-      cef_toggle_dev_tools_handler(*(cef::CmdToggleDevTools*)stage_or_event.mem);
-  }
+  for (auto i : query)
+    cef_toggle_dev_tools_handler::run(*(cef::CmdToggleDevTools*)stage_or_event.mem);
 }
+static RegSys _reg_sys_cef_toggle_dev_tools_handler("cef_toggle_dev_tools_handler", &cef_toggle_dev_tools_handler_run, "cef::CmdToggleDevTools", cef_toggle_dev_tools_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<2012917320, decltype(cef_toggle_webui_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void cef_toggle_webui_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
-      cef_toggle_webui_handler(*(cef::CmdToggleWebUI*)stage_or_event.mem);
-  }
+  for (auto i : query)
+    cef_toggle_webui_handler::run(*(cef::CmdToggleWebUI*)stage_or_event.mem);
 }
+static RegSys _reg_sys_cef_toggle_webui_handler("cef_toggle_webui_handler", &cef_toggle_webui_handler_run, "cef::CmdToggleWebUI", cef_toggle_webui_handler_query_desc);
 
 #endif // __CODEGEN__

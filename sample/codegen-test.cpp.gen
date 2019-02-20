@@ -1,0 +1,238 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "codegen-test.cpp"
+
+static constexpr ConstCompDesc UpdatePositionSimple_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc UpdatePositionSimple_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+};
+static constexpr ConstCompDesc UpdatePositionSimple_not_have_components[] = {
+  {hash::cstr("is_active"), 0},
+};
+static constexpr ConstQueryDesc UpdatePositionSimple_query_desc = {
+  make_const_array(UpdatePositionSimple_components),
+  make_const_array(UpdatePositionSimple_have_components),
+  make_const_array(UpdatePositionSimple_not_have_components),
+  empty_desc_array,
+  empty_desc_array,
+};
+
+static constexpr ConstCompDesc TestAQuery_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc TestAQuery_have_components[] = {
+  {hash::cstr("wall"), 0},
+  {hash::cstr("some"), 0},
+  {hash::cstr("etc"), 0},
+  {hash::cstr("a"), 0},
+  {hash::cstr("b"), 0},
+  {hash::cstr("c"), 0},
+};
+static constexpr ConstCompDesc TestAQuery_not_have_components[] = {
+  {hash::cstr("comp_a"), 0},
+  {hash::cstr("comp_b"), 0},
+  {hash::cstr("comp_c"), 0},
+};
+static constexpr ConstQueryDesc TestAQuery_query_desc = {
+  make_const_array(TestAQuery_components),
+  make_const_array(TestAQuery_have_components),
+  make_const_array(TestAQuery_not_have_components),
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc TestBQuery_components[] = {
+  {hash::cstr("eid_a"), Desc<EntityId>::Size},
+  {hash::cstr("a"), Desc<glm::vec4>::Size},
+  {hash::cstr("b"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc TestBQuery_have_components[] = {
+  {hash::cstr("some"), 0},
+};
+static constexpr ConstQueryDesc TestBQuery_query_desc = {
+  make_const_array(TestBQuery_components),
+  make_const_array(TestBQuery_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc BricksQuery_components[] = {
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc BricksQuery_have_components[] = {
+  {hash::cstr("wall"), 0},
+};
+static constexpr ConstQueryDesc BricksQuery_query_desc = {
+  make_const_array(BricksQuery_components),
+  make_const_array(BricksQuery_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc AliveEnemy_components[] = {
+  {hash::cstr("eid"), Desc<EntityId>::Size},
+  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
+  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {hash::cstr("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc AliveEnemy_have_components[] = {
+  {hash::cstr("enemy"), 0},
+  {hash::cstr("is_alive"), 0},
+};
+static constexpr ConstQueryDesc AliveEnemy_query_desc = {
+  make_const_array(AliveEnemy_components),
+  make_const_array(AliveEnemy_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+
+static RegQuery _reg_query_TestAQuery(hash::cstr("codegen-test.cpp_TestAQuery"), TestAQuery_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(a, float);
+  GET_COMPONENT_VALUE(b, bool);
+  GET_COMPONENT_VALUE(c, bool);
+  return a > 1.0 && (b == true || c == false);
+});
+static RegQuery _reg_query_TestBQuery(hash::cstr("codegen-test.cpp_TestBQuery"), TestBQuery_query_desc, nullptr);
+static RegQuery _reg_query_BricksQuery(hash::cstr("codegen-test.cpp_BricksQuery"), BricksQuery_query_desc, nullptr);
+static RegQuery _reg_query_AliveEnemy(hash::cstr("codegen-test.cpp_AliveEnemy"), AliveEnemy_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
+
+template <typename Callable> void TestAQuery::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(TestAQuery, i, EntityId, eid),
+      GET_COMPONENT(TestAQuery, i, glm::vec4, collision_rect),
+      GET_COMPONENT(TestAQuery, i, glm::vec2, pos)
+    });
+}
+template <typename Callable> void TestBQuery::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(TestBQuery, i, EntityId, eid_a),
+      GET_COMPONENT(TestBQuery, i, glm::vec4, a),
+      GET_COMPONENT(TestBQuery, i, glm::vec2, b)
+    });
+}
+template <typename Callable> void BricksQuery::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_BricksQuery"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(BricksQuery, i, glm::vec4, collision_rect),
+      GET_COMPONENT(BricksQuery, i, glm::vec2, pos)
+    });
+}
+template <typename Callable> void AliveEnemy::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, i, bool, is_alive)
+    });
+}
+static void UpdatePositionSimple_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto i : query)
+    UpdatePositionSimple::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(UpdatePositionSimple, i, glm::vec2, vel),
+      GET_COMPONENT(UpdatePositionSimple, i, glm::vec2, pos));
+}
+static RegSys _reg_sys_UpdatePositionSimple("UpdatePositionSimple", &UpdatePositionSimple_run, "UpdateStage", UpdatePositionSimple_query_desc);
+
+static void UpdatePositionExternalQuery_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
+  for (auto i : query)
+    UpdatePositionExternalQuery::run(*(UpdateStage*)stage_or_event.mem,
+    {
+      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, i, bool, is_alive)
+    });
+}
+static RegSys _reg_sys_UpdatePositionExternalQuery("UpdatePositionExternalQuery", &UpdatePositionExternalQuery_run, "UpdateStage");
+
+static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
+  Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  for (auto q1 : query1)
+  {
+    TestAQuery test_a =
+    {
+      GET_COMPONENT(TestAQuery, q1, EntityId, eid),
+      GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
+      GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
+    };
+    for (auto q2 : query2)
+    {
+      TestBQuery test_b =
+      {
+        GET_COMPONENT(TestBQuery, q2, EntityId, eid_a),
+        GET_COMPONENT(TestBQuery, q2, glm::vec4, a),
+        GET_COMPONENT(TestBQuery, q2, glm::vec2, b)
+      };
+      if (test_a.eid == test_b.eid_a)
+        UpdatePositionJoin::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+      }
+    }
+}
+static RegSys _reg_sys_UpdatePositionJoin("UpdatePositionJoin", &UpdatePositionJoin_run, "UpdateStage");
+
+static void UpdatePositionJoinAll_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
+  Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  for (auto q1 : query1)
+  {
+    TestAQuery test_a =
+    {
+      GET_COMPONENT(TestAQuery, q1, EntityId, eid),
+      GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
+      GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
+    };
+    for (auto q2 : query2)
+    {
+      TestBQuery test_b =
+      {
+        GET_COMPONENT(TestBQuery, q2, EntityId, eid_a),
+        GET_COMPONENT(TestBQuery, q2, glm::vec4, a),
+        GET_COMPONENT(TestBQuery, q2, glm::vec2, b)
+      };
+      UpdatePositionJoinAll::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+    }
+  }
+}
+static RegSys _reg_sys_UpdatePositionJoinAll("UpdatePositionJoinAll", &UpdatePositionJoinAll_run, "UpdateStage");
+
+#endif // __CODEGEN__

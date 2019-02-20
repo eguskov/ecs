@@ -5,30 +5,26 @@
 
 #include "webui.ecs.cpp"
 
-static constexpr ConstCompDesc AllScriptsQuery_components[] = {
+static constexpr ConstCompDesc Script_components[] = {
   {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
 };
-static constexpr ConstQueryDesc AllScriptsQuery_query_desc = {
-  make_const_array(AllScriptsQuery_components),
+static constexpr ConstQueryDesc Script_query_desc = {
+  make_const_array(Script_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
 
-static RegQuery _reg_query_AllScriptsQuery(hash::cstr("webui.ecs.cpp_AllScriptsQuery"), AllScriptsQuery_query_desc);
+static RegQuery _reg_query_Script(hash::cstr("webui.ecs.cpp_Script"), Script_query_desc, nullptr);
 
-template <typename C> void AllScriptsQuery::exec(C callback)
+template <typename Callable> void Script::foreach(Callable callback)
 {
-  auto &query = *g_mgr->getQueryByName(hash::cstr("webui.ecs.cpp_AllScriptsQuery"));
-  static constexpr int compIdx_script = index_of_component<_countof(AllScriptsQuery_components)>::get(hash::cstr("script"), AllScriptsQuery_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_script = query.chunks[compIdx_script + chunkIdx * query.componentsCount];
-    auto it_script = chunk_script.begin<script::ScriptComponent>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_script)
-      callback(*it_script);
-  }
+  Query &query = *g_mgr->getQueryByName(hash::cstr("webui.ecs.cpp_Script"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(Script, i, script::ScriptComponent, script)
+    });
 }
-
 #endif // __CODEGEN__

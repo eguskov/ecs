@@ -1,5 +1,6 @@
 #include "debug.h"
 
+#ifdef _DEBUG
 #include <windows.h>
 
 #include <sstream>
@@ -28,3 +29,4 @@ void fatal_handler(const char *message)
 
   ::MessageBox(NULL, message, "FATAL", MB_OK | MB_ICONERROR);
 }
+#endif

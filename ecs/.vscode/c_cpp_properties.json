@@ -14,13 +14,14 @@
                 "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/cppwinrt",
                 "C:/Program Files (x86)/Windows Kits/NETFXSDK/4.6.1/Include/um",
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../glm",
-                "${workspaceFolder}/../raylib/src",
-                "${workspaceFolder}/../rapidjson/include",
-                "${workspaceFolder}/../EASTL/include",
-                "${workspaceFolder}/../EASTL/test/packages/EABase/include/Common",
-                "${workspaceFolder}/../jemalloc/include",
-                "${workspaceFolder}/../jemalloc/include/msvc_compat"
+                "${workspaceFolder}/../libs/glm",
+                "${workspaceFolder}/../libs/raylib/src",
+                "${workspaceFolder}/../libs/rapidjson/include",
+                "${workspaceFolder}/../libs/EASTL/include",
+                "${workspaceFolder}/../libs/EASTL/test/packages/EABase/include/Common",
+                "${workspaceFolder}/../libs/jemalloc/include",
+                "${workspaceFolder}/../libs/jemalloc/include/msvc_compat",
+                "${workspaceFolder}/../libs/stacktrace-boost/include"
             ],
             "defines": [
                 "_DEBUG",

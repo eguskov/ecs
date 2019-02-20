@@ -271,62 +271,77 @@ void cef::release()
 #endif
 }
 
-DEF_SYS(HAVE_COMP(webui))
-static __forceinline void cef_ready_handler(const CEFEventOnReady &ev)
+struct cef_ready_handler
 {
-#ifdef _DEBUG
-  g_main_window = ::FindWindow(nullptr, "raylib [core] example - basic window");
+  QL_HAVE(webui);
+  ECS_RUN(const CEFEventOnReady &ev)
+  {
+  #ifdef _DEBUG
+    g_main_window = ::FindWindow(nullptr, "raylib [core] example - basic window");
 
-  CefBrowserSettings browserSettings;
+    CefBrowserSettings browserSettings;
 
-  CefWindowInfo windowInfo;
-  // windowInfo.SetAsChild(g_main_window, { 0, 300, 800, 600 });
+    CefWindowInfo windowInfo;
+    // windowInfo.SetAsChild(g_main_window, { 0, 300, 800, 600 });
 
-  windowInfo.SetAsPopup(g_main_window, "");
-  // windowInfo.style &= ~WS_OVERLAPPED;
-  // windowInfo.style &= ~WS_CAPTION;
-  // windowInfo.style |= WS_POPUP;
-  windowInfo.x = 20;
-  windowInfo.y = 100;
-  windowInfo.width = 500;
-  windowInfo.height = 500;
+    windowInfo.SetAsPopup(g_main_window, "");
+    // windowInfo.style &= ~WS_OVERLAPPED;
+    // windowInfo.style &= ~WS_CAPTION;
+    // windowInfo.style |= WS_POPUP;
+    windowInfo.x = 20;
+    windowInfo.y = 100;
+    windowInfo.width = 500;
+    windowInfo.height = 500;
 
-  auto handler = g_app->handlers.front();
-  CefBrowserHost::CreateBrowser(windowInfo, handler, "http://localhost:10010", browserSettings, NULL);
-#endif
-}
+    auto handler = g_app->handlers.front();
+    CefBrowserHost::CreateBrowser(windowInfo, handler, "http://localhost:10010", browserSettings, NULL);
+  #endif
+  }
+};
 
-DEF_SYS(HAVE_COMP(webui))
-static __forceinline void cef_after_created_handler(const CEFEventOnAfterCreated &ev)
+struct cef_after_created_handler
 {
-#ifdef _DEBUG
-  ::SetFocus(g_main_window);
-#endif
-}
+  QL_HAVE(webui);
+  ECS_RUN(const CEFEventOnAfterCreated &ev)
+  {
+  #ifdef _DEBUG
+    ::SetFocus(g_main_window);
+  #endif
+  }
+};
 
-DEF_SYS(HAVE_COMP(webui))
-static __forceinline void cef_click_outside_handler(const cef::EventOnClickOutside &ev)
+struct cef_click_outside_handler
 {
-#ifdef _DEBUG
-  ::SetFocus(g_main_window);
-#endif
-}
+  QL_HAVE(webui);
+  ECS_RUN(const cef::EventOnClickOutside &ev)
+  {
+  #ifdef _DEBUG
+    ::SetFocus(g_main_window);
+  #endif
+  }
+};
 
-DEF_SYS(HAVE_COMP(webui))
-static __forceinline void cef_toggle_dev_tools_handler(const cef::CmdToggleDevTools &ev)
+struct cef_toggle_dev_tools_handler
 {
-#ifdef _DEBUG
-  g_app->handlers.front()->ToggleDevTools();
-#endif
-}
+  QL_HAVE(webui);
+  ECS_RUN(const cef::CmdToggleDevTools &ev)
+  {
+  #ifdef _DEBUG
+    g_app->handlers.front()->ToggleDevTools();
+  #endif
+  }
+};
 
-DEF_SYS(HAVE_COMP(webui))
-static __forceinline void cef_toggle_webui_handler(const cef::CmdToggleWebUI &ev)
+struct cef_toggle_webui_handler
 {
-#ifdef _DEBUG
-  HWND hWnd = g_app->handlers.front()->browsers.front()->GetHost()->GetWindowHandle();
+  QL_HAVE(webui);
+  ECS_RUN(const cef::CmdToggleWebUI &ev)
+  {
+  #ifdef _DEBUG
+    HWND hWnd = g_app->handlers.front()->browsers.front()->GetHost()->GetWindowHandle();
 
-  ::ShowWindow(hWnd, ::IsWindowVisible(hWnd) ? SW_HIDE : SW_SHOW);
-  ::UpdateWindow(hWnd);
-#endif
-}
+    ::ShowWindow(hWnd, ::IsWindowVisible(hWnd) ? SW_HIDE : SW_SHOW);
+    ::UpdateWindow(hWnd);
+  #endif
+  }
+};

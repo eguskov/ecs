@@ -34,32 +34,32 @@ static constexpr ConstCompDesc update_position_components[] = {
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
   {hash::cstr("pos"), Desc<glm::vec2>::Size},
 };
+static constexpr ConstCompDesc update_position_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+};
 static constexpr ConstCompDesc update_position_not_have_components[] = {
   {hash::cstr("is_active"), 0},
 };
-static constexpr ConstCompDesc update_position_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
-};
 static constexpr ConstQueryDesc update_position_query_desc = {
   make_const_array(update_position_components),
-  empty_desc_array,
+  make_const_array(update_position_have_components),
   make_const_array(update_position_not_have_components),
-  make_const_array(update_position_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_position_for_active_components[] = {
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
   {hash::cstr("pos"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc update_position_for_active_is_true_components[] = {
-  {hash::cstr("is_active"), Desc<bool>::Size},
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+static constexpr ConstCompDesc update_position_for_active_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+  {hash::cstr("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_position_for_active_query_desc = {
   make_const_array(update_position_for_active_components),
+  make_const_array(update_position_for_active_have_components),
   empty_desc_array,
   empty_desc_array,
-  make_const_array(update_position_for_active_is_true_components),
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_anim_frame_components[] = {
@@ -81,15 +81,13 @@ static constexpr ConstCompDesc render_walls_components[] = {
 };
 static constexpr ConstCompDesc render_walls_have_components[] = {
   {hash::cstr("wall"), 0},
-};
-static constexpr ConstCompDesc render_walls_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {hash::cstr("is_alive"), 0},
 };
 static constexpr ConstQueryDesc render_walls_query_desc = {
   make_const_array(render_walls_components),
   make_const_array(render_walls_have_components),
   empty_desc_array,
-  make_const_array(render_walls_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_normal_components[] = {
@@ -98,22 +96,21 @@ static constexpr ConstCompDesc render_normal_components[] = {
   {hash::cstr("pos"), Desc<glm::vec2>::Size},
   {hash::cstr("dir"), Desc<float>::Size},
 };
+static constexpr ConstCompDesc render_normal_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+};
 static constexpr ConstCompDesc render_normal_not_have_components[] = {
   {hash::cstr("wall"), 0},
 };
-static constexpr ConstCompDesc render_normal_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
-};
 static constexpr ConstQueryDesc render_normal_query_desc = {
   make_const_array(render_normal_components),
-  empty_desc_array,
+  make_const_array(render_normal_have_components),
   make_const_array(render_normal_not_have_components),
-  make_const_array(render_normal_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 static constexpr ConstCompDesc read_controls_components[] = {
   {hash::cstr("user_input"), Desc<UserInput>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstQueryDesc read_controls_query_desc = {
   make_const_array(read_controls_components),
@@ -152,28 +149,12 @@ static constexpr ConstCompDesc apply_gravity_components[] = {
   {hash::cstr("gravity"), Desc<Gravity>::Size},
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc apply_gravity_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+static constexpr ConstCompDesc apply_gravity_have_components[] = {
+  {hash::cstr("is_alive"), 0},
 };
 static constexpr ConstQueryDesc apply_gravity_query_desc = {
   make_const_array(apply_gravity_components),
-  empty_desc_array,
-  empty_desc_array,
-  make_const_array(apply_gravity_is_true_components),
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_collisions_components[] = {
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstCompDesc update_collisions_have_components[] = {
-  {hash::cstr("user_input"), 0},
-};
-static constexpr ConstQueryDesc update_collisions_query_desc = {
-  make_const_array(update_collisions_components),
-  make_const_array(update_collisions_have_components),
+  make_const_array(apply_gravity_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -187,15 +168,13 @@ static constexpr ConstCompDesc update_auto_move_collisions_components[] = {
 };
 static constexpr ConstCompDesc update_auto_move_collisions_have_components[] = {
   {hash::cstr("enemy"), 0},
-};
-static constexpr ConstCompDesc update_auto_move_collisions_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {hash::cstr("is_alive"), 0},
 };
 static constexpr ConstQueryDesc update_auto_move_collisions_query_desc = {
   make_const_array(update_auto_move_collisions_components),
   make_const_array(update_auto_move_collisions_have_components),
   empty_desc_array,
-  make_const_array(update_auto_move_collisions_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 static constexpr ConstCompDesc select_current_anim_frame_components[] = {
@@ -230,16 +209,6 @@ static constexpr ConstQueryDesc select_current_anim_frame_for_player_query_desc 
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc validate_position_components[] = {
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstQueryDesc validate_position_query_desc = {
-  make_const_array(validate_position_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
 static constexpr ConstCompDesc update_enemies_collisions_components[] = {
   {hash::cstr("eid"), Desc<EntityId>::Size},
   {hash::cstr("jump"), Desc<Jump>::Size},
@@ -250,15 +219,13 @@ static constexpr ConstCompDesc update_enemies_collisions_components[] = {
 };
 static constexpr ConstCompDesc update_enemies_collisions_have_components[] = {
   {hash::cstr("user_input"), 0},
-};
-static constexpr ConstCompDesc update_enemies_collisions_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {hash::cstr("is_alive"), 0},
 };
 static constexpr ConstQueryDesc update_enemies_collisions_query_desc = {
   make_const_array(update_enemies_collisions_components),
   make_const_array(update_enemies_collisions_have_components),
   empty_desc_array,
-  make_const_array(update_enemies_collisions_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 static constexpr ConstCompDesc remove_death_fx_components[] = {
@@ -266,14 +233,14 @@ static constexpr ConstCompDesc remove_death_fx_components[] = {
   {hash::cstr("anim_state"), Desc<AnimState>::Size},
   {hash::cstr("is_alive"), Desc<bool>::Size},
 };
-static constexpr ConstCompDesc remove_death_fx_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+static constexpr ConstCompDesc remove_death_fx_have_components[] = {
+  {hash::cstr("is_alive"), 0},
 };
 static constexpr ConstQueryDesc remove_death_fx_query_desc = {
   make_const_array(remove_death_fx_components),
+  make_const_array(remove_death_fx_have_components),
   empty_desc_array,
   empty_desc_array,
-  make_const_array(remove_death_fx_is_true_components),
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_camera_components[] = {
@@ -304,15 +271,15 @@ static constexpr ConstCompDesc update_active_auto_move_components[] = {
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
   {hash::cstr("dir"), Desc<float>::Size},
 };
-static constexpr ConstCompDesc update_active_auto_move_is_true_components[] = {
-  {hash::cstr("is_active"), Desc<bool>::Size},
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+static constexpr ConstCompDesc update_active_auto_move_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+  {hash::cstr("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_components),
+  make_const_array(update_active_auto_move_have_components),
   empty_desc_array,
   empty_desc_array,
-  make_const_array(update_active_auto_move_is_true_components),
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_always_active_auto_move_components[] = {
@@ -320,105 +287,35 @@ static constexpr ConstCompDesc update_always_active_auto_move_components[] = {
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
   {hash::cstr("dir"), Desc<float>::Size},
 };
+static constexpr ConstCompDesc update_always_active_auto_move_have_components[] = {
+  {hash::cstr("is_alive"), 0},
+};
 static constexpr ConstCompDesc update_always_active_auto_move_not_have_components[] = {
   {hash::cstr("is_active"), 0},
 };
-static constexpr ConstCompDesc update_always_active_auto_move_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
-};
 static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
   make_const_array(update_always_active_auto_move_components),
-  empty_desc_array,
+  make_const_array(update_always_active_auto_move_have_components),
   make_const_array(update_always_active_auto_move_not_have_components),
-  make_const_array(update_always_active_auto_move_is_true_components),
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_boid_position_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstCompDesc update_boid_position_have_components[] = {
-  {hash::cstr("boid"), 0},
-};
-static constexpr ConstQueryDesc update_boid_position_query_desc = {
-  make_const_array(update_boid_position_components),
-  make_const_array(update_boid_position_have_components),
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc render_boid_components[] = {
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
-  {hash::cstr("frame"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("rotation"), Desc<float>::Size},
-};
-static constexpr ConstCompDesc render_boid_have_components[] = {
-  {hash::cstr("boid"), 0},
-};
-static constexpr ConstQueryDesc render_boid_query_desc = {
-  make_const_array(render_boid_components),
-  make_const_array(render_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_boid_components[] = {
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("rotation"), Desc<float>::Size},
-};
-static constexpr ConstCompDesc update_boid_have_components[] = {
-  {hash::cstr("boid"), 0},
-};
-static constexpr ConstQueryDesc update_boid_query_desc = {
-  make_const_array(update_boid_components),
-  make_const_array(update_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static RegSysSpec<3448512920, decltype(load_texture_handler)> _reg_sys_load_texture_handler("load_texture_handler", load_texture_handler_query_desc);
-static RegSysSpec<1621823280, decltype(update_position)> _reg_sys_update_position("update_position", update_position_query_desc);
-static RegSysSpec<4245480229, decltype(update_position_for_active)> _reg_sys_update_position_for_active("update_position_for_active", update_position_for_active_query_desc);
-static RegSysSpec<510498044, decltype(update_anim_frame)> _reg_sys_update_anim_frame("update_anim_frame", update_anim_frame_query_desc);
-static RegSysSpec<1007297635, decltype(render_walls)> _reg_sys_render_walls("render_walls", render_walls_query_desc);
-static RegSysSpec<2012399197, decltype(render_normal)> _reg_sys_render_normal("render_normal", render_normal_query_desc);
-static RegSysSpec<484250714, decltype(read_controls)> _reg_sys_read_controls("read_controls", read_controls_query_desc);
-static RegSysSpec<1920783676, decltype(apply_controls)> _reg_sys_apply_controls("apply_controls", apply_controls_query_desc);
-static RegSysSpec<3949714102, decltype(apply_jump)> _reg_sys_apply_jump("apply_jump", apply_jump_query_desc);
-static RegSysSpec<3962763712, decltype(apply_gravity)> _reg_sys_apply_gravity("apply_gravity", apply_gravity_query_desc);
-static RegSysSpec<3962250550, decltype(update_collisions)> _reg_sys_update_collisions("update_collisions", update_collisions_query_desc);
-static RegSysSpec<1590712904, decltype(update_auto_move_collisions)> _reg_sys_update_auto_move_collisions("update_auto_move_collisions", update_auto_move_collisions_query_desc);
-static RegSysSpec<2354991095, decltype(select_current_anim_frame)> _reg_sys_select_current_anim_frame("select_current_anim_frame", select_current_anim_frame_query_desc);
-static RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)> _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", select_current_anim_frame_for_player_query_desc);
-static RegSysSpec<3007763911, decltype(validate_position)> _reg_sys_validate_position("validate_position", validate_position_query_desc);
-static RegSysSpec<917788925, decltype(update_enemies_collisions)> _reg_sys_update_enemies_collisions("update_enemies_collisions", update_enemies_collisions_query_desc);
-static RegSysSpec<1963192783, decltype(remove_death_fx)> _reg_sys_remove_death_fx("remove_death_fx", remove_death_fx_query_desc);
-static RegSysSpec<1506347756, decltype(update_camera)> _reg_sys_update_camera("update_camera", update_camera_query_desc);
-static RegSysSpec<1381440062, decltype(process_on_kill_event)> _reg_sys_process_on_kill_event("process_on_kill_event", process_on_kill_event_query_desc);
-static RegSysSpec<3126766469, decltype(update_active_auto_move)> _reg_sys_update_active_auto_move("update_active_auto_move", update_active_auto_move_query_desc);
-static RegSysSpec<4261438561, decltype(update_always_active_auto_move)> _reg_sys_update_always_active_auto_move("update_always_active_auto_move", update_always_active_auto_move_query_desc);
-static RegSysSpec<3321105247, decltype(update_boid_position)> _reg_sys_update_boid_position("update_boid_position", update_boid_position_query_desc);
-static RegSysSpec<3068028142, decltype(render_boid)> _reg_sys_render_boid("render_boid", render_boid_query_desc);
-static RegSysSpec<4195794851, decltype(update_boid)> _reg_sys_update_boid("update_boid", update_boid_query_desc);
 
-static constexpr ConstCompDesc BricksQuery_components[] = {
+static constexpr ConstCompDesc Brick_components[] = {
   {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
   {hash::cstr("pos"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc BricksQuery_have_components[] = {
+static constexpr ConstCompDesc Brick_have_components[] = {
   {hash::cstr("wall"), 0},
 };
-static constexpr ConstQueryDesc BricksQuery_query_desc = {
-  make_const_array(BricksQuery_components),
-  make_const_array(BricksQuery_have_components),
+static constexpr ConstQueryDesc Brick_query_desc = {
+  make_const_array(Brick_components),
+  make_const_array(Brick_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc AliveEnemiesQuery_components[] = {
+static constexpr ConstCompDesc AliveEnemy_components[] = {
   {hash::cstr("eid"), Desc<EntityId>::Size},
   {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
   {hash::cstr("pos"), Desc<glm::vec2>::Size},
@@ -426,506 +323,240 @@ static constexpr ConstCompDesc AliveEnemiesQuery_components[] = {
   {hash::cstr("vel"), Desc<glm::vec2>::Size},
   {hash::cstr("anim_state"), Desc<AnimState>::Size},
 };
-static constexpr ConstCompDesc AliveEnemiesQuery_have_components[] = {
+static constexpr ConstCompDesc AliveEnemy_have_components[] = {
   {hash::cstr("enemy"), 0},
+  {hash::cstr("is_alive"), 0},
 };
-static constexpr ConstCompDesc AliveEnemiesQuery_is_true_components[] = {
-  {hash::cstr("is_alive"), Desc<bool>::Size},
-};
-static constexpr ConstQueryDesc AliveEnemiesQuery_query_desc = {
-  make_const_array(AliveEnemiesQuery_components),
-  make_const_array(AliveEnemiesQuery_have_components),
+static constexpr ConstQueryDesc AliveEnemy_query_desc = {
+  make_const_array(AliveEnemy_components),
+  make_const_array(AliveEnemy_have_components),
   empty_desc_array,
-  make_const_array(AliveEnemiesQuery_is_true_components),
+  empty_desc_array,
   empty_desc_array,
 };
 
-static RegQuery _reg_query_BricksQuery(hash::cstr("update.ecs.cpp_BricksQuery"), BricksQuery_query_desc);
-static RegQuery _reg_query_AliveEnemiesQuery(hash::cstr("update.ecs.cpp_AliveEnemiesQuery"), AliveEnemiesQuery_query_desc);
-
-template <typename C> void BricksQuery::exec(C callback)
+static RegQuery _reg_query_Brick(hash::cstr("update.ecs.cpp_Brick"), Brick_query_desc, nullptr);
+static RegQuery _reg_query_AliveEnemy(hash::cstr("update.ecs.cpp_AliveEnemy"), AliveEnemy_query_desc, 
+[](const Archetype &type, int entity_idx)
 {
-  auto &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_BricksQuery"));
-  static constexpr int compIdx_collision_rect = index_of_component<_countof(BricksQuery_components)>::get(hash::cstr("collision_rect"), BricksQuery_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(BricksQuery_components)>::get(hash::cstr("pos"), BricksQuery_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_collision_rect = query.chunks[compIdx_collision_rect + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_collision_rect = chunk_collision_rect.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_collision_rect, ++it_pos)
-      callback(*it_collision_rect, *it_pos);
-  }
-}
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
 
-template <typename C> void AliveEnemiesQuery::exec(C callback)
+template <typename Callable> void Brick::foreach(Callable callback)
 {
-  auto &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_AliveEnemiesQuery"));
-  static constexpr int compIdx_eid = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("eid"), AliveEnemiesQuery_components);
-  static constexpr int compIdx_collision_rect = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("collision_rect"), AliveEnemiesQuery_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("pos"), AliveEnemiesQuery_components);
-  static constexpr int compIdx_is_alive = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("is_alive"), AliveEnemiesQuery_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("vel"), AliveEnemiesQuery_components);
-  static constexpr int compIdx_anim_state = index_of_component<_countof(AliveEnemiesQuery_components)>::get(hash::cstr("anim_state"), AliveEnemiesQuery_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_collision_rect = query.chunks[compIdx_collision_rect + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_alive = query.chunks[compIdx_is_alive + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_state = query.chunks[compIdx_anim_state + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_collision_rect = chunk_collision_rect.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_is_alive = chunk_is_alive.begin<bool>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_anim_state = chunk_anim_state.begin<AnimState>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_collision_rect, ++it_pos, ++it_is_alive, ++it_vel, ++it_anim_state)
-      callback(*it_eid, *it_collision_rect, *it_pos, *it_is_alive, *it_vel, *it_anim_state);
-  }
+  Query &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_Brick"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(Brick, i, glm::vec4, collision_rect),
+      GET_COMPONENT(Brick, i, glm::vec2, pos)
+    });
 }
+template <typename Callable> void AliveEnemy::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_AliveEnemy"));
+  for (auto i : query)
+    callback(
+    {
+      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, i, bool, is_alive),
+      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, i, AnimState, anim_state)
+    });
+}
+static void load_texture_handler_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto i : query)
+    load_texture_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
+      GET_COMPONENT(load_texture_handler, i, TextureAtlas, texture));
+}
+static RegSys _reg_sys_load_texture_handler("load_texture_handler", &load_texture_handler_run, "EventOnEntityCreate", load_texture_handler_query_desc);
 
-template <> __forceinline void RegSysSpec<3448512920, decltype(load_texture_handler)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_texture = index_of_component<_countof(load_texture_handler_components)>::get(hash::cstr("texture"), load_texture_handler_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture)
-      load_texture_handler(*(EventOnEntityCreate*)stage_or_event.mem, *it_texture);
-  }
+  for (auto i : query)
+    update_position::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_position, i, glm::vec2, vel),
+      GET_COMPONENT(update_position, i, glm::vec2, pos));
 }
+static RegSys _reg_sys_update_position("update_position", &update_position_run, "UpdateStage", update_position_query_desc);
 
-template <> __forceinline void RegSysSpec<1621823280, decltype(update_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_position_for_active_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_vel = index_of_component<_countof(update_position_components)>::get(hash::cstr("vel"), update_position_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_position_components)>::get(hash::cstr("pos"), update_position_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_position(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
-  }
+  for (auto i : query)
+    update_position_for_active::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_position_for_active, i, glm::vec2, vel),
+      GET_COMPONENT(update_position_for_active, i, glm::vec2, pos));
 }
+static RegSys _reg_sys_update_position_for_active("update_position_for_active", &update_position_for_active_run, "UpdateStage", update_position_for_active_query_desc);
 
-template <> __forceinline void RegSysSpec<4245480229, decltype(update_position_for_active)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_vel = index_of_component<_countof(update_position_for_active_components)>::get(hash::cstr("vel"), update_position_for_active_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_position_for_active_components)>::get(hash::cstr("pos"), update_position_for_active_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_position_for_active(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
-  }
+  for (auto i : query)
+    update_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_anim_frame, i, AnimGraph, anim_graph),
+      GET_COMPONENT(update_anim_frame, i, AnimState, anim_state),
+      GET_COMPONENT(update_anim_frame, i, glm::vec4, frame));
 }
+static RegSys _reg_sys_update_anim_frame("update_anim_frame", &update_anim_frame_run, "UpdateStage", update_anim_frame_query_desc);
 
-template <> __forceinline void RegSysSpec<510498044, decltype(update_anim_frame)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void render_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_anim_graph = index_of_component<_countof(update_anim_frame_components)>::get(hash::cstr("anim_graph"), update_anim_frame_components);
-  static constexpr int compIdx_anim_state = index_of_component<_countof(update_anim_frame_components)>::get(hash::cstr("anim_state"), update_anim_frame_components);
-  static constexpr int compIdx_frame = index_of_component<_countof(update_anim_frame_components)>::get(hash::cstr("frame"), update_anim_frame_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_anim_graph = query.chunks[compIdx_anim_graph + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_state = query.chunks[compIdx_anim_state + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_frame = query.chunks[compIdx_frame + chunkIdx * query.componentsCount];
-    auto it_anim_graph = chunk_anim_graph.begin<AnimGraph>();
-    auto it_anim_state = chunk_anim_state.begin<AnimState>();
-    auto it_frame = chunk_frame.begin<glm::vec4>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_anim_graph, ++it_anim_state, ++it_frame)
-      update_anim_frame(*(UpdateStage*)stage_or_event.mem, *it_anim_graph, *it_anim_state, *it_frame);
-  }
+  for (auto i : query)
+    render_walls::run(*(RenderStage*)stage_or_event.mem,
+      GET_COMPONENT(render_walls, i, TextureAtlas, texture),
+      GET_COMPONENT(render_walls, i, glm::vec4, frame),
+      GET_COMPONENT(render_walls, i, glm::vec2, pos));
 }
+static RegSys _reg_sys_render_walls("render_walls", &render_walls_run, "RenderStage", render_walls_query_desc);
 
-template <> __forceinline void RegSysSpec<1007297635, decltype(render_walls)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void render_normal_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_texture = index_of_component<_countof(render_walls_components)>::get(hash::cstr("texture"), render_walls_components);
-  static constexpr int compIdx_frame = index_of_component<_countof(render_walls_components)>::get(hash::cstr("frame"), render_walls_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(render_walls_components)>::get(hash::cstr("pos"), render_walls_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_frame = query.chunks[compIdx_frame + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    auto it_frame = chunk_frame.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos)
-      render_walls(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos);
-  }
+  for (auto i : query)
+    render_normal::run(*(RenderStage*)stage_or_event.mem,
+      GET_COMPONENT(render_normal, i, TextureAtlas, texture),
+      GET_COMPONENT(render_normal, i, glm::vec4, frame),
+      GET_COMPONENT(render_normal, i, glm::vec2, pos),
+      GET_COMPONENT(render_normal, i, float, dir));
 }
+static RegSys _reg_sys_render_normal("render_normal", &render_normal_run, "RenderStage", render_normal_query_desc);
 
-template <> __forceinline void RegSysSpec<2012399197, decltype(render_normal)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void read_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_texture = index_of_component<_countof(render_normal_components)>::get(hash::cstr("texture"), render_normal_components);
-  static constexpr int compIdx_frame = index_of_component<_countof(render_normal_components)>::get(hash::cstr("frame"), render_normal_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(render_normal_components)>::get(hash::cstr("pos"), render_normal_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(render_normal_components)>::get(hash::cstr("dir"), render_normal_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_frame = query.chunks[compIdx_frame + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    auto it_frame = chunk_frame.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos, ++it_dir)
-      render_normal(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos, *it_dir);
-  }
+  for (auto i : query)
+    read_controls::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(read_controls, i, UserInput, user_input));
 }
+static RegSys _reg_sys_read_controls("read_controls", &read_controls_run, "UpdateStage", read_controls_query_desc);
 
-template <> __forceinline void RegSysSpec<484250714, decltype(read_controls)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void apply_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_user_input = index_of_component<_countof(read_controls_components)>::get(hash::cstr("user_input"), read_controls_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(read_controls_components)>::get(hash::cstr("vel"), read_controls_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_user_input = query.chunks[compIdx_user_input + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    auto it_user_input = chunk_user_input.begin<UserInput>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_user_input, ++it_vel)
-      read_controls(*(UpdateStage*)stage_or_event.mem, *it_user_input, *it_vel);
-  }
+  for (auto i : query)
+    apply_controls::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(apply_controls, i, UserInput, user_input),
+      GET_COMPONENT(apply_controls, i, bool, is_on_ground),
+      GET_COMPONENT(apply_controls, i, Jump, jump),
+      GET_COMPONENT(apply_controls, i, glm::vec2, vel),
+      GET_COMPONENT(apply_controls, i, float, dir));
 }
+static RegSys _reg_sys_apply_controls("apply_controls", &apply_controls_run, "UpdateStage", apply_controls_query_desc);
 
-template <> __forceinline void RegSysSpec<1920783676, decltype(apply_controls)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void apply_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_user_input = index_of_component<_countof(apply_controls_components)>::get(hash::cstr("user_input"), apply_controls_components);
-  static constexpr int compIdx_is_on_ground = index_of_component<_countof(apply_controls_components)>::get(hash::cstr("is_on_ground"), apply_controls_components);
-  static constexpr int compIdx_jump = index_of_component<_countof(apply_controls_components)>::get(hash::cstr("jump"), apply_controls_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(apply_controls_components)>::get(hash::cstr("vel"), apply_controls_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(apply_controls_components)>::get(hash::cstr("dir"), apply_controls_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_user_input = query.chunks[compIdx_user_input + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_jump = query.chunks[compIdx_jump + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_user_input = chunk_user_input.begin<UserInput>();
-    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
-    auto it_jump = chunk_jump.begin<Jump>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_user_input, ++it_is_on_ground, ++it_jump, ++it_vel, ++it_dir)
-      apply_controls(*(UpdateStage*)stage_or_event.mem, *it_user_input, *it_is_on_ground, *it_jump, *it_vel, *it_dir);
-  }
+  for (auto i : query)
+    apply_jump::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(apply_jump, i, Jump, jump),
+      GET_COMPONENT(apply_jump, i, bool, is_on_ground),
+      GET_COMPONENT(apply_jump, i, glm::vec2, vel));
 }
+static RegSys _reg_sys_apply_jump("apply_jump", &apply_jump_run, "UpdateStage", apply_jump_query_desc);
 
-template <> __forceinline void RegSysSpec<3949714102, decltype(apply_jump)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void apply_gravity_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_jump = index_of_component<_countof(apply_jump_components)>::get(hash::cstr("jump"), apply_jump_components);
-  static constexpr int compIdx_is_on_ground = index_of_component<_countof(apply_jump_components)>::get(hash::cstr("is_on_ground"), apply_jump_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(apply_jump_components)>::get(hash::cstr("vel"), apply_jump_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_jump = query.chunks[compIdx_jump + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    auto it_jump = chunk_jump.begin<Jump>();
-    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_jump, ++it_is_on_ground, ++it_vel)
-      apply_jump(*(UpdateStage*)stage_or_event.mem, *it_jump, *it_is_on_ground, *it_vel);
-  }
+  for (auto i : query)
+    apply_gravity::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(apply_gravity, i, Gravity, gravity),
+      GET_COMPONENT(apply_gravity, i, glm::vec2, vel));
 }
+static RegSys _reg_sys_apply_gravity("apply_gravity", &apply_gravity_run, "UpdateStage", apply_gravity_query_desc);
 
-template <> __forceinline void RegSysSpec<3962763712, decltype(apply_gravity)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_gravity = index_of_component<_countof(apply_gravity_components)>::get(hash::cstr("gravity"), apply_gravity_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(apply_gravity_components)>::get(hash::cstr("vel"), apply_gravity_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_gravity = query.chunks[compIdx_gravity + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    auto it_gravity = chunk_gravity.begin<Gravity>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_gravity, ++it_vel)
-      apply_gravity(*(UpdateStage*)stage_or_event.mem, *it_gravity, *it_vel);
-  }
+  for (auto i : query)
+    update_auto_move_collisions::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_auto_move_collisions, i, EntityId, eid),
+      GET_COMPONENT(update_auto_move_collisions, i, glm::vec4, collision_rect),
+      GET_COMPONENT(update_auto_move_collisions, i, glm::vec2, pos),
+      GET_COMPONENT(update_auto_move_collisions, i, glm::vec2, vel),
+      GET_COMPONENT(update_auto_move_collisions, i, float, dir));
 }
+static RegSys _reg_sys_update_auto_move_collisions("update_auto_move_collisions", &update_auto_move_collisions_run, "UpdateStage", update_auto_move_collisions_query_desc);
 
-template <> __forceinline void RegSysSpec<3962250550, decltype(update_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_collision_rect = index_of_component<_countof(update_collisions_components)>::get(hash::cstr("collision_rect"), update_collisions_components);
-  static constexpr int compIdx_is_on_ground = index_of_component<_countof(update_collisions_components)>::get(hash::cstr("is_on_ground"), update_collisions_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_collisions_components)>::get(hash::cstr("pos"), update_collisions_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_collisions_components)>::get(hash::cstr("vel"), update_collisions_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_collision_rect = query.chunks[compIdx_collision_rect + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    auto it_collision_rect = chunk_collision_rect.begin<glm::vec4>();
-    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_collision_rect, ++it_is_on_ground, ++it_pos, ++it_vel)
-      update_collisions(*(UpdateStage*)stage_or_event.mem, *it_collision_rect, *it_is_on_ground, *it_pos, *it_vel);
-  }
+  for (auto i : query)
+    select_current_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(select_current_anim_frame, i, glm::vec2, vel),
+      GET_COMPONENT(select_current_anim_frame, i, AnimGraph, anim_graph),
+      GET_COMPONENT(select_current_anim_frame, i, bool, is_on_ground),
+      GET_COMPONENT(select_current_anim_frame, i, TextureAtlas, texture),
+      GET_COMPONENT(select_current_anim_frame, i, AnimState, anim_state));
 }
+static RegSys _reg_sys_select_current_anim_frame("select_current_anim_frame", &select_current_anim_frame_run, "UpdateStage", select_current_anim_frame_query_desc);
 
-template <> __forceinline void RegSysSpec<1590712904, decltype(update_auto_move_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_eid = index_of_component<_countof(update_auto_move_collisions_components)>::get(hash::cstr("eid"), update_auto_move_collisions_components);
-  static constexpr int compIdx_collision_rect = index_of_component<_countof(update_auto_move_collisions_components)>::get(hash::cstr("collision_rect"), update_auto_move_collisions_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_auto_move_collisions_components)>::get(hash::cstr("pos"), update_auto_move_collisions_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_auto_move_collisions_components)>::get(hash::cstr("vel"), update_auto_move_collisions_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(update_auto_move_collisions_components)>::get(hash::cstr("dir"), update_auto_move_collisions_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_collision_rect = query.chunks[compIdx_collision_rect + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_collision_rect = chunk_collision_rect.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_collision_rect, ++it_pos, ++it_vel, ++it_dir)
-      update_auto_move_collisions(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_collision_rect, *it_pos, *it_vel, *it_dir);
-  }
+  for (auto i : query)
+    select_current_anim_frame_for_player::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(select_current_anim_frame_for_player, i, glm::vec2, vel),
+      GET_COMPONENT(select_current_anim_frame_for_player, i, AnimGraph, anim_graph),
+      GET_COMPONENT(select_current_anim_frame_for_player, i, UserInput, user_input),
+      GET_COMPONENT(select_current_anim_frame_for_player, i, bool, is_on_ground),
+      GET_COMPONENT(select_current_anim_frame_for_player, i, TextureAtlas, texture),
+      GET_COMPONENT(select_current_anim_frame_for_player, i, AnimState, anim_state));
 }
+static RegSys _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", &select_current_anim_frame_for_player_run, "UpdateStage", select_current_anim_frame_for_player_query_desc);
 
-template <> __forceinline void RegSysSpec<2354991095, decltype(select_current_anim_frame)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_enemies_collisions_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_vel = index_of_component<_countof(select_current_anim_frame_components)>::get(hash::cstr("vel"), select_current_anim_frame_components);
-  static constexpr int compIdx_anim_graph = index_of_component<_countof(select_current_anim_frame_components)>::get(hash::cstr("anim_graph"), select_current_anim_frame_components);
-  static constexpr int compIdx_is_on_ground = index_of_component<_countof(select_current_anim_frame_components)>::get(hash::cstr("is_on_ground"), select_current_anim_frame_components);
-  static constexpr int compIdx_texture = index_of_component<_countof(select_current_anim_frame_components)>::get(hash::cstr("texture"), select_current_anim_frame_components);
-  static constexpr int compIdx_anim_state = index_of_component<_countof(select_current_anim_frame_components)>::get(hash::cstr("anim_state"), select_current_anim_frame_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_graph = query.chunks[compIdx_anim_graph + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_state = query.chunks[compIdx_anim_state + chunkIdx * query.componentsCount];
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_anim_graph = chunk_anim_graph.begin<AnimGraph>();
-    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    auto it_anim_state = chunk_anim_state.begin<AnimState>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_anim_graph, ++it_is_on_ground, ++it_texture, ++it_anim_state)
-      select_current_anim_frame(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_anim_graph, *it_is_on_ground, *it_texture, *it_anim_state);
-  }
+  for (auto i : query)
+    update_enemies_collisions::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_enemies_collisions, i, EntityId, eid),
+      GET_COMPONENT(update_enemies_collisions, i, Jump, jump),
+      GET_COMPONENT(update_enemies_collisions, i, glm::vec4, collision_rect),
+      GET_COMPONENT(update_enemies_collisions, i, glm::vec2, pos),
+      GET_COMPONENT(update_enemies_collisions, i, glm::vec2, vel),
+      GET_COMPONENT(update_enemies_collisions, i, float, dir));
 }
+static RegSys _reg_sys_update_enemies_collisions("update_enemies_collisions", &update_enemies_collisions_run, "UpdateStage", update_enemies_collisions_query_desc);
 
-template <> __forceinline void RegSysSpec<948899453, decltype(select_current_anim_frame_for_player)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void remove_death_fx_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_vel = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("vel"), select_current_anim_frame_for_player_components);
-  static constexpr int compIdx_anim_graph = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("anim_graph"), select_current_anim_frame_for_player_components);
-  static constexpr int compIdx_user_input = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("user_input"), select_current_anim_frame_for_player_components);
-  static constexpr int compIdx_is_on_ground = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("is_on_ground"), select_current_anim_frame_for_player_components);
-  static constexpr int compIdx_texture = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("texture"), select_current_anim_frame_for_player_components);
-  static constexpr int compIdx_anim_state = index_of_component<_countof(select_current_anim_frame_for_player_components)>::get(hash::cstr("anim_state"), select_current_anim_frame_for_player_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_graph = query.chunks[compIdx_anim_graph + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_user_input = query.chunks[compIdx_user_input + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_on_ground = query.chunks[compIdx_is_on_ground + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_state = query.chunks[compIdx_anim_state + chunkIdx * query.componentsCount];
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_anim_graph = chunk_anim_graph.begin<AnimGraph>();
-    auto it_user_input = chunk_user_input.begin<UserInput>();
-    auto it_is_on_ground = chunk_is_on_ground.begin<bool>();
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    auto it_anim_state = chunk_anim_state.begin<AnimState>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_anim_graph, ++it_user_input, ++it_is_on_ground, ++it_texture, ++it_anim_state)
-      select_current_anim_frame_for_player(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_anim_graph, *it_user_input, *it_is_on_ground, *it_texture, *it_anim_state);
-  }
+  for (auto i : query)
+    remove_death_fx::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(remove_death_fx, i, EntityId, eid),
+      GET_COMPONENT(remove_death_fx, i, AnimState, anim_state),
+      GET_COMPONENT(remove_death_fx, i, bool, is_alive));
 }
+static RegSys _reg_sys_remove_death_fx("remove_death_fx", &remove_death_fx_run, "UpdateStage", remove_death_fx_query_desc);
 
-template <> __forceinline void RegSysSpec<3007763911, decltype(validate_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_camera_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_pos = index_of_component<_countof(validate_position_components)>::get(hash::cstr("pos"), validate_position_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos)
-      validate_position(*(UpdateStage*)stage_or_event.mem, *it_pos);
-  }
+  for (auto i : query)
+    update_camera::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_camera, i, glm::vec2, pos));
 }
+static RegSys _reg_sys_update_camera("update_camera", &update_camera_run, "UpdateStage", update_camera_query_desc);
 
-template <> __forceinline void RegSysSpec<917788925, decltype(update_enemies_collisions)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void process_on_kill_event_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_eid = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("eid"), update_enemies_collisions_components);
-  static constexpr int compIdx_jump = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("jump"), update_enemies_collisions_components);
-  static constexpr int compIdx_collision_rect = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("collision_rect"), update_enemies_collisions_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("pos"), update_enemies_collisions_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("vel"), update_enemies_collisions_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(update_enemies_collisions_components)>::get(hash::cstr("dir"), update_enemies_collisions_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_jump = query.chunks[compIdx_jump + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_collision_rect = query.chunks[compIdx_collision_rect + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_jump = chunk_jump.begin<Jump>();
-    auto it_collision_rect = chunk_collision_rect.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_jump, ++it_collision_rect, ++it_pos, ++it_vel, ++it_dir)
-      update_enemies_collisions(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_jump, *it_collision_rect, *it_pos, *it_vel, *it_dir);
-  }
+  for (auto i : query)
+    process_on_kill_event::run(*(EventOnKillEnemy*)stage_or_event.mem,
+      GET_COMPONENT(process_on_kill_event, i, HUD, hud));
 }
+static RegSys _reg_sys_process_on_kill_event("process_on_kill_event", &process_on_kill_event_run, "EventOnKillEnemy", process_on_kill_event_query_desc);
 
-template <> __forceinline void RegSysSpec<1963192783, decltype(remove_death_fx)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_eid = index_of_component<_countof(remove_death_fx_components)>::get(hash::cstr("eid"), remove_death_fx_components);
-  static constexpr int compIdx_anim_state = index_of_component<_countof(remove_death_fx_components)>::get(hash::cstr("anim_state"), remove_death_fx_components);
-  static constexpr int compIdx_is_alive = index_of_component<_countof(remove_death_fx_components)>::get(hash::cstr("is_alive"), remove_death_fx_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_eid = query.chunks[compIdx_eid + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_anim_state = query.chunks[compIdx_anim_state + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_is_alive = query.chunks[compIdx_is_alive + chunkIdx * query.componentsCount];
-    auto it_eid = chunk_eid.begin<EntityId>();
-    auto it_anim_state = chunk_anim_state.begin<AnimState>();
-    auto it_is_alive = chunk_is_alive.begin<bool>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_eid, ++it_anim_state, ++it_is_alive)
-      remove_death_fx(*(UpdateStage*)stage_or_event.mem, *it_eid, *it_anim_state, *it_is_alive);
-  }
+  for (auto i : query)
+    update_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_active_auto_move, i, AutoMove, auto_move),
+      GET_COMPONENT(update_active_auto_move, i, glm::vec2, vel),
+      GET_COMPONENT(update_active_auto_move, i, float, dir));
 }
+static RegSys _reg_sys_update_active_auto_move("update_active_auto_move", &update_active_auto_move_run, "UpdateStage", update_active_auto_move_query_desc);
 
-template <> __forceinline void RegSysSpec<1506347756, decltype(update_camera)>::execImpl(const RawArg &stage_or_event, Query &query) const
+static void update_always_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  static constexpr int compIdx_pos = index_of_component<_countof(update_camera_components)>::get(hash::cstr("pos"), update_camera_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos)
-      update_camera(*(UpdateStage*)stage_or_event.mem, *it_pos);
-  }
+  for (auto i : query)
+    update_always_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_always_active_auto_move, i, AutoMove, auto_move),
+      GET_COMPONENT(update_always_active_auto_move, i, glm::vec2, vel),
+      GET_COMPONENT(update_always_active_auto_move, i, float, dir));
 }
-
-template <> __forceinline void RegSysSpec<1381440062, decltype(process_on_kill_event)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_hud = index_of_component<_countof(process_on_kill_event_components)>::get(hash::cstr("hud"), process_on_kill_event_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_hud = query.chunks[compIdx_hud + chunkIdx * query.componentsCount];
-    auto it_hud = chunk_hud.begin<HUD>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_hud)
-      process_on_kill_event(*(EventOnKillEnemy*)stage_or_event.mem, *it_hud);
-  }
-}
-
-template <> __forceinline void RegSysSpec<3126766469, decltype(update_active_auto_move)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_auto_move = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("auto_move"), update_active_auto_move_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("vel"), update_active_auto_move_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(update_active_auto_move_components)>::get(hash::cstr("dir"), update_active_auto_move_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_auto_move = query.chunks[compIdx_auto_move + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_auto_move = chunk_auto_move.begin<AutoMove>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_auto_move, ++it_vel, ++it_dir)
-      update_active_auto_move(*(UpdateStage*)stage_or_event.mem, *it_auto_move, *it_vel, *it_dir);
-  }
-}
-
-template <> __forceinline void RegSysSpec<4261438561, decltype(update_always_active_auto_move)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_auto_move = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("auto_move"), update_always_active_auto_move_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("vel"), update_always_active_auto_move_components);
-  static constexpr int compIdx_dir = index_of_component<_countof(update_always_active_auto_move_components)>::get(hash::cstr("dir"), update_always_active_auto_move_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_auto_move = query.chunks[compIdx_auto_move + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_dir = query.chunks[compIdx_dir + chunkIdx * query.componentsCount];
-    auto it_auto_move = chunk_auto_move.begin<AutoMove>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_dir = chunk_dir.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_auto_move, ++it_vel, ++it_dir)
-      update_always_active_auto_move(*(UpdateStage*)stage_or_event.mem, *it_auto_move, *it_vel, *it_dir);
-  }
-}
-
-template <> __forceinline void RegSysSpec<3321105247, decltype(update_boid_position)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_vel = index_of_component<_countof(update_boid_position_components)>::get(hash::cstr("vel"), update_boid_position_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(update_boid_position_components)>::get(hash::cstr("pos"), update_boid_position_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_vel, ++it_pos)
-      update_boid_position(*(UpdateStage*)stage_or_event.mem, *it_vel, *it_pos);
-  }
-}
-
-template <> __forceinline void RegSysSpec<3068028142, decltype(render_boid)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_texture = index_of_component<_countof(render_boid_components)>::get(hash::cstr("texture"), render_boid_components);
-  static constexpr int compIdx_frame = index_of_component<_countof(render_boid_components)>::get(hash::cstr("frame"), render_boid_components);
-  static constexpr int compIdx_pos = index_of_component<_countof(render_boid_components)>::get(hash::cstr("pos"), render_boid_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(render_boid_components)>::get(hash::cstr("vel"), render_boid_components);
-  static constexpr int compIdx_rotation = index_of_component<_countof(render_boid_components)>::get(hash::cstr("rotation"), render_boid_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_texture = query.chunks[compIdx_texture + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_frame = query.chunks[compIdx_frame + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_rotation = query.chunks[compIdx_rotation + chunkIdx * query.componentsCount];
-    auto it_texture = chunk_texture.begin<TextureAtlas>();
-    auto it_frame = chunk_frame.begin<glm::vec4>();
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_rotation = chunk_rotation.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_texture, ++it_frame, ++it_pos, ++it_vel, ++it_rotation)
-      render_boid(*(RenderStage*)stage_or_event.mem, *it_texture, *it_frame, *it_pos, *it_vel, *it_rotation);
-  }
-}
-
-template <> __forceinline void RegSysSpec<4195794851, decltype(update_boid)>::execImpl(const RawArg &stage_or_event, Query &query) const
-{
-  static constexpr int compIdx_pos = index_of_component<_countof(update_boid_components)>::get(hash::cstr("pos"), update_boid_components);
-  static constexpr int compIdx_vel = index_of_component<_countof(update_boid_components)>::get(hash::cstr("vel"), update_boid_components);
-  static constexpr int compIdx_rotation = index_of_component<_countof(update_boid_components)>::get(hash::cstr("rotation"), update_boid_components);
-  for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
-  {
-    QueryChunk &chunk_pos = query.chunks[compIdx_pos + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_vel = query.chunks[compIdx_vel + chunkIdx * query.componentsCount];
-    QueryChunk &chunk_rotation = query.chunks[compIdx_rotation + chunkIdx * query.componentsCount];
-    auto it_pos = chunk_pos.begin<glm::vec2>();
-    auto it_vel = chunk_vel.begin<glm::vec2>();
-    auto it_rotation = chunk_rotation.begin<float>();
-    for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i, ++it_pos, ++it_vel, ++it_rotation)
-      update_boid(*(UpdateStage*)stage_or_event.mem, *it_pos, *it_vel, *it_rotation);
-  }
-}
+static RegSys _reg_sys_update_always_active_auto_move("update_always_active_auto_move", &update_always_active_auto_move_run, "UpdateStage", update_always_active_auto_move_query_desc);
 
 #endif // __CODEGEN__

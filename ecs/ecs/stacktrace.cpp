@@ -1,5 +1,6 @@
 #include "stacktrace.h"
 
+#ifdef _DEBUG
 #include "debug.h"
 
 #include <windows.h>
@@ -334,3 +335,4 @@ void stacktrace::print_all_threads()
     ::CloseHandle(h);
   }
 }
+#endif

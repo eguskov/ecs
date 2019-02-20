@@ -21,10 +21,6 @@
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
-struct RegSys;
-extern RegSys *reg_sys_head;
-extern int reg_sys_count;
-
 struct RegComp;
 extern RegComp *reg_comp_head;
 extern int reg_comp_count;
@@ -206,6 +202,7 @@ struct EntityManager
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
+  void buildComponentsValuesFromTemplate(int template_id, const JValue &comps, JFrameValue &out_value);
 
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntity(const char *templ_name, const JFrameValue &comps);
@@ -215,7 +212,7 @@ struct EntityManager
 
   void waitFor(EntityId eid, std::future<bool> && value);
 
-  void invalidateQuery(Query &query);
+  void performQuery(Query &query);
 
   void enableChangeDetection(const HashedString &name);
   void disableChangeDetection(const HashedString &name);

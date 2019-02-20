@@ -506,7 +506,12 @@ static void run_on_main_thread_and_wait(struct mg_connection *conn, const JDocum
   }
 }
 
-DEF_QUERY(AllScriptsQuery);
+struct Script
+{
+  ECS_QUERY;
+
+  const script::ScriptComponent &script;
+};
 
 struct SystemData
 {
@@ -527,9 +532,9 @@ struct SystemData
 static void gather_script_data(eastl::vector<SystemData> &scriptSystems)
 {
   // TODO: Use query without codegen
-  AllScriptsQuery::exec([&](const script::ScriptComponent &script)
+  Script::foreach([&](Script &&s)
   {
-    for (const auto &sys : script.scriptECS.systems)
+    for (const auto &sys : s.script.scriptECS.systems)
     {
       auto &s = scriptSystems.emplace_back();
       s.name = sys.fn->GetName();

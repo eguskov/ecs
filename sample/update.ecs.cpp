@@ -122,6 +122,31 @@ struct AnimState
 }
 DEF_COMP(AnimState, anim_state);
 
+struct Brick
+{
+  ECS_QUERY;
+
+  QL_HAVE(wall);
+
+  const glm::vec4 &collision_rect;
+  const glm::vec2 &pos;
+};
+
+struct AliveEnemy
+{
+  ECS_QUERY;
+
+  QL_HAVE(enemy);
+  QL_WHERE(is_alive == true);
+
+  const EntityId &eid;
+  const glm::vec4 &collision_rect;
+  const glm::vec2 &pos;
+  bool &is_alive;
+  glm::vec2 &vel;
+  AnimState &anim_state;
+};
+
 // TODO: Implement texture manager
 static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;
 void clear_textures()
@@ -131,176 +156,171 @@ void clear_textures()
   texture_map.clear();
 }
 
-DEF_SYS()
-static __forceinline void load_texture_handler(const EventOnEntityCreate &ev, TextureAtlas &texture)
+struct load_texture_handler
 {
-  auto it = texture_map.find(texture.path);
-  if (it == texture_map.end())
+  ECS_RUN(const EventOnEntityCreate &ev, TextureAtlas &texture)
   {
-    auto id = eastl::make_shared<Texture2D>(LoadTexture(texture.path.c_str()));
-    texture.id = *id.get();
-    texture_map[texture.path] = id;
+    auto it = texture_map.find(texture.path);
+    if (it == texture_map.end())
+    {
+      auto id = eastl::make_shared<Texture2D>(LoadTexture(texture.path.c_str()));
+      texture.id = *id.get();
+      texture_map[texture.path] = id;
+    }
+    else
+      texture.id = *it->second.get();
   }
-  else
-    texture.id = *it->second.get();
-}
+};
 
-DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
-static __forceinline void update_position(
-  const UpdateStage &stage,
-  const glm::vec2 &vel,
-  glm::vec2 &pos)
+struct update_position
 {
-  pos += vel * stage.dt;
-}
+  QL_NOT_HAVE(is_active);
+  QL_WHERE(is_alive == true);
 
-DEF_SYS(IS_TRUE(is_alive) IS_TRUE(is_active))
-static __forceinline void update_position_for_active(
-  const UpdateStage &stage,
-  const glm::vec2 &vel,
-  glm::vec2 &pos)
-{
-  pos += vel * stage.dt;
-}
-
-DEF_SYS()
-static __forceinline void update_anim_frame(
-  const UpdateStage &stage,
-  const AnimGraph &anim_graph,
-  AnimState &anim_state,
-  glm::vec4 &frame)
-{
-  if (anim_state.startTime < 0.0)
-    anim_state.startTime = stage.total;
-
-  auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
-  if (res == anim_graph.nodesMap.end())
-    res = anim_graph.nodesMap.begin();
-
-  const auto &node = res->second;
-
-  const int frameNo = (int)floor((stage.total - anim_state.startTime) / (double)node.frameDt);
-  if (node.loop)
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
   {
-    anim_state.frameNo = frameNo % node.frames.size();
-    anim_state.done = false;
+    pos += vel * stage.dt;
   }
-  else
+};
+
+struct update_position_for_active
+{
+  QL_WHERE(is_alive == true && is_active == true);
+
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
   {
-    anim_state.frameNo = frameNo < (int)node.frames.size() ? frameNo : node.frames.size() - 1;
-    anim_state.done = anim_state.frameNo >= (int)node.frames.size() - 1;
+    pos += vel * stage.dt;
   }
-  frame = node.frames[anim_state.frameNo];
-}
+};
 
-DEF_SYS(HAVE_COMP(wall) IS_TRUE(is_alive))
-static __forceinline void render_walls(
-  const RenderStage &stage,
-  const TextureAtlas &texture,
-  const glm::vec4 &frame,
-  const glm::vec2 &pos)
+struct update_anim_frame
 {
-  const float hw = screen_width * 0.5f;
-  const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
-}
-
-DEF_SYS(NOT_HAVE_COMP(wall) IS_TRUE(is_alive))
-static __forceinline void render_normal(
-  const RenderStage &stage,
-  const TextureAtlas &texture,
-  const glm::vec4 &frame,
-  const glm::vec2 &pos,
-  float dir)
-{
-  const float hw = screen_width * 0.5f;
-  const float hh = screen_height * 0.5f;
-  DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
-}
-
-//DEF_SYS()
-//static __forceinline void render_hud(const RenderHUDStage &stage, const HUD &hud)
-//{
-//}
-
-DEF_SYS()
-static __forceinline void read_controls(
-  const UpdateStage &stage,
-  UserInput &user_input,
-  glm::vec2 &vel)
-{
-  user_input = {};
-
-  if (IsKeyDown(KEY_LEFT))
-    user_input.left = true;
-  else if (IsKeyDown(KEY_RIGHT))
-    user_input.right = true;
-  if (IsKeyPressed(KEY_SPACE))
-    user_input.jump = true;
-}
-
-DEF_SYS()
-static __forceinline void apply_controls(
-  const UpdateStage &stage,
-  const UserInput &user_input,
-  bool is_on_ground,
-  Jump &jump,
-  glm::vec2 &vel,
-  float &dir)
-{
-  if (user_input.left)
+  ECS_RUN(const UpdateStage &stage, const AnimGraph &anim_graph, AnimState &anim_state, glm::vec4 &frame)
   {
-    vel.x = -50.f;
-    dir = -1.f;
-  }
-  else if (user_input.right)
-  {
-    vel.x = 50.f;
-    dir = 1.f;
-  }
-  else
-    vel.x = 0.f;
+    if (anim_state.startTime < 0.0)
+      anim_state.startTime = stage.total;
 
-  if (user_input.jump && !jump.active && is_on_ground)
-  {
-    jump.active = true;
-    jump.startTime = stage.total;
-  }
-}
+    auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
+    if (res == anim_graph.nodesMap.end())
+      res = anim_graph.nodesMap.begin();
 
-DEF_SYS()
-static __forceinline void apply_jump(
-  const UpdateStage &stage,
-  Jump &jump,
-  bool &is_on_ground,
-  glm::vec2 &vel)
+    const auto &node = res->second;
+
+    const int frameNo = (int)floor((stage.total - anim_state.startTime) / (double)node.frameDt);
+    if (node.loop)
+    {
+      anim_state.frameNo = frameNo % node.frames.size();
+      anim_state.done = false;
+    }
+    else
+    {
+      anim_state.frameNo = frameNo < (int)node.frames.size() ? frameNo : node.frames.size() - 1;
+      anim_state.done = anim_state.frameNo >= (int)node.frames.size() - 1;
+    }
+    frame = node.frames[anim_state.frameNo];
+  }
+};
+
+struct render_walls
 {
-  if (!jump.active)
-    return;
+  QL_HAVE(wall);
+  QL_WHERE(is_alive == true);
 
-  is_on_ground = false;
-
-  const float k = (float)glm::clamp((stage.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
-  const float v = jump.height / jump.duration;
-  vel.y = -v;
-
-  if (k >= 1.f)
+  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
   {
-    vel.y *= 0.5f;
-    jump.active = false;
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
+    DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   }
-}
+};
 
-DEF_SYS(IS_TRUE(is_alive))
-static __forceinline void apply_gravity(
-  const UpdateStage &stage,
-  const Gravity &gravity,
-  glm::vec2 &vel)
+struct render_normal
 {
-  vel.y += gravity.mass * 9.8f * stage.dt;
-}
+  QL_NOT_HAVE(wall);
+  QL_WHERE(is_alive == true);
 
-eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec4 &rect_a, const glm::vec2 &pos_b, const glm::vec4 &rect_b)
+  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float dir)
+  {
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
+    DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+  }
+};
+
+struct read_controls
+{
+  ECS_RUN(const UpdateStage &stage, UserInput &user_input)
+  {
+    user_input = {};
+
+    if (IsKeyDown(KEY_LEFT))
+      user_input.left = true;
+    else if (IsKeyDown(KEY_RIGHT))
+      user_input.right = true;
+    if (IsKeyPressed(KEY_SPACE))
+      user_input.jump = true;
+  }
+};
+
+struct apply_controls
+{
+  ECS_RUN(const UpdateStage &stage, const UserInput &user_input, bool is_on_ground, Jump &jump, glm::vec2 &vel, float &dir)
+  {
+    if (user_input.left)
+    {
+      vel.x = -50.f;
+      dir = -1.f;
+    }
+    else if (user_input.right)
+    {
+      vel.x = 50.f;
+      dir = 1.f;
+    }
+    else
+      vel.x = 0.f;
+
+    if (user_input.jump && !jump.active && is_on_ground)
+    {
+      jump.active = true;
+      jump.startTime = stage.total;
+    }
+  }
+};
+
+
+struct apply_jump
+{
+  ECS_RUN(const UpdateStage &stage, Jump &jump, bool &is_on_ground, glm::vec2 &vel)
+  {
+    // TODO: Move jump.active to component
+    if (!jump.active)
+      return;
+
+    is_on_ground = false;
+
+    const float k = (float)glm::clamp((stage.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
+    const float v = jump.height / jump.duration;
+    vel.y = -v;
+
+    if (k >= 1.f)
+    {
+      vel.y *= 0.5f;
+      jump.active = false;
+    }
+  }
+};
+
+struct apply_gravity
+{
+  QL_WHERE(is_alive == true);
+
+  ECS_RUN(const UpdateStage &stage, const Gravity &gravity, glm::vec2 &vel)
+  {
+    vel.y += gravity.mass * 9.8f * stage.dt;
+  }
+};
+
+static eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec4 &rect_a, const glm::vec2 &pos_b, const glm::vec4 &rect_b)
 {
   glm::vec2 pa = pos_a + 0.5f * glm::vec2(rect_a.z, rect_a.w) + glm::vec2(rect_a.x, rect_a.y);
   glm::vec2 pb = pos_b + 0.5f * glm::vec2(rect_b.z, rect_b.w) + glm::vec2(rect_b.x, rect_b.y);
@@ -333,95 +353,41 @@ eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &po
   return eastl::make_tuple(true, normal, pos);
 }
 
-DEF_QUERY(BricksQuery, HAVE_COMP(wall));
-
-DEF_SYS(HAVE_COMP(user_input))
-static __forceinline void update_collisions(
-  const UpdateStage &stage,
-  const glm::vec4 &collision_rect,
-  bool &is_on_ground,
-  glm::vec2 &pos,
-  glm::vec2 &vel)
+struct update_auto_move_collisions
 {
-  return;
-  glm::vec2 myPos = pos;
-  glm::vec2 myVel = vel;
-  glm::vec4 myCollisionRect = collision_rect;
+  QL_HAVE(enemy);
+  QL_WHERE(is_alive == true);
 
-  BricksQuery::exec([&myPos, &myVel, &is_on_ground, myCollisionRect, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
+  ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec4 &collision_rect, glm::vec2 &pos, glm::vec2 &vel, float &dir)
   {
-    bool isHit;
-    glm::vec2 normal;
-    glm::vec2 hitPos;
-    eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
-    if (isHit)
+    Brick::foreach([&](Brick &&brick)
     {
-      float d = 0.f;
-      if (normal.y < 0.f)
+      bool isHit;
+      glm::vec2 normal;
+      glm::vec2 hitPos;
+      eastl::tie(isHit, normal, hitPos) = collision_detection(brick.pos, brick.collision_rect, pos, collision_rect);
+      if (isHit)
       {
-        is_on_ground = true;
-        d = myCollisionRect.w - (pos.y - myPos.y);
+        float d = 0.f;
+        if (normal.y < 0.f)
+          d = collision_rect.w - (brick.pos.y - pos.y) + collision_rect.y;
+        else if (normal.y > 0.f)
+          d = brick.pos.y + brick.collision_rect.w - pos.y;
+        else if (normal.x < 0.f)
+          d = collision_rect.z + collision_rect.x - (brick.pos.x - pos.x);
+        else if (normal.x > 0.f)
+          d = brick.pos.x - collision_rect.x + brick.collision_rect.z - pos.x;
+
+        g_mgr->sendEvent(eid, EventOnWallHit{ d, normal, vel });
+
+        const float proj = glm::dot(vel, normal);
+        if (proj < 0.f)
+          vel += fabsf(proj) * normal;
+        pos += fabsf(d) * normal;
       }
-      else if (normal.y > 0.f)
-        d = pos.y + collision_rect.w - myPos.y;
-      else if (normal.x < 0.f)
-        d = myCollisionRect.z + myCollisionRect.x - (pos.x - myPos.x);
-      else if (normal.x > 0.f)
-        d = pos.x - myCollisionRect.x + collision_rect.z - myPos.x;
-      const float proj = glm::dot(myVel, normal);
-      if (proj < 0.f)
-        myVel += fabsf(proj) * normal;
-      myPos += fabsf(d) * normal;
-    }
-  });
-
-  pos = myPos;
-  vel = myVel;
-}
-
-DEF_SYS(HAVE_COMP(enemy) IS_TRUE(is_alive))
-static __forceinline void update_auto_move_collisions(
-  const UpdateStage &stage,
-  const EntityId &eid,
-  const glm::vec4 &collision_rect,
-  glm::vec2 &pos,
-  glm::vec2 &vel,
-  float &dir)
-{
-  glm::vec2 myPos = pos;
-  glm::vec2 myVel = vel;
-  glm::vec4 myCollisionRect = collision_rect;
-
-  BricksQuery::exec([&dir, &myPos, &myVel, myCollisionRect, eid, &stage](const glm::vec4 &collision_rect, const glm::vec2 &pos)
-  {
-    bool isHit;
-    glm::vec2 normal;
-    glm::vec2 hitPos;
-    eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
-    if (isHit)
-    {
-      float d = 0.f;
-      if (normal.y < 0.f)
-        d = myCollisionRect.w - (pos.y - myPos.y) + myCollisionRect.y;
-      else if (normal.y > 0.f)
-        d = pos.y + collision_rect.w - myPos.y;
-      else if (normal.x < 0.f)
-        d = myCollisionRect.z + myCollisionRect.x - (pos.x - myPos.x);
-      else if (normal.x > 0.f)
-        d = pos.x - myCollisionRect.x + collision_rect.z - myPos.x;
-
-      g_mgr->sendEvent(eid, EventOnWallHit{ d, normal, myVel });
-
-      const float proj = glm::dot(myVel, normal);
-      if (proj < 0.f)
-        myVel += fabsf(proj) * normal;
-      myPos += fabsf(d) * normal;
-    }
-  });
-
-  pos = myPos;
-  vel = myVel;
-}
+    });
+  }
+};
 
 static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, double start_time)
 {
@@ -436,139 +402,106 @@ static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, co
   anim_state.currentNode = node;
 }
 
-DEF_SYS(NOT_HAVE_COMP(user_input))
-static __forceinline void select_current_anim_frame(
-  const UpdateStage &stage,
-  const glm::vec2 &vel,
-  const AnimGraph &anim_graph,
-  bool is_on_ground,
-  TextureAtlas &texture,
-  AnimState &anim_state)
+struct select_current_anim_frame
 {
-  if (vel.x != 0.f)
-    set_anim_node(anim_graph, anim_state, "run", stage.total);
-  else
-    set_anim_node(anim_graph, anim_state, "idle", stage.total);
+  QL_NOT_HAVE(user_input);
 
-  if (vel.y < 0.f)
-    set_anim_node(anim_graph, anim_state, "jump", stage.total);
-  else if (vel.y > 0.f && !is_on_ground)
-    set_anim_node(anim_graph, anim_state, "fall", stage.total);
-}
-
-DEF_SYS()
-static __forceinline void select_current_anim_frame_for_player(
-  const UpdateStage &stage,
-  const glm::vec2 &vel,
-  const AnimGraph &anim_graph,
-  const UserInput &user_input,
-  bool is_on_ground,
-  TextureAtlas &texture,
-  AnimState &anim_state)
-{
-  if (vel.x != 0.f && (user_input.left || user_input.right))
-    set_anim_node(anim_graph, anim_state, "run", stage.total);
-  else
-    set_anim_node(anim_graph, anim_state, "idle", stage.total);
-
-  if (vel.y < 0.f)
-    set_anim_node(anim_graph, anim_state, "jump", stage.total);
-  else if (vel.y > 0.f && !is_on_ground)
-    set_anim_node(anim_graph, anim_state, "fall", stage.total);
-}
-
-DEF_SYS()
-static __forceinline void validate_position(
-  const UpdateStage &stage,
-  glm::vec2 &pos)
-{
-  // const float hw = 0.5f * screen_width;
-  // const float hh = 0.5f * screen_width;
-  // if (pos.x > hw || pos.y > hh || pos.x < -hw || pos.y < -hh)
-  // {
-  //   pos.x = 0.f;
-  //   pos.y = 0.f;
-  // }
-}
-
-DEF_QUERY(AliveEnemiesQuery, HAVE_COMP(enemy) IS_TRUE(is_alive));
-
-DEF_SYS(HAVE_COMP(user_input) IS_TRUE(is_alive))
-static __forceinline void update_enemies_collisions(
-  const UpdateStage &stage,
-  EntityId eid,
-  Jump &jump,
-  const glm::vec4 &collision_rect,
-  glm::vec2 &pos,
-  glm::vec2 &vel,
-  float &dir)
-{
-  EntityId myEid = eid;
-  glm::vec2 myPos = pos;
-  glm::vec2 myVel = vel;
-  glm::vec4 myCollisionRect = collision_rect;
-
-  AliveEnemiesQuery::exec([&](
-    EntityId eid,
-    const glm::vec4 &collision_rect,
-    const glm::vec2 &pos,
-    bool &is_alive,
-    glm::vec2 &vel,
-    AnimState &anim_state)
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
   {
-    bool isHit;
-    glm::vec2 normal;
-    glm::vec2 hitPos;
-    eastl::tie(isHit, normal, hitPos) = collision_detection(pos, collision_rect, myPos, myCollisionRect);
-    if (isHit)
-    {
-      if (normal.y < 0.f)
-      {
-        g_mgr->deleteEntity(eid);
-        g_mgr->sendEvent(myEid, EventOnKillEnemy{ pos });
+    if (vel.x != 0.f)
+      set_anim_node(anim_graph, anim_state, "run", stage.total);
+    else
+      set_anim_node(anim_graph, anim_state, "idle", stage.total);
 
-        is_alive = false;
-
-        jump.active = true;
-        jump.startTime = stage.total;
-
-        vel = glm::vec2(0.f, 0.f);
-      }
-    }
-  });
-
-  pos = myPos;
-  vel = myVel;
-}
-
-DEF_SYS(IS_TRUE(is_alive))
-static __forceinline void remove_death_fx(
-  const UpdateStage &stage,
-  EntityId eid,
-  const AnimState &anim_state,
-  bool &is_alive)
-{
-  if (anim_state.currentNode == "death" && anim_state.done)
-  {
-    is_alive = false;
-    g_mgr->deleteEntity(eid);
+    if (vel.y < 0.f)
+      set_anim_node(anim_graph, anim_state, "jump", stage.total);
+    else if (vel.y > 0.f && !is_on_ground)
+      set_anim_node(anim_graph, anim_state, "fall", stage.total);
   }
-}
+};
 
-DEF_SYS(HAVE_COMP(user_input))
-static __forceinline void update_camera(const UpdateStage &stage, const glm::vec2 &pos)
+struct select_current_anim_frame_for_player
 {
-  const float hw = 0.5f * screen_width;
-  const float hh = 0.5f * screen_width;
-  camera.target = Vector2{ hw, hh };
-  camera.offset = Vector2{ -pos.x * camera.zoom, -pos.y * camera.zoom };
-}
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
+  {
+    if (vel.x != 0.f && (user_input.left || user_input.right))
+      set_anim_node(anim_graph, anim_state, "run", stage.total);
+    else
+      set_anim_node(anim_graph, anim_state, "idle", stage.total);
 
-DEF_SYS()
-static __forceinline void process_on_kill_event(const EventOnKillEnemy &ev, HUD &hud)
+    if (vel.y < 0.f)
+      set_anim_node(anim_graph, anim_state, "jump", stage.total);
+    else if (vel.y > 0.f && !is_on_ground)
+      set_anim_node(anim_graph, anim_state, "fall", stage.total);
+  }
+};
+
+struct update_enemies_collisions
 {
-  ++hud.killCount;
-}
+  QL_HAVE(user_input);
+  QL_WHERE(is_alive == true);
+
+  ECS_RUN(const UpdateStage &stage, EntityId eid, Jump &jump, const glm::vec4 &collision_rect, glm::vec2 &pos, glm::vec2 &vel, float &dir)
+  {
+    AliveEnemy::foreach([&](AliveEnemy &&enemy)
+    {
+      bool isHit;
+      glm::vec2 normal;
+      glm::vec2 hitPos;
+      eastl::tie(isHit, normal, hitPos) = collision_detection(enemy.pos, enemy.collision_rect, pos, collision_rect);
+      if (isHit)
+      {
+        if (normal.y < 0.f)
+        {
+          g_mgr->deleteEntity(enemy.eid);
+          g_mgr->sendEvent(eid, EventOnKillEnemy{ enemy.pos });
+
+          enemy.is_alive = false;
+
+          jump.active = true;
+          jump.startTime = stage.total;
+
+          enemy.vel = glm::vec2(0.f, 0.f);
+        }
+      }
+    });
+  }
+};
+
+struct remove_death_fx
+{
+  QL_WHERE(is_alive == true);
+
+  ECS_RUN(const UpdateStage &stage, EntityId eid, const AnimState &anim_state, bool &is_alive)
+  {
+    if (anim_state.currentNode == "death" && anim_state.done)
+    {
+      is_alive = false;
+      g_mgr->deleteEntity(eid);
+    }
+  }
+};
+
+struct update_camera
+{
+  QL_HAVE(user_input);
+
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos)
+  {
+    const float hw = 0.5f * screen_width;
+    const float hh = 0.5f * screen_width;
+    camera.target = Vector2{ hw, hh };
+    camera.offset = Vector2{ -pos.x * camera.zoom, -pos.y * camera.zoom };
+  }
+};
+
+struct process_on_kill_event
+{
+  ECS_RUN(const EventOnKillEnemy &ev, HUD &hud)
+  {
+    ++hud.killCount;
+  }
+};
 
 static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
 {
@@ -591,63 +524,25 @@ static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMo
     dir = -1.f;
 }
 
-DEF_SYS(IS_TRUE(is_alive) IS_TRUE(is_active))
-static __forceinline void update_active_auto_move(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+// TODO: Add Optional<bool, true> is_active
+struct update_active_auto_move
 {
-  update_auto_move_impl(stage, auto_move, vel, dir);
-}
+  QL_WHERE(is_alive == true && is_active == true);
 
-DEF_SYS(IS_TRUE(is_alive) NOT_HAVE_COMP(is_active))
-static __forceinline void update_always_active_auto_move(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  {
+    update_auto_move_impl(stage, auto_move, vel, dir);
+  }
+};
+
+// TODO: Add Optional<bool, true> is_active
+struct update_always_active_auto_move
 {
-  update_auto_move_impl(stage, auto_move, vel, dir);
-}
+  QL_NOT_HAVE(is_active);
+  QL_WHERE(is_alive == true);
 
-DEF_SYS(HAVE_COMP(boid))
-static __forceinline void update_boid_position(
-  const UpdateStage &stage,
-  const glm::vec2 &vel,
-  glm::vec2 &pos)
-{
-  pos += vel * stage.dt;
-}
-
-DEF_SYS(HAVE_COMP(boid))
-static __forceinline void render_boid(
-  const RenderStage &stage,
-  const TextureAtlas &texture,
-  const glm::vec4 &frame,
-  const glm::vec2 &pos,
-  const glm::vec2 &vel,
-  float rotation)
-{
-  const float hw = screen_width * 0.5f;
-  const float hh = screen_height * 0.5f;
-  Rectangle rect = { frame.x, frame.y, frame.z, frame.w };
-  Rectangle destRec = { hw + pos.x, hh - pos.y, fabsf(frame.z), fabsf(frame.w) };
-
-  DrawTexturePro(texture.id, rect, destRec, Vector2{ 0.5f * frame.z, 0.5f * frame.w }, -rotation, WHITE);
-}
-
-DEF_SYS(HAVE_COMP(boid))
-static __forceinline void update_boid(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &vel, float &rotation)
-{
-  if (glm::length(vel) == 0.f)
-    vel.x = 150.f;
-
-  const float hw = 0.5f * screen_width;
-  const float hh = 0.5f * screen_height;
-
-  float steeringDir = 0.f;
-
-  glm::vec2 futurePos = pos + vel * 1.5f;
-  if (futurePos.x >= hw || futurePos.x <= -hw || futurePos.y >= hh || futurePos.y <= -hh)
-    steeringDir = 10.f;
-
-  vel += steeringDir * glm::normalize(glm::vec2(-vel.y, vel.x));
-
-  const glm::vec2 dir = glm::normalize(vel);
-  rotation = glm::degrees(glm::acos(dir.x)) * glm::sign(vel.y);
-
-  vel = 150.f * dir;
-}
+  ECS_RUN(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  {
+    update_auto_move_impl(stage, auto_move, vel, dir);
+  }
+};

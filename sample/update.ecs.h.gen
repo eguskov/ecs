@@ -5,9 +5,6 @@
 
 #include "update.ecs.h"
 
-static RegCompSpec<Tag> _reg_comp_tag("tag");
-template <> int RegCompSpec<Tag>::ID = -1;
-
 static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
 template <> int RegCompSpec<TimerComponent>::ID = -1;
 

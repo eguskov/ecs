@@ -3,8 +3,6 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
-struct Tag DEF_EMPTY_COMP(Tag, tag);
-
 struct EventOnSpawn : Event
 {
   int count;

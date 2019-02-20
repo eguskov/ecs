@@ -1,3 +1,4 @@
+#ifdef _DEBUG
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
@@ -19,3 +20,9 @@ int main(int argc, char **argv)
 
   return res;
 }
+#else
+int main(int argc, char **argv)
+{
+  return 0;
+}
+#endif

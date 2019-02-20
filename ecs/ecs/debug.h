@@ -1,7 +1,8 @@
 #pragma once
 
-#ifdef _DEBUG
 #include "stacktrace.h"
+
+#ifdef _DEBUG
 // #include <assert.h>
 bool assert_handler(const char *message, const char *file, int line);
 void fatal_handler(const char *message);
@@ -10,6 +11,6 @@ void fatal_handler(const char *message);
 #define DEBUG_LOG(code) std::cout << code << std::endl;
 #else
 #define ASSERT(...)
-#define ASSERT_MSG(...)
+#define ASSERT_FMT(...)
 #define DEBUG_LOG(...)
 #endif

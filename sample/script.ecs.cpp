@@ -7,38 +7,50 @@
 
 #include "script.ecs.h"
 
-DEF_SYS()
-static __forceinline void reload_script_handler(const CmdReloadScript &ev, const EntityId &eid, script::ScriptComponent &script)
+struct reload_script_handler
 {
-  script.scriptECS.build(script.name.c_str(), script.path.c_str());
-}
+  ECS_RUN(const CmdReloadScript &ev, const EntityId &eid, script::ScriptComponent &script)
+  {
+    script.scriptECS.build(script.name.c_str(), script.path.c_str());
+  }
+};
 
-DEF_SYS()
-static __forceinline void build_script_handler(const EventOnEntityCreate &ev, script::ScriptComponent &script)
+struct build_script_handler
 {
-  script.scriptECS.build(script.name.c_str(), script.path.c_str());
-}
+  ECS_RUN(const EventOnEntityCreate &ev, script::ScriptComponent &script)
+  {
+    script.scriptECS.build(script.name.c_str(), script.path.c_str());
+  }
+};
 
-DEF_SYS()
-static __forceinline void update_script_query(const EventOnChangeDetected &ev, script::ScriptComponent &script)
+struct update_script_query
 {
-  script.scriptECS.invalidateQueries();
-}
+  ECS_RUN(const EventOnChangeDetected &ev, script::ScriptComponent &script)
+  {
+    script.scriptECS.invalidateQueries();
+  }
+};
 
-DEF_SYS()
-static __forceinline void update_script(const UpdateStage &stage, script::ScriptComponent &script)
+struct update_script
 {
-  script.scriptECS.tick(stage);
-}
+  ECS_RUN(const UpdateStage &stage, script::ScriptComponent &script)
+  {
+    script.scriptECS.tick(stage);
+  }
+};
 
-DEF_SYS()
-static __forceinline void dispatch_event_script(const DispatchEventStage &stage, script::ScriptComponent &script)
+struct dispatch_event_script
 {
-  script.scriptECS.sendEventSync(stage.eid, stage.eventId, stage.ev);
-}
+  ECS_RUN(const DispatchEventStage &stage, script::ScriptComponent &script)
+  {
+    script.scriptECS.sendEventSync(stage.eid, stage.eventId, stage.ev);
+  }
+};
 
-DEF_SYS()
-static __forceinline void dispatch_broadcast_event_script(const DispatchBroadcastEventStage &stage, script::ScriptComponent &script)
+struct dispatch_broadcast_event_script
 {
-  script.scriptECS.sendBroadcastEventSync(stage.eventId, stage.ev);
-}
+  ECS_RUN(const DispatchBroadcastEventStage &stage, script::ScriptComponent &script)
+  {
+    script.scriptECS.sendBroadcastEventSync(stage.eventId, stage.ev);
+  }
+};

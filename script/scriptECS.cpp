@@ -280,7 +280,7 @@ namespace script
             query.desc.components.push_back({ i, hash_str(name), desc->size, desc });
           }
 
-          g_mgr->invalidateQuery(query);
+          g_mgr->performQuery(query);
         }
       }
 
@@ -390,7 +390,7 @@ namespace script
   {
     for (auto &it : dataQueries)
     {
-      g_mgr->invalidateQuery(it.second);
+      g_mgr->performQuery(it.second);
       DEBUG_LOG("invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.entitiesCount);
     }
 
@@ -435,7 +435,7 @@ namespace script
       }
       else
       {
-        g_mgr->invalidateQuery(query);
+        g_mgr->performQuery(query);
         DEBUG_LOG("invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount);
       }
     }

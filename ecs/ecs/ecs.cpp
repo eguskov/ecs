@@ -19,16 +19,12 @@ int reg_comp_count = 0;
 RegQuery *reg_query_head = nullptr;
 int reg_query_count = 0;
 
-RegSys::RegSys(const char *_name, const ConstQueryDesc &query_desc, int _id) : id(_id), queryDesc(query_desc)
-{
-  if (_name)
-    name = ::_strdup(_name);
-}
-
 RegSys::~RegSys()
 {
   if (name)
     ::free(name);
+  if (stageName)
+    ::free(stageName);
 }
 
 const RegSys *find_sys(const char *name)
@@ -68,7 +64,7 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
-RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc) : name(_name), desc(_desc)
+RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc, filter_t &&f) : name(_name), desc(_desc), filter(eastl::move(f))
 {
   next = reg_query_head;
   reg_query_head = this;
@@ -198,9 +194,9 @@ void EntityManager::init()
           const JValue &type = compIter->value["$type"];
           comps.push_back({ type.GetString(), compIter->name.GetString() });
 
+          #ifdef _DEBUG
           if (compIter->value.HasMember("$array"))
           {
-            #ifdef _DEBUG
             // Debug check
             std::ostringstream oss;
             oss << "[" << compIter->value["$array"].Size() << "]";
@@ -209,8 +205,8 @@ void EntityManager::init()
             ASSERT(offset > 0);
             const char *tail = type.GetString() + offset;
             ASSERT(::strcmp(res.c_str(), tail) == 0);
-            #endif
           }
+          #endif
         }
 
         addTemplate(i, templ["$name"].GetString(), comps, extends);
@@ -219,10 +215,14 @@ void EntityManager::init()
   }
 
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
-    const_cast<RegSys*>(sys)->init(this);
+  {
+    ASSERT(sys->sys != nullptr);
+    ASSERT(find_comp(sys->stageName) != nullptr);
+    const_cast<RegSys*>(sys)->stageId = find_comp(sys->stageName)->id;
+    ASSERT(sys->stageId >= 0);
 
-  for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
     systems.push_back({ getSystemWeight(sys->name), sys });
+  }
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
@@ -231,10 +231,11 @@ void EntityManager::init()
   for (const auto &sys : systems)
   {
     auto &q = queries[sys.desc->id];
-    q.stageId = sys.desc->stageId > 0 ? sys.desc->stageId : sys.desc->eventId;
+    q.stageId = sys.desc->stageId;
     q.sysId = sys.desc->id;
     q.desc = sys.desc->queryDesc;
     q.name = hash_str(sys.desc->name);
+    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
   }
 
   for (const auto &sys : systems)
@@ -252,13 +253,14 @@ void EntityManager::init()
     ASSERT(getQueryByName(query->name) == nullptr);
     namedQueries[queryIdx].name = query->name;
     namedQueries[queryIdx].desc = query->desc;
+    namedQueries[queryIdx].desc.filter = query->filter;
   }
 }
 
 int EntityManager::getSystemWeight(const char *name) const
 {
   auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name; });
-  ASSERT(res != order.end());
+  ASSERT_FMT(res != order.end(), "System '%s' must be added to $order!", name);
   return (int)(res - order.begin());
 }
 
@@ -420,7 +422,7 @@ int EntityManager::getTemplateId(const char *name)
   for (size_t i = 0; i < templates.size(); ++i)
     if (templates[i].name == name)
       return i;
-  ASSERT(false);
+  ASSERT_FMT(false, "Template '%s' not found!", name ? name : "(null)");
   return -1;
 }
 
@@ -452,6 +454,22 @@ static void process_templates(EntityManager *mgr,
   }
 }
 
+void EntityManager::buildComponentsValuesFromTemplate(int template_id, const JValue &comps, JFrameValue &out_value)
+{
+  auto &templ = templates[template_id];
+
+  const JValue &value = templatesDoc["$templates"][templ.docId];
+
+  JFrameAllocator allocator;
+  out_value.CopyFrom(value["$components"], allocator);
+
+  process_templates(this, templ, templatesDoc, out_value, allocator);
+
+  if (!comps.IsNull())
+    for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
+      out_value[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, allocator);
+}
+
 EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
 {
   int templateId = -1;
@@ -465,17 +483,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   auto &templ = templates[templateId];
 
-  const JValue &value = templatesDoc["$templates"][templ.docId];
-
-  JFrameAllocator tmp_allocator;
   JFrameValue tmpValue(rapidjson::kObjectType);
-  tmpValue.CopyFrom(value["$components"], tmp_allocator);
-
-  process_templates(this, templ, templatesDoc, tmpValue, tmp_allocator);
-
-  if (!comps.IsNull())
-    for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-      tmpValue[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, tmp_allocator);
+  buildComponentsValuesFromTemplate(templateId, comps, tmpValue);
 
   int freeIndex = -1;
   if (!freeEntityQueue.empty())
@@ -496,7 +505,7 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   archetypes[e.archetypeId].entitiesCount++;
   if (archetypes[e.archetypeId].entitiesCount > archetypes[e.archetypeId].entitiesCapacity)
-  archetypes[e.archetypeId].entitiesCapacity = archetypes[e.archetypeId].entitiesCount;
+    archetypes[e.archetypeId].entitiesCapacity = archetypes[e.archetypeId].entitiesCount;
 
   int compId = 0;
   auto &type = archetypes[templ.archetypeId];
@@ -599,9 +608,9 @@ void EntityManager::tick()
   {
     queriesInvalidated = true;
     for (auto &q : queries)
-      invalidateQuery(q);
+      performQuery(q);
     for (auto &q : namedQueries)
-      invalidateQuery(q);
+      performQuery(q);
   }
   else
   {
@@ -609,13 +618,13 @@ void EntityManager::tick()
       if (q.dirty)
       {
         queriesInvalidated = true;
-        invalidateQuery(q);
+        performQuery(q);
       }
     for (auto &q : namedQueries)
       if (q.dirty)
       {
         queriesInvalidated = true;
-        invalidateQuery(q);
+        performQuery(q);
       }
   }
 
@@ -675,9 +684,39 @@ int Archetype::getComponentIndex(const ConstHashedString &name) const
   return getComponentIndex(HashedString(name));
 }
 
-void EntityManager::invalidateQuery(Query &query)
+inline static bool has_components(const Archetype &type, const eastl::vector<CompDesc> &components)
 {
-  ASSERT(query.desc.isValid());
+  for (const auto &c : components)
+    if (!type.hasCompontent(c.name))
+      return false;
+  return true;
+}
+
+inline static bool not_have_components(const Archetype &type, const eastl::vector<CompDesc> &components)
+{
+  for (const auto &c : components)
+    if (type.hasCompontent(c.name))
+      return false;
+  return true;
+}
+
+template <typename T>
+inline static bool is_components_values_equal_to(const T &value, int entity_idx, const Archetype &type, const eastl::vector<CompDesc> &components)
+{
+  for (const auto &c : components)
+  {
+    const int compIdx = type.getComponentIndex(c.name);
+    // TODO: Remove const_cast !
+    auto &storage = const_cast<Archetype::StorageDesc&>(type.storages[compIdx]);
+    if (storage->getByIndex<T>(entity_idx) != value)
+      return false;
+  }
+  return true;
+}
+
+void EntityManager::performQuery(Query &query)
+{
+  const bool isValid = query.desc.isValid();
 
   query.dirty = false;
   query.chunksCount = 0;
@@ -688,55 +727,14 @@ void EntityManager::invalidateQuery(Query &query)
 
   for (auto &type : archetypes)
   {
-    bool ok = true;
-    for (const auto &c : query.desc.components)
-      if (!type.hasCompontent(c.name))
-      {
-        ok = false;
-        break;
-      }
-
-    if (ok)
-    {
-      for (const auto &c : query.desc.haveComponents)
-        if (!type.hasCompontent(c.name))
-        {
-          ok = false;
-          break;
-        }
-    }
-
-    if (ok)
-    {
-      for (const auto &c : query.desc.notHaveComponents)
-        if (type.hasCompontent(c.name))
-        {
-          ok = false;
-          break;
-        }
-    }
-
-    if (ok)
-    {
-      // TODO: ASSERT on type mismatch
-      for (const auto &c : query.desc.isTrueComponents)
-        if (!type.hasCompontent(c.name))
-        {
-          ok = false;
-          break;
-        }
-    }
-
-    if (ok)
-    {
-      // TODO: ASSERT on type mismatch
-      for (const auto &c : query.desc.isFalseComponents)
-        if (!type.hasCompontent(c.name))
-        {
-          ok = false;
-          break;
-        }
-    }
+    // TODO: ASSERT on type mismatch
+    bool ok =
+      isValid &&
+      not_have_components(type, query.desc.notHaveComponents) &&
+      has_components(type, query.desc.components) &&
+      has_components(type, query.desc.haveComponents) &&
+      has_components(type, query.desc.isTrueComponents) &&
+      has_components(type, query.desc.isFalseComponents);
 
     if (ok)
     {
@@ -748,29 +746,9 @@ void EntityManager::invalidateQuery(Query &query)
         // TODO: Find a better solution
         ok = !type.storages[0].storage->freeMask[i];
 
-        if (ok)
-          for (const auto &c : query.desc.isTrueComponents)
-          {
-            const int compIdx = type.getComponentIndex(c.name);
-            auto &storage = type.storages[compIdx];
-            if (!storage->getByIndex<bool>(i))
-            {
-              ok = false;
-              break;
-            }
-          }
-
-        if (ok)
-          for (const auto &c : query.desc.isFalseComponents)
-          {
-            const int compIdx = type.getComponentIndex(c.name);
-            auto &storage = type.storages[compIdx];
-            if (storage->getByIndex<bool>(i))
-            {
-              ok = false;
-              break;
-            }
-          }
+        ok = ok && is_components_values_equal_to(true, i, type, query.desc.isTrueComponents);
+        ok = ok && is_components_values_equal_to(false, i, type, query.desc.isFalseComponents);
+        ok = ok && (!query.desc.filter || query.desc.filter(type, i));
 
         if (ok && begin < 0)
           begin = i;
@@ -793,6 +771,7 @@ void EntityManager::invalidateQuery(Query &query)
             QueryChunk chunk;
             chunk.beginData = storage->getRawByIndex(begin);
             chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
+            chunk.elemSize = c.size;
 
             query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
             compIdx++;
@@ -803,6 +782,7 @@ void EntityManager::invalidateQuery(Query &query)
           QueryChunk chunk;
           chunk.beginData = storage->getRawByIndex(begin);
           chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
+          chunk.elemSize = sizeof(EntityId);
           query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
 
           begin = -1;
@@ -865,7 +845,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      sys.desc->exec(query, stage);
+      sys.desc->sys(stage, query);
     }
 
   checkFrameSnapshot(snapshot);
@@ -886,7 +866,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
   auto &type = archetypes[e.archetypeId];
 
   for (const auto &sys : systems)
-    if (sys.desc->eventId == event_id)
+    if (sys.desc->stageId == event_id)
     {
       // TODO: Add checks for isTrue, isFalse, have, notHave
       bool ok = true;
@@ -922,7 +902,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
           compIdx++;
         }
 
-        sys.desc->exec(query, ev);
+        sys.desc->sys(ev, query);
       }
     }
 }
@@ -935,10 +915,10 @@ void EntityManager::sendEventBroadcast(int event_id, const RawArg &ev)
 void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
 {
   for (const auto &sys : systems)
-    if (sys.desc->eventId == event_id)
+    if (sys.desc->stageId == event_id)
     {
       auto &query = queries[sys.desc->id];
-      sys.desc->exec(query, ev);
+      sys.desc->sys(ev, query);
     }
 }
 

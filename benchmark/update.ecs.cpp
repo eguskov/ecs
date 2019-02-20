@@ -4,8 +4,10 @@
 
 #include <stages/update.stage.h>
 
-DEF_SYS()
-static __forceinline void update_position(const UpdateStage &stage, const glm::vec3 &vel, glm::vec3 &pos)
+struct update_position
 {
-  pos += vel * stage.dt;
-}
+  ECS_RUN(const UpdateStage &stage, const glm::vec3 &vel, glm::vec3 &pos)
+  {
+    pos += vel * stage.dt;
+  }
+};

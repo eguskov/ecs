@@ -1,3 +1,4 @@
+#ifdef _DEBUG
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
@@ -162,3 +163,4 @@ TEST(Template, Order)
 {
   EXPECT_EQ(0ul, g_mgr->order.size());
 }
+#endif

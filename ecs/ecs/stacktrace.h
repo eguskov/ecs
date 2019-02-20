@@ -4,6 +4,7 @@
 
 namespace stacktrace
 {
+#ifdef _DEBUG
   void init();
   void release();
 
@@ -11,4 +12,13 @@ namespace stacktrace
   void print();
 
   void print_all_threads();
+#else
+  inline void init() {}
+  inline void release() {}
+
+  inline void print(eastl::string &) {}
+  inline void print() {}
+
+  inline void print_all_threads() {}
+#endif
 }
