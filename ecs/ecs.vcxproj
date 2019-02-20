@@ -99,7 +99,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\sdk\angelscript\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>raylibd.lib;EASTL.lib;angelscriptd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>raylibd.lib;EASTL.lib;angelscriptd.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <ForceSymbolReferences>
@@ -188,6 +188,8 @@
     <ClCompile Include="ecs\memory.cpp" />
     <ClCompile Include="ecs\snprintf.cpp" />
     <ClCompile Include="ecs\framemem.cpp" />
+    <ClCompile Include="ecs\debug.cpp" />
+    <ClCompile Include="ecs\stacktrace.cpp" />
     <ClCompile Include="stages\render.stage.cpp" />
     <ClCompile Include="stages\update.stage.cpp" />
     <ClCompile Include="stages\dispatchEvent.stage.cpp" />

@@ -76,15 +76,15 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\script;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\mongoose;$(ProjectDir)..\libs\raylib\src\external\glfw\include;$(ProjectDir)..\libs\cef;$(ProjectDir)..\libs\Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\script;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\mongoose;$(ProjectDir)..\libs\raylib\src\external\glfw\include;$(ProjectDir)..\libs\cef;$(ProjectDir)..\libs\Box2D;$(ProjectDir)..\libs\log4cplus\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>Cdecl</CallingConvention>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;$(ProjectDir)..\libs\cef\Release;$(ProjectDir)..\libs\cef\libcef_dll_wrapper\Debug;$(ProjectDir)..\libs\Box2D\Build\bin\x86\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;mongoose.lib;libcef.lib;libcef_dll_wrapper.lib;Box2D.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;$(ProjectDir)..\libs\cef\Release;$(ProjectDir)..\libs\cef\libcef_dll_wrapper\Debug;$(ProjectDir)..\libs\Box2D\Build\bin\x86\Debug;$(ProjectDir)..\libs\log4cplus\msvc14\Win32\bin.Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;mongoose.lib;libcef.lib;libcef_dll_wrapper.lib;Box2D.lib;DbgHelp.lib;log4cplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

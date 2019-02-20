@@ -85,7 +85,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;curl\lib\libcurl.dll.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;scriptd.lib;curl\lib\libcurl.dll.a;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
