@@ -37,6 +37,7 @@ struct ConstHashedString
   char const* const str;
 
   constexpr ConstHashedString(char const* const s) : str(s), hash(hash::fnv1a<uint32_t>::hash(s)) {}
+  constexpr ConstHashedString(char const* const s, uint32_t h) : str(s), hash(h) {}
 
   bool operator==(const ConstHashedString &rhs) const { return hash == rhs.hash; }
   bool operator<(const ConstHashedString &rhs) const { return hash < rhs.hash; }
@@ -48,6 +49,10 @@ namespace hash
   inline uint32_t str(const char *s) { return fnv1a<uint32_t>::hash(s); }
   inline constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
 }
+
+// Force VS2017 compiler to eval hashing at compile time
+template <uint32_t h> struct hash_helper { static constexpr uint32_t value = h; };
+#define HASH(s) ConstHashedString(s, hash_helper<hash::fnv1a<uint32_t>::hash(s)>::value)
 
 struct HashedString
 {

@@ -346,216 +346,216 @@ static RegQuery _reg_query_AliveEnemy(hash::cstr("update.ecs.cpp_AliveEnemy"), A
 template <typename Callable> void Brick::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_Brick"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(Brick, i, glm::vec4, collision_rect),
-      GET_COMPONENT(Brick, i, glm::vec2, pos)
+      GET_COMPONENT(Brick, q, glm::vec4, collision_rect),
+      GET_COMPONENT(Brick, q, glm::vec2, pos)
     });
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("update.ecs.cpp_AliveEnemy"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
-      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
-      GET_COMPONENT(AliveEnemy, i, bool, is_alive),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
-      GET_COMPONENT(AliveEnemy, i, AnimState, anim_state)
+      GET_COMPONENT(AliveEnemy, q, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, q, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, q, bool, is_alive),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, q, AnimState, anim_state)
     });
 }
 static void load_texture_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     load_texture_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(load_texture_handler, i, TextureAtlas, texture));
+      GET_COMPONENT(load_texture_handler, q, TextureAtlas, texture));
 }
 static RegSys _reg_sys_load_texture_handler("load_texture_handler", &load_texture_handler_run, "EventOnEntityCreate", load_texture_handler_query_desc);
 
 static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_position, i, glm::vec2, vel),
-      GET_COMPONENT(update_position, i, glm::vec2, pos));
+      GET_COMPONENT(update_position, q, glm::vec2, vel),
+      GET_COMPONENT(update_position, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_update_position("update_position", &update_position_run, "UpdateStage", update_position_query_desc);
 
 static void update_position_for_active_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position_for_active::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_position_for_active, i, glm::vec2, vel),
-      GET_COMPONENT(update_position_for_active, i, glm::vec2, pos));
+      GET_COMPONENT(update_position_for_active, q, glm::vec2, vel),
+      GET_COMPONENT(update_position_for_active, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_update_position_for_active("update_position_for_active", &update_position_for_active_run, "UpdateStage", update_position_for_active_query_desc);
 
 static void update_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_anim_frame, i, AnimGraph, anim_graph),
-      GET_COMPONENT(update_anim_frame, i, AnimState, anim_state),
-      GET_COMPONENT(update_anim_frame, i, glm::vec4, frame));
+      GET_COMPONENT(update_anim_frame, q, AnimGraph, anim_graph),
+      GET_COMPONENT(update_anim_frame, q, AnimState, anim_state),
+      GET_COMPONENT(update_anim_frame, q, glm::vec4, frame));
 }
 static RegSys _reg_sys_update_anim_frame("update_anim_frame", &update_anim_frame_run, "UpdateStage", update_anim_frame_query_desc);
 
 static void render_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_walls::run(*(RenderStage*)stage_or_event.mem,
-      GET_COMPONENT(render_walls, i, TextureAtlas, texture),
-      GET_COMPONENT(render_walls, i, glm::vec4, frame),
-      GET_COMPONENT(render_walls, i, glm::vec2, pos));
+      GET_COMPONENT(render_walls, q, TextureAtlas, texture),
+      GET_COMPONENT(render_walls, q, glm::vec4, frame),
+      GET_COMPONENT(render_walls, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_render_walls("render_walls", &render_walls_run, "RenderStage", render_walls_query_desc);
 
 static void render_normal_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_normal::run(*(RenderStage*)stage_or_event.mem,
-      GET_COMPONENT(render_normal, i, TextureAtlas, texture),
-      GET_COMPONENT(render_normal, i, glm::vec4, frame),
-      GET_COMPONENT(render_normal, i, glm::vec2, pos),
-      GET_COMPONENT(render_normal, i, float, dir));
+      GET_COMPONENT(render_normal, q, TextureAtlas, texture),
+      GET_COMPONENT(render_normal, q, glm::vec4, frame),
+      GET_COMPONENT(render_normal, q, glm::vec2, pos),
+      GET_COMPONENT(render_normal, q, float, dir));
 }
 static RegSys _reg_sys_render_normal("render_normal", &render_normal_run, "RenderStage", render_normal_query_desc);
 
 static void read_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     read_controls::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(read_controls, i, UserInput, user_input));
+      GET_COMPONENT(read_controls, q, UserInput, user_input));
 }
 static RegSys _reg_sys_read_controls("read_controls", &read_controls_run, "UpdateStage", read_controls_query_desc);
 
 static void apply_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_controls::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(apply_controls, i, UserInput, user_input),
-      GET_COMPONENT(apply_controls, i, bool, is_on_ground),
-      GET_COMPONENT(apply_controls, i, Jump, jump),
-      GET_COMPONENT(apply_controls, i, glm::vec2, vel),
-      GET_COMPONENT(apply_controls, i, float, dir));
+      GET_COMPONENT(apply_controls, q, UserInput, user_input),
+      GET_COMPONENT(apply_controls, q, bool, is_on_ground),
+      GET_COMPONENT(apply_controls, q, Jump, jump),
+      GET_COMPONENT(apply_controls, q, glm::vec2, vel),
+      GET_COMPONENT(apply_controls, q, float, dir));
 }
 static RegSys _reg_sys_apply_controls("apply_controls", &apply_controls_run, "UpdateStage", apply_controls_query_desc);
 
 static void apply_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_jump::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(apply_jump, i, Jump, jump),
-      GET_COMPONENT(apply_jump, i, bool, is_on_ground),
-      GET_COMPONENT(apply_jump, i, glm::vec2, vel));
+      GET_COMPONENT(apply_jump, q, Jump, jump),
+      GET_COMPONENT(apply_jump, q, bool, is_on_ground),
+      GET_COMPONENT(apply_jump, q, glm::vec2, vel));
 }
 static RegSys _reg_sys_apply_jump("apply_jump", &apply_jump_run, "UpdateStage", apply_jump_query_desc);
 
 static void apply_gravity_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_gravity::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(apply_gravity, i, Gravity, gravity),
-      GET_COMPONENT(apply_gravity, i, glm::vec2, vel));
+      GET_COMPONENT(apply_gravity, q, Gravity, gravity),
+      GET_COMPONENT(apply_gravity, q, glm::vec2, vel));
 }
 static RegSys _reg_sys_apply_gravity("apply_gravity", &apply_gravity_run, "UpdateStage", apply_gravity_query_desc);
 
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_move_collisions::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_auto_move_collisions, i, EntityId, eid),
-      GET_COMPONENT(update_auto_move_collisions, i, glm::vec4, collision_rect),
-      GET_COMPONENT(update_auto_move_collisions, i, glm::vec2, pos),
-      GET_COMPONENT(update_auto_move_collisions, i, glm::vec2, vel),
-      GET_COMPONENT(update_auto_move_collisions, i, float, dir));
+      GET_COMPONENT(update_auto_move_collisions, q, EntityId, eid),
+      GET_COMPONENT(update_auto_move_collisions, q, glm::vec4, collision_rect),
+      GET_COMPONENT(update_auto_move_collisions, q, glm::vec2, pos),
+      GET_COMPONENT(update_auto_move_collisions, q, glm::vec2, vel),
+      GET_COMPONENT(update_auto_move_collisions, q, float, dir));
 }
 static RegSys _reg_sys_update_auto_move_collisions("update_auto_move_collisions", &update_auto_move_collisions_run, "UpdateStage", update_auto_move_collisions_query_desc);
 
 static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(select_current_anim_frame, i, glm::vec2, vel),
-      GET_COMPONENT(select_current_anim_frame, i, AnimGraph, anim_graph),
-      GET_COMPONENT(select_current_anim_frame, i, bool, is_on_ground),
-      GET_COMPONENT(select_current_anim_frame, i, TextureAtlas, texture),
-      GET_COMPONENT(select_current_anim_frame, i, AnimState, anim_state));
+      GET_COMPONENT(select_current_anim_frame, q, glm::vec2, vel),
+      GET_COMPONENT(select_current_anim_frame, q, AnimGraph, anim_graph),
+      GET_COMPONENT(select_current_anim_frame, q, bool, is_on_ground),
+      GET_COMPONENT(select_current_anim_frame, q, TextureAtlas, texture),
+      GET_COMPONENT(select_current_anim_frame, q, AnimState, anim_state));
 }
 static RegSys _reg_sys_select_current_anim_frame("select_current_anim_frame", &select_current_anim_frame_run, "UpdateStage", select_current_anim_frame_query_desc);
 
 static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame_for_player::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(select_current_anim_frame_for_player, i, glm::vec2, vel),
-      GET_COMPONENT(select_current_anim_frame_for_player, i, AnimGraph, anim_graph),
-      GET_COMPONENT(select_current_anim_frame_for_player, i, UserInput, user_input),
-      GET_COMPONENT(select_current_anim_frame_for_player, i, bool, is_on_ground),
-      GET_COMPONENT(select_current_anim_frame_for_player, i, TextureAtlas, texture),
-      GET_COMPONENT(select_current_anim_frame_for_player, i, AnimState, anim_state));
+      GET_COMPONENT(select_current_anim_frame_for_player, q, glm::vec2, vel),
+      GET_COMPONENT(select_current_anim_frame_for_player, q, AnimGraph, anim_graph),
+      GET_COMPONENT(select_current_anim_frame_for_player, q, UserInput, user_input),
+      GET_COMPONENT(select_current_anim_frame_for_player, q, bool, is_on_ground),
+      GET_COMPONENT(select_current_anim_frame_for_player, q, TextureAtlas, texture),
+      GET_COMPONENT(select_current_anim_frame_for_player, q, AnimState, anim_state));
 }
 static RegSys _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", &select_current_anim_frame_for_player_run, "UpdateStage", select_current_anim_frame_for_player_query_desc);
 
 static void update_enemies_collisions_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_enemies_collisions::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_enemies_collisions, i, EntityId, eid),
-      GET_COMPONENT(update_enemies_collisions, i, Jump, jump),
-      GET_COMPONENT(update_enemies_collisions, i, glm::vec4, collision_rect),
-      GET_COMPONENT(update_enemies_collisions, i, glm::vec2, pos),
-      GET_COMPONENT(update_enemies_collisions, i, glm::vec2, vel),
-      GET_COMPONENT(update_enemies_collisions, i, float, dir));
+      GET_COMPONENT(update_enemies_collisions, q, EntityId, eid),
+      GET_COMPONENT(update_enemies_collisions, q, Jump, jump),
+      GET_COMPONENT(update_enemies_collisions, q, glm::vec4, collision_rect),
+      GET_COMPONENT(update_enemies_collisions, q, glm::vec2, pos),
+      GET_COMPONENT(update_enemies_collisions, q, glm::vec2, vel),
+      GET_COMPONENT(update_enemies_collisions, q, float, dir));
 }
 static RegSys _reg_sys_update_enemies_collisions("update_enemies_collisions", &update_enemies_collisions_run, "UpdateStage", update_enemies_collisions_query_desc);
 
 static void remove_death_fx_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     remove_death_fx::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(remove_death_fx, i, EntityId, eid),
-      GET_COMPONENT(remove_death_fx, i, AnimState, anim_state),
-      GET_COMPONENT(remove_death_fx, i, bool, is_alive));
+      GET_COMPONENT(remove_death_fx, q, EntityId, eid),
+      GET_COMPONENT(remove_death_fx, q, AnimState, anim_state),
+      GET_COMPONENT(remove_death_fx, q, bool, is_alive));
 }
 static RegSys _reg_sys_remove_death_fx("remove_death_fx", &remove_death_fx_run, "UpdateStage", remove_death_fx_query_desc);
 
 static void update_camera_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_camera::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_camera, i, glm::vec2, pos));
+      GET_COMPONENT(update_camera, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_update_camera("update_camera", &update_camera_run, "UpdateStage", update_camera_query_desc);
 
 static void process_on_kill_event_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     process_on_kill_event::run(*(EventOnKillEnemy*)stage_or_event.mem,
-      GET_COMPONENT(process_on_kill_event, i, HUD, hud));
+      GET_COMPONENT(process_on_kill_event, q, HUD, hud));
 }
 static RegSys _reg_sys_process_on_kill_event("process_on_kill_event", &process_on_kill_event_run, "EventOnKillEnemy", process_on_kill_event_query_desc);
 
 static void update_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_active_auto_move, i, AutoMove, auto_move),
-      GET_COMPONENT(update_active_auto_move, i, glm::vec2, vel),
-      GET_COMPONENT(update_active_auto_move, i, float, dir));
+      GET_COMPONENT(update_active_auto_move, q, AutoMove, auto_move),
+      GET_COMPONENT(update_active_auto_move, q, glm::vec2, vel),
+      GET_COMPONENT(update_active_auto_move, q, float, dir));
 }
 static RegSys _reg_sys_update_active_auto_move("update_active_auto_move", &update_active_auto_move_run, "UpdateStage", update_active_auto_move_query_desc);
 
 static void update_always_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_always_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_always_active_auto_move, i, AutoMove, auto_move),
-      GET_COMPONENT(update_always_active_auto_move, i, glm::vec2, vel),
-      GET_COMPONENT(update_always_active_auto_move, i, float, dir));
+      GET_COMPONENT(update_always_active_auto_move, q, AutoMove, auto_move),
+      GET_COMPONENT(update_always_active_auto_move, q, glm::vec2, vel),
+      GET_COMPONENT(update_always_active_auto_move, q, float, dir));
 }
 static RegSys _reg_sys_update_always_active_auto_move("update_always_active_auto_move", &update_always_active_auto_move_run, "UpdateStage", update_always_active_auto_move_query_desc);
 

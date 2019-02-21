@@ -21,10 +21,10 @@ static RegQuery _reg_query_Script(hash::cstr("webui.ecs.cpp_Script"), Script_que
 template <typename Callable> void Script::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("webui.ecs.cpp_Script"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(Script, i, script::ScriptComponent, script)
+      GET_COMPONENT(Script, q, script::ScriptComponent, script)
     });
 }
 #endif // __CODEGEN__

@@ -17,6 +17,26 @@ struct TestSoA
   eastl::vector<glm::vec3> vel;
 };
 
+struct update_position
+{
+  ECS_RUN(const UpdateStage &stage, const glm::vec3 &vel, glm::vec3 &pos)
+  {
+    pos += vel * stage.dt;
+  }
+};
+
+static constexpr ConstCompDesc update_position_components[] = {
+  {hash::cstr("vel"), Desc<glm::vec3>::Size},
+  {hash::cstr("pos"), Desc<glm::vec3>::Size},
+};
+static constexpr ConstQueryDesc update_position_query_desc = {
+  make_const_array(update_position_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+
 int main()
 {
   using namespace std::chrono_literals;
@@ -26,7 +46,7 @@ int main()
   // TODO: 1. Entites
   // TODO: 2. Native loop
   // TODO: 3. Script loop
-  const int count = 30000;
+  const int count = 50000;
 
   eastl::vector<Test> test;
   test.resize(count);
@@ -62,31 +82,46 @@ int main()
 
   {
     PERF_TIME(Native);
-    for (auto &v : test)
-      v.pos += v.vel * dt;
-  }
-
-  {
-    PERF_TIME(Native_SoA);
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < 1000; ++i)
     {
-      testSoA.pos[i] += testSoA.vel[i] * dt;
+      for (auto &v : test)
+        v.pos += v.vel * dt;
     }
   }
 
   {
-    uint8_t *posRaw = (uint8_t *)testSoARaw.pos.data();
-    uint8_t *velRaw = (uint8_t *)testSoARaw.vel.data();
-    PERF_TIME(Native_SoA_RAW);
-    for (int i = 0; i < count; ++i)
-    {
-      *(glm::vec3*)(posRaw + i * sizeof(glm::vec3)) += (*(glm::vec3*)(velRaw + i * sizeof(glm::vec3))) * dt;
-    }
-  }
+    auto stage = UpdateStage{ dt, 10.f };
 
-  {
+    Query query;
+    query.desc = update_position_query_desc;
+    g_mgr->performQuery(query);
+
     PERF_TIME(ECS);
-    g_mgr->tick(UpdateStage{ dt, 10.f });
+    for (int i = 0; i < 1000; ++i)
+    {
+      // g_mgr->tick(UpdateStage{ dt, 10.f });
+      for (auto q = query.begin(), e = query.end(); q != e; ++q)
+        update_position::run(*(UpdateStage*)&stage,
+          GET_COMPONENT(update_position, q, glm::vec3, vel),
+          GET_COMPONENT(update_position, q, glm::vec3, pos));
+    }
+  }
+
+  {
+    auto stage = UpdateStage{ dt, 10.f };
+
+    Query query;
+    query.desc = update_position_query_desc;
+    g_mgr->performQuery(query);
+
+    PERF_TIME(ECS_FOREACH);
+    for (int i = 0; i < 1000; ++i)
+    {
+      for (auto q : query)
+        update_position::run(*(UpdateStage*)&stage,
+          GET_COMPONENT(update_position, q, glm::vec3, vel),
+          GET_COMPONENT(update_position, q, glm::vec3, pos));
+    }
   }
 
   std::cin.get();

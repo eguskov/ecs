@@ -63,11 +63,11 @@ struct EntityManager;
 
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run
 
-#define GET_COMPONENT_VALUE(c, t) t c = type.storages[type.getComponentIndex(hash::cstr(#c))].storage->getByIndex<t>(entity_idx)
+#define GET_COMPONENT_VALUE(c, t) t c = type.storages[type.getComponentIndex(HASH(#c))].storage->getByIndex<t>(entity_idx)
 #define GET_COMPONENT_VALUE_ITER(c, t) auto it_##c = query.chunks[compIdx_##c + chunkIdx * query.componentsCount].begin<t>()
-#define GET_COMPONENT_ITER(q, c, t) auto c = query.iter<t>(index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components))
-#define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components)
-#define GET_COMPONENT(q, i, t, c) i.get<t>(index_of_component<_countof(q##_components)>::get(hash::cstr(#c), q##_components))
+#define GET_COMPONENT_ITER(q, c, t) auto c = query.iter<t>(index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components))
+#define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components)
+#define GET_COMPONENT(q, i, t, c) i.get<t>(index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components))
 
 struct RegSys;
 extern RegSys *reg_sys_head;

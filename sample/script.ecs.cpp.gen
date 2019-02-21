@@ -71,50 +71,50 @@ static constexpr ConstQueryDesc dispatch_broadcast_event_script_query_desc = {
 
 static void reload_script_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     reload_script_handler::run(*(CmdReloadScript*)stage_or_event.mem,
-      GET_COMPONENT(reload_script_handler, i, EntityId, eid),
-      GET_COMPONENT(reload_script_handler, i, script::ScriptComponent, script));
+      GET_COMPONENT(reload_script_handler, q, EntityId, eid),
+      GET_COMPONENT(reload_script_handler, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_reload_script_handler("reload_script_handler", &reload_script_handler_run, "CmdReloadScript", reload_script_handler_query_desc);
 
 static void build_script_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     build_script_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(build_script_handler, i, script::ScriptComponent, script));
+      GET_COMPONENT(build_script_handler, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_build_script_handler("build_script_handler", &build_script_handler_run, "EventOnEntityCreate", build_script_handler_query_desc);
 
 static void update_script_query_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_script_query::run(*(EventOnChangeDetected*)stage_or_event.mem,
-      GET_COMPONENT(update_script_query, i, script::ScriptComponent, script));
+      GET_COMPONENT(update_script_query, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_update_script_query("update_script_query", &update_script_query_run, "EventOnChangeDetected", update_script_query_query_desc);
 
 static void update_script_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_script::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_script, i, script::ScriptComponent, script));
+      GET_COMPONENT(update_script, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_update_script("update_script", &update_script_run, "UpdateStage", update_script_query_desc);
 
 static void dispatch_event_script_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     dispatch_event_script::run(*(DispatchEventStage*)stage_or_event.mem,
-      GET_COMPONENT(dispatch_event_script, i, script::ScriptComponent, script));
+      GET_COMPONENT(dispatch_event_script, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_dispatch_event_script("dispatch_event_script", &dispatch_event_script_run, "DispatchEventStage", dispatch_event_script_query_desc);
 
 static void dispatch_broadcast_event_script_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     dispatch_broadcast_event_script::run(*(DispatchBroadcastEventStage*)stage_or_event.mem,
-      GET_COMPONENT(dispatch_broadcast_event_script, i, script::ScriptComponent, script));
+      GET_COMPONENT(dispatch_broadcast_event_script, q, script::ScriptComponent, script));
 }
 static RegSys _reg_sys_dispatch_broadcast_event_script("dispatch_broadcast_event_script", &dispatch_broadcast_event_script_run, "DispatchBroadcastEventStage", dispatch_broadcast_event_script_query_desc);
 

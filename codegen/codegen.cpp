@@ -1135,7 +1135,7 @@ int main(int argc, char* argv[])
         out << "template <typename Callable> void " << q.name << "::foreach(Callable callback)\n";
         out << "{\n";
         out << "  Query &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));\n";
-        out << "  for (auto i : query)\n";
+        out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
         out << "    callback(\n";
         out << "    {\n      ";
         for (int i = 0; i < (int)q.parameters.size(); ++i)
@@ -1143,7 +1143,7 @@ int main(int argc, char* argv[])
           const auto &p = q.parameters[i];
           if (i != 0)
             out << ",\n      ";
-          out << "GET_COMPONENT(" << q.name << ", i, " << p.pureType << ", " << p.name << ")";
+          out << "GET_COMPONENT(" << q.name << ", q, " << p.pureType << ", " << p.name << ")";
         }
         out << "\n    });" << std::endl;
         out << "}\n";
@@ -1177,7 +1177,7 @@ int main(int argc, char* argv[])
           {
             const auto &q = state.queries[sys.parameters[i].queryId];
 
-            out << indent << "for (auto q" << i << " : query" << i << ")\n";
+            out << indent << "for (auto q" << i << " = query" << i << ".begin(), e = query" << i << ".end(); q" << i << " != e; ++q" << i << ")\n";
             out << indent << "{\n";
             out << indent << "  " << q.name << " " << sys.parameters[i].name << " =\n";
             out << indent << "  {\n";
@@ -1220,7 +1220,7 @@ int main(int argc, char* argv[])
           const auto &q = state.queries[sys.parameters[1].queryId];
 
           out << "  Query &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
-          out << "  for (auto i : query)\n";
+          out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
 
           out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";
           for (int i = 0; i < (int)q.parameters.size(); ++i)
@@ -1228,14 +1228,14 @@ int main(int argc, char* argv[])
             const auto &p = q.parameters[i];
             if (i != 0)
               out << ",\n      ";
-            out << "GET_COMPONENT(" << q.name << ", i, " << p.pureType << ", " << p.name << ")";
+            out << "GET_COMPONENT(" << q.name << ", q, " << p.pureType << ", " << p.name << ")";
           }
           out << "\n    });" << std::endl;
         }
       }
       else
       {
-        out << "  for (auto i : query)\n";
+        out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
 
         if (sys.version == 1)
           out << "    " << sys.name << "(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
@@ -1244,7 +1244,7 @@ int main(int argc, char* argv[])
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << ",\n      GET_COMPONENT(" << sys.name << ", i, " << p.pureType << ", " << p.name << ")";
+          out << ",\n      GET_COMPONENT(" << sys.name << ", q, " << p.pureType << ", " << p.name << ")";
         }
         out << ");" << std::endl;
       }

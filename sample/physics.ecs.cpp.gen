@@ -138,87 +138,87 @@ static RegQuery _reg_query_MovingBrick(hash::cstr("physics.ecs.cpp_MovingBrick")
 template <typename Callable> void Brick::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("physics.ecs.cpp_Brick"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(Brick, i, CollisionShape, collision_shape),
-      GET_COMPONENT(Brick, i, glm::vec2, pos)
+      GET_COMPONENT(Brick, q, CollisionShape, collision_shape),
+      GET_COMPONENT(Brick, q, glm::vec2, pos)
     });
 }
 template <typename Callable> void MovingBrick::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("physics.ecs.cpp_MovingBrick"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(MovingBrick, i, CollisionShape, collision_shape),
-      GET_COMPONENT(MovingBrick, i, glm::vec2, pos),
-      GET_COMPONENT(MovingBrick, i, glm::vec2, vel)
+      GET_COMPONENT(MovingBrick, q, CollisionShape, collision_shape),
+      GET_COMPONENT(MovingBrick, q, glm::vec2, pos),
+      GET_COMPONENT(MovingBrick, q, glm::vec2, vel)
     });
 }
 static void init_physics_collision_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_collision_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(init_physics_collision_handler, i, EntityId, eid),
-      GET_COMPONENT(init_physics_collision_handler, i, PhysicsBody, phys_body),
-      GET_COMPONENT(init_physics_collision_handler, i, CollisionShape, collision_shape));
+      GET_COMPONENT(init_physics_collision_handler, q, EntityId, eid),
+      GET_COMPONENT(init_physics_collision_handler, q, PhysicsBody, phys_body),
+      GET_COMPONENT(init_physics_collision_handler, q, CollisionShape, collision_shape));
 }
 static RegSys _reg_sys_init_physics_collision_handler("init_physics_collision_handler", &init_physics_collision_handler_run, "EventOnEntityCreate", init_physics_collision_handler_query_desc);
 
 static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_body_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(init_physics_body_handler, i, PhysicsBody, phys_body),
-      GET_COMPONENT(init_physics_body_handler, i, glm::vec2, pos));
+      GET_COMPONENT(init_physics_body_handler, q, PhysicsBody, phys_body),
+      GET_COMPONENT(init_physics_body_handler, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_init_physics_body_handler("init_physics_body_handler", &init_physics_body_handler_run, "EventOnEntityCreate", init_physics_body_handler_query_desc);
 
 static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_world_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(init_physics_world_handler, i, PhysicsWorld, phys_world));
+      GET_COMPONENT(init_physics_world_handler, q, PhysicsWorld, phys_world));
 }
 static RegSys _reg_sys_init_physics_world_handler("init_physics_world_handler", &init_physics_world_handler_run, "EventOnEntityCreate", init_physics_world_handler_query_desc);
 
 static void update_physics_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_physics::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_physics, i, PhysicsWorld, phys_world));
+      GET_COMPONENT(update_physics, q, PhysicsWorld, phys_world));
 }
 static RegSys _reg_sys_update_physics("update_physics", &update_physics_run, "UpdateStage", update_physics_query_desc);
 
 static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_kinematic_physics_body::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_kinematic_physics_body, i, PhysicsBody, phys_body),
-      GET_COMPONENT(update_kinematic_physics_body, i, glm::vec2, pos),
-      GET_COMPONENT(update_kinematic_physics_body, i, glm::vec2, vel));
+      GET_COMPONENT(update_kinematic_physics_body, q, PhysicsBody, phys_body),
+      GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, pos),
+      GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, vel));
 }
 static RegSys _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", &update_kinematic_physics_body_run, "UpdateStage", update_kinematic_physics_body_query_desc);
 
 static void update_physics_collisions_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_physics_collisions::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_physics_collisions, i, PhysicsBody, phys_body),
-      GET_COMPONENT(update_physics_collisions, i, CollisionShape, collision_shape),
-      GET_COMPONENT(update_physics_collisions, i, Gravity, gravity),
-      GET_COMPONENT(update_physics_collisions, i, bool, is_on_ground),
-      GET_COMPONENT(update_physics_collisions, i, glm::vec2, pos),
-      GET_COMPONENT(update_physics_collisions, i, glm::vec2, vel));
+      GET_COMPONENT(update_physics_collisions, q, PhysicsBody, phys_body),
+      GET_COMPONENT(update_physics_collisions, q, CollisionShape, collision_shape),
+      GET_COMPONENT(update_physics_collisions, q, Gravity, gravity),
+      GET_COMPONENT(update_physics_collisions, q, bool, is_on_ground),
+      GET_COMPONENT(update_physics_collisions, q, glm::vec2, pos),
+      GET_COMPONENT(update_physics_collisions, q, glm::vec2, vel));
 }
 static RegSys _reg_sys_update_physics_collisions("update_physics_collisions", &update_physics_collisions_run, "UpdateStage", update_physics_collisions_query_desc);
 
 static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_debug_physics::run(*(RenderDebugStage*)stage_or_event.mem,
-      GET_COMPONENT(render_debug_physics, i, PhysicsWorld, phys_world));
+      GET_COMPONENT(render_debug_physics, q, PhysicsWorld, phys_world));
 }
 static RegSys _reg_sys_render_debug_physics("render_debug_physics", &render_debug_physics_run, "RenderDebugStage", render_debug_physics_query_desc);
 

@@ -116,68 +116,68 @@ static RegQuery _reg_query_AliveEnemy(hash::cstr("codegen-test.cpp_AliveEnemy"),
 template <typename Callable> void TestAQuery::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(TestAQuery, i, EntityId, eid),
-      GET_COMPONENT(TestAQuery, i, glm::vec4, collision_rect),
-      GET_COMPONENT(TestAQuery, i, glm::vec2, pos)
+      GET_COMPONENT(TestAQuery, q, EntityId, eid),
+      GET_COMPONENT(TestAQuery, q, glm::vec4, collision_rect),
+      GET_COMPONENT(TestAQuery, q, glm::vec2, pos)
     });
 }
 template <typename Callable> void TestBQuery::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(TestBQuery, i, EntityId, eid_a),
-      GET_COMPONENT(TestBQuery, i, glm::vec4, a),
-      GET_COMPONENT(TestBQuery, i, glm::vec2, b)
+      GET_COMPONENT(TestBQuery, q, EntityId, eid_a),
+      GET_COMPONENT(TestBQuery, q, glm::vec4, a),
+      GET_COMPONENT(TestBQuery, q, glm::vec2, b)
     });
 }
 template <typename Callable> void BricksQuery::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_BricksQuery"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(BricksQuery, i, glm::vec4, collision_rect),
-      GET_COMPONENT(BricksQuery, i, glm::vec2, pos)
+      GET_COMPONENT(BricksQuery, q, glm::vec4, collision_rect),
+      GET_COMPONENT(BricksQuery, q, glm::vec2, pos)
     });
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
-      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
-      GET_COMPONENT(AliveEnemy, i, bool, is_alive)
+      GET_COMPONENT(AliveEnemy, q, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, q, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, q, bool, is_alive)
     });
 }
 static void UpdatePositionSimple_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     UpdatePositionSimple::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(UpdatePositionSimple, i, glm::vec2, vel),
-      GET_COMPONENT(UpdatePositionSimple, i, glm::vec2, pos));
+      GET_COMPONENT(UpdatePositionSimple, q, glm::vec2, vel),
+      GET_COMPONENT(UpdatePositionSimple, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_UpdatePositionSimple("UpdatePositionSimple", &UpdatePositionSimple_run, "UpdateStage", UpdatePositionSimple_query_desc);
 
 static void UpdatePositionExternalQuery_run(const RawArg &stage_or_event, Query&)
 {
   Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
-  for (auto i : query)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     UpdatePositionExternalQuery::run(*(UpdateStage*)stage_or_event.mem,
     {
-      GET_COMPONENT(AliveEnemy, i, EntityId, eid),
-      GET_COMPONENT(AliveEnemy, i, glm::vec4, collision_rect),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, pos),
-      GET_COMPONENT(AliveEnemy, i, glm::vec2, vel),
-      GET_COMPONENT(AliveEnemy, i, bool, is_alive)
+      GET_COMPONENT(AliveEnemy, q, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, q, glm::vec4, collision_rect),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, q, glm::vec2, vel),
+      GET_COMPONENT(AliveEnemy, q, bool, is_alive)
     });
 }
 static RegSys _reg_sys_UpdatePositionExternalQuery("UpdatePositionExternalQuery", &UpdatePositionExternalQuery_run, "UpdateStage");
@@ -186,7 +186,7 @@ static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
 {
   Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
   Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
-  for (auto q1 : query1)
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     TestAQuery test_a =
     {
@@ -194,7 +194,7 @@ static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
       GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
       GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
     };
-    for (auto q2 : query2)
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
     {
       TestBQuery test_b =
       {
@@ -213,7 +213,7 @@ static void UpdatePositionJoinAll_run(const RawArg &stage_or_event, Query&)
 {
   Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
   Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
-  for (auto q1 : query1)
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     TestAQuery test_a =
     {
@@ -221,7 +221,7 @@ static void UpdatePositionJoinAll_run(const RawArg &stage_or_event, Query&)
       GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
       GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
     };
-    for (auto q2 : query2)
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
     {
       TestBQuery test_b =
       {
