@@ -66,7 +66,6 @@
 
 #if defined(RLGL_STANDALONE)
     #define RAYMATH_STANDALONE
-    #define RAYMATH_HEADER_ONLY
 #else
     #include "raylib.h"         // Required for: Model, Shader, Texture2D, TraceLog()
 #endif
@@ -199,14 +198,7 @@ typedef unsigned char byte;
         float *tangents;        // vertex tangents (XYZW - 4 components per vertex) (shader-location = 4)
         unsigned char *colors;  // vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
         unsigned short *indices;// vertex indices (in case vertex data comes indexed)
-        
-        // Animation vertex data
-        float *baseVertices;    // Vertex base position (required to apply bones transformations)
-        float *baseNormals;     // Vertex base normals (required to apply bones transformations)
-        float *weightBias;      // Vertex weight bias
-        int *weightId;          // Vertex weight id
 
-        // OpenGL identifiers
         unsigned int vaoId;     // OpenGL Vertex Array Object id
         unsigned int vboId[7];  // OpenGL Vertex Buffer Objects id (7 types of vertex data)
     } Mesh;
@@ -2660,11 +2652,6 @@ void rlUnloadMesh(Mesh *mesh)
     if (mesh->tangents != NULL) free(mesh->tangents);
     if (mesh->texcoords2 != NULL) free(mesh->texcoords2);
     if (mesh->indices != NULL) free(mesh->indices);
-    
-    if (mesh->baseVertices != NULL) free(mesh->baseVertices);
-    if (mesh->baseNormals != NULL) free(mesh->baseNormals);
-    if (mesh->weightBias != NULL) free(mesh->weightBias);
-    if (mesh->weightId != NULL) free(mesh->weightId);
 
     rlDeleteBuffers(mesh->vboId[0]);   // vertex
     rlDeleteBuffers(mesh->vboId[1]);   // texcoords

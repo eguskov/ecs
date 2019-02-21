@@ -1,16 +1,17 @@
 ### Config options ###
 include(CMakeDependentOption)
-include(EnumOption)
 
-enum_option(PLATFORM "Desktop;Web;Android;Raspberry Pi" "Platform to build for.")
+set(PLATFORM "Desktop" CACHE STRING "Platform to build for.")
+set_property(CACHE PLATFORM PROPERTY STRINGS "Desktop" "Web" "Android" "Raspberry Pi")
 
-enum_option(OPENGL_VERSION "OFF;3.3;2.1;1.1;ES 2.0" "Force a specific OpenGL Version?")
+set(OPENGL_VERSION "3.3" CACHE STRING "OpenGL Version to build raylib with")
+set_property(CACHE OPENGL_VERSION PROPERTY STRINGS "3.3" "2.1" "1.1" "ES 2.0")
 
 # Shared library is always PIC. Static library should be PIC too if linked into a shared library
 option(WITH_PIC "Compile static library as position-independent code" OFF)
 option(SHARED "Build raylib as a dynamic library" OFF)
 option(STATIC "Build raylib as a static library" ON)
-option(MACOS_FATLIB  "Build fat library for both i386 and x86_64 on macOS" OFF)
+option(MACOS_FATLIB  "Build fat library for both i386 and x86_64 on macOS" ON)
 option(USE_AUDIO "Build raylib with audio module" ON)
 if(${PLATFORM} MATCHES "Web")
   cmake_dependent_option(USE_OPENAL_BACKEND "Link raylib with openAL instead of mini-al" ON "USE_AUDIO" OFF)
@@ -18,13 +19,11 @@ else()
   cmake_dependent_option(USE_OPENAL_BACKEND "Link raylib with openAL instead of mini-al" OFF "USE_AUDIO" OFF)
 endif()
 
-enum_option(USE_EXTERNAL_GLFW "OFF;IF_POSSIBLE;ON" "Link raylib against system GLFW instead of embedded one")
+set(USE_EXTERNAL_GLFW  OFF  CACHE STRING "Link raylib against system GLFW instead of embedded one")
+set_property(CACHE USE_EXTERNAL_GLFW PROPERTY STRINGS ON OFF IF_POSSIBLE)
 if(UNIX AND NOT APPLE)
-  option(USE_WAYLAND "Use Wayland for window creation" OFF)
+    option(USE_WAYLAND "Use Wayland for window creation" OFF)
 endif()
-
-option(INCLUDE_EVERYTHING "Include everything disabled by default (for CI usage" OFF)
-set(OFF ${INCLUDE_EVERYTHING} CACHE INTERNAL "Replace any OFF by default with \${OFF} to have it covered by this option")
 
 
 # core.c
@@ -45,19 +44,19 @@ option(SUPPORT_FONT_TEXTURE "Draw rectangle shapes using font texture white char
 option(SUPPORT_QUADS_DRAW_MODE "Use QUADS instead of TRIANGLES for drawing when possible. Some lines-based shapes could still use lines" ON)
 
 # textures.c
-option(SUPPORT_IMAGE_GENERATION "Support procedural image generation functionality (gradient, spot, perlin-noise, cellular)" ON)
+option(SUPPORT_IMAGE_GENERATION "Support proedural image generation functionality (gradient, spot, perlin-noise, cellular)" ON)
 option(SUPPORT_FILEFORMAT_PNG "Support loading PNG as textures" ON)
 option(SUPPORT_FILEFORMAT_DDS "Support loading DDS as textures" ON)
 option(SUPPORT_FILEFORMAT_HDR "Support loading HDR as textures" ON)
 option(SUPPORT_FILEFORMAT_KTX "Support loading KTX as textures" ON)
-option(SUPPORT_FILEFORMAT_ASTC "Support loading ASTC as textures" ON)
-option(SUPPORT_FILEFORMAT_BMP "Support loading BMP as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_TGA "Support loading TGA as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_JPG "Support loading JPG as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_GIF "Support loading GIF as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_PSD "Support loading PSD as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_PKM "Support loading PKM as textures" ${OFF})
-option(SUPPORT_FILEFORMAT_PVR "Support loading PVR as textures" ${OFF})
+option(SUPPORT_FILEFORMAT_ASTC "Support loading ASTC as  textures" ON)
+option(SUPPORT_FILEFORMAT_BMP "Support loading BMP as textures" OFF)
+option(SUPPORT_FILEFORMAT_TGA "Support loading TGA as textures" OFF)
+option(SUPPORT_FILEFORMAT_JPG "Support loading JPG as textures" OFF)
+option(SUPPORT_FILEFORMAT_GIF "Support loading GIF as textures" OFF)
+option(SUPPORT_FILEFORMAT_PSD "Support loading PSD as textures" OFF)
+option(SUPPORT_FILEFORMAT_PKM "Support loading PKM as textures" OFF)
+option(SUPPORT_FILEFORMAT_PVR "Support loading PVR as textures" OFF)
 
 # models.c
 option(SUPPORT_FILEFORMAT_OBJ "Support loading OBJ file format" ON)
@@ -69,11 +68,11 @@ option(SUPPORT_FILEFORMAT_WAV  "Support loading WAV for sound" ON)
 option(SUPPORT_FILEFORMAT_OGG  "Support loading OGG for sound" ON)
 option(SUPPORT_FILEFORMAT_XM   "Support loading XM for sound" ON)
 option(SUPPORT_FILEFORMAT_MOD  "Support loading MOD for sound" ON)
-option(SUPPORT_FILEFORMAT_FLAC "Support loading FLAC for sound" ${OFF})
+option(SUPPORT_FILEFORMAT_FLAC "Support loading FLAC for sound" OFF)
 
 # utils.c
 option(SUPPORT_SAVE_PNG "Support saving image data in PNG file format" ON)
-option(SUPPORT_SAVE_BMP "Support saving image data in BMP file format" ${OFF})
+option(SUPPORT_SAVE_BMP "Support saving image data in BMP file format" OFF)
 option(SUPPORT_TRACELOG "Show TraceLog() output messages. NOTE: By default LOG_DEBUG traces not shown" ON)
 
 option(SUPPORT_FILEFORMAT_FNT "Support loading fonts in FNT format" ON)
