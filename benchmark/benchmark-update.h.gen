@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "update.ecs.h"
+#include "benchmark-update.h"
 
 
 

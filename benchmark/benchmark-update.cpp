@@ -1,8 +1,6 @@
 #include <ecs/ecs.h>
 
-#include "update.ecs.h"
-
-#include <stages/update.stage.h>
+#include "benchmark-update.h"
 
 struct update_position
 {

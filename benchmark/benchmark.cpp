@@ -1,7 +1,7 @@
 #include <ecs/ecs.h>
 #include <ecs/perf.h>
 
-#include "update.ecs.h"
+#include "benchmark-update.h"
 
 PULL_ESC_CORE;
 

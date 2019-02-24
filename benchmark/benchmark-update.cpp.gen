@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "update.ecs.cpp"
+#include "benchmark-update.cpp"
 
 static constexpr ConstCompDesc update_position_components[] = {
   {hash::cstr("vel"), Desc<glm::vec3>::Size},
