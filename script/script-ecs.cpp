@@ -1,4 +1,4 @@
-#include "scriptECS.h"
+#include "script-ecs.h"
 
 #include <ecs/debug.h>
 
@@ -11,7 +11,7 @@
 
 #include <scriptbuilder/scriptbuilder.h>
 
-#include "scriptQuery.h"
+#include "script-query.h"
 
 REG_COMP_INIT(script::ScriptComponent, script);
 

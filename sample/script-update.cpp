@@ -3,7 +3,7 @@
 #include <stages/update.stage.h>
 #include <stages/dispatchEvent.stage.h>
 
-#include <scriptECS.h>
+#include <script-ecs.h>
 
 #include "script-update.h"
 

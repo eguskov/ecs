@@ -121,13 +121,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="script.h" />
-    <ClInclude Include="scriptECS.h" />
-    <ClInclude Include="scriptQuery.h" />
+    <ClInclude Include="script-ecs.h" />
+    <ClInclude Include="script-query.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="script.cpp" />
-    <ClCompile Include="scriptECS.cpp" />
-    <ClCompile Include="scriptQuery.cpp" />
+    <ClCompile Include="script-ecs.cpp" />
+    <ClCompile Include="script-query.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

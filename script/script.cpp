@@ -33,8 +33,8 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
 
-#include "scriptECS.h"
-#include "scriptQuery.h"
+#include "script-ecs.h"
+#include "script-query.h"
 
 namespace script
 {

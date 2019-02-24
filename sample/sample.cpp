@@ -9,7 +9,7 @@
 #include <stages/render.stage.h>
 
 #include <script.h>
-#include <scriptECS.h>
+#include <script-ecs.h>
 
 #include <scripthandle/scripthandle.h>
 #include <scriptarray/scriptarray.h>

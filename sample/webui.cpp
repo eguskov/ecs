@@ -2,7 +2,7 @@
 
 #include <ecs/ecs.h>
 
-#include <scriptECS.h>
+#include <script-ecs.h>
 
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>

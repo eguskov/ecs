@@ -1,4 +1,4 @@
-#include "scriptQuery.h"
+#include "script-query.h"
 
 #include <ecs/ecs.h>
 #include <ecs/debug.h>
