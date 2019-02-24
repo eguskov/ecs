@@ -21,7 +21,7 @@ static RegCompSpec<AnimState> _reg_comp_anim_state("anim_state");
 template <> int RegCompSpec<AnimState>::ID = -1;
 
 static constexpr ConstCompDesc load_texture_handler_components[] = {
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size},
 };
 static constexpr ConstQueryDesc load_texture_handler_query_desc = {
   make_const_array(load_texture_handler_components),
@@ -31,14 +31,14 @@ static constexpr ConstQueryDesc load_texture_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_position_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc update_position_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstCompDesc update_position_not_have_components[] = {
-  {hash::cstr("is_active"), 0},
+  {HASH("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_position_query_desc = {
   make_const_array(update_position_components),
@@ -48,12 +48,12 @@ static constexpr ConstQueryDesc update_position_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_position_for_active_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc update_position_for_active_have_components[] = {
-  {hash::cstr("is_alive"), 0},
-  {hash::cstr("is_active"), 0},
+  {HASH("is_alive"), 0},
+  {HASH("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_position_for_active_query_desc = {
   make_const_array(update_position_for_active_components),
@@ -63,9 +63,9 @@ static constexpr ConstQueryDesc update_position_for_active_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_anim_frame_components[] = {
-  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
-  {hash::cstr("anim_state"), Desc<AnimState>::Size},
-  {hash::cstr("frame"), Desc<glm::vec4>::Size},
+  {HASH("anim_graph"), Desc<AnimGraph>::Size},
+  {HASH("anim_state"), Desc<AnimState>::Size},
+  {HASH("frame"), Desc<glm::vec4>::Size},
 };
 static constexpr ConstQueryDesc update_anim_frame_query_desc = {
   make_const_array(update_anim_frame_components),
@@ -75,13 +75,13 @@ static constexpr ConstQueryDesc update_anim_frame_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_walls_components[] = {
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
-  {hash::cstr("frame"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size},
+  {HASH("frame"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc render_walls_have_components[] = {
-  {hash::cstr("wall"), 0},
-  {hash::cstr("is_alive"), 0},
+  {HASH("wall"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc render_walls_query_desc = {
   make_const_array(render_walls_components),
@@ -91,16 +91,16 @@ static constexpr ConstQueryDesc render_walls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_normal_components[] = {
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
-  {hash::cstr("frame"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size},
+  {HASH("frame"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstCompDesc render_normal_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstCompDesc render_normal_not_have_components[] = {
-  {hash::cstr("wall"), 0},
+  {HASH("wall"), 0},
 };
 static constexpr ConstQueryDesc render_normal_query_desc = {
   make_const_array(render_normal_components),
@@ -110,7 +110,7 @@ static constexpr ConstQueryDesc render_normal_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc read_controls_components[] = {
-  {hash::cstr("user_input"), Desc<UserInput>::Size},
+  {HASH("user_input"), Desc<UserInput>::Size},
 };
 static constexpr ConstQueryDesc read_controls_query_desc = {
   make_const_array(read_controls_components),
@@ -120,11 +120,11 @@ static constexpr ConstQueryDesc read_controls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc apply_controls_components[] = {
-  {hash::cstr("user_input"), Desc<UserInput>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("jump"), Desc<Jump>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("user_input"), Desc<UserInput>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+  {HASH("jump"), Desc<Jump>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstQueryDesc apply_controls_query_desc = {
   make_const_array(apply_controls_components),
@@ -134,9 +134,9 @@ static constexpr ConstQueryDesc apply_controls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc apply_jump_components[] = {
-  {hash::cstr("jump"), Desc<Jump>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {HASH("jump"), Desc<Jump>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstQueryDesc apply_jump_query_desc = {
   make_const_array(apply_jump_components),
@@ -146,11 +146,11 @@ static constexpr ConstQueryDesc apply_jump_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc apply_gravity_components[] = {
-  {hash::cstr("gravity"), Desc<Gravity>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {HASH("gravity"), Desc<Gravity>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc apply_gravity_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc apply_gravity_query_desc = {
   make_const_array(apply_gravity_components),
@@ -160,15 +160,15 @@ static constexpr ConstQueryDesc apply_gravity_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_auto_move_collisions_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstCompDesc update_auto_move_collisions_have_components[] = {
-  {hash::cstr("enemy"), 0},
-  {hash::cstr("is_alive"), 0},
+  {HASH("enemy"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc update_auto_move_collisions_query_desc = {
   make_const_array(update_auto_move_collisions_components),
@@ -178,14 +178,14 @@ static constexpr ConstQueryDesc update_auto_move_collisions_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc select_current_anim_frame_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
-  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("anim_graph"), Desc<AnimGraph>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size},
+  {HASH("anim_state"), Desc<AnimState>::Size},
 };
 static constexpr ConstCompDesc select_current_anim_frame_not_have_components[] = {
-  {hash::cstr("user_input"), 0},
+  {HASH("user_input"), 0},
 };
 static constexpr ConstQueryDesc select_current_anim_frame_query_desc = {
   make_const_array(select_current_anim_frame_components),
@@ -195,12 +195,12 @@ static constexpr ConstQueryDesc select_current_anim_frame_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc select_current_anim_frame_for_player_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("anim_graph"), Desc<AnimGraph>::Size},
-  {hash::cstr("user_input"), Desc<UserInput>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("texture"), Desc<TextureAtlas>::Size},
-  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("anim_graph"), Desc<AnimGraph>::Size},
+  {HASH("user_input"), Desc<UserInput>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size},
+  {HASH("anim_state"), Desc<AnimState>::Size},
 };
 static constexpr ConstQueryDesc select_current_anim_frame_for_player_query_desc = {
   make_const_array(select_current_anim_frame_for_player_components),
@@ -210,16 +210,16 @@ static constexpr ConstQueryDesc select_current_anim_frame_for_player_query_desc 
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_enemies_collisions_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("jump"), Desc<Jump>::Size},
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("jump"), Desc<Jump>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstCompDesc update_enemies_collisions_have_components[] = {
-  {hash::cstr("user_input"), 0},
-  {hash::cstr("is_alive"), 0},
+  {HASH("user_input"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc update_enemies_collisions_query_desc = {
   make_const_array(update_enemies_collisions_components),
@@ -229,12 +229,12 @@ static constexpr ConstQueryDesc update_enemies_collisions_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc remove_death_fx_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("anim_state"), Desc<AnimState>::Size},
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("anim_state"), Desc<AnimState>::Size},
+  {HASH("is_alive"), Desc<bool>::Size},
 };
 static constexpr ConstCompDesc remove_death_fx_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc remove_death_fx_query_desc = {
   make_const_array(remove_death_fx_components),
@@ -244,10 +244,10 @@ static constexpr ConstQueryDesc remove_death_fx_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_camera_components[] = {
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc update_camera_have_components[] = {
-  {hash::cstr("user_input"), 0},
+  {HASH("user_input"), 0},
 };
 static constexpr ConstQueryDesc update_camera_query_desc = {
   make_const_array(update_camera_components),
@@ -257,7 +257,7 @@ static constexpr ConstQueryDesc update_camera_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc process_on_kill_event_components[] = {
-  {hash::cstr("hud"), Desc<HUD>::Size},
+  {HASH("hud"), Desc<HUD>::Size},
 };
 static constexpr ConstQueryDesc process_on_kill_event_query_desc = {
   make_const_array(process_on_kill_event_components),
@@ -267,13 +267,13 @@ static constexpr ConstQueryDesc process_on_kill_event_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_active_auto_move_components[] = {
-  {hash::cstr("auto_move"), Desc<AutoMove>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("auto_move"), Desc<AutoMove>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstCompDesc update_active_auto_move_have_components[] = {
-  {hash::cstr("is_alive"), 0},
-  {hash::cstr("is_active"), 0},
+  {HASH("is_alive"), 0},
+  {HASH("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_components),
@@ -283,15 +283,15 @@ static constexpr ConstQueryDesc update_active_auto_move_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_always_active_auto_move_components[] = {
-  {hash::cstr("auto_move"), Desc<AutoMove>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("dir"), Desc<float>::Size},
+  {HASH("auto_move"), Desc<AutoMove>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
 };
 static constexpr ConstCompDesc update_always_active_auto_move_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstCompDesc update_always_active_auto_move_not_have_components[] = {
-  {hash::cstr("is_active"), 0},
+  {HASH("is_active"), 0},
 };
 static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
   make_const_array(update_always_active_auto_move_components),
@@ -302,11 +302,11 @@ static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
 };
 
 static constexpr ConstCompDesc Brick_components[] = {
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc Brick_have_components[] = {
-  {hash::cstr("wall"), 0},
+  {HASH("wall"), 0},
 };
 static constexpr ConstQueryDesc Brick_query_desc = {
   make_const_array(Brick_components),
@@ -316,16 +316,16 @@ static constexpr ConstQueryDesc Brick_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc AliveEnemy_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("is_alive"), Desc<bool>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("anim_state"), Desc<AnimState>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("anim_state"), Desc<AnimState>::Size},
 };
 static constexpr ConstCompDesc AliveEnemy_have_components[] = {
-  {hash::cstr("enemy"), 0},
-  {hash::cstr("is_alive"), 0},
+  {HASH("enemy"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_components),
@@ -335,8 +335,8 @@ static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   empty_desc_array,
 };
 
-static RegQuery _reg_query_Brick(hash::cstr("update.cpp_Brick"), Brick_query_desc, nullptr);
-static RegQuery _reg_query_AliveEnemy(hash::cstr("update.cpp_AliveEnemy"), AliveEnemy_query_desc, 
+static RegQuery _reg_query_Brick(HASH("update.cpp_Brick"), Brick_query_desc, nullptr);
+static RegQuery _reg_query_AliveEnemy(HASH("update.cpp_AliveEnemy"), AliveEnemy_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -345,7 +345,7 @@ static RegQuery _reg_query_AliveEnemy(hash::cstr("update.cpp_AliveEnemy"), Alive
 
 template <typename Callable> void Brick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("update.cpp_Brick"));
+  Query &query = *g_mgr->getQueryByName(HASH("update.cpp_Brick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -355,7 +355,7 @@ template <typename Callable> void Brick::foreach(Callable callback)
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("update.cpp_AliveEnemy"));
+  Query &query = *g_mgr->getQueryByName(HASH("update.cpp_AliveEnemy"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {

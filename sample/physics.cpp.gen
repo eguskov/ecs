@@ -18,9 +18,9 @@ static RegCompSpec<EventOnPhysicsContact> _reg_event_EventOnPhysicsContact;
 int RegCompSpec<EventOnPhysicsContact>::ID = -1;
 
 static constexpr ConstCompDesc init_physics_collision_handler_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("phys_body"), Desc<PhysicsBody>::Size},
-  {hash::cstr("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("phys_body"), Desc<PhysicsBody>::Size},
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
 };
 static constexpr ConstQueryDesc init_physics_collision_handler_query_desc = {
   make_const_array(init_physics_collision_handler_components),
@@ -30,8 +30,8 @@ static constexpr ConstQueryDesc init_physics_collision_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc init_physics_body_handler_components[] = {
-  {hash::cstr("phys_body"), Desc<PhysicsBody>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("phys_body"), Desc<PhysicsBody>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstQueryDesc init_physics_body_handler_query_desc = {
   make_const_array(init_physics_body_handler_components),
@@ -41,7 +41,7 @@ static constexpr ConstQueryDesc init_physics_body_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc init_physics_world_handler_components[] = {
-  {hash::cstr("phys_world"), Desc<PhysicsWorld>::Size},
+  {HASH("phys_world"), Desc<PhysicsWorld>::Size},
 };
 static constexpr ConstQueryDesc init_physics_world_handler_query_desc = {
   make_const_array(init_physics_world_handler_components),
@@ -51,7 +51,7 @@ static constexpr ConstQueryDesc init_physics_world_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_physics_components[] = {
-  {hash::cstr("phys_world"), Desc<PhysicsWorld>::Size},
+  {HASH("phys_world"), Desc<PhysicsWorld>::Size},
 };
 static constexpr ConstQueryDesc update_physics_query_desc = {
   make_const_array(update_physics_components),
@@ -61,9 +61,9 @@ static constexpr ConstQueryDesc update_physics_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_kinematic_physics_body_components[] = {
-  {hash::cstr("phys_body"), Desc<PhysicsBody>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {HASH("phys_body"), Desc<PhysicsBody>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstQueryDesc update_kinematic_physics_body_query_desc = {
   make_const_array(update_kinematic_physics_body_components),
@@ -73,15 +73,15 @@ static constexpr ConstQueryDesc update_kinematic_physics_body_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_physics_collisions_components[] = {
-  {hash::cstr("phys_body"), Desc<PhysicsBody>::Size},
-  {hash::cstr("collision_shape"), Desc<CollisionShape>::Size},
-  {hash::cstr("gravity"), Desc<Gravity>::Size},
-  {hash::cstr("is_on_ground"), Desc<bool>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {HASH("phys_body"), Desc<PhysicsBody>::Size},
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("gravity"), Desc<Gravity>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc update_physics_collisions_have_components[] = {
-  {hash::cstr("user_input"), 0},
+  {HASH("user_input"), 0},
 };
 static constexpr ConstQueryDesc update_physics_collisions_query_desc = {
   make_const_array(update_physics_collisions_components),
@@ -91,7 +91,7 @@ static constexpr ConstQueryDesc update_physics_collisions_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_debug_physics_components[] = {
-  {hash::cstr("phys_world"), Desc<PhysicsWorld>::Size},
+  {HASH("phys_world"), Desc<PhysicsWorld>::Size},
 };
 static constexpr ConstQueryDesc render_debug_physics_query_desc = {
   make_const_array(render_debug_physics_components),
@@ -102,11 +102,11 @@ static constexpr ConstQueryDesc render_debug_physics_query_desc = {
 };
 
 static constexpr ConstCompDesc Brick_components[] = {
-  {hash::cstr("collision_shape"), Desc<CollisionShape>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc Brick_have_components[] = {
-  {hash::cstr("wall"), 0},
+  {HASH("wall"), 0},
 };
 static constexpr ConstQueryDesc Brick_query_desc = {
   make_const_array(Brick_components),
@@ -116,13 +116,13 @@ static constexpr ConstQueryDesc Brick_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc MovingBrick_components[] = {
-  {hash::cstr("collision_shape"), Desc<CollisionShape>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc MovingBrick_have_components[] = {
-  {hash::cstr("wall"), 0},
-  {hash::cstr("auto_move"), 0},
+  {HASH("wall"), 0},
+  {HASH("auto_move"), 0},
 };
 static constexpr ConstQueryDesc MovingBrick_query_desc = {
   make_const_array(MovingBrick_components),
@@ -132,12 +132,12 @@ static constexpr ConstQueryDesc MovingBrick_query_desc = {
   empty_desc_array,
 };
 
-static RegQuery _reg_query_Brick(hash::cstr("physics.cpp_Brick"), Brick_query_desc, nullptr);
-static RegQuery _reg_query_MovingBrick(hash::cstr("physics.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
+static RegQuery _reg_query_Brick(HASH("physics.cpp_Brick"), Brick_query_desc, nullptr);
+static RegQuery _reg_query_MovingBrick(HASH("physics.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
 
 template <typename Callable> void Brick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.cpp_Brick"));
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_Brick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -147,7 +147,7 @@ template <typename Callable> void Brick::foreach(Callable callback)
 }
 template <typename Callable> void MovingBrick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.cpp_MovingBrick"));
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_MovingBrick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {

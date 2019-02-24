@@ -931,7 +931,7 @@ int main(int argc, char* argv[])
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << "  {hash::cstr(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -941,7 +941,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << sys.name << "_have_components[] = {" << std::endl;
         for (const auto &p : sys.have)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -950,7 +950,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << sys.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : sys.notHave)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -959,7 +959,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << sys.name << "_is_true_components[] = {" << std::endl;
         for (const auto &p : sys.trackTrue)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -968,7 +968,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << sys.name << "_is_false_components[] = {" << std::endl;
         for (const auto &p : sys.trackFalse)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -1021,7 +1021,7 @@ int main(int argc, char* argv[])
       out << "static constexpr ConstCompDesc " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
       {
-        out << "  {hash::cstr(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
       }
       out << "};" << std::endl;
 
@@ -1030,7 +1030,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << q.name << "_have_components[] = {" << std::endl;
         for (const auto &p : q.have)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -1039,7 +1039,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << q.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : q.notHave)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), 0}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -1048,7 +1048,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << q.name << "_is_true_components[] = {" << std::endl;
         for (const auto &p : q.trackTrue)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -1057,7 +1057,7 @@ int main(int argc, char* argv[])
         out << "static constexpr ConstCompDesc " << q.name << "_is_false_components[] = {" << std::endl;
         for (const auto &p : q.trackFalse)
         {
-          out << "  {hash::cstr(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -1080,9 +1080,9 @@ int main(int argc, char* argv[])
     for (const auto &q : state.queries)
     {
       if (q.version == 1)
-        out << "static RegQuery _reg_query_" << q.name << "(hash::cstr(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc);" << std::endl;
+        out << "static RegQuery _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc);" << std::endl;
       else
-        out << "static RegQuery _reg_query_" << q.name << "(hash::cstr(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
+        out << "static RegQuery _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
     }
 
     out << std::endl;
@@ -1093,7 +1093,7 @@ int main(int argc, char* argv[])
       {
         out << "template <typename C> void " << q.name << "::exec(C callback)" << std::endl;
         out << "{" << std::endl;
-        out << "  auto &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
+        out << "  auto &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
         for (int i = 0; i < (int)q.parameters.size(); ++i)
         {
           const auto &p = q.parameters[i];
@@ -1134,7 +1134,7 @@ int main(int argc, char* argv[])
       {
         out << "template <typename Callable> void " << q.name << "::foreach(Callable callback)\n";
         out << "{\n";
-        out << "  Query &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));\n";
+        out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));\n";
         out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
         out << "    callback(\n";
         out << "    {\n      ";
@@ -1169,7 +1169,7 @@ int main(int argc, char* argv[])
           for (int i = 1; i < (int)sys.parameters.size(); ++i)
           {
             const auto &q = state.queries[sys.parameters[i].queryId];
-            out << "  Query &query" << i << " = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
+            out << "  Query &query" << i << " = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
           }
 
           std::string indent = "  ";
@@ -1219,7 +1219,7 @@ int main(int argc, char* argv[])
         {
           const auto &q = state.queries[sys.parameters[1].queryId];
 
-          out << "  Query &query = *g_mgr->getQueryByName(hash::cstr(\"" << basename << "_" << q.name << "\"));" << std::endl;
+          out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
           out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
 
           out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";

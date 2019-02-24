@@ -12,7 +12,7 @@ static RegCompSpec<CEFEventOnAfterCreated> _reg_event_CEFEventOnAfterCreated;
 int RegCompSpec<CEFEventOnAfterCreated>::ID = -1;
 
 static constexpr ConstCompDesc cef_ready_handler_have_components[] = {
-  {hash::cstr("webui"), 0},
+  {HASH("webui"), 0},
 };
 static constexpr ConstQueryDesc cef_ready_handler_query_desc = {
   empty_desc_array,
@@ -22,7 +22,7 @@ static constexpr ConstQueryDesc cef_ready_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc cef_after_created_handler_have_components[] = {
-  {hash::cstr("webui"), 0},
+  {HASH("webui"), 0},
 };
 static constexpr ConstQueryDesc cef_after_created_handler_query_desc = {
   empty_desc_array,
@@ -32,7 +32,7 @@ static constexpr ConstQueryDesc cef_after_created_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc cef_click_outside_handler_have_components[] = {
-  {hash::cstr("webui"), 0},
+  {HASH("webui"), 0},
 };
 static constexpr ConstQueryDesc cef_click_outside_handler_query_desc = {
   empty_desc_array,
@@ -42,7 +42,7 @@ static constexpr ConstQueryDesc cef_click_outside_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc cef_toggle_dev_tools_handler_have_components[] = {
-  {hash::cstr("webui"), 0},
+  {HASH("webui"), 0},
 };
 static constexpr ConstQueryDesc cef_toggle_dev_tools_handler_query_desc = {
   empty_desc_array,
@@ -52,7 +52,7 @@ static constexpr ConstQueryDesc cef_toggle_dev_tools_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc cef_toggle_webui_handler_have_components[] = {
-  {hash::cstr("webui"), 0},
+  {HASH("webui"), 0},
 };
 static constexpr ConstQueryDesc cef_toggle_webui_handler_query_desc = {
   empty_desc_array,

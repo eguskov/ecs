@@ -6,7 +6,7 @@
 #include "webui.cpp"
 
 static constexpr ConstCompDesc Script_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc Script_query_desc = {
   make_const_array(Script_components),
@@ -16,11 +16,11 @@ static constexpr ConstQueryDesc Script_query_desc = {
   empty_desc_array,
 };
 
-static RegQuery _reg_query_Script(hash::cstr("webui.cpp_Script"), Script_query_desc, nullptr);
+static RegQuery _reg_query_Script(HASH("webui.cpp_Script"), Script_query_desc, nullptr);
 
 template <typename Callable> void Script::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("webui.cpp_Script"));
+  Query &query = *g_mgr->getQueryByName(HASH("webui.cpp_Script"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {

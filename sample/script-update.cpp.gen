@@ -6,8 +6,8 @@
 #include "script-update.cpp"
 
 static constexpr ConstCompDesc reload_script_handler_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc reload_script_handler_query_desc = {
   make_const_array(reload_script_handler_components),
@@ -17,7 +17,7 @@ static constexpr ConstQueryDesc reload_script_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc build_script_handler_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc build_script_handler_query_desc = {
   make_const_array(build_script_handler_components),
@@ -27,7 +27,7 @@ static constexpr ConstQueryDesc build_script_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_script_query_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc update_script_query_query_desc = {
   make_const_array(update_script_query_components),
@@ -37,7 +37,7 @@ static constexpr ConstQueryDesc update_script_query_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_script_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc update_script_query_desc = {
   make_const_array(update_script_components),
@@ -47,7 +47,7 @@ static constexpr ConstQueryDesc update_script_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc dispatch_event_script_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc dispatch_event_script_query_desc = {
   make_const_array(dispatch_event_script_components),
@@ -57,7 +57,7 @@ static constexpr ConstQueryDesc dispatch_event_script_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc dispatch_broadcast_event_script_components[] = {
-  {hash::cstr("script"), Desc<script::ScriptComponent>::Size},
+  {HASH("script"), Desc<script::ScriptComponent>::Size},
 };
 static constexpr ConstQueryDesc dispatch_broadcast_event_script_query_desc = {
   make_const_array(dispatch_broadcast_event_script_components),

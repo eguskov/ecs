@@ -6,14 +6,14 @@
 #include "codegen-test.cpp"
 
 static constexpr ConstCompDesc UpdatePositionSimple_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc UpdatePositionSimple_have_components[] = {
-  {hash::cstr("is_alive"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstCompDesc UpdatePositionSimple_not_have_components[] = {
-  {hash::cstr("is_active"), 0},
+  {HASH("is_active"), 0},
 };
 static constexpr ConstQueryDesc UpdatePositionSimple_query_desc = {
   make_const_array(UpdatePositionSimple_components),
@@ -24,22 +24,22 @@ static constexpr ConstQueryDesc UpdatePositionSimple_query_desc = {
 };
 
 static constexpr ConstCompDesc TestAQuery_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc TestAQuery_have_components[] = {
-  {hash::cstr("wall"), 0},
-  {hash::cstr("some"), 0},
-  {hash::cstr("etc"), 0},
-  {hash::cstr("a"), 0},
-  {hash::cstr("b"), 0},
-  {hash::cstr("c"), 0},
+  {HASH("wall"), 0},
+  {HASH("some"), 0},
+  {HASH("etc"), 0},
+  {HASH("a"), 0},
+  {HASH("b"), 0},
+  {HASH("c"), 0},
 };
 static constexpr ConstCompDesc TestAQuery_not_have_components[] = {
-  {hash::cstr("comp_a"), 0},
-  {hash::cstr("comp_b"), 0},
-  {hash::cstr("comp_c"), 0},
+  {HASH("comp_a"), 0},
+  {HASH("comp_b"), 0},
+  {HASH("comp_c"), 0},
 };
 static constexpr ConstQueryDesc TestAQuery_query_desc = {
   make_const_array(TestAQuery_components),
@@ -49,12 +49,12 @@ static constexpr ConstQueryDesc TestAQuery_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc TestBQuery_components[] = {
-  {hash::cstr("eid_a"), Desc<EntityId>::Size},
-  {hash::cstr("a"), Desc<glm::vec4>::Size},
-  {hash::cstr("b"), Desc<glm::vec2>::Size},
+  {HASH("eid_a"), Desc<EntityId>::Size},
+  {HASH("a"), Desc<glm::vec4>::Size},
+  {HASH("b"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc TestBQuery_have_components[] = {
-  {hash::cstr("some"), 0},
+  {HASH("some"), 0},
 };
 static constexpr ConstQueryDesc TestBQuery_query_desc = {
   make_const_array(TestBQuery_components),
@@ -64,11 +64,11 @@ static constexpr ConstQueryDesc TestBQuery_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc BricksQuery_components[] = {
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc BricksQuery_have_components[] = {
-  {hash::cstr("wall"), 0},
+  {HASH("wall"), 0},
 };
 static constexpr ConstQueryDesc BricksQuery_query_desc = {
   make_const_array(BricksQuery_components),
@@ -78,15 +78,15 @@ static constexpr ConstQueryDesc BricksQuery_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc AliveEnemy_components[] = {
-  {hash::cstr("eid"), Desc<EntityId>::Size},
-  {hash::cstr("collision_rect"), Desc<glm::vec4>::Size},
-  {hash::cstr("pos"), Desc<glm::vec2>::Size},
-  {hash::cstr("vel"), Desc<glm::vec2>::Size},
-  {hash::cstr("is_alive"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("is_alive"), Desc<bool>::Size},
 };
 static constexpr ConstCompDesc AliveEnemy_have_components[] = {
-  {hash::cstr("enemy"), 0},
-  {hash::cstr("is_alive"), 0},
+  {HASH("enemy"), 0},
+  {HASH("is_alive"), 0},
 };
 static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_components),
@@ -96,7 +96,7 @@ static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   empty_desc_array,
 };
 
-static RegQuery _reg_query_TestAQuery(hash::cstr("codegen-test.cpp_TestAQuery"), TestAQuery_query_desc, 
+static RegQuery _reg_query_TestAQuery(HASH("codegen-test.cpp_TestAQuery"), TestAQuery_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(a, float);
@@ -104,9 +104,9 @@ static RegQuery _reg_query_TestAQuery(hash::cstr("codegen-test.cpp_TestAQuery"),
   GET_COMPONENT_VALUE(c, bool);
   return a > 1.0 && (b == true || c == false);
 });
-static RegQuery _reg_query_TestBQuery(hash::cstr("codegen-test.cpp_TestBQuery"), TestBQuery_query_desc, nullptr);
-static RegQuery _reg_query_BricksQuery(hash::cstr("codegen-test.cpp_BricksQuery"), BricksQuery_query_desc, nullptr);
-static RegQuery _reg_query_AliveEnemy(hash::cstr("codegen-test.cpp_AliveEnemy"), AliveEnemy_query_desc, 
+static RegQuery _reg_query_TestBQuery(HASH("codegen-test.cpp_TestBQuery"), TestBQuery_query_desc, nullptr);
+static RegQuery _reg_query_BricksQuery(HASH("codegen-test.cpp_BricksQuery"), BricksQuery_query_desc, nullptr);
+static RegQuery _reg_query_AliveEnemy(HASH("codegen-test.cpp_AliveEnemy"), AliveEnemy_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -115,7 +115,7 @@ static RegQuery _reg_query_AliveEnemy(hash::cstr("codegen-test.cpp_AliveEnemy"),
 
 template <typename Callable> void TestAQuery::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -126,7 +126,7 @@ template <typename Callable> void TestAQuery::foreach(Callable callback)
 }
 template <typename Callable> void TestBQuery::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -137,7 +137,7 @@ template <typename Callable> void TestBQuery::foreach(Callable callback)
 }
 template <typename Callable> void BricksQuery::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_BricksQuery"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_BricksQuery"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -147,7 +147,7 @@ template <typename Callable> void BricksQuery::foreach(Callable callback)
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -169,7 +169,7 @@ static RegSys _reg_sys_UpdatePositionSimple("UpdatePositionSimple", &UpdatePosit
 
 static void UpdatePositionExternalQuery_run(const RawArg &stage_or_event, Query&)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_AliveEnemy"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     UpdatePositionExternalQuery::run(*(UpdateStage*)stage_or_event.mem,
     {
@@ -184,8 +184,8 @@ static RegSys _reg_sys_UpdatePositionExternalQuery("UpdatePositionExternalQuery"
 
 static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
 {
-  Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
-  Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     TestAQuery test_a =
@@ -211,8 +211,8 @@ static RegSys _reg_sys_UpdatePositionJoin("UpdatePositionJoin", &UpdatePositionJ
 
 static void UpdatePositionJoinAll_run(const RawArg &stage_or_event, Query&)
 {
-  Query &query1 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestAQuery"));
-  Query &query2 = *g_mgr->getQueryByName(hash::cstr("codegen-test.cpp_TestBQuery"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     TestAQuery test_a =
