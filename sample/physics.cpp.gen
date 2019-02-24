@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "physics.ecs.cpp"
+#include "physics.cpp"
 
 static RegCompSpec<PhysicsWorld> _reg_comp_phys_world("phys_world");
 template <> int RegCompSpec<PhysicsWorld>::ID = -1;
@@ -132,12 +132,12 @@ static constexpr ConstQueryDesc MovingBrick_query_desc = {
   empty_desc_array,
 };
 
-static RegQuery _reg_query_Brick(hash::cstr("physics.ecs.cpp_Brick"), Brick_query_desc, nullptr);
-static RegQuery _reg_query_MovingBrick(hash::cstr("physics.ecs.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
+static RegQuery _reg_query_Brick(hash::cstr("physics.cpp_Brick"), Brick_query_desc, nullptr);
+static RegQuery _reg_query_MovingBrick(hash::cstr("physics.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
 
 template <typename Callable> void Brick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.ecs.cpp_Brick"));
+  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.cpp_Brick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -147,7 +147,7 @@ template <typename Callable> void Brick::foreach(Callable callback)
 }
 template <typename Callable> void MovingBrick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.ecs.cpp_MovingBrick"));
+  Query &query = *g_mgr->getQueryByName(hash::cstr("physics.cpp_MovingBrick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {

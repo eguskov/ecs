@@ -5,7 +5,7 @@
 
 #include <scriptECS.h>
 
-#include "script.ecs.h"
+#include "script-update.h"
 
 struct reload_script_handler
 {

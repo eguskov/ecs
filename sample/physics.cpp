@@ -7,7 +7,7 @@
 
 #include <Box2D/Box2D.h>
 
-#include "update.ecs.h"
+#include "update.h"
 
 extern Camera2D camera;
 extern int screen_width;

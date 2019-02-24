@@ -144,46 +144,46 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
-    <CustomBuild Include="webui.ecs.cpp">
+    <CustomBuild Include="webui.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
-    <CustomBuild Include="update.ecs.cpp">
+    <CustomBuild Include="update.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
-    <CustomBuild Include="script.ecs.cpp">
+    <CustomBuild Include="script-update.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
-    <CustomBuild Include="physics.ecs.cpp">
+    <CustomBuild Include="physics.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="update.ecs.cpp.gen">
+    <ClCompile Include="update.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="update.ecs.h.gen">
+    <ClCompile Include="update.h.gen">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="physics.ecs.cpp.gen">
+    <ClCompile Include="physics.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="script.ecs.cpp.gen">
+    <ClCompile Include="script-update.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="script.ecs.h.gen">
+    <ClCompile Include="script-update.h.gen">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="update.ecs.h">
+    <CustomBuild Include="update.h">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
-    <CustomBuild Include="script.ecs.h">
+    <CustomBuild Include="script-update.h">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
@@ -191,7 +191,7 @@
   <ItemGroup>
     <None Include="entities.json" />
     <None Include="templates.json" />
-    <ClCompile Include="webui.ecs.cpp.gen">
+    <ClCompile Include="webui.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>

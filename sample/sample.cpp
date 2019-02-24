@@ -26,7 +26,7 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/initializer.h>
 
-#include "update.ecs.h"
+#include "update.h"
 
 #include "cef.h"
 #include "webui.h"

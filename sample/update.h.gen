@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "update.ecs.h"
+#include "update.h"
 
 static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
 template <> int RegCompSpec<TimerComponent>::ID = -1;

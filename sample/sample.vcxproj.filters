@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="update.ecs.cpp.gen">
+    <ClCompile Include="update.cpp.gen">
       <Filter>gen</Filter>
     </ClCompile>
-    <ClCompile Include="update.ecs.h.gen">
+    <ClCompile Include="update.h.gen">
       <Filter>gen</Filter>
     </ClCompile>
     <ClCompile Include="sample.cpp" />
-    <ClCompile Include="webui.ecs.cpp.gen">
+    <ClCompile Include="webui.cpp.gen">
       <Filter>gen</Filter>
     </ClCompile>
     <ClCompile Include="test.cpp" />
@@ -22,9 +22,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="update.ecs.cpp" />
-    <CustomBuild Include="update.ecs.h" />
-    <CustomBuild Include="webui.ecs.cpp" />
+    <CustomBuild Include="update.cpp" />
+    <CustomBuild Include="update.h" />
+    <CustomBuild Include="webui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="entities.json">

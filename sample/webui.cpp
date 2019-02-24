@@ -20,7 +20,7 @@
 #include <thread>
 #include <chrono>
 
-#include "script.ecs.h"
+#include "script-update.h"
 
 struct WebsocketServer
 {

@@ -1,6 +1,6 @@
 #include <ecs/ecs.h>
 
-#include "update.ecs.h"
+#include "update.h"
 
 #include <EASTL/shared_ptr.h>
 

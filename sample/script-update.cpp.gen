@@ -3,7 +3,7 @@
 
 #ifndef __CODEGEN__
 
-#include "script.ecs.cpp"
+#include "script-update.cpp"
 
 static constexpr ConstCompDesc reload_script_handler_components[] = {
   {hash::cstr("eid"), Desc<EntityId>::Size},
