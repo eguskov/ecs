@@ -10,6 +10,7 @@
 #include "component.h"
 #include "query.h"
 #include "system.h"
+#include "index.h"
 
 #include "event.h"
 #include "stage.h"
@@ -122,19 +123,10 @@ struct AsyncValue
 
 struct Archetype
 {
-  // TODO: Inplace Storage* allocation
-  struct StorageDesc
-  {
-    HashedString name;
-    Storage *storage = nullptr;
-
-    operator Storage*() { return storage; }
-    Storage* operator->() { return storage; }
-  };
-
   int entitiesCount = 0;
   int entitiesCapacity = 0;
-  eastl::vector<StorageDesc> storages;
+  eastl::vector<Storage*> storages;
+  eastl::vector<HashedString> storageNames;
 
   ~Archetype()
   {
@@ -150,6 +142,9 @@ struct Archetype
   {
     for (Storage *s : storages)
       delete s;
+
+    storages.clear();
+    storageNames.clear();
   }
 
   bool hasCompontent(const HashedString &name) const;
@@ -175,6 +170,7 @@ struct EntityManager
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
   eastl::vector<Query> namedQueries;
+  eastl::vector<Index> namedIndices;
 
   eastl::queue<CreateQueueData> createQueue;
   eastl::queue<EntityId> deleteQueue;
@@ -199,6 +195,7 @@ struct EntityManager
   const RegComp* getComponentDescByName(const ConstHashedString &name) const;
 
   Query* getQueryByName(const ConstHashedString &name);
+  Index* getIndexByName(const ConstHashedString &name);
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
@@ -213,6 +210,8 @@ struct EntityManager
   void waitFor(EntityId eid, std::future<bool> && value);
 
   void performQuery(Query &query);
+  void rebuildIndex(Index &index);
+  void updateIndex(Index &index);
 
   void enableChangeDetection(const HashedString &name);
   void disableChangeDetection(const HashedString &name);

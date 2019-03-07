@@ -44,10 +44,14 @@ struct EntityManager;
   struct ql_component {};
   #define QL_COMPONENT(x) ql_component x;
 
+  struct ql_index_by_component {};
+  #define QL_INDEX_BY_COMPONENT(x) ql_index_by_component x;
+
   #define QL_HAVE(...) struct ql_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
   #define QL_NOT_HAVE(...) struct ql_not_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
   #define QL_WHERE(expr) struct ql_where { static constexpr char const *ql_expr = #expr; };
   #define QL_JOIN(expr) struct ql_join { static constexpr char const *ql_expr = #expr; };
+  #define QL_MAKE_INDEX(...) struct ql_index { QL_FOREACH(QL_INDEX_BY_COMPONENT, __VA_ARGS__) };
 
   #define ECS_QUERY struct ecs_query {};
   #define ECS_SYSTEM struct ecs_system {};
@@ -56,6 +60,7 @@ struct EntityManager;
   #define QL_NOT_HAVE(...)
   #define QL_WHERE(...)
   #define QL_JOIN(...)
+  #define QL_MAKE_INDEX(...)
 
   #define ECS_QUERY template <typename Callable> static __forceinline void foreach(Callable);
   #define ECS_SYSTEM
@@ -63,11 +68,13 @@ struct EntityManager;
 
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run
 
-#define GET_COMPONENT_VALUE(c, t) t c = type.storages[type.getComponentIndex(HASH(#c))].storage->getByIndex<t>(entity_idx)
+#define INDEX_OF_COMPONENT(query, component) eastl::integral_constant<int, index_of_component<_countof(query##_components)>::get(HASH(#component), query##_components)>::value
+
+#define GET_COMPONENT_VALUE(c, t) t c = type.storages[type.getComponentIndex(HASH(#c))]->getByIndex<t>(entity_idx)
 #define GET_COMPONENT_VALUE_ITER(c, t) auto it_##c = query.chunks[compIdx_##c + chunkIdx * query.componentsCount].begin<t>()
 #define GET_COMPONENT_ITER(q, c, t) auto c = query.iter<t>(index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components))
 #define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components)
-#define GET_COMPONENT(q, i, t, c) i.get<t>(index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components))
+#define GET_COMPONENT(q, i, t, c) i.get<t>(INDEX_OF_COMPONENT(q, c))
 
 struct RegSys;
 extern RegSys *reg_sys_head;

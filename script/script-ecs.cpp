@@ -472,7 +472,7 @@ namespace script
           for (const auto &c : sys.queryDesc.components)
           {
             auto &storage = archetype.storages[archetype.getComponentIndex(c.name)];
-            internal::set_arg_wrapped(eventCtx, ++compIdx, storage.storage->getRawByIndex(entity.indexInArchetype));
+            internal::set_arg_wrapped(eventCtx, ++compIdx, storage->getRawByIndex(entity.indexInArchetype));
           }
           eventCtx->Execute();
         }

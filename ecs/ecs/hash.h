@@ -51,8 +51,7 @@ namespace hash
 }
 
 // Force VS2017 compiler to eval hashing at compile time
-template <uint32_t h> struct hash_helper { static constexpr uint32_t value = h; };
-#define HASH(s) ConstHashedString(s, hash_helper<hash::fnv1a<uint32_t>::hash(s)>::value)
+#define HASH(s) ConstHashedString(s, eastl::integral_constant<uint32_t, hash::fnv1a<uint32_t>::hash(s)>::value)
 
 struct HashedString
 {

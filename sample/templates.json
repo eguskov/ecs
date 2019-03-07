@@ -309,6 +309,10 @@
           "$type": "tag",
           "$value": {}
         },
+        "grid_cell": {
+          "$type": "int",
+          "$value": 1
+        },
         "pos": {
           "$type": "vec2",
           "$value": [
@@ -634,6 +638,10 @@
     {
       "$name": "fox",
       "$components": {
+        "grid_cell": {
+          "$type": "int",
+          "$value": 2
+        },
         "hud": {
           "$type": "hud",
           "$value": {}
@@ -853,6 +861,10 @@
         "wall": {
           "$type": "tag",
           "$value": {}
+        },
+        "grid_cell": {
+          "$type": "int",
+          "$value": 3
         },
         "pos": {
           "$type": "vec2",

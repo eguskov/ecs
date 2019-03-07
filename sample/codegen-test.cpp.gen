@@ -184,6 +184,7 @@ static RegSys _reg_sys_UpdatePositionExternalQuery("UpdatePositionExternalQuery"
 
 static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
 {
+  Index &index = *g_mgr->getIndexByName(HASH("codegen-test.cpp_UpdatePositionJoin_eid_a"));
   Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
   Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -194,13 +195,15 @@ static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
       GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
       GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
     };
-    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+
+    if (auto q2 = index.find(test_a.eid))
+    // for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
     {
       TestBQuery test_b =
       {
-        GET_COMPONENT(TestBQuery, q2, EntityId, eid_a),
-        GET_COMPONENT(TestBQuery, q2, glm::vec4, a),
-        GET_COMPONENT(TestBQuery, q2, glm::vec2, b)
+        GET_COMPONENT(TestBQuery, (*q2), EntityId, eid_a),
+        GET_COMPONENT(TestBQuery, (*q2), glm::vec4, a),
+        GET_COMPONENT(TestBQuery, (*q2), glm::vec2, b)
       };
       if (test_a.eid == test_b.eid_a)
         UpdatePositionJoin::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));

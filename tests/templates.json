@@ -123,6 +123,14 @@
           "$type": "tag",
           "$value": {}
         },
+        "grid_cell": {
+          "$type": "int",
+          "$value": 3
+        },
+        "float_comp": {
+          "$type": "float",
+          "$value": 111.1
+        },
         "pos": {
           "$type": "vec3",
           "$value": [
@@ -148,13 +156,17 @@
           "$type": "tag",
           "$value": {}
         },
+        "grid_cell": {
+          "$type": "int",
+          "$value": 3
+        },
         "flag": {
           "$type": "bool",
           "$value": true
         },
-        "float-comp": {
+        "float_comp": {
           "$type": "float",
-          "$value": 666.6
+          "$value": 222.2
         },
         "int-comp": {
           "$type": "int",
@@ -201,13 +213,17 @@
           "$type": "tag",
           "$value": {}
         },
+        "grid_cell": {
+          "$type": "int",
+          "$value": 3
+        },
         "bool-comp": {
           "$type": "bool",
           "$value": true
         },
-        "float-comp": {
+        "float_comp": {
           "$type": "float",
-          "$value": 666.6
+          "$value": 333.3
         },
         "int-comp": {
           "$type": "int",

@@ -19,6 +19,9 @@ int reg_comp_count = 0;
 RegQuery *reg_query_head = nullptr;
 int reg_query_count = 0;
 
+RegIndex *reg_index_head = nullptr;
+int reg_index_count = 0;
+
 RegSys::~RegSys()
 {
   if (name)
@@ -69,6 +72,13 @@ RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc, 
   next = reg_query_head;
   reg_query_head = this;
   ++reg_query_count;
+}
+
+RegIndex::RegIndex(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDesc &_desc) : name(_name), componentName(component_name), desc(_desc)
+{
+  next = reg_index_head;
+  reg_index_head = this;
+  ++reg_index_count;
 }
 
 void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
@@ -255,6 +265,18 @@ void EntityManager::init()
     namedQueries[queryIdx].desc = query->desc;
     namedQueries[queryIdx].desc.filter = query->filter;
   }
+
+  namedIndices.resize(reg_index_count);
+  int indexIdx = 0;
+  for (const RegIndex *index = reg_index_head; index; index = index->next, ++indexIdx)
+  {
+    ASSERT(getIndexByName(index->name) == nullptr);
+    namedIndices[indexIdx].name = index->name;
+    namedIndices[indexIdx].componentName = index->componentName;
+    namedIndices[indexIdx].desc = index->desc;
+
+    enableChangeDetection(index->componentName);
+  }
 }
 
 int EntityManager::getSystemWeight(const char *name) const
@@ -293,6 +315,14 @@ Query* EntityManager::getQueryByName(const ConstHashedString &name)
   for (auto &q : namedQueries)
     if (q.name == name)
       return &q;
+  return nullptr;
+}
+
+Index* EntityManager::getIndexByName(const ConstHashedString &name)
+{
+  for (auto &i : namedIndices)
+    if (i.name == name)
+      return &i;
   return nullptr;
 }
 
@@ -362,23 +392,26 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   // TODO: Create arhcetypes by componets list. Not per template
   Archetype &type = archetypes.emplace_back();
   type.storages.resize(templ.components.size());
+  type.storageNames.resize(templ.components.size());
 
   templ.archetypeId = archetypes.size() - 1;
 
-  int compId = 0;
+  int compIdx = 0;
   for (auto &storage : type.storages)
   {
-    const auto &c = templ.components[compId++];
+    const auto &c = templ.components[compIdx];
 
-    storage.storage = componentDescByNames[c.name]->createStorage();
+    storage = componentDescByNames[c.name]->createStorage();
     ASSERT(storage != nullptr);
 
-    storage.name = c.name;
+    type.storageNames[compIdx] = c.name;
     storage->elemSize = componentDescByNames[c.name]->size;
+
+    ++compIdx;
   }
 
-  type.storages.emplace_back().storage = eidComp->createStorage();
-  type.storages.back().name = hash::cstr("eid");
+  type.storages.emplace_back() = eidComp->createStorage();
+  type.storageNames.emplace_back() = HASH("eid");
   type.storages.back()->elemSize = eidComp->size;
 }
 
@@ -611,6 +644,8 @@ void EntityManager::tick()
       performQuery(q);
     for (auto &q : namedQueries)
       performQuery(q);
+    for (auto &i : namedIndices)
+      rebuildIndex(i);
   }
   else
   {
@@ -626,6 +661,9 @@ void EntityManager::tick()
         queriesInvalidated = true;
         performQuery(q);
       }
+    for (auto &i : namedIndices)
+      if (i.dirty)
+        rebuildIndex(i);
   }
 
   if (queriesInvalidated)
@@ -673,8 +711,8 @@ bool Archetype::hasCompontent(const ConstHashedString &name) const
 
 int Archetype::getComponentIndex(const HashedString &name) const
 {
-  for (int i = 0; i < (int)storages.size(); ++i)
-    if (storages[i].name == name)
+  for (int i = 0; i < (int)storageNames.size(); ++i)
+    if (storageNames[i] == name)
       return i;
   return -1;
 }
@@ -706,12 +744,49 @@ inline static bool is_components_values_equal_to(const T &value, int entity_idx,
   for (const auto &c : components)
   {
     const int compIdx = type.getComponentIndex(c.name);
-    // TODO: Remove const_cast !
-    auto &storage = const_cast<Archetype::StorageDesc&>(type.storages[compIdx]);
-    if (storage->getByIndex<T>(entity_idx) != value)
+    if (type.storages[compIdx]->getByIndex<T>(entity_idx) != value)
       return false;
   }
   return true;
+}
+
+Query* Index::find(uint32_t value)
+{
+  Item item = { -1, value };
+  auto res = eastl::lower_bound(items.begin(), items.end(), item);
+  return res != items.end() && *res == item ? &queries[res->queryId] : nullptr;
+}
+
+void Query::addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count)
+{
+  ++chunksCount;
+
+  entitiesCount += entities_count;
+  chunks.resize(chunks.size() + componentsCount);
+  entitiesInChunk.resize(chunksCount);
+  entitiesInChunk[chunksCount - 1] = entities_count;
+
+  int compIdx = 0;
+  for (const auto &c : in_desc.components)
+  {
+    auto &storage = type.storages[type.getComponentIndex(c.name)];
+
+    QueryChunk chunk;
+    chunk.beginData = storage->getRawByIndex(begin);
+    chunk.endData = storage->getRawByIndex(begin + entities_count);
+    chunk.elemSize = c.size;
+
+    chunks[compIdx + (chunksCount - 1) * componentsCount] = chunk;
+    compIdx++;
+  }
+
+  auto &storage = type.storages[type.getComponentIndex(hash::cstr("eid"))];
+
+  QueryChunk chunk;
+  chunk.beginData = storage->getRawByIndex(begin);
+  chunk.endData = storage->getRawByIndex(begin + entities_count);
+  chunk.elemSize = sizeof(EntityId);
+  chunks[compIdx + (chunksCount - 1) * componentsCount] = chunk;
 }
 
 void EntityManager::performQuery(Query &query)
@@ -738,13 +813,13 @@ void EntityManager::performQuery(Query &query)
 
     if (ok)
     {
-      ASSERT(type.entitiesCapacity == type.storages[0].storage->totalCount);
+      ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
 
       int begin = -1;
       for (int i = 0; i < type.entitiesCapacity; ++i)
       {
         // TODO: Find a better solution
-        ok = !type.storages[0].storage->freeMask[i];
+        ok = !type.storages[0]->freeMask[i];
 
         ok = ok && is_components_values_equal_to(true, i, type, query.desc.isTrueComponents);
         ok = ok && is_components_values_equal_to(false, i, type, query.desc.isFalseComponents);
@@ -755,36 +830,102 @@ void EntityManager::performQuery(Query &query)
 
         if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
         {
-          const int entitiesInChunk = i - begin + (ok ? 1 : 0);
+          query.addChunks(query.desc, type, begin, i - begin + (ok ? 1 : 0));
+          begin = -1;
+        }
+      }
+    }
+  }
+}
 
-          ++query.chunksCount;
-          query.entitiesCount += entitiesInChunk;
-          query.chunks.resize(query.chunks.size() + query.componentsCount);
-          query.entitiesInChunk.resize(query.chunksCount);
-          query.entitiesInChunk[query.chunksCount - 1] = entitiesInChunk;
+void EntityManager::rebuildIndex(Index &index)
+{
+  const bool isValid = index.desc.isValid();
 
-          int compIdx = 0;
-          for (const auto &c : query.desc.components)
+  index.queries.clear();
+  index.items.clear();
+
+  for (auto &type : archetypes)
+  {
+    // TODO: ASSERT on type mismatch
+    bool ok =
+      isValid &&
+      not_have_components(type, index.desc.notHaveComponents) &&
+      has_components(type, index.desc.components) &&
+      has_components(type, index.desc.haveComponents) &&
+      has_components(type, index.desc.isTrueComponents) &&
+      has_components(type, index.desc.isFalseComponents);
+
+    if (ok)
+    {
+      ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
+
+      const int componentIdx = type.getComponentIndex(index.componentName);
+      ASSERT(componentIdx >= 0);
+      const int componentSize = type.storages[componentIdx]->elemSize;
+      ASSERT(componentSize == sizeof(Index::Item::value));
+
+      int lastQueryId = -1;
+      int begin = -1;
+      for (int i = 0; i < type.entitiesCapacity; ++i)
+      {
+        // TODO: Find a better solution
+        ok = !type.storages[0]->freeMask[i];
+
+        if (!ok && lastQueryId < 0)
+          continue;
+
+        int queryId = lastQueryId;
+        Query *query = queryId >= 0 ? &index.queries[queryId] : nullptr;
+
+        if (ok)
+        {
+          Index::Item item = { -1, type.storages[componentIdx]->getByIndex<uint32_t>(i) };
+          auto res = eastl::lower_bound(index.items.begin(), index.items.end(), item);
+          if (res == index.items.end())
           {
-            auto &storage = type.storages[type.getComponentIndex(c.name)];
+            item.queryId = (int)index.queries.size();
+            query = &index.queries.emplace_back();
+            queryId = item.queryId;
 
-            QueryChunk chunk;
-            chunk.beginData = storage->getRawByIndex(begin);
-            chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
-            chunk.elemSize = c.size;
+            index.items.push_back(eastl::move(item));
+          }
+          else if (*res == item)
+          {
+            ASSERT(res->queryId >= 0 && res->queryId < (int)index.queries.size());
+            item.queryId = res->queryId;
+            query = &index.queries[res->queryId];
+            queryId = item.queryId;
+          }
+          else
+          {
+            item.queryId = (int)index.queries.size();
+            query = &index.queries.emplace_back();
+            queryId = item.queryId;
 
-            query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
-            compIdx++;
+            index.items.insert(res, eastl::move(item));
           }
 
-          auto &storage = type.storages[type.getComponentIndex(hash::cstr("eid"))];
+          if (lastQueryId >= 0 && lastQueryId != queryId && begin >= 0)
+          {
+            ASSERT(begin >= 0 && i > begin);
+            index.queries[lastQueryId].addChunks(index.desc, type, begin, i - begin);
+            begin = -1;
+          }
+        }
 
-          QueryChunk chunk;
-          chunk.beginData = storage->getRawByIndex(begin);
-          chunk.endData = storage->getRawByIndex(begin + entitiesInChunk);
-          chunk.elemSize = sizeof(EntityId);
-          query.chunks[compIdx + (query.chunksCount - 1) * query.componentsCount] = chunk;
+        ASSERT(query != nullptr);
 
+        query->componentsCount = index.desc.components.size() + 1;
+        lastQueryId = queryId;
+
+        if (ok && begin < 0)
+          begin = i;
+
+        if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
+        {
+          ASSERT(begin >= 0 && (i + (ok ? 1 : 0)) > begin);
+          query->addChunks(index.desc, type, begin, i - begin + (ok ? 1 : 0));
           begin = -1;
         }
       }
@@ -795,6 +936,8 @@ void EntityManager::performQuery(Query &query)
 void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
 {
   // TODO: Optimize
+  // TODO: Store component copies as normal component
+  // TODO: Just do noraml compare in a loop like system call
   for (const auto &type : archetypes)
   {
     for (const auto &name : trackComponents)
@@ -802,9 +945,9 @@ void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
       int index = type.getComponentIndex(name);
       if (index >= 0)
       {
-        const size_t sz = type.storages[index].storage->size();
+        const size_t sz = type.storages[index]->size();
         snapshot.emplace_back() = alloc_frame_mem(sz);
-        ::memcpy(snapshot.back(), type.storages[index].storage->data(), sz);
+        ::memcpy(snapshot.back(), type.storages[index]->data(), sz);
       }
     }
   }
@@ -821,12 +964,14 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
       int index = type.getComponentIndex(name);
       if (index >= 0)
       {
-        if (::memcmp(snapshot[i++], type.storages[index].storage->data(), type.storages[index].storage->size()))
+        if (::memcmp(snapshot[i++], type.storages[index]->data(), type.storages[index]->size()))
         {
           for (auto &q : queries)
             q.dirty = true;
           for (auto &q : namedQueries)
             q.dirty = true;
+          for (auto &i : namedIndices)
+            i.dirty = true;
           // break;
           // TODO: Correct way to interrupt the cycle
           return;

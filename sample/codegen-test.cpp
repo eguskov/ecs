@@ -100,3 +100,69 @@ struct UpdatePositionJoinAll
   {
   }
 };
+
+// TODO: CODEGEN
+// static void UpdatePositionJoinIndex_run(const RawArg &stage_or_event, Query&)
+// {
+//   Index &index = *g_mgr->getIndexByName(HASH("codegen-test.cpp_UpdatePositionJoinIndex_eid_a"));
+//   Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
+//   Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
+//   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+//   {
+//     TestAQuery test_a =
+//     {
+//       GET_COMPONENT(TestAQuery, q1, EntityId, eid),
+//       GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
+//       GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
+//     };
+
+//     if (auto q2 = index.find(test_a.eid))
+//     {
+//       TestBQuery test_b =
+//       {
+//         GET_COMPONENT(TestBQuery, (*q2), EntityId, eid_a),
+//         GET_COMPONENT(TestBQuery, (*q2), glm::vec4, a),
+//         GET_COMPONENT(TestBQuery, (*q2), glm::vec2, b)
+//       };
+//       UpdatePositionJoinIndex::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+//     }
+//   }
+// }
+
+struct UpdatePositionJoinIndex
+{
+  QL_MAKE_INDEX(eid_a);
+
+  QL_JOIN(test_a.eid == test_b.eid_a);
+
+  ECS_RUN(const UpdateStage &stage, TestAQuery &&test_a, TestBQuery &&test_b)
+  {
+  }
+};
+
+struct UpdatePositionGroupBy
+{
+  template <typename Builder>
+  static void run(const UpdateStage &stage, /* This is filed for Group By and Index */ int grid_cell, QueryIterable<AliveEnemy, Builder> &&enemies)
+  {
+  }
+};
+
+// TODO: Detect QueryIterable and do proper code
+// UpdatePositionExternalQuery::run(stage, QueryIterable<AliveEnemy, AliveEnemyBuilder>(query))
+// static void UpdatePositionExternalQueryIterabley_run(const RawArg &stage_or_event, Query&)
+// {
+//   using AliveEnemyBuilder = StructBuilder<
+//     StructField<int, INDEX_OF_COMPONENT(AliveEnemy, grid_cell)>,
+//     StructField<float, INDEX_OF_COMPONENT(AliveEnemy, float_comp)>
+//   >;
+//   Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
+//   UpdatePositionExternalQueryIterable::run(*(UpdateStage*)stage_or_event.mem, QueryIterable<AliveEnemy, AliveEnemyBuilder>(query));
+// }
+struct UpdatePositionExternalQueryIterable
+{
+  template <typename Builder>
+  static void run(const UpdateStage &stage, QueryIterable<AliveEnemy, Builder> &&enemies)
+  {
+  }
+};

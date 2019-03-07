@@ -509,6 +509,8 @@ struct Query
     return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
   }
 
+  void addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count);
+
   bool dirty = false;
 
   int sysId = -1;
@@ -528,4 +530,77 @@ struct Query
 struct JoinQuery : Query
 {
   EntityVector eids;
+};
+
+template <typename T, int I>
+struct StructField
+{
+  using Type = T;
+  static constexpr int index = I;
+};
+
+template <typename Head, typename... Tail>
+struct StructBuilder
+{
+  template <typename T>
+  struct helper
+  {
+    static inline typename T::Type& get(Query::AllIterator &iter)
+    {
+      return iter.get<typename T::Type>(T::index);
+    }
+  };
+
+  template <typename Struct>
+  static inline Struct build(Query::AllIterator &iter)
+  {
+    return { helper<Head>::get(iter), helper<Tail>::get(iter)... };
+  }
+};
+
+template <typename T, typename Builder>
+struct QueryIterable
+{
+  Query::AllIterator first;
+  Query::AllIterator last;
+
+  int entitiesCount = -1;
+
+  QueryIterable(Query &query) : first(query.begin()), last(query.end()), entitiesCount(query.entitiesCount)
+  {
+  }
+
+  QueryIterable(Query::AllIterator _first, Query::AllIterator _last) : first(_first), last(_last)
+  {
+  }
+
+  inline int count()
+  {
+    return entitiesCount;
+  }
+
+  inline QueryIterable begin()
+  {
+    return QueryIterable(first, last);
+  }
+
+  inline QueryIterable end()
+  {
+    return QueryIterable(last, last);
+  }
+
+  inline T&& operator*()
+  {
+    return eastl::move(typename Builder::build<T>(first));
+  }
+
+  inline void operator++()
+  {
+    ++first;
+  }
+
+  inline bool operator!=(const QueryIterable &rhs)
+  {
+    return first != rhs.first;
+  }
 };
