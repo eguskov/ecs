@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="codegen.cpp" />
+    <ClCompile Include="parser.cpp" />
     <ClCompile Include="queryparser.cpp" />
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="stdafx.cpp" />
