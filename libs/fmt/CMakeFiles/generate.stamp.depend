@@ -1,0 +1,40 @@
+# CMake generation dependency list for this directory.
+D:/projects/ecs/libs/fmt/CMakeLists.txt
+D:/projects/ecs/libs/fmt/CMakeFiles/3.10.0/CMakeSystem.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeSystemSpecificInitialize.cmake
+D:/projects/ecs/libs/fmt/CMakeFiles/3.10.0/CMakeCCompiler.cmake
+D:/projects/ecs/libs/fmt/CMakeFiles/3.10.0/CMakeCXXCompiler.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeSystemSpecificInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeGenericSystem.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/Windows.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/WindowsPaths.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeLanguageInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/Windows-MSVC-C.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/Windows-MSVC.cmake
+D:/projects/ecs/libs/fmt/CMakeFiles/3.10.0/CMakeRCCompiler.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeRCInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCommonLanguageInclude.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCXXInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeLanguageInformation.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Compiler/MSVC-CXX.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/Windows-MSVC-CXX.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/Platform/Windows-MSVC.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCommonLanguageInclude.cmake
+D:/projects/ecs/libs/fmt/support/cmake/cxx14.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXSourceCompiles.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXCompilerFlag.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXSourceCompiles.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXCompilerFlag.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXSourceCompiles.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake
+D:/projects/ecs/libs/fmt/support/cmake/FindSetEnv.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckSymbolExists.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/GNUInstallDirs.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakePackageConfigHelpers.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/WriteBasicConfigVersionFile.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in
+D:/projects/ecs/libs/fmt/support/cmake/fmt.pc.in
+D:/projects/ecs/libs/fmt/support/cmake/fmt-config.cmake.in

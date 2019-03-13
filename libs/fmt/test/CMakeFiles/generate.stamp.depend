@@ -1,0 +1,11 @@
+# CMake generation dependency list for this directory.
+D:/projects/ecs/libs/fmt/test/CMakeLists.txt
+D:/Program Files/CMake/share/cmake-3.10/Modules/FindThreads.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckLibraryExists.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckSymbolExists.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckIncludeFile.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/FindPackageHandleStandardArgs.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/FindPackageMessage.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXCompilerFlag.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CheckCXXSourceCompiles.cmake
+D:/Program Files/CMake/share/cmake-3.10/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake
