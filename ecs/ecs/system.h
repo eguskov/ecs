@@ -45,13 +45,14 @@ struct EntityManager;
   #define QL_COMPONENT(x) ql_component x;
 
   struct ql_index_by_component {};
-  #define QL_INDEX_BY_COMPONENT(x) ql_index_by_component x;
+  #define QL_INDEX_BY_COMPONENT(x) x;
 
   #define QL_HAVE(...) struct ql_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
   #define QL_NOT_HAVE(...) struct ql_not_have { QL_FOREACH(QL_COMPONENT, __VA_ARGS__) };
   #define QL_WHERE(expr) struct ql_where { static constexpr char const *ql_expr = #expr; };
   #define QL_JOIN(expr) struct ql_join { static constexpr char const *ql_expr = #expr; };
-  #define QL_MAKE_INDEX(...) struct ql_index { QL_FOREACH(QL_INDEX_BY_COMPONENT, __VA_ARGS__) };
+  #define QL_INDEX(...) struct ql_index { QL_FOREACH(QL_INDEX_BY_COMPONENT, __VA_ARGS__) };
+  #define QL_INDEX_LOOKUP(expr) struct ql_index_lookup { static constexpr char const *ql_expr = #expr; };
 
   #define ECS_QUERY struct ecs_query {};
   #define ECS_SYSTEM struct ecs_system {};
@@ -60,13 +61,20 @@ struct EntityManager;
   #define QL_NOT_HAVE(...)
   #define QL_WHERE(...)
   #define QL_JOIN(...)
-  #define QL_MAKE_INDEX(...)
+  #define QL_INDEX(...)
+  #define QL_INDEX_LOOKUP(...)
 
   #define ECS_QUERY template <typename Callable> static __forceinline void foreach(Callable);
   #define ECS_SYSTEM
 #endif
 
+#ifdef _DEBUG
+#define ECS_RUN ECS_SYSTEM; static void run
+#define ECS_RUN_T ECS_SYSTEM; template <typename _> static void run
+#else
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run
+#define ECS_RUN_T ECS_SYSTEM; template <typename _> static __forceinline void run
+#endif
 
 #define INDEX_OF_COMPONENT(query, component) eastl::integral_constant<int, index_of_component<_countof(query##_components)>::get(HASH(#component), query##_components)>::value
 
