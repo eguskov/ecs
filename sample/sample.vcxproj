@@ -189,8 +189,8 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="entities.json" />
-    <None Include="templates.json" />
+    <None Include="data/entities.json" />
+    <None Include="data/templates.json" />
     <ClCompile Include="webui.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>

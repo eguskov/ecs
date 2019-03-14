@@ -9,7 +9,7 @@
       "$components": {
         "script": {
           "name": "level_1",
-          "path": "script.as"
+          "path": "scripts/script.as"
         }
       }
     },

@@ -80,8 +80,6 @@ void script_init()
   script::register_component<HashedString>("HashedString");
   script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
   script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
-
-  // script::save_all_bindings_to_file("_native.json");
 }
 
 void print_document(const JFrameDocument &doc)
@@ -165,7 +163,7 @@ int main(int argc, char *argv[])
   camera.zoom = 1.0f;
 
   FILE *file = nullptr;
-  ::fopen_s(&file, "entities.json", "rb");
+  ::fopen_s(&file, "data/entities.json", "rb");
   if (file)
   {
     size_t sz = ::ftell(file);

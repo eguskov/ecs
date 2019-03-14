@@ -32,7 +32,7 @@ class Action
 
 void create_level()
 {
-  create_entities_from_file("level_1.json");
+  create_entities_from_file("data/level_1.json");
 
   // int w = 0;
   // Array@ pattern = get_level(w);

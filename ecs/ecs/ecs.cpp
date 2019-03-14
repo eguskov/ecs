@@ -165,7 +165,7 @@ void EntityManager::init()
 
   {
     FILE *file = nullptr;
-    ::fopen_s(&file, "templates.json", "rb");
+    ::fopen_s(&file, "data/templates.json", "rb");
     if (file)
     {
       size_t sz = ::ftell(file);

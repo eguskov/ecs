@@ -27,10 +27,10 @@
     <CustomBuild Include="webui.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="entities.json">
+    <None Include="data/entities.json">
       <Filter>data</Filter>
     </None>
-    <None Include="templates.json">
+    <None Include="data/templates.json">
       <Filter>data</Filter>
     </None>
   </ItemGroup>
