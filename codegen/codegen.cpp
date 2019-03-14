@@ -1,5 +1,9 @@
 #include "stdafx.h"
 
+#define FMT_STRING_ALIAS 1
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
 #include <Windows.h>
 
 #include <iostream>
@@ -113,53 +117,27 @@ int main(int argc, char* argv[])
 
     for (const auto &comp : state.components)
     {
-      out << "static RegCompSpec<" << comp.type << "> _reg_comp_" << escape_name(comp.name) << "(\"" << comp.name << "\");" << std::endl;
-      out << "template <> int RegCompSpec<" << comp.type << ">::ID = -1;" << std::endl;
-      out << std::endl;
+      out << fmt::format("static RegCompSpec<{type}> _reg_comp_{name}(\"{name}\");\n",
+        fmt::arg("type", comp.type),
+        fmt::arg("name", comp.name));
+
+      out << fmt::format("template <> int RegCompSpec<{type}>::ID = -1;\n",
+        fmt::arg("type", comp.type));
+
+      out << "\n";
     }
 
     for (const auto &ev : state.events)
     {
-      out << "static RegCompSpec<" << ev.type << "> _reg_event_" << escape_name(ev.name) << ";" << std::endl;
-      out << "int RegCompSpec<" << ev.type << ">::ID = -1;" << std::endl;
-      out << std::endl;
+      out << fmt::format("static RegCompSpec<{type}> _reg_event_{name};\n",
+        fmt::arg("type", ev.type),
+        fmt::arg("name", escape_name(ev.name)));
+
+      out << fmt::format("int RegCompSpec<{type}>::ID = -1;\n",
+        fmt::arg("type", ev.type));
+
+      out << "\n";
     }
-
-    auto joinParameters = [](const eastl::vector<VisitorState::Parameter> &parameters)
-    {
-      return utils::join(parameters,
-        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
-      {
-        return i->type + " " + i->name;
-      }, ", ");
-    };
-
-    auto joinParametersFrom = [](const eastl::vector<VisitorState::Parameter> &parameters, int from)
-    {
-      return utils::join<VisitorState::Parameter>(parameters.begin() + from, parameters.end(),
-        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
-      {
-        return i->type + " " + i->name;
-      }, ", ");
-    };
-
-    auto joinParameterNames = [](const eastl::vector<VisitorState::Parameter> &parameters)
-    {
-      return utils::join(parameters,
-        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
-      {
-        return "\"" + i->name + "\"";
-      }, ", ");
-    };
-
-    auto joinParameterNamesFrom = [](const eastl::vector<VisitorState::Parameter> &parameters, int from)
-    {
-      return utils::join<VisitorState::Parameter>(parameters.begin() + from, parameters.end(),
-        [](eastl::vector<VisitorState::Parameter>::const_iterator i)
-      {
-        return "\"" + i->name + "\"";
-      }, ", ");
-    };
 
     for (auto &sys : state.systems)
     {
@@ -167,7 +145,10 @@ int main(int argc, char* argv[])
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
         auto &p = sys.parameters[i];
-        auto res = eastl::find_if(state.queries.cbegin(), state.queries.cend(), [&](const VisitorState::Query &q) { return q.name == p.pureType; });
+        eastl::string queryName = p.pureType;
+        if (utils::startsWith(p.pureType, "QueryIterable"))
+          queryName = p.templateRef;
+        auto res = eastl::find_if(state.queries.cbegin(), state.queries.cend(), [&](const VisitorState::Query &q) { return q.name == queryName; });
         if (res != state.queries.cend())
         {
           p.queryId = eastl::distance(state.queries.cbegin(), res);
@@ -264,45 +245,35 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstCompDesc " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
-      {
         out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
-      }
       out << "};" << std::endl;
 
       if (!q.have.empty())
       {
         out << "static constexpr ConstCompDesc " << q.name << "_have_components[] = {" << std::endl;
         for (const auto &p : q.have)
-        {
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
-        }
         out << "};" << std::endl;
       }
       if (!q.notHave.empty())
       {
         out << "static constexpr ConstCompDesc " << q.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : q.notHave)
-        {
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
-        }
         out << "};" << std::endl;
       }
       if (!q.trackTrue.empty())
       {
         out << "static constexpr ConstCompDesc " << q.name << "_is_true_components[] = {" << std::endl;
         for (const auto &p : q.trackTrue)
-        {
           out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        }
         out << "};" << std::endl;
       }
       if (!q.trackFalse.empty())
       {
         out << "static constexpr ConstCompDesc " << q.name << "_is_false_components[] = {" << std::endl;
         for (const auto &p : q.trackFalse)
-        {
           out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        }
         out << "};" << std::endl;
       }
 
@@ -319,10 +290,52 @@ int main(int argc, char* argv[])
       out << "};" << std::endl;
     }
 
+    for (const auto &q : state.queries)
+    {
+      out << fmt::format("using {name}Builder = StructBuilder<\n", fmt::arg("name", q.name));
+      bool addComma = false;
+      for (const auto &p :  q.parameters)
+      {
+        if (addComma)
+          out << ",\n";
+        addComma = true;
+        out << fmt::format("  StructField<{type}, INDEX_OF_COMPONENT({query}, {component})>",
+          fmt::arg("type", p.pureType),
+          fmt::arg("query", q.name),
+          fmt::arg("component", p.name));
+      }
+      out << "\n>;\n";
+    }
+
+    for (const auto &i : state.indices)
+    {
+      out << "static constexpr ConstCompDesc " << i.name << "_components[] = {" << std::endl;
+      for (const auto &p : i.parameters)
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+      out << "};" << std::endl;
+
+      out << "static constexpr ConstQueryDesc " << i.name << "_query_desc = {" << std::endl;
+      out << "  make_const_array(" << i.name << "_components)," << std::endl;
+      if (i.have.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << i.name << "_have_components)," << std::endl;
+      if (i.notHave.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << i.name << "_not_have_components)," << std::endl;
+      if (i.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << i.name << "_is_true_components)," << std::endl;
+      if (i.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << i.name << "_is_false_components)," << std::endl;
+      out << "};" << std::endl;
+    }
+
     out << std::endl;
 
     for (const auto &q : state.queries)
       out << "static RegQuery _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
+
+    out << std::endl;
+
+    for (const auto &i : state.indices)
+      out << "static RegIndex _reg_index_" << i.name << "(HASH(\"" << basename << "_" << i.name << "\"), " << "HASH(\"" << i.componentName << "\"), " << i.name << "_query_desc);" << std::endl;
 
     out << std::endl;
 
@@ -345,99 +358,269 @@ int main(int argc, char* argv[])
       out << "}\n";
     }
 
+    decltype(state.systems) systemsExternalQuery;
+    decltype(state.systems) systemsInternalQuery;
+    decltype(state.systems) systemsJoinQueries;
+    decltype(state.systems) systemsJoinIndexQueries;
+    decltype(state.systems) systemsGroupBy;
+    decltype(state.systems) systemsQueryIterable;
+
     for (const auto &sys : state.systems)
     {
-      if (!sys.fromQuery)
-        continue;
+      if (sys.fromQuery)
+      {
+        if (sys.parameters.size() >= 3)
+        {
+          if (sys.indexId >= 0)
+          {
+            if (!sys.parameters[2].templateRef.empty())
+              systemsGroupBy.push_back(sys);
+            else
+              systemsJoinIndexQueries.push_back(sys);
+          }
+          else
+            systemsJoinQueries.push_back(sys);
+        }
+        else if (sys.parameters.size() >= 2 && !sys.parameters[1].templateRef.empty())
+          systemsQueryIterable.push_back(sys);
+        else
+          systemsExternalQuery.push_back(sys);
+      }
+      else
+        systemsInternalQuery.push_back(sys);
+    }
 
-      out << "static void " << sys.name << "_run(const RawArg &stage_or_event, Query&)" << std::endl;
-      out << "{" << std::endl;
-
+    for (const auto &sys : systemsQueryIterable)
+    {
       assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
 
-      if (sys.parameters.size() >= 3)
+      const auto &query = state.queries[sys.parameters[1].queryId];
+
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
+      out << fmt::format("  Query &query = *g_mgr->getQueryByName(HASH(\"{basename}_{query}\"));\n",
+        fmt::arg("basename", basename),
+        fmt::arg("query", query.name));
+
+      out << fmt::format("  {system}::run(*({stage}*)stage_or_event.mem, QueryIterable<{query}, {query}Builder>(query));\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("query", query.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
+
+      out << "}\n";
+
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
+    }
+
+    for (const auto &sys : systemsGroupBy)
+    {
+      assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
+
+      const auto &query = state.queries[sys.parameters[2].queryId];
+      const auto &index =  state.indices[sys.indexId];
+
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
+      out << fmt::format("  Index &index = *g_mgr->getIndexByName(HASH(\"{basename}_{index}\"));\n",
+        fmt::arg("basename", basename),
+        fmt::arg("index", index.name));
+
+      out << "  for (const Index::Item &item : index.items)\n";
+      out << fmt::format("    {system}::run(*({stage}*)stage_or_event.mem, *({indexType}*)(uint8_t*)&item.value, QueryIterable<{query}, {query}Builder>(index.queries[item.queryId]));\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("query", query.name),
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("indexType", sys.parameters[1].pureType));
+
+      out << "}\n";
+
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
+    }
+
+    for (const auto &sys : systemsJoinIndexQueries)
+    {
+      assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
+
+      const auto &index =  state.indices[sys.indexId];
+
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
+      out << "  Index &index = *g_mgr->getIndexByName(HASH(\"" << basename << "_" << index.name << "\"));\n";
+
+      const auto &q1 = state.queries[sys.parameters[1].queryId];
+      out << "  Query &query1 = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q1.name << "\"));" << std::endl;
+
+      std::string indent = "  ";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
-        for (int i = 1; i < (int)sys.parameters.size(); ++i)
-        {
-          const auto &q = state.queries[sys.parameters[i].queryId];
-          out << "  Query &query" << i << " = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
-        }
+        const auto &q = state.queries[sys.parameters[i].queryId];
 
-        std::string indent = "  ";
-        for (int i = 1; i < (int)sys.parameters.size(); ++i)
+        if (i == 1)
         {
-          const auto &q = state.queries[sys.parameters[i].queryId];
-
           out << indent << "for (auto q" << i << " = query" << i << ".begin(), e = query" << i << ".end(); q" << i << " != e; ++q" << i << ")\n";
           out << indent << "{\n";
-          out << indent << "  " << q.name << " " << sys.parameters[i].name << " =\n";
+        }
+        else
+        {
+          out << indent << "if (Query *pquery" << i << " = index.find(*(uint32_t*)(uint8_t*)&" << index.lookup << "))\n";
+          out << indent << "{\n";
+          out << indent << "  Query &query" << i << " = *pquery" << i << ";\n";
+          out << indent << "  for (auto q" << i << " = query" << i << ".begin(), e = query" << i << ".end(); q" << i << " != e; ++q" << i << ")\n";
           out << indent << "  {\n";
-
-          for (int j = 0; j < (int)q.parameters.size(); ++j)
-          {
-            const auto &p = q.parameters[j];
-            if (j != 0)
-              out << ",\n";
-            out << indent << "    GET_COMPONENT(" << q.name << ", q"<< i << ", " << p.pureType << ", " << p.name << ")";
-          }
-
-          out << "\n";
-          out << indent << "  };\n";
-
           indent += "  ";
         }
+        out << indent << "  " << q.name << " " << sys.parameters[i].name << " =\n";
+        out << indent << "  {\n";
 
-        if (!sys.filter.empty())
+        for (int j = 0; j < (int)q.parameters.size(); ++j)
         {
-          out << indent << "if (" << sys.filter << ")\n";
-          indent += "  ";
+          const auto &p = q.parameters[j];
+          if (j != 0)
+            out << ",\n";
+          out << indent << "    GET_COMPONENT(" << q.name << ", q"<< i << ", " << p.pureType << ", " << p.name << ")";
         }
 
-        out << indent << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
-        for (int i = 1; i < (int)sys.parameters.size(); ++i)
-        {
-          out << ", eastl::move(" << sys.parameters[i].name << ")";
-        }
-        out << ");\n";
+        out << "\n";
+        out << indent << "  };\n";
 
-        for (int i = 1; i < (int)sys.parameters.size(); ++i)
+        indent += "  ";
+      }
+
+      if (!sys.filter.empty())
+      {
+        out << indent << "if (" << sys.filter << ")\n";
+        indent += "  ";
+      }
+
+      out << indent << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        out << ", eastl::move(" << sys.parameters[i].name << ")";
+      }
+      out << ");\n";
+
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        indent.erase(indent.length() - 2, 2);
+        out << indent << "}\n";
+        if (i != 1)
         {
           indent.erase(indent.length() - 2, 2);
           out << indent << "}\n";
         }
       }
-      else
+
+      out << "}\n";
+
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
+    }
+
+    for (const auto &sys : systemsJoinQueries)
+    {
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
+      assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
+
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
-        const auto &q = state.queries[sys.parameters[1].queryId];
+        const auto &q = state.queries[sys.parameters[i].queryId];
+        out << "  Query &query" << i << " = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
+      }
 
-        out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
-        out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
+      std::string indent = "  ";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &q = state.queries[sys.parameters[i].queryId];
 
-        out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";
-        for (int i = 0; i < (int)q.parameters.size(); ++i)
+        out << indent << "for (auto q" << i << " = query" << i << ".begin(), e = query" << i << ".end(); q" << i << " != e; ++q" << i << ")\n";
+        out << indent << "{\n";
+        out << indent << "  " << q.name << " " << sys.parameters[i].name << " =\n";
+        out << indent << "  {\n";
+
+        for (int j = 0; j < (int)q.parameters.size(); ++j)
         {
-          const auto &p = q.parameters[i];
-          if (i != 0)
-            out << ",\n      ";
-          out << "GET_COMPONENT(" << q.name << ", q, " << p.pureType << ", " << p.name << ")";
+          const auto &p = q.parameters[j];
+          if (j != 0)
+            out << ",\n";
+          out << indent << "    GET_COMPONENT(" << q.name << ", q"<< i << ", " << p.pureType << ", " << p.name << ")";
         }
-        out << "\n    });" << std::endl;
+
+        out << "\n";
+        out << indent << "  };\n";
+
+        indent += "  ";
+      }
+
+      if (!sys.filter.empty())
+      {
+        out << indent << "if (" << sys.filter << ")\n";
+        indent += "  ";
+      }
+
+      out << indent << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        out << ", eastl::move(" << sys.parameters[i].name << ")";
+      }
+      out << ");\n";
+
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        indent.erase(indent.length() - 2, 2);
+        out << indent << "}\n";
       }
 
       out << "}\n";
 
-      out << "static RegSys _reg_sys_" << sys.name << "(\"" << sys.name << "\", &" << sys.name << "_run, \"" << sys.parameters[0].pureType << "\"";
-
-      out << ");\n\n";
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
     }
 
-    for (const auto &sys : state.systems)
+    for (const auto &sys : systemsExternalQuery)
     {
-      if (sys.fromQuery)
-        continue;
+      assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
 
-      out << "static void " << sys.name << "_run(const RawArg &stage_or_event, Query &query)" << std::endl;
-      out << "{" << std::endl;
+      const auto &query = state.queries[sys.parameters[1].queryId];
+
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
+      out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
+      out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
+
+      out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";
+      for (int i = 0; i < (int)query.parameters.size(); ++i)
+      {
+        const auto &p = query.parameters[i];
+        if (i != 0)
+          out << ",\n      ";
+        out << "GET_COMPONENT(" << query.name << ", q, " << p.pureType << ", " << p.name << ")";
+      }
+      out << "\n    });" << std::endl;
+
+      out << "}\n";
+
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
+    }
+
+    for (const auto &sys : systemsInternalQuery)
+    {
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
@@ -448,8 +631,9 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << "static RegSys _reg_sys_" << sys.name << "(\"" << sys.name << "\", &" << sys.name << "_run, \"" << sys.parameters[0].pureType << "\"";
-      out << ", " << sys.name << "_query_desc);\n\n";
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc);\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType));
     }
 
     out << "#endif // __CODEGEN__" << std::endl;

@@ -13,8 +13,11 @@ struct VisitorState
     eastl::string type;
     eastl::string pureType;
     eastl::string value;
+    eastl::string templateRef;
 
     int queryId = -1;
+
+    Parameter() = default;
   };
 
   struct Function
@@ -34,6 +37,7 @@ struct VisitorState
   struct System : Function
   {
     bool fromQuery = false;
+    int indexId = -1;
   };
 
   struct Query : Function
@@ -41,6 +45,12 @@ struct VisitorState
     bool empty = false;
     CXCursor cursor;
     eastl::string components;
+  };
+
+  struct Index : Query
+  {
+    eastl::string componentName;
+    eastl::string lookup;
   };
 
   struct Component
@@ -62,6 +72,7 @@ struct VisitorState
 
   eastl::vector<System> systems;
   eastl::vector<Query> queries;
+  eastl::vector<Index> indices;
   eastl::vector<Component> components;
   eastl::vector<Event> events;
 };

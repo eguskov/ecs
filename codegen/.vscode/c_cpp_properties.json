@@ -19,7 +19,8 @@
         "${workspaceFolder}/../libs/EASTL/include",
         "${workspaceFolder}/../libs/EASTL/test/packages/EABase/include/Common",
         "${workspaceFolder}/../libs/LLVM/include",
-        "${workspaceFolder}/../libs/PEGTL/include/tao"
+        "${workspaceFolder}/../libs/PEGTL/include/tao",
+        "${workspaceFolder}/../libs/fmt/include"
       ],
       "defines": [
         "_DEBUG"

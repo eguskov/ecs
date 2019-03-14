@@ -117,7 +117,8 @@
       "filesystem": "cpp",
       "codecvt": "cpp",
       "iomanip": "cpp",
-      "cstdarg": "cpp"
+      "cstdarg": "cpp",
+      "xfunctional": "cpp"
     },
     "editor.renderWhitespace": "all",
     "editor.tokenColorCustomizations": {

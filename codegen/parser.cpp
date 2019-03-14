@@ -107,6 +107,27 @@ eastl::string get_type_ref(CXCursor cursor)
 }
 
 template<typename T>
+void read_template_ref(CXCursor cursor, T &ref)
+{
+  auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
+  {
+    T &ref = *static_cast<T*>(data);
+
+    CXCursorKind kind = clang_getCursorKind(cursor);
+
+    if (kind == CXCursor_TemplateRef)
+    {
+      ref = get_type_ref(parent);
+      return CXChildVisit_Break;
+    }
+
+    return CXChildVisit_Continue;
+  };
+
+  clang_visitChildren(cursor, visitor, &ref);
+}
+
+template<typename T>
 void read_function_params(CXCursor cursor, T &parameters)
 {
   auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
@@ -121,6 +142,8 @@ void read_function_params(CXCursor cursor, T &parameters)
       p.name = to_string(clang_getCursorSpelling(cursor));
       p.type = to_string(clang_getTypeSpelling(clang_getCursorType(cursor)));
       p.pureType = std::regex_replace(p.type.c_str(), std::regex("(?:const|\\&|(?:\\s+))"), "").c_str();
+
+      read_template_ref(cursor, p.templateRef);
     }
 
     return CXChildVisit_Continue;
@@ -146,7 +169,7 @@ CXCursor find_method(CXCursor cursor, const char *name)
 
     CXCursorKind kind = clang_getCursorKind(cursor);
 
-    if (kind == CXCursor_CXXMethod && to_string(clang_getCursorSpelling(cursor)) == state.name)
+    if ((kind == CXCursor_CXXMethod || kind == CXCursor_FunctionTemplate) && to_string(clang_getCursorSpelling(cursor)) == state.name)
     {
       state.res = cursor;
       return CXChildVisit_Break;
@@ -325,8 +348,6 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
         }
       }
 
-      
-
       return CXChildVisit_Continue;
     };
 
@@ -388,6 +409,25 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
 
       read_function_params(runCursor, s.parameters);
 
+      for (const auto &p : s.parameters)
+        if (!p.templateRef.empty() && s.parameters.size() >= 3)
+        {
+          s.indexId = state.indices.size();
+          auto &i = state.indices.push_back();
+
+          auto indexComponent = s.parameters[1].name;
+          auto queryName = p.templateRef;
+          auto res = eastl::find_if(state.queries.begin(), state.queries.end(), [&] (const VisitorState::Query &q) { return q.name == queryName; });
+          assert(res != state.queries.end());
+
+          i.name = "index_by_" + queryName + "_" + indexComponent;
+          i.componentName = indexComponent;
+          i.parameters = res->parameters;
+
+          break;
+        }
+
+      CXCursor systemCursor = cursor;
       foreach_struct_decl(cursor, [&](CXCursor cursor, const eastl::string &name)
       {
         if (name == "ql_have")
@@ -425,6 +465,41 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
           read_struct_fields(cursor, fields);
 
           s.filter = fields[0].value;
+        }
+        else if (name == "ql_index")
+        {
+          s.indexId = state.indices.size();
+          auto &i = state.indices.push_back();
+
+          foreach_struct_decl(systemCursor, [&](CXCursor cursor, const eastl::string &name)
+          {
+            if (name == "ql_index_lookup")
+            {
+              eastl::vector<VisitorState::Parameter> fields;
+              read_struct_fields(cursor, fields);
+              i.lookup = fields[0].value;
+            }
+          });
+
+          assert(!i.lookup.empty());
+
+          eastl::vector<VisitorState::Parameter> fields;
+          read_struct_fields(cursor, fields);
+          for (const auto &f : fields)
+          {
+            i.parameters.emplace_back().name = f.name;
+            i.parameters.back().pureType = f.pureType;
+            i.parameters.back().type = f.type;
+          }
+
+          auto indexComponent = i.parameters[0].name;
+          auto queryName = i.parameters[0].pureType;
+          auto res = eastl::find_if(state.queries.begin(), state.queries.end(), [&] (const VisitorState::Query &q) { return q.name == queryName; });
+          assert(res != state.queries.end());
+
+          i.name = "index_by_" + queryName + "_" + indexComponent;
+          i.componentName = indexComponent;
+          i.parameters = res->parameters;
         }
       });
     }
@@ -574,6 +649,7 @@ void parse(const CXTranslationUnit &unit, VisitorState &state)
   std::cout << "Done:" << std::endl;
   std::cout << "  systems: " << state.systems.size() << std::endl;
   std::cout << "  queries: " << state.queries.size() << std::endl;
+  std::cout << "  indices: " << state.indices.size() << std::endl;
   std::cout << "  components: " << state.components.size() << std::endl;
   std::cout << "  events: " << state.events.size() << std::endl;
 }

@@ -5,30 +5,47 @@
 
 #include "codegen-test.cpp"
 
-static constexpr ConstCompDesc UpdatePositionSimple_components[] = {
+static RegCompSpec<test::TestComp> _reg_comp_test_comp("test_comp");
+template <> int RegCompSpec<test::TestComp>::ID = -1;
+
+static RegCompSpec<test::EventOnTest> _reg_event_test_EventOnTest;
+int RegCompSpec<test::EventOnTest>::ID = -1;
+
+static constexpr ConstCompDesc Simple_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size},
   {HASH("pos"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc UpdatePositionSimple_have_components[] = {
+static constexpr ConstQueryDesc Simple_query_desc = {
+  make_const_array(Simple_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc Where_components[] = {
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc Where_have_components[] = {
   {HASH("is_alive"), 0},
 };
-static constexpr ConstCompDesc UpdatePositionSimple_not_have_components[] = {
+static constexpr ConstCompDesc Where_not_have_components[] = {
   {HASH("is_active"), 0},
 };
-static constexpr ConstQueryDesc UpdatePositionSimple_query_desc = {
-  make_const_array(UpdatePositionSimple_components),
-  make_const_array(UpdatePositionSimple_have_components),
-  make_const_array(UpdatePositionSimple_not_have_components),
+static constexpr ConstQueryDesc Where_query_desc = {
+  make_const_array(Where_components),
+  make_const_array(Where_have_components),
+  make_const_array(Where_not_have_components),
   empty_desc_array,
   empty_desc_array,
 };
 
-static constexpr ConstCompDesc TestAQuery_components[] = {
+static constexpr ConstCompDesc TestA_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
   {HASH("collision_rect"), Desc<glm::vec4>::Size},
   {HASH("pos"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc TestAQuery_have_components[] = {
+static constexpr ConstCompDesc TestA_have_components[] = {
   {HASH("wall"), 0},
   {HASH("some"), 0},
   {HASH("etc"), 0},
@@ -36,29 +53,29 @@ static constexpr ConstCompDesc TestAQuery_have_components[] = {
   {HASH("b"), 0},
   {HASH("c"), 0},
 };
-static constexpr ConstCompDesc TestAQuery_not_have_components[] = {
+static constexpr ConstCompDesc TestA_not_have_components[] = {
   {HASH("comp_a"), 0},
   {HASH("comp_b"), 0},
   {HASH("comp_c"), 0},
 };
-static constexpr ConstQueryDesc TestAQuery_query_desc = {
-  make_const_array(TestAQuery_components),
-  make_const_array(TestAQuery_have_components),
-  make_const_array(TestAQuery_not_have_components),
+static constexpr ConstQueryDesc TestA_query_desc = {
+  make_const_array(TestA_components),
+  make_const_array(TestA_have_components),
+  make_const_array(TestA_not_have_components),
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc TestBQuery_components[] = {
+static constexpr ConstCompDesc TestB_components[] = {
   {HASH("eid_a"), Desc<EntityId>::Size},
   {HASH("a"), Desc<glm::vec4>::Size},
   {HASH("b"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc TestBQuery_have_components[] = {
+static constexpr ConstCompDesc TestB_have_components[] = {
   {HASH("some"), 0},
 };
-static constexpr ConstQueryDesc TestBQuery_query_desc = {
-  make_const_array(TestBQuery_components),
-  make_const_array(TestBQuery_have_components),
+static constexpr ConstQueryDesc TestB_query_desc = {
+  make_const_array(TestB_components),
+  make_const_array(TestB_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -95,8 +112,55 @@ static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
+using TestABuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(TestA, eid)>,
+  StructField<glm::vec4, INDEX_OF_COMPONENT(TestA, collision_rect)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(TestA, pos)>
+>;
+using TestBBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(TestB, eid_a)>,
+  StructField<glm::vec4, INDEX_OF_COMPONENT(TestB, a)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(TestB, b)>
+>;
+using BricksQueryBuilder = StructBuilder<
+  StructField<glm::vec4, INDEX_OF_COMPONENT(BricksQuery, collision_rect)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(BricksQuery, pos)>
+>;
+using AliveEnemyBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(AliveEnemy, eid)>,
+  StructField<glm::vec4, INDEX_OF_COMPONENT(AliveEnemy, collision_rect)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(AliveEnemy, pos)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(AliveEnemy, vel)>,
+  StructField<bool, INDEX_OF_COMPONENT(AliveEnemy, is_alive)>
+>;
+static constexpr ConstCompDesc index_by_TestB_eid_a_components[] = {
+  {HASH("eid_a"), Desc<EntityId>::Size},
+  {HASH("a"), Desc<glm::vec4>::Size},
+  {HASH("b"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstQueryDesc index_by_TestB_eid_a_query_desc = {
+  make_const_array(index_by_TestB_eid_a_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc index_by_AliveEnemy_grid_cell_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc index_by_AliveEnemy_grid_cell_query_desc = {
+  make_const_array(index_by_AliveEnemy_grid_cell_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 
-static RegQuery _reg_query_TestAQuery(HASH("codegen-test.cpp_TestAQuery"), TestAQuery_query_desc, 
+static RegQuery _reg_query_TestA(HASH("codegen-test.cpp_TestA"), TestA_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(a, float);
@@ -104,7 +168,7 @@ static RegQuery _reg_query_TestAQuery(HASH("codegen-test.cpp_TestAQuery"), TestA
   GET_COMPONENT_VALUE(c, bool);
   return a > 1.0 && (b == true || c == false);
 });
-static RegQuery _reg_query_TestBQuery(HASH("codegen-test.cpp_TestBQuery"), TestBQuery_query_desc, nullptr);
+static RegQuery _reg_query_TestB(HASH("codegen-test.cpp_TestB"), TestB_query_desc, nullptr);
 static RegQuery _reg_query_BricksQuery(HASH("codegen-test.cpp_BricksQuery"), BricksQuery_query_desc, nullptr);
 static RegQuery _reg_query_AliveEnemy(HASH("codegen-test.cpp_AliveEnemy"), AliveEnemy_query_desc, 
 [](const Archetype &type, int entity_idx)
@@ -113,26 +177,29 @@ static RegQuery _reg_query_AliveEnemy(HASH("codegen-test.cpp_AliveEnemy"), Alive
   return is_alive == true;
 });
 
-template <typename Callable> void TestAQuery::foreach(Callable callback)
+static RegIndex _reg_index_index_by_TestB_eid_a(HASH("codegen-test.cpp_index_by_TestB_eid_a"), HASH("eid_a"), index_by_TestB_eid_a_query_desc);
+static RegIndex _reg_index_index_by_AliveEnemy_grid_cell(HASH("codegen-test.cpp_index_by_AliveEnemy_grid_cell"), HASH("grid_cell"), index_by_AliveEnemy_grid_cell_query_desc);
+
+template <typename Callable> void TestA::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(TestAQuery, q, EntityId, eid),
-      GET_COMPONENT(TestAQuery, q, glm::vec4, collision_rect),
-      GET_COMPONENT(TestAQuery, q, glm::vec2, pos)
+      GET_COMPONENT(TestA, q, EntityId, eid),
+      GET_COMPONENT(TestA, q, glm::vec4, collision_rect),
+      GET_COMPONENT(TestA, q, glm::vec2, pos)
     });
 }
-template <typename Callable> void TestBQuery::foreach(Callable callback)
+template <typename Callable> void TestB::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestB"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(TestBQuery, q, EntityId, eid_a),
-      GET_COMPONENT(TestBQuery, q, glm::vec4, a),
-      GET_COMPONENT(TestBQuery, q, glm::vec2, b)
+      GET_COMPONENT(TestB, q, EntityId, eid_a),
+      GET_COMPONENT(TestB, q, glm::vec4, a),
+      GET_COMPONENT(TestB, q, glm::vec2, b)
     });
 }
 template <typename Callable> void BricksQuery::foreach(Callable callback)
@@ -158,20 +225,109 @@ template <typename Callable> void AliveEnemy::foreach(Callable callback)
       GET_COMPONENT(AliveEnemy, q, bool, is_alive)
     });
 }
-static void UpdatePositionSimple_run(const RawArg &stage_or_event, Query &query)
+static void ExternalQueryIterable_run(const RawArg &stage_or_event, Query&)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    UpdatePositionSimple::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(UpdatePositionSimple, q, glm::vec2, vel),
-      GET_COMPONENT(UpdatePositionSimple, q, glm::vec2, pos));
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
+  ExternalQueryIterable::run(*(UpdateStage*)stage_or_event.mem, QueryIterable<AliveEnemy, AliveEnemyBuilder>(query));
 }
-static RegSys _reg_sys_UpdatePositionSimple("UpdatePositionSimple", &UpdatePositionSimple_run, "UpdateStage", UpdatePositionSimple_query_desc);
+static RegSys _reg_sys_ExternalQueryIterable("ExternalQueryIterable", &ExternalQueryIterable_run, "UpdateStage");
 
-static void UpdatePositionExternalQuery_run(const RawArg &stage_or_event, Query&)
+static void GroupBy_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("codegen-test.cpp_index_by_AliveEnemy_grid_cell"));
+  for (const Index::Item &item : index.items)
+    GroupBy::run(*(UpdateStage*)stage_or_event.mem, *(int*)(uint8_t*)&item.value, QueryIterable<AliveEnemy, AliveEnemyBuilder>(index.queries[item.queryId]));
+}
+static RegSys _reg_sys_GroupBy("GroupBy", &GroupBy_run, "UpdateStage");
+
+static void JoinIndex_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("codegen-test.cpp_index_by_TestB_eid_a"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    TestA test_a =
+    {
+      GET_COMPONENT(TestA, q1, EntityId, eid),
+      GET_COMPONENT(TestA, q1, glm::vec4, collision_rect),
+      GET_COMPONENT(TestA, q1, glm::vec2, pos)
+    };
+    if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&test_a.eid))
+    {
+      Query &query2 = *pquery2;
+      for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+      {
+        TestB test_b =
+        {
+          GET_COMPONENT(TestB, q2, EntityId, eid_a),
+          GET_COMPONENT(TestB, q2, glm::vec4, a),
+          GET_COMPONENT(TestB, q2, glm::vec2, b)
+        };
+        JoinIndex::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+      }
+    }
+  }
+}
+static RegSys _reg_sys_JoinIndex("JoinIndex", &JoinIndex_run, "UpdateStage");
+
+static void JoinAll_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestB"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    TestA test_a =
+    {
+      GET_COMPONENT(TestA, q1, EntityId, eid),
+      GET_COMPONENT(TestA, q1, glm::vec4, collision_rect),
+      GET_COMPONENT(TestA, q1, glm::vec2, pos)
+    };
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+    {
+      TestB test_b =
+      {
+        GET_COMPONENT(TestB, q2, EntityId, eid_a),
+        GET_COMPONENT(TestB, q2, glm::vec4, a),
+        GET_COMPONENT(TestB, q2, glm::vec2, b)
+      };
+      JoinAll::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+    }
+  }
+}
+static RegSys _reg_sys_JoinAll("JoinAll", &JoinAll_run, "UpdateStage");
+
+static void JoinIf_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestB"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    TestA test_a =
+    {
+      GET_COMPONENT(TestA, q1, EntityId, eid),
+      GET_COMPONENT(TestA, q1, glm::vec4, collision_rect),
+      GET_COMPONENT(TestA, q1, glm::vec2, pos)
+    };
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+    {
+      TestB test_b =
+      {
+        GET_COMPONENT(TestB, q2, EntityId, eid_a),
+        GET_COMPONENT(TestB, q2, glm::vec4, a),
+        GET_COMPONENT(TestB, q2, glm::vec2, b)
+      };
+      if (test_a.eid == test_b.eid_a)
+        JoinIf::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
+      }
+    }
+}
+static RegSys _reg_sys_JoinIf("JoinIf", &JoinIf_run, "UpdateStage");
+
+static void ExternalQuery_run(const RawArg &stage_or_event, Query&)
 {
   Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    UpdatePositionExternalQuery::run(*(UpdateStage*)stage_or_event.mem,
+    ExternalQuery::run(*(UpdateStage*)stage_or_event.mem,
     {
       GET_COMPONENT(AliveEnemy, q, EntityId, eid),
       GET_COMPONENT(AliveEnemy, q, glm::vec4, collision_rect),
@@ -180,62 +336,24 @@ static void UpdatePositionExternalQuery_run(const RawArg &stage_or_event, Query&
       GET_COMPONENT(AliveEnemy, q, bool, is_alive)
     });
 }
-static RegSys _reg_sys_UpdatePositionExternalQuery("UpdatePositionExternalQuery", &UpdatePositionExternalQuery_run, "UpdateStage");
+static RegSys _reg_sys_ExternalQuery("ExternalQuery", &ExternalQuery_run, "UpdateStage");
 
-static void UpdatePositionJoin_run(const RawArg &stage_or_event, Query&)
+static void Simple_run(const RawArg &stage_or_event, Query &query)
 {
-  Index &index = *g_mgr->getIndexByName(HASH("codegen-test.cpp_UpdatePositionJoin_eid_a"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
-  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
-  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
-  {
-    TestAQuery test_a =
-    {
-      GET_COMPONENT(TestAQuery, q1, EntityId, eid),
-      GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
-      GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
-    };
-
-    if (auto q2 = index.find(test_a.eid))
-    // for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
-    {
-      TestBQuery test_b =
-      {
-        GET_COMPONENT(TestBQuery, (*q2), EntityId, eid_a),
-        GET_COMPONENT(TestBQuery, (*q2), glm::vec4, a),
-        GET_COMPONENT(TestBQuery, (*q2), glm::vec2, b)
-      };
-      if (test_a.eid == test_b.eid_a)
-        UpdatePositionJoin::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
-      }
-    }
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    Simple::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(Simple, q, glm::vec2, vel),
+      GET_COMPONENT(Simple, q, glm::vec2, pos));
 }
-static RegSys _reg_sys_UpdatePositionJoin("UpdatePositionJoin", &UpdatePositionJoin_run, "UpdateStage");
+static RegSys _reg_sys_Simple("Simple", &Simple_run, "UpdateStage", Simple_query_desc);
 
-static void UpdatePositionJoinAll_run(const RawArg &stage_or_event, Query&)
+static void Where_run(const RawArg &stage_or_event, Query &query)
 {
-  Query &query1 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestAQuery"));
-  Query &query2 = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestBQuery"));
-  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
-  {
-    TestAQuery test_a =
-    {
-      GET_COMPONENT(TestAQuery, q1, EntityId, eid),
-      GET_COMPONENT(TestAQuery, q1, glm::vec4, collision_rect),
-      GET_COMPONENT(TestAQuery, q1, glm::vec2, pos)
-    };
-    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
-    {
-      TestBQuery test_b =
-      {
-        GET_COMPONENT(TestBQuery, q2, EntityId, eid_a),
-        GET_COMPONENT(TestBQuery, q2, glm::vec4, a),
-        GET_COMPONENT(TestBQuery, q2, glm::vec2, b)
-      };
-      UpdatePositionJoinAll::run(*(UpdateStage*)stage_or_event.mem, eastl::move(test_a), eastl::move(test_b));
-    }
-  }
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    Where::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(Where, q, glm::vec2, vel),
+      GET_COMPONENT(Where, q, glm::vec2, pos));
 }
-static RegSys _reg_sys_UpdatePositionJoinAll("UpdatePositionJoinAll", &UpdatePositionJoinAll_run, "UpdateStage");
+static RegSys _reg_sys_Where("Where", &Where_run, "UpdateStage", Where_query_desc);
 
 #endif // __CODEGEN__
