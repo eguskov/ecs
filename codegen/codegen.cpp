@@ -213,6 +213,13 @@ int main(int argc, char* argv[])
         }
         out << "};" << std::endl;
       }
+      if (!sys.track.empty())
+      {
+        out << "static constexpr ConstCompDesc " << sys.name << "_track_components[] = {" << std::endl;
+        for (const auto &p : sys.track)
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        out << "};" << std::endl;
+      }
 
       out << "static constexpr ConstQueryDesc " << sys.name << "_query_desc = {" << std::endl;
       if (sys.parameters.size() <= 1) out << "  empty_desc_array," << std::endl;
@@ -225,6 +232,8 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << sys.name << "_is_true_components)," << std::endl;
       if (sys.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << sys.name << "_is_false_components)," << std::endl;
+      if (sys.track.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << sys.name << "_track_components)," << std::endl;
       out << "};" << std::endl;
     }
 
@@ -276,6 +285,13 @@ int main(int argc, char* argv[])
           out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         out << "};" << std::endl;
       }
+      if (!q.track.empty())
+      {
+        out << "static constexpr ConstCompDesc " << q.name << "_track_components[] = {" << std::endl;
+        for (const auto &p : q.track)
+          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+        out << "};" << std::endl;
+      }
 
       out << "static constexpr ConstQueryDesc " << q.name << "_query_desc = {" << std::endl;
       out << "  make_const_array(" << q.name << "_components)," << std::endl;
@@ -287,6 +303,8 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << q.name << "_is_true_components)," << std::endl;
       if (q.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << q.name << "_is_false_components)," << std::endl;
+      if (q.track.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << q.name << "_track_components)," << std::endl;
       out << "};" << std::endl;
     }
 
@@ -324,6 +342,8 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << i.name << "_is_true_components)," << std::endl;
       if (i.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << i.name << "_is_false_components)," << std::endl;
+      if (i.track.empty()) out << "  empty_desc_array," << std::endl;
+      else out << "  make_const_array(" << i.name << "_track_components)," << std::endl;
       out << "};" << std::endl;
     }
 
@@ -335,12 +355,18 @@ int main(int argc, char* argv[])
     out << std::endl;
 
     for (const auto &i : state.indices)
-      out << "static RegIndex _reg_index_" << i.name << "(HASH(\"" << basename << "_" << i.name << "\"), " << "HASH(\"" << i.componentName << "\"), " << i.name << "_query_desc);" << std::endl;
+      out << "static RegIndex _reg_index_" << i.name << "(HASH(\"" << basename << "_" << i.name << "\"), " << "HASH(\"" << i.componentName << "\"), " << i.name << "_query_desc, " << (i.filter.empty() ? "nullptr" : i.filter) << ");" << std::endl;
 
     out << std::endl;
 
     for (const auto &q : state.queries)
     {
+      out << "int " << q.name << "::count()\n";
+      out << "{\n";
+      out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));\n";
+      out << "  return query.entitiesCount;\n";
+      out << "}\n";
+
       out << "template <typename Callable> void " << q.name << "::foreach(Callable callback)\n";
       out << "{\n";
       out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));\n";
@@ -631,9 +657,10 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc);\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
     }
 
     out << "#endif // __CODEGEN__" << std::endl;

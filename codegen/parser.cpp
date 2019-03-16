@@ -390,9 +390,16 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
 
           for (const auto &c : outComps)
           {
-            auto res = eastl::find_if(q.have.begin(), q.have.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
-            if (res == q.have.end())
-              q.have.emplace_back().name = c.name;
+            {
+              auto res = eastl::find_if(q.have.begin(), q.have.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
+              if (res == q.have.end())
+                q.have.emplace_back().name = c.name;
+            }
+            {
+              auto res = eastl::find_if(q.track.begin(), q.track.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
+              if (res == q.track.end())
+                q.track.emplace_back().name = c.name;
+            }
           }
         }
       });
@@ -423,6 +430,7 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
           i.name = "index_by_" + queryName + "_" + indexComponent;
           i.componentName = indexComponent;
           i.parameters = res->parameters;
+          i.filter = res->filter;
 
           break;
         }
@@ -454,9 +462,16 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
 
           for (const auto &c : outComps)
           {
-            auto res = eastl::find_if(s.have.begin(), s.have.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
-            if (res == s.have.end())
-              s.have.emplace_back().name = c.name;
+            {
+              auto res = eastl::find_if(s.have.begin(), s.have.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
+              if (res == s.have.end())
+                s.have.emplace_back().name = c.name;
+            }
+            {
+              auto res = eastl::find_if(s.track.begin(), s.track.end(), [&] (const VisitorState::Parameter &p) { return p.name == c.name; });
+              if (res == s.track.end())
+                s.track.emplace_back().name = c.name;
+            }
           }
         }
         else if (name == "ql_join")
@@ -468,23 +483,35 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
         }
         else if (name == "ql_index")
         {
-          s.indexId = state.indices.size();
-          auto &i = state.indices.push_back();
-
+          eastl::string lookup;
           foreach_struct_decl(systemCursor, [&](CXCursor cursor, const eastl::string &name)
           {
             if (name == "ql_index_lookup")
             {
               eastl::vector<VisitorState::Parameter> fields;
               read_struct_fields(cursor, fields);
-              i.lookup = fields[0].value;
+              lookup = fields[0].value;
             }
           });
-
-          assert(!i.lookup.empty());
+          assert(!lookup.empty());
 
           eastl::vector<VisitorState::Parameter> fields;
           read_struct_fields(cursor, fields);
+
+          eastl::string indexComponent = fields[0].name;
+          eastl::string queryName = fields[0].pureType;
+          eastl::string indexName = "index_by_" + queryName + "_" + indexComponent;
+
+          auto indexRes = eastl::find_if(state.indices.begin(), state.indices.end(), [&] (const VisitorState::Index &i) { return i.name == indexName; });
+          if (indexRes != state.indices.end())
+          {
+            s.indexId = eastl::distance(state.indices.begin(), indexRes);
+            return;
+          }
+
+          s.indexId = state.indices.size();
+          auto &i = state.indices.push_back();
+
           for (const auto &f : fields)
           {
             i.parameters.emplace_back().name = f.name;
@@ -492,14 +519,14 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
             i.parameters.back().type = f.type;
           }
 
-          auto indexComponent = i.parameters[0].name;
-          auto queryName = i.parameters[0].pureType;
           auto res = eastl::find_if(state.queries.begin(), state.queries.end(), [&] (const VisitorState::Query &q) { return q.name == queryName; });
           assert(res != state.queries.end());
 
-          i.name = "index_by_" + queryName + "_" + indexComponent;
+          i.name = indexName;
           i.componentName = indexComponent;
           i.parameters = res->parameters;
+          i.filter = res->filter;
+          i.lookup = lookup;
         }
       });
     }

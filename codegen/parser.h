@@ -32,6 +32,7 @@ struct VisitorState
     eastl::vector<Parameter> notHave;
     eastl::vector<Parameter> trackTrue;
     eastl::vector<Parameter> trackFalse;
+    eastl::vector<Parameter> track;
   };
 
   struct System : Function
