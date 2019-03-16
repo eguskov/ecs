@@ -546,3 +546,79 @@ struct update_always_active_auto_move
     update_auto_move_impl(stage, auto_move, vel, dir);
   }
 };
+
+struct on_enenmy_kill_handler
+{
+  QL_HAVE(enemy);
+
+  ECS_RUN(const EventOnKillEnemy &ev, const glm::vec2 &pos)
+  {
+    JFrameAllocator alloc;
+    JFrameValue comps(rapidjson::kObjectType);
+    {
+      JFrameValue arr(rapidjson::kArrayType);
+      arr.PushBack(pos.x, alloc);
+      arr.PushBack(pos.y, alloc);
+      comps.AddMember("pos", eastl::move(arr), alloc);
+    }
+    g_mgr->createEntity("death_fx", comps);
+  }
+};
+
+struct on_enenmy_hit_wall_handler
+{
+  QL_HAVE(enemy);
+
+  ECS_RUN(const EventOnWallHit &ev, const glm::vec2 &pos, glm::vec2 &vel, float &dir)
+  {
+    if (glm::dot(ev.normal, ev.vel) >= 0.f)
+      return;
+
+    if (ev.normal.x < 0.f || ev.normal.x > 0.f)
+    {
+      vel.x = ev.normal.x * abs(ev.vel.x);
+      dir = -float(dir);
+    }
+  }
+};
+
+struct on_enenmy_hit_ground_handler
+{
+  QL_HAVE(enemy);
+
+  ECS_RUN(const EventOnWallHit &ev, glm::vec2 &vel, bool &is_on_ground)
+  {
+    if (glm::dot(ev.normal, ev.vel) >= 0.f)
+      return;
+
+    if (ev.normal.y < 0.f)
+    {
+      is_on_ground = true;
+      vel.x = 0.f;
+    }
+  }
+};
+
+struct update_auto_jump
+{
+  QL_WHERE(is_alive == true);
+
+  ECS_RUN(const UpdateStage &stage, bool is_alive, Jump &jump, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  {
+    // TODO: auto_move.jump must be component
+    if (auto_move.jump)
+    {
+      auto_move.time -= stage.dt;
+      if (auto_move.time < 0.f)
+      {
+        auto_move.time = auto_move.duration;
+
+        jump.active = true;
+        jump.startTime = stage.total;
+
+        vel.x = 40.f * -dir;
+        vel.y = -40.f;
+      }
+    }
+  }
+};

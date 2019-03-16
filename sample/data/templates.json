@@ -30,6 +30,7 @@
     "update_inactive_zone_triggers",
     "update_active_switch_triggers",
     "update_active_zone_triggers",
+    "update_auto_jump",
     "update_script",
     "update_active_auto_move",
     "update_always_active_auto_move",
@@ -53,7 +54,10 @@
     "render_walls",
     "render_normal",
     "render_boid",
-    "render_debug_physics"
+    "render_debug_physics",
+    "on_enenmy_kill_handler",
+    "on_enenmy_hit_wall_handler",
+    "on_enenmy_hit_ground_handler"
   ],
   "$templates$v1": [
     {

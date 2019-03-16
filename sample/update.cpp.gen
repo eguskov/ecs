@@ -351,6 +351,72 @@ static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
   empty_desc_array,
   make_const_array(update_always_active_auto_move_track_components),
 };
+static constexpr ConstCompDesc on_enenmy_kill_handler_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc on_enenmy_kill_handler_have_components[] = {
+  {HASH("enemy"), 0},
+};
+static constexpr ConstQueryDesc on_enenmy_kill_handler_query_desc = {
+  make_const_array(on_enenmy_kill_handler_components),
+  make_const_array(on_enenmy_kill_handler_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc on_enenmy_hit_wall_handler_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc on_enenmy_hit_wall_handler_have_components[] = {
+  {HASH("enemy"), 0},
+};
+static constexpr ConstQueryDesc on_enenmy_hit_wall_handler_query_desc = {
+  make_const_array(on_enenmy_hit_wall_handler_components),
+  make_const_array(on_enenmy_hit_wall_handler_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc on_enenmy_hit_ground_handler_components[] = {
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc on_enenmy_hit_ground_handler_have_components[] = {
+  {HASH("enemy"), 0},
+};
+static constexpr ConstQueryDesc on_enenmy_hit_ground_handler_query_desc = {
+  make_const_array(on_enenmy_hit_ground_handler_components),
+  make_const_array(on_enenmy_hit_ground_handler_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_auto_jump_components[] = {
+  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("jump"), Desc<Jump>::Size},
+  {HASH("auto_move"), Desc<AutoMove>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("dir"), Desc<float>::Size},
+};
+static constexpr ConstCompDesc update_auto_jump_have_components[] = {
+  {HASH("is_alive"), 0},
+};
+static constexpr ConstCompDesc update_auto_jump_track_components[] = {
+  {HASH("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc update_auto_jump_query_desc = {
+  make_const_array(update_auto_jump_components),
+  make_const_array(update_auto_jump_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(update_auto_jump_track_components),
+};
 
 static constexpr ConstCompDesc Brick_components[] = {
   {HASH("collision_rect"), Desc<glm::vec4>::Size},
@@ -684,6 +750,50 @@ static void update_always_active_auto_move_run(const RawArg &stage_or_event, Que
       GET_COMPONENT(update_always_active_auto_move, q, float, dir));
 }
 static RegSys _reg_sys_update_always_active_auto_move("update_always_active_auto_move", &update_always_active_auto_move_run, "UpdateStage", update_always_active_auto_move_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
+
+static void on_enenmy_kill_handler_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    on_enenmy_kill_handler::run(*(EventOnKillEnemy*)stage_or_event.mem,
+      GET_COMPONENT(on_enenmy_kill_handler, q, glm::vec2, pos));
+}
+static RegSys _reg_sys_on_enenmy_kill_handler("on_enenmy_kill_handler", &on_enenmy_kill_handler_run, "EventOnKillEnemy", on_enenmy_kill_handler_query_desc, nullptr);
+
+static void on_enenmy_hit_wall_handler_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    on_enenmy_hit_wall_handler::run(*(EventOnWallHit*)stage_or_event.mem,
+      GET_COMPONENT(on_enenmy_hit_wall_handler, q, glm::vec2, pos),
+      GET_COMPONENT(on_enenmy_hit_wall_handler, q, glm::vec2, vel),
+      GET_COMPONENT(on_enenmy_hit_wall_handler, q, float, dir));
+}
+static RegSys _reg_sys_on_enenmy_hit_wall_handler("on_enenmy_hit_wall_handler", &on_enenmy_hit_wall_handler_run, "EventOnWallHit", on_enenmy_hit_wall_handler_query_desc, nullptr);
+
+static void on_enenmy_hit_ground_handler_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    on_enenmy_hit_ground_handler::run(*(EventOnWallHit*)stage_or_event.mem,
+      GET_COMPONENT(on_enenmy_hit_ground_handler, q, glm::vec2, vel),
+      GET_COMPONENT(on_enenmy_hit_ground_handler, q, bool, is_on_ground));
+}
+static RegSys _reg_sys_on_enenmy_hit_ground_handler("on_enenmy_hit_ground_handler", &on_enenmy_hit_ground_handler_run, "EventOnWallHit", on_enenmy_hit_ground_handler_query_desc, nullptr);
+
+static void update_auto_jump_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_auto_jump::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_auto_jump, q, bool, is_alive),
+      GET_COMPONENT(update_auto_jump, q, Jump, jump),
+      GET_COMPONENT(update_auto_jump, q, AutoMove, auto_move),
+      GET_COMPONENT(update_auto_jump, q, glm::vec2, vel),
+      GET_COMPONENT(update_auto_jump, q, float, dir));
+}
+static RegSys _reg_sys_update_auto_jump("update_auto_jump", &update_auto_jump_run, "UpdateStage", update_auto_jump_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
