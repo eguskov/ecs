@@ -14,10 +14,20 @@ static constexpr ConstQueryDesc Script_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
+using ScriptBuilder = StructBuilder<
+  StructField<script::ScriptComponent, INDEX_OF_COMPONENT(Script, script)>
+>;
 
 static RegQuery _reg_query_Script(HASH("webui.cpp_Script"), Script_query_desc, nullptr);
 
+
+int Script::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("webui.cpp_Script"));
+  return query.entitiesCount;
+}
 template <typename Callable> void Script::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(HASH("webui.cpp_Script"));

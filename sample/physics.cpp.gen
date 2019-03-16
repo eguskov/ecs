@@ -28,6 +28,7 @@ static constexpr ConstQueryDesc init_physics_collision_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc init_physics_body_handler_components[] = {
   {HASH("phys_body"), Desc<PhysicsBody>::Size},
@@ -35,6 +36,7 @@ static constexpr ConstCompDesc init_physics_body_handler_components[] = {
 };
 static constexpr ConstQueryDesc init_physics_body_handler_query_desc = {
   make_const_array(init_physics_body_handler_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -49,12 +51,14 @@ static constexpr ConstQueryDesc init_physics_world_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc update_physics_components[] = {
   {HASH("phys_world"), Desc<PhysicsWorld>::Size},
 };
 static constexpr ConstQueryDesc update_physics_query_desc = {
   make_const_array(update_physics_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -67,6 +71,7 @@ static constexpr ConstCompDesc update_kinematic_physics_body_components[] = {
 };
 static constexpr ConstQueryDesc update_kinematic_physics_body_query_desc = {
   make_const_array(update_kinematic_physics_body_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -89,12 +94,14 @@ static constexpr ConstQueryDesc update_physics_collisions_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc render_debug_physics_components[] = {
   {HASH("phys_world"), Desc<PhysicsWorld>::Size},
 };
 static constexpr ConstQueryDesc render_debug_physics_query_desc = {
   make_const_array(render_debug_physics_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -114,6 +121,7 @@ static constexpr ConstQueryDesc Brick_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc MovingBrick_components[] = {
   {HASH("collision_shape"), Desc<CollisionShape>::Size},
@@ -130,11 +138,27 @@ static constexpr ConstQueryDesc MovingBrick_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
+using BrickBuilder = StructBuilder<
+  StructField<CollisionShape, INDEX_OF_COMPONENT(Brick, collision_shape)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(Brick, pos)>
+>;
+using MovingBrickBuilder = StructBuilder<
+  StructField<CollisionShape, INDEX_OF_COMPONENT(MovingBrick, collision_shape)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(MovingBrick, pos)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(MovingBrick, vel)>
+>;
 
 static RegQuery _reg_query_Brick(HASH("physics.cpp_Brick"), Brick_query_desc, nullptr);
 static RegQuery _reg_query_MovingBrick(HASH("physics.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
 
+
+int Brick::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_Brick"));
+  return query.entitiesCount;
+}
 template <typename Callable> void Brick::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_Brick"));
@@ -144,6 +168,11 @@ template <typename Callable> void Brick::foreach(Callable callback)
       GET_COMPONENT(Brick, q, CollisionShape, collision_shape),
       GET_COMPONENT(Brick, q, glm::vec2, pos)
     });
+}
+int MovingBrick::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_MovingBrick"));
+  return query.entitiesCount;
 }
 template <typename Callable> void MovingBrick::foreach(Callable callback)
 {
@@ -164,7 +193,7 @@ static void init_physics_collision_handler_run(const RawArg &stage_or_event, Que
       GET_COMPONENT(init_physics_collision_handler, q, PhysicsBody, phys_body),
       GET_COMPONENT(init_physics_collision_handler, q, CollisionShape, collision_shape));
 }
-static RegSys _reg_sys_init_physics_collision_handler("init_physics_collision_handler", &init_physics_collision_handler_run, "EventOnEntityCreate", init_physics_collision_handler_query_desc);
+static RegSys _reg_sys_init_physics_collision_handler("init_physics_collision_handler", &init_physics_collision_handler_run, "EventOnEntityCreate", init_physics_collision_handler_query_desc, nullptr);
 
 static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -173,7 +202,7 @@ static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &q
       GET_COMPONENT(init_physics_body_handler, q, PhysicsBody, phys_body),
       GET_COMPONENT(init_physics_body_handler, q, glm::vec2, pos));
 }
-static RegSys _reg_sys_init_physics_body_handler("init_physics_body_handler", &init_physics_body_handler_run, "EventOnEntityCreate", init_physics_body_handler_query_desc);
+static RegSys _reg_sys_init_physics_body_handler("init_physics_body_handler", &init_physics_body_handler_run, "EventOnEntityCreate", init_physics_body_handler_query_desc, nullptr);
 
 static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -181,7 +210,7 @@ static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &
     init_physics_world_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(init_physics_world_handler, q, PhysicsWorld, phys_world));
 }
-static RegSys _reg_sys_init_physics_world_handler("init_physics_world_handler", &init_physics_world_handler_run, "EventOnEntityCreate", init_physics_world_handler_query_desc);
+static RegSys _reg_sys_init_physics_world_handler("init_physics_world_handler", &init_physics_world_handler_run, "EventOnEntityCreate", init_physics_world_handler_query_desc, nullptr);
 
 static void update_physics_run(const RawArg &stage_or_event, Query &query)
 {
@@ -189,7 +218,7 @@ static void update_physics_run(const RawArg &stage_or_event, Query &query)
     update_physics::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_physics, q, PhysicsWorld, phys_world));
 }
-static RegSys _reg_sys_update_physics("update_physics", &update_physics_run, "UpdateStage", update_physics_query_desc);
+static RegSys _reg_sys_update_physics("update_physics", &update_physics_run, "UpdateStage", update_physics_query_desc, nullptr);
 
 static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Query &query)
 {
@@ -199,7 +228,7 @@ static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Quer
       GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, pos),
       GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, vel));
 }
-static RegSys _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", &update_kinematic_physics_body_run, "UpdateStage", update_kinematic_physics_body_query_desc);
+static RegSys _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", &update_kinematic_physics_body_run, "UpdateStage", update_kinematic_physics_body_query_desc, nullptr);
 
 static void update_physics_collisions_run(const RawArg &stage_or_event, Query &query)
 {
@@ -212,7 +241,7 @@ static void update_physics_collisions_run(const RawArg &stage_or_event, Query &q
       GET_COMPONENT(update_physics_collisions, q, glm::vec2, pos),
       GET_COMPONENT(update_physics_collisions, q, glm::vec2, vel));
 }
-static RegSys _reg_sys_update_physics_collisions("update_physics_collisions", &update_physics_collisions_run, "UpdateStage", update_physics_collisions_query_desc);
+static RegSys _reg_sys_update_physics_collisions("update_physics_collisions", &update_physics_collisions_run, "UpdateStage", update_physics_collisions_query_desc, nullptr);
 
 static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
 {
@@ -220,6 +249,6 @@ static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
     render_debug_physics::run(*(RenderDebugStage*)stage_or_event.mem,
       GET_COMPONENT(render_debug_physics, q, PhysicsWorld, phys_world));
 }
-static RegSys _reg_sys_render_debug_physics("render_debug_physics", &render_debug_physics_run, "RenderDebugStage", render_debug_physics_query_desc);
+static RegSys _reg_sys_render_debug_physics("render_debug_physics", &render_debug_physics_run, "RenderDebugStage", render_debug_physics_query_desc, nullptr);
 
 #endif // __CODEGEN__

@@ -95,6 +95,11 @@ bool process_script_command(int argc, char *argv[])
   if (argc < 2)
     return false;
 
+  JFrameDocument res;
+  res.SetObject();
+  print_document(res);
+  return true;
+
   if (::strcmp(argv[1], "--compile") == 0 && argc > 2 && ::strlen(argv[2]) > 0)
   {
     JFrameDocument res;

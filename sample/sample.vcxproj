@@ -160,6 +160,10 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
+    <CustomBuild Include="triggers.cpp">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="update.cpp.gen">
@@ -175,6 +179,9 @@
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="script-update.h.gen">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="triggers.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>

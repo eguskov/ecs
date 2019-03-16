@@ -1,0 +1,674 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "triggers.cpp"
+
+static constexpr ConstCompDesc update_player_spawner_have_components[] = {
+  {HASH("player_spawner"), 0},
+};
+static constexpr ConstQueryDesc update_player_spawner_query_desc = {
+  empty_desc_array,
+  make_const_array(update_player_spawner_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+
+static constexpr ConstCompDesc InactiveLift_components[] = {
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveLift_have_components[] = {
+  {HASH("lift"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveLift_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveLift_query_desc = {
+  make_const_array(InactiveLift_components),
+  make_const_array(InactiveLift_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveLift_track_components),
+};
+static constexpr ConstCompDesc NotBindedTrigger_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("action_key"), Desc<StringHash>::Size},
+  {HASH("action_eid"), Desc<EntityId>::Size},
+  {HASH("is_binded"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc NotBindedTrigger_have_components[] = {
+  {HASH("trigger"), 0},
+  {HASH("is_binded"), 0},
+};
+static constexpr ConstCompDesc NotBindedTrigger_track_components[] = {
+  {HASH("is_binded"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc NotBindedTrigger_query_desc = {
+  make_const_array(NotBindedTrigger_components),
+  make_const_array(NotBindedTrigger_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(NotBindedTrigger_track_components),
+};
+static constexpr ConstCompDesc ActiveTrigger_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("action_eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc ActiveTrigger_have_components[] = {
+  {HASH("trigger"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc ActiveTrigger_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc ActiveTrigger_query_desc = {
+  make_const_array(ActiveTrigger_components),
+  make_const_array(ActiveTrigger_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(ActiveTrigger_track_components),
+};
+static constexpr ConstCompDesc InactiveSwitchTrigger_components[] = {
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveSwitchTrigger_have_components[] = {
+  {HASH("switch_trigger"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveSwitchTrigger_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveSwitchTrigger_query_desc = {
+  make_const_array(InactiveSwitchTrigger_components),
+  make_const_array(InactiveSwitchTrigger_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveSwitchTrigger_track_components),
+};
+static constexpr ConstCompDesc InactiveZoneTrigger_components[] = {
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveZoneTrigger_have_components[] = {
+  {HASH("zone_trigger"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveZoneTrigger_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveZoneTrigger_query_desc = {
+  make_const_array(InactiveZoneTrigger_components),
+  make_const_array(InactiveZoneTrigger_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveZoneTrigger_track_components),
+};
+static constexpr ConstCompDesc Action_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+};
+static constexpr ConstCompDesc Action_have_components[] = {
+  {HASH("action"), 0},
+};
+static constexpr ConstQueryDesc Action_query_desc = {
+  make_const_array(Action_components),
+  make_const_array(Action_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc InactiveEnableLiftAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("lift_key"), Desc<StringHash>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveEnableLiftAction_have_components[] = {
+  {HASH("enable_lift_action"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveEnableLiftAction_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveEnableLiftAction_query_desc = {
+  make_const_array(InactiveEnableLiftAction_components),
+  make_const_array(InactiveEnableLiftAction_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveEnableLiftAction_track_components),
+};
+static constexpr ConstCompDesc InactiveKillPlayerAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveKillPlayerAction_have_components[] = {
+  {HASH("kill_player_action"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveKillPlayerAction_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveKillPlayerAction_query_desc = {
+  make_const_array(InactiveKillPlayerAction_components),
+  make_const_array(InactiveKillPlayerAction_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveKillPlayerAction_track_components),
+};
+static constexpr ConstCompDesc AlivePlayer_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc AlivePlayer_have_components[] = {
+  {HASH("user_input"), 0},
+  {HASH("is_alive"), 0},
+};
+static constexpr ConstCompDesc AlivePlayer_track_components[] = {
+  {HASH("is_alive"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc AlivePlayer_query_desc = {
+  make_const_array(AlivePlayer_components),
+  make_const_array(AlivePlayer_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(AlivePlayer_track_components),
+};
+static constexpr ConstCompDesc PlayerSpawnZone_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc PlayerSpawnZone_have_components[] = {
+  {HASH("player_spawn_zone"), 0},
+};
+static constexpr ConstQueryDesc PlayerSpawnZone_query_desc = {
+  make_const_array(PlayerSpawnZone_components),
+  make_const_array(PlayerSpawnZone_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+using InactiveLiftBuilder = StructBuilder<
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveLift, key)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveLift, is_active)>
+>;
+using NotBindedTriggerBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(NotBindedTrigger, eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(NotBindedTrigger, key)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(NotBindedTrigger, action_key)>,
+  StructField<EntityId, INDEX_OF_COMPONENT(NotBindedTrigger, action_eid)>,
+  StructField<bool, INDEX_OF_COMPONENT(NotBindedTrigger, is_binded)>
+>;
+using ActiveTriggerBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(ActiveTrigger, eid)>,
+  StructField<EntityId, INDEX_OF_COMPONENT(ActiveTrigger, action_eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(ActiveTrigger, key)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(ActiveTrigger, pos)>,
+  StructField<bool, INDEX_OF_COMPONENT(ActiveTrigger, is_active)>
+>;
+using InactiveSwitchTriggerBuilder = StructBuilder<
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveSwitchTrigger, key)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(InactiveSwitchTrigger, pos)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveSwitchTrigger, is_active)>
+>;
+using InactiveZoneTriggerBuilder = StructBuilder<
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveZoneTrigger, key)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(InactiveZoneTrigger, pos)>,
+  StructField<glm::vec4, INDEX_OF_COMPONENT(InactiveZoneTrigger, collision_rect)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveZoneTrigger, is_active)>
+>;
+using ActionBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(Action, eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(Action, key)>
+>;
+using InactiveEnableLiftActionBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(InactiveEnableLiftAction, eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, key)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, lift_key)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveEnableLiftAction, is_active)>
+>;
+using InactiveKillPlayerActionBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(InactiveKillPlayerAction, eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveKillPlayerAction, key)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveKillPlayerAction, is_active)>
+>;
+using AlivePlayerBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(AlivePlayer, eid)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(AlivePlayer, pos)>
+>;
+using PlayerSpawnZoneBuilder = StructBuilder<
+  StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerSpawnZone, pos)>
+>;
+static constexpr ConstCompDesc index_by_NotBindedTrigger_action_key_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("action_key"), Desc<StringHash>::Size},
+  {HASH("action_eid"), Desc<EntityId>::Size},
+  {HASH("is_binded"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc index_by_NotBindedTrigger_action_key_query_desc = {
+  make_const_array(index_by_NotBindedTrigger_action_key_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc index_by_ActiveTrigger_action_eid_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("action_eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc index_by_ActiveTrigger_action_eid_query_desc = {
+  make_const_array(index_by_ActiveTrigger_action_eid_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+
+static RegQuery _reg_query_InactiveLift(HASH("triggers.cpp_InactiveLift"), InactiveLift_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_NotBindedTrigger(HASH("triggers.cpp_NotBindedTrigger"), NotBindedTrigger_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_binded, bool);
+  return is_binded == false;
+});
+static RegQuery _reg_query_ActiveTrigger(HASH("triggers.cpp_ActiveTrigger"), ActiveTrigger_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == true;
+});
+static RegQuery _reg_query_InactiveSwitchTrigger(HASH("triggers.cpp_InactiveSwitchTrigger"), InactiveSwitchTrigger_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_InactiveZoneTrigger(HASH("triggers.cpp_InactiveZoneTrigger"), InactiveZoneTrigger_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_Action(HASH("triggers.cpp_Action"), Action_query_desc, nullptr);
+static RegQuery _reg_query_InactiveEnableLiftAction(HASH("triggers.cpp_InactiveEnableLiftAction"), InactiveEnableLiftAction_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_InactiveKillPlayerAction(HASH("triggers.cpp_InactiveKillPlayerAction"), InactiveKillPlayerAction_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_AlivePlayer(HASH("triggers.cpp_AlivePlayer"), AlivePlayer_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
+static RegQuery _reg_query_PlayerSpawnZone(HASH("triggers.cpp_PlayerSpawnZone"), PlayerSpawnZone_query_desc, nullptr);
+
+static RegIndex _reg_index_index_by_NotBindedTrigger_action_key(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"), HASH("action_key"), index_by_NotBindedTrigger_action_key_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_binded, bool);
+  return is_binded == false;
+});
+static RegIndex _reg_index_index_by_ActiveTrigger_action_eid(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"), HASH("action_eid"), index_by_ActiveTrigger_action_eid_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == true;
+});
+
+int InactiveLift::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveLift"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveLift::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveLift"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveLift, q, StringHash, key),
+      GET_COMPONENT(InactiveLift, q, bool, is_active)
+    });
+}
+int NotBindedTrigger::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_NotBindedTrigger"));
+  return query.entitiesCount;
+}
+template <typename Callable> void NotBindedTrigger::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_NotBindedTrigger"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(NotBindedTrigger, q, EntityId, eid),
+      GET_COMPONENT(NotBindedTrigger, q, StringHash, key),
+      GET_COMPONENT(NotBindedTrigger, q, StringHash, action_key),
+      GET_COMPONENT(NotBindedTrigger, q, EntityId, action_eid),
+      GET_COMPONENT(NotBindedTrigger, q, bool, is_binded)
+    });
+}
+int ActiveTrigger::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_ActiveTrigger"));
+  return query.entitiesCount;
+}
+template <typename Callable> void ActiveTrigger::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_ActiveTrigger"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(ActiveTrigger, q, EntityId, eid),
+      GET_COMPONENT(ActiveTrigger, q, EntityId, action_eid),
+      GET_COMPONENT(ActiveTrigger, q, StringHash, key),
+      GET_COMPONENT(ActiveTrigger, q, glm::vec2, pos),
+      GET_COMPONENT(ActiveTrigger, q, bool, is_active)
+    });
+}
+int InactiveSwitchTrigger::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveSwitchTrigger::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveSwitchTrigger, q, StringHash, key),
+      GET_COMPONENT(InactiveSwitchTrigger, q, glm::vec2, pos),
+      GET_COMPONENT(InactiveSwitchTrigger, q, bool, is_active)
+    });
+}
+int InactiveZoneTrigger::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveZoneTrigger::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveZoneTrigger, q, StringHash, key),
+      GET_COMPONENT(InactiveZoneTrigger, q, glm::vec2, pos),
+      GET_COMPONENT(InactiveZoneTrigger, q, glm::vec4, collision_rect),
+      GET_COMPONENT(InactiveZoneTrigger, q, bool, is_active)
+    });
+}
+int Action::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  return query.entitiesCount;
+}
+template <typename Callable> void Action::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(Action, q, EntityId, eid),
+      GET_COMPONENT(Action, q, StringHash, key)
+    });
+}
+int InactiveEnableLiftAction::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveEnableLiftAction::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveEnableLiftAction, q, EntityId, eid),
+      GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, key),
+      GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, q, bool, is_active)
+    });
+}
+int InactiveKillPlayerAction::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveKillPlayerAction::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveKillPlayerAction, q, EntityId, eid),
+      GET_COMPONENT(InactiveKillPlayerAction, q, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, q, bool, is_active)
+    });
+}
+int AlivePlayer::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  return query.entitiesCount;
+}
+template <typename Callable> void AlivePlayer::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(AlivePlayer, q, EntityId, eid),
+      GET_COMPONENT(AlivePlayer, q, glm::vec2, pos)
+    });
+}
+int PlayerSpawnZone::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_PlayerSpawnZone"));
+  return query.entitiesCount;
+}
+template <typename Callable> void PlayerSpawnZone::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_PlayerSpawnZone"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(PlayerSpawnZone, q, glm::vec2, pos)
+    });
+}
+static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    Action action =
+    {
+      GET_COMPONENT(Action, q1, EntityId, eid),
+      GET_COMPONENT(Action, q1, StringHash, key)
+    };
+    if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.key))
+    {
+      Query &query2 = *pquery2;
+      for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+      {
+        NotBindedTrigger trigger =
+        {
+          GET_COMPONENT(NotBindedTrigger, q2, EntityId, eid),
+          GET_COMPONENT(NotBindedTrigger, q2, StringHash, key),
+          GET_COMPONENT(NotBindedTrigger, q2, StringHash, action_key),
+          GET_COMPONENT(NotBindedTrigger, q2, EntityId, action_eid),
+          GET_COMPONENT(NotBindedTrigger, q2, bool, is_binded)
+        };
+        bind_trigger_to_action::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+      }
+    }
+  }
+}
+static RegSys _reg_sys_bind_trigger_to_action("bind_trigger_to_action", &bind_trigger_to_action_run, "UpdateStage");
+
+static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    InactiveEnableLiftAction action =
+    {
+      GET_COMPONENT(InactiveEnableLiftAction, q1, EntityId, eid),
+      GET_COMPONENT(InactiveEnableLiftAction, q1, StringHash, key),
+      GET_COMPONENT(InactiveEnableLiftAction, q1, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, q1, bool, is_active)
+    };
+    if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
+    {
+      Query &query2 = *pquery2;
+      for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+      {
+        ActiveTrigger trigger =
+        {
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
+          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
+          GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
+        };
+        update_active_switch_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+      }
+    }
+  }
+}
+static RegSys _reg_sys_update_active_switch_triggers("update_active_switch_triggers", &update_active_switch_triggers_run, "UpdateStage");
+
+static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    InactiveKillPlayerAction action =
+    {
+      GET_COMPONENT(InactiveKillPlayerAction, q1, EntityId, eid),
+      GET_COMPONENT(InactiveKillPlayerAction, q1, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, q1, bool, is_active)
+    };
+    if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
+    {
+      Query &query2 = *pquery2;
+      for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+      {
+        ActiveTrigger trigger =
+        {
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
+          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
+          GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
+        };
+        update_active_zone_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+      }
+    }
+  }
+}
+static RegSys _reg_sys_update_active_zone_triggers("update_active_zone_triggers", &update_active_zone_triggers_run, "UpdateStage");
+
+static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    AlivePlayer player =
+    {
+      GET_COMPONENT(AlivePlayer, q1, EntityId, eid),
+      GET_COMPONENT(AlivePlayer, q1, glm::vec2, pos)
+    };
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+    {
+      InactiveSwitchTrigger trigger =
+      {
+        GET_COMPONENT(InactiveSwitchTrigger, q2, StringHash, key),
+        GET_COMPONENT(InactiveSwitchTrigger, q2, glm::vec2, pos),
+        GET_COMPONENT(InactiveSwitchTrigger, q2, bool, is_active)
+      };
+      update_inactive_switch_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
+    }
+  }
+}
+static RegSys _reg_sys_update_inactive_switch_triggers("update_inactive_switch_triggers", &update_inactive_switch_triggers_run, "UpdateStage");
+
+static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    AlivePlayer player =
+    {
+      GET_COMPONENT(AlivePlayer, q1, EntityId, eid),
+      GET_COMPONENT(AlivePlayer, q1, glm::vec2, pos)
+    };
+    for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+    {
+      InactiveZoneTrigger trigger =
+      {
+        GET_COMPONENT(InactiveZoneTrigger, q2, StringHash, key),
+        GET_COMPONENT(InactiveZoneTrigger, q2, glm::vec2, pos),
+        GET_COMPONENT(InactiveZoneTrigger, q2, glm::vec4, collision_rect),
+        GET_COMPONENT(InactiveZoneTrigger, q2, bool, is_active)
+      };
+      update_inactive_zone_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
+    }
+  }
+}
+static RegSys _reg_sys_update_inactive_zone_triggers("update_inactive_zone_triggers", &update_inactive_zone_triggers_run, "UpdateStage");
+
+static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
+}
+static RegSys _reg_sys_update_player_spawner("update_player_spawner", &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);
+
+#endif // __CODEGEN__

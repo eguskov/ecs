@@ -21,6 +21,7 @@ static constexpr ConstQueryDesc Simple_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc Where_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size},
@@ -32,12 +33,16 @@ static constexpr ConstCompDesc Where_have_components[] = {
 static constexpr ConstCompDesc Where_not_have_components[] = {
   {HASH("is_active"), 0},
 };
+static constexpr ConstCompDesc Where_track_components[] = {
+  {HASH("is_alive"), Desc<bool>::Size},
+};
 static constexpr ConstQueryDesc Where_query_desc = {
   make_const_array(Where_components),
   make_const_array(Where_have_components),
   make_const_array(Where_not_have_components),
   empty_desc_array,
   empty_desc_array,
+  make_const_array(Where_track_components),
 };
 
 static constexpr ConstCompDesc TestA_components[] = {
@@ -58,12 +63,18 @@ static constexpr ConstCompDesc TestA_not_have_components[] = {
   {HASH("comp_b"), 0},
   {HASH("comp_c"), 0},
 };
+static constexpr ConstCompDesc TestA_track_components[] = {
+  {HASH("a"), Desc<bool>::Size},
+  {HASH("b"), Desc<bool>::Size},
+  {HASH("c"), Desc<bool>::Size},
+};
 static constexpr ConstQueryDesc TestA_query_desc = {
   make_const_array(TestA_components),
   make_const_array(TestA_have_components),
   make_const_array(TestA_not_have_components),
   empty_desc_array,
   empty_desc_array,
+  make_const_array(TestA_track_components),
 };
 static constexpr ConstCompDesc TestB_components[] = {
   {HASH("eid_a"), Desc<EntityId>::Size},
@@ -76,6 +87,7 @@ static constexpr ConstCompDesc TestB_have_components[] = {
 static constexpr ConstQueryDesc TestB_query_desc = {
   make_const_array(TestB_components),
   make_const_array(TestB_have_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -93,6 +105,7 @@ static constexpr ConstQueryDesc BricksQuery_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc AliveEnemy_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
@@ -105,12 +118,16 @@ static constexpr ConstCompDesc AliveEnemy_have_components[] = {
   {HASH("enemy"), 0},
   {HASH("is_alive"), 0},
 };
+static constexpr ConstCompDesc AliveEnemy_track_components[] = {
+  {HASH("is_alive"), Desc<bool>::Size},
+};
 static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_components),
   make_const_array(AliveEnemy_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  make_const_array(AliveEnemy_track_components),
 };
 using TestABuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(TestA, eid)>,
@@ -144,6 +161,7 @@ static constexpr ConstQueryDesc index_by_TestB_eid_a_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 static constexpr ConstCompDesc index_by_AliveEnemy_grid_cell_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
@@ -154,6 +172,7 @@ static constexpr ConstCompDesc index_by_AliveEnemy_grid_cell_components[] = {
 };
 static constexpr ConstQueryDesc index_by_AliveEnemy_grid_cell_query_desc = {
   make_const_array(index_by_AliveEnemy_grid_cell_components),
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -177,9 +196,19 @@ static RegQuery _reg_query_AliveEnemy(HASH("codegen-test.cpp_AliveEnemy"), Alive
   return is_alive == true;
 });
 
-static RegIndex _reg_index_index_by_TestB_eid_a(HASH("codegen-test.cpp_index_by_TestB_eid_a"), HASH("eid_a"), index_by_TestB_eid_a_query_desc);
-static RegIndex _reg_index_index_by_AliveEnemy_grid_cell(HASH("codegen-test.cpp_index_by_AliveEnemy_grid_cell"), HASH("grid_cell"), index_by_AliveEnemy_grid_cell_query_desc);
+static RegIndex _reg_index_index_by_TestB_eid_a(HASH("codegen-test.cpp_index_by_TestB_eid_a"), HASH("eid_a"), index_by_TestB_eid_a_query_desc, nullptr);
+static RegIndex _reg_index_index_by_AliveEnemy_grid_cell(HASH("codegen-test.cpp_index_by_AliveEnemy_grid_cell"), HASH("grid_cell"), index_by_AliveEnemy_grid_cell_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
 
+int TestA::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
+  return query.entitiesCount;
+}
 template <typename Callable> void TestA::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestA"));
@@ -190,6 +219,11 @@ template <typename Callable> void TestA::foreach(Callable callback)
       GET_COMPONENT(TestA, q, glm::vec4, collision_rect),
       GET_COMPONENT(TestA, q, glm::vec2, pos)
     });
+}
+int TestB::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_TestB"));
+  return query.entitiesCount;
 }
 template <typename Callable> void TestB::foreach(Callable callback)
 {
@@ -202,6 +236,11 @@ template <typename Callable> void TestB::foreach(Callable callback)
       GET_COMPONENT(TestB, q, glm::vec2, b)
     });
 }
+int BricksQuery::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_BricksQuery"));
+  return query.entitiesCount;
+}
 template <typename Callable> void BricksQuery::foreach(Callable callback)
 {
   Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_BricksQuery"));
@@ -211,6 +250,11 @@ template <typename Callable> void BricksQuery::foreach(Callable callback)
       GET_COMPONENT(BricksQuery, q, glm::vec4, collision_rect),
       GET_COMPONENT(BricksQuery, q, glm::vec2, pos)
     });
+}
+int AliveEnemy::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("codegen-test.cpp_AliveEnemy"));
+  return query.entitiesCount;
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
@@ -345,7 +389,7 @@ static void Simple_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(Simple, q, glm::vec2, vel),
       GET_COMPONENT(Simple, q, glm::vec2, pos));
 }
-static RegSys _reg_sys_Simple("Simple", &Simple_run, "UpdateStage", Simple_query_desc);
+static RegSys _reg_sys_Simple("Simple", &Simple_run, "UpdateStage", Simple_query_desc, nullptr);
 
 static void Where_run(const RawArg &stage_or_event, Query &query)
 {
@@ -354,6 +398,11 @@ static void Where_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(Where, q, glm::vec2, vel),
       GET_COMPONENT(Where, q, glm::vec2, pos));
 }
-static RegSys _reg_sys_Where("Where", &Where_run, "UpdateStage", Where_query_desc);
+static RegSys _reg_sys_Where("Where", &Where_run, "UpdateStage", Where_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_alive, bool);
+  return is_alive == true;
+});
 
 #endif // __CODEGEN__
