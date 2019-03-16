@@ -35,6 +35,7 @@ static constexpr ConstQueryDesc update_position_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 
 int main()
