@@ -12,6 +12,7 @@
 #include <bsonUtils.h>
 
 #include <EASTL/queue.h>
+#include <EASTL/unique_ptr.h>
 
 #include <sstream>
 #include <atomic>
@@ -641,26 +642,26 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
     });
   });
 
-  send_json_file("getECSTemplates", "templates.json", conn);
-  send_json_file("getECSEntities", "level_1.json", conn);
+  send_json_file("getECSTemplates", "data/templates.json", conn);
+  send_json_file("getECSEntities", "data/level_1.json", conn);
 }
 
 static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &doc)
 {
   run_on_main_thread_and_wait(conn, doc, [](const JDocument &doc, BsonStream &bson)
   {
-    // TODO: Replace with allocation
-    char writeBuffer[4 << 20];
+    static constexpr size_t writeBufferSize = 4 << 20;
+    eastl::unique_ptr<char> writeBuffer(new char[writeBufferSize]);
 
     JDocument docToSave;
     docToSave.CopyFrom(doc["data"], docToSave.GetAllocator());
 
     FILE *fp = nullptr;
-    ::fopen_s(&fp, "level_1.json", "wb");
+    ::fopen_s(&fp, "data/level_1.json", "wb");
 
     if (fp)
     {
-      rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+      rapidjson::FileWriteStream os(fp, writeBuffer.get(), writeBufferSize);
       rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
       docToSave.Accept(writer);
       fclose(fp);
