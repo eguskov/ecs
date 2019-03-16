@@ -182,6 +182,7 @@ static constexpr ConstQueryDesc TestIndex_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
+  empty_desc_array,
 };
 RegIndex _reg_index_test(HASH("test_index"), HASH("grid_cell"), TestIndex_query_desc);
 

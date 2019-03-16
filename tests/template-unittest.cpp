@@ -65,7 +65,7 @@ TEST(Template, Load_Values)
   CHECK_COMPONENT_VALUE("float-comp", float, 666.6f);
   CHECK_COMPONENT_VALUE("int-comp", int, 28);
   CHECK_COMPONENT_VALUE("string-comp", eastl::string, "hello");
-  CHECK_COMPONENT_VALUE("hash-string-comp", HashedString, "hello, world");
+  CHECK_COMPONENT_VALUE("hash-string-comp", StringHash, "hello, world");
   CHECK_COMPONENT_VALUE("vec2-comp", glm::vec2, glm::vec2(1.2f, 3.4f));
   CHECK_COMPONENT_VALUE("vec3-comp", glm::vec3, glm::vec3(1.2f, 3.4f, 5.6f));
   CHECK_COMPONENT_VALUE("vec4-comp", glm::vec4, glm::vec4(1.2f, 3.4f, 5.6f, 7.8f));
@@ -90,7 +90,7 @@ TEST(Template_Extends, Single)
   CHECK_COMPONENT_VALUE("bool-comp", bool, true);
   CHECK_COMPONENT_VALUE("int-comp", int, 28);
   CHECK_COMPONENT_VALUE("string-comp", eastl::string, "hello");
-  CHECK_COMPONENT_VALUE("hash-string-comp", HashedString, "hello, world");
+  CHECK_COMPONENT_VALUE("hash-string-comp", StringHash, "hello, world");
   CHECK_COMPONENT_VALUE("vec3-comp", glm::vec3, glm::vec3(1.2f, 3.4f, 5.6f));
   CHECK_COMPONENT_VALUE("vec4-comp", glm::vec4, glm::vec4(1.2f, 3.4f, 5.6f, 7.8f));
 
@@ -118,7 +118,7 @@ TEST(Template_Extends, Chain)
   CHECK_COMPONENT_VALUE("bool-comp", bool, true);
   CHECK_COMPONENT_VALUE("int-comp", int, 28);
   CHECK_COMPONENT_VALUE("float-comp", float, 777.8f);
-  CHECK_COMPONENT_VALUE("hash-string-comp", HashedString, "hello, world");
+  CHECK_COMPONENT_VALUE("hash-string-comp", StringHash, "hello, world");
   CHECK_COMPONENT_VALUE("vec2-comp", glm::vec2, glm::vec2(9.9f, 10.10f));
   CHECK_COMPONENT_VALUE("vec4-comp", glm::vec4, glm::vec4(1.2f, 3.4f, 5.6f, 7.8f));
 
@@ -146,7 +146,7 @@ TEST(Template_Extends, Multiple)
   CHECK_COMPONENT_VALUE("bool-comp", bool, true);
   CHECK_COMPONENT_VALUE("int-comp", int, 28);
   CHECK_COMPONENT_VALUE("float-comp", float, 777.8f);
-  CHECK_COMPONENT_VALUE("hash-string-comp", HashedString, "hello, world");
+  CHECK_COMPONENT_VALUE("hash-string-comp", StringHash, "hello, world");
   CHECK_COMPONENT_VALUE("vec2-comp", glm::vec2, glm::vec2(9.9f, 10.10f));
   CHECK_COMPONENT_VALUE("vec4-comp", glm::vec4, glm::vec4(1.2f, 3.4f, 5.6f, 7.8f));
 
