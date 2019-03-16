@@ -64,7 +64,10 @@ struct EntityManager;
   #define QL_INDEX(...)
   #define QL_INDEX_LOOKUP(...)
 
-  #define ECS_QUERY template <typename Callable> static __forceinline void foreach(Callable);
+  #define ECS_QUERY\
+    template <typename Callable> static __forceinline void foreach(Callable);\
+    static __forceinline int count();\
+
   #define ECS_SYSTEM
 #endif
 
@@ -115,6 +118,8 @@ struct RegSys
 
   Mode mode = Mode::FROM_INTERNAL_QUERY;
 
+  filter_t filter;
+
   const RegSys *next = nullptr;
 
   // TODO: Remove compMask
@@ -122,7 +127,7 @@ struct RegSys
   ConstQueryDesc queryDesc;
   SystemCallback sys = nullptr;
 
-  RegSys(const char *_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc) : id(reg_sys_count), sys(_sys), queryDesc(query_desc)
+  RegSys(const char *_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, filter_t &&f = nullptr) : id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
   {
     next = reg_sys_head;
     reg_sys_head = this;

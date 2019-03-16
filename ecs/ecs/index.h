@@ -34,7 +34,9 @@ struct RegIndex
   ConstHashedString componentName;
   ConstQueryDesc desc;
 
+  filter_t filter;
+
   const RegIndex *next = nullptr;
 
-  RegIndex(const ConstHashedString &name, const ConstHashedString &component_name, const ConstQueryDesc &desc);
+  RegIndex(const ConstHashedString &name, const ConstHashedString &component_name, const ConstQueryDesc &desc, filter_t &&f = nullptr);
 };

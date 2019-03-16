@@ -99,12 +99,12 @@ struct Setter<eastl::string>
 };
 
 template <>
-struct Setter<HashedString>
+struct Setter<StringHash>
 {
-  static inline bool set(HashedString &s, const JFrameValue &value)
+  static inline bool set(StringHash &s, const JFrameValue &value)
   {
     ASSERT(value.IsString());
-    s = hash_str(value.GetString());
+    s.hash = hash::str(value.GetString());
     return true;
   }
 };
@@ -119,7 +119,7 @@ REG_COMP(glm::vec2, vec2);
 REG_COMP(glm::vec3, vec3);
 REG_COMP(glm::vec4, vec4);
 REG_COMP(eastl::string, string);
-REG_COMP(HashedString, hash_string);
+REG_COMP(StringHash, hash_string);
 
 // TODO: Remove?
 // REG_COMP_ARR(glm::vec2, vec2, 2);

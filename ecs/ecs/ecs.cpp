@@ -74,7 +74,7 @@ RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc, 
   ++reg_query_count;
 }
 
-RegIndex::RegIndex(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDesc &_desc) : name(_name), componentName(component_name), desc(_desc)
+RegIndex::RegIndex(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDesc &_desc, filter_t &&f) : name(_name), componentName(component_name), desc(_desc), filter(eastl::move(f))
 {
   next = reg_index_head;
   reg_index_head = this;
@@ -244,6 +244,7 @@ void EntityManager::init()
     q.stageId = sys.desc->stageId;
     q.sysId = sys.desc->id;
     q.desc = sys.desc->queryDesc;
+    q.desc.filter = sys.desc->filter;
     q.name = hash_str(sys.desc->name);
     ASSERT_FMT(q.desc.isValid() || sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
   }
@@ -253,6 +254,8 @@ void EntityManager::init()
     for (const auto &c : sys.desc->queryDesc.isTrueComponents)
       enableChangeDetection(c.name);
     for (const auto &c : sys.desc->queryDesc.isFalseComponents)
+      enableChangeDetection(c.name);
+    for (const auto &c : sys.desc->queryDesc.trackComponents)
       enableChangeDetection(c.name);
   }
 
@@ -264,6 +267,8 @@ void EntityManager::init()
     namedQueries[queryIdx].name = query->name;
     namedQueries[queryIdx].desc = query->desc;
     namedQueries[queryIdx].desc.filter = query->filter;
+    for (const auto &c : query->desc.trackComponents)
+      enableChangeDetection(c.name);
   }
 
   namedIndices.resize(reg_index_count);
@@ -274,6 +279,7 @@ void EntityManager::init()
     namedIndices[indexIdx].name = index->name;
     namedIndices[indexIdx].componentName = index->componentName;
     namedIndices[indexIdx].desc = index->desc;
+    namedIndices[indexIdx].desc.filter = index->filter;
 
     enableChangeDetection(index->componentName);
   }
@@ -918,6 +924,8 @@ void EntityManager::rebuildIndex(Index &index)
 
         query->componentsCount = index.desc.components.size() + 1;
         lastQueryId = queryId;
+
+        ok = ok && (!index.desc.filter || index.desc.filter(type, i));
 
         if (ok && begin < 0)
           begin = i;

@@ -94,6 +94,22 @@ struct HashedString
   bool operator>(const HashedString &rhs) const { return hash > rhs.hash; }
 };
 
+struct StringHash
+{
+  uint32_t hash = 0;
+
+  StringHash() = default;
+
+  StringHash(const char *s) : hash(hash::str(s)) {}
+  StringHash(const ConstHashedString &s) : hash(s.hash) {}
+
+  operator bool() const { return hash != 0; }
+
+  bool operator==(const StringHash &rhs) const { return hash == rhs.hash; }
+  bool operator<(const StringHash &rhs) const { return hash < rhs.hash; }
+  bool operator>(const StringHash &rhs) const { return hash > rhs.hash; }
+};
+
 inline HashedString hash_str(char const* const s) { return HashedString(s); }
 
 namespace eastl

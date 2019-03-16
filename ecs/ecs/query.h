@@ -49,6 +49,7 @@ struct ConstQueryDesc
   ConstArray<const ConstCompDesc> notHaveComponents;
   ConstArray<const ConstCompDesc> isTrueComponents;
   ConstArray<const ConstCompDesc> isFalseComponents;
+  ConstArray<const ConstCompDesc> trackComponents;
 };
 
 template <int N, int I = N - 1>
@@ -71,6 +72,7 @@ struct index_of_component<N, -1>
 
 constexpr ConstQueryDesc empty_query_desc
 {
+  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
