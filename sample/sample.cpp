@@ -52,11 +52,6 @@ void script_init()
   script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
   script::register_component_property("EventOnKillEnemy", "vec2 pos", offsetof(EventOnKillEnemy, pos));
 
-  script::register_component<EventOnWallHit>("EventOnWallHit");
-  script::register_component_property("EventOnWallHit", "float d", offsetof(EventOnWallHit, d));
-  script::register_component_property("EventOnWallHit", "vec2 normal", offsetof(EventOnWallHit, normal));
-  script::register_component_property("EventOnWallHit", "vec2 vel", offsetof(EventOnWallHit, vel));
-
   script::register_component<UpdateStage>("UpdateStage");
   script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
   script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));

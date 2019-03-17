@@ -3,22 +3,6 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
-struct EventOnSpawn : Event
-{
-  int count;
-  EventOnSpawn(int _count) : count(_count) {}
-}
-DEF_EVENT(EventOnSpawn);
-
-struct EventOnAnotherTest : Event
-{
-  float x;
-  float y;
-  float z;
-  EventOnAnotherTest(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
-}
-DEF_EVENT(EventOnAnotherTest);
-
 struct EventOnKillEnemy : Event
 {
   glm::vec2 pos = { 0.f, 0.f };
@@ -26,16 +10,6 @@ struct EventOnKillEnemy : Event
   EventOnKillEnemy(const glm::vec2 &p) : pos(p) {}
 }
 DEF_EVENT(EventOnKillEnemy);
-
-struct EventOnWallHit : Event
-{
-  float d = 0.f;
-  glm::vec2 normal = { 0.f, 0.f };
-  glm::vec2 vel = { 0.f, 0.f };
-  EventOnWallHit() = default;
-  EventOnWallHit(float _d, const glm::vec2 &n, const glm::vec2 &v) : d(_d), normal(n), vel(v) {}
-}
-DEF_EVENT(EventOnWallHit);
 
 struct TimerComponent
 {

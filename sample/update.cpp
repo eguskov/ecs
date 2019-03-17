@@ -122,31 +122,6 @@ struct AnimState
 }
 DEF_COMP(AnimState, anim_state);
 
-struct Brick
-{
-  ECS_QUERY;
-
-  QL_HAVE(wall);
-
-  const glm::vec4 &collision_rect;
-  const glm::vec2 &pos;
-};
-
-struct AliveEnemy
-{
-  ECS_QUERY;
-
-  QL_HAVE(enemy);
-  QL_WHERE(is_alive == true);
-
-  const EntityId &eid;
-  const glm::vec4 &collision_rect;
-  const glm::vec2 &pos;
-  bool &is_alive;
-  glm::vec2 &vel;
-  AnimState &anim_state;
-};
-
 // TODO: Implement texture manager
 static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;
 void clear_textures()
@@ -320,75 +295,6 @@ struct apply_gravity
   }
 };
 
-static eastl::tuple<bool, glm::vec2, glm::vec2> collision_detection(const glm::vec2 &pos_a, const glm::vec4 &rect_a, const glm::vec2 &pos_b, const glm::vec4 &rect_b)
-{
-  glm::vec2 pa = pos_a + 0.5f * glm::vec2(rect_a.z, rect_a.w) + glm::vec2(rect_a.x, rect_a.y);
-  glm::vec2 pb = pos_b + 0.5f * glm::vec2(rect_b.z, rect_b.w) + glm::vec2(rect_b.x, rect_b.y);
-  const float dx = pb.x - pa.x;
-  const float px = 0.5f * (rect_b.z + rect_a.z) - fabsf(dx);
-  if (px < 0)
-    return eastl::make_tuple(false, glm::vec2(0.f, 0.f), glm::vec2(0.f, 0.f));
-
-  const float dy = pb.y - pa.y;
-  const float py = 0.5f * (rect_b.w + rect_a.w) - fabsf(dy);
-  if (py < 0)
-    return eastl::make_tuple(false, glm::vec2(0.f, 0.f), glm::vec2(0.f, 0.f));
-
-  glm::vec2 pos(0.f, 0.f);
-  glm::vec2 normal(0.f, 0.f);
-  if (px < py)
-  {
-    const float sx = dx > 0.f ? 1.f : dx < 0.f ? -1.f : 0.f;
-    normal.x = sx;
-    pos.x = pa.x + 0.5f * (rect_a.z * sx);
-    pos.y = pb.y;
-  }
-  else
-  {
-    const float sy = dy > 0.f ? 1.f : dy < 0.f ? -1.f : 0.f;
-    normal.y = sy;
-    pos.x = pb.x;
-    pos.y = pa.y + 0.5f * (rect_a.w * sy);
-  }
-  return eastl::make_tuple(true, normal, pos);
-}
-
-struct update_auto_move_collisions
-{
-  QL_HAVE(enemy);
-  QL_WHERE(is_alive == true);
-
-  ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec4 &collision_rect, glm::vec2 &pos, glm::vec2 &vel, float &dir)
-  {
-    Brick::foreach([&](Brick &&brick)
-    {
-      bool isHit;
-      glm::vec2 normal;
-      glm::vec2 hitPos;
-      eastl::tie(isHit, normal, hitPos) = collision_detection(brick.pos, brick.collision_rect, pos, collision_rect);
-      if (isHit)
-      {
-        float d = 0.f;
-        if (normal.y < 0.f)
-          d = collision_rect.w - (brick.pos.y - pos.y) + collision_rect.y;
-        else if (normal.y > 0.f)
-          d = brick.pos.y + brick.collision_rect.w - pos.y;
-        else if (normal.x < 0.f)
-          d = collision_rect.z + collision_rect.x - (brick.pos.x - pos.x);
-        else if (normal.x > 0.f)
-          d = brick.pos.x - collision_rect.x + brick.collision_rect.z - pos.x;
-
-        g_mgr->sendEvent(eid, EventOnWallHit{ d, normal, vel });
-
-        const float proj = glm::dot(vel, normal);
-        if (proj < 0.f)
-          vel += fabsf(proj) * normal;
-        pos += fabsf(d) * normal;
-      }
-    });
-  }
-};
-
 static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, double start_time)
 {
   if (anim_graph.nodesMap.find_as(node) == anim_graph.nodesMap.end())
@@ -436,38 +342,6 @@ struct select_current_anim_frame_for_player
   }
 };
 
-struct update_enemies_collisions
-{
-  QL_HAVE(user_input);
-  QL_WHERE(is_alive == true);
-
-  ECS_RUN(const UpdateStage &stage, EntityId eid, Jump &jump, const glm::vec4 &collision_rect, glm::vec2 &pos, glm::vec2 &vel, float &dir)
-  {
-    AliveEnemy::foreach([&](AliveEnemy &&enemy)
-    {
-      bool isHit;
-      glm::vec2 normal;
-      glm::vec2 hitPos;
-      eastl::tie(isHit, normal, hitPos) = collision_detection(enemy.pos, enemy.collision_rect, pos, collision_rect);
-      if (isHit)
-      {
-        if (normal.y < 0.f)
-        {
-          g_mgr->deleteEntity(enemy.eid);
-          g_mgr->sendEvent(eid, EventOnKillEnemy{ enemy.pos });
-
-          enemy.is_alive = false;
-
-          jump.active = true;
-          jump.startTime = stage.total;
-
-          enemy.vel = glm::vec2(0.f, 0.f);
-        }
-      }
-    });
-  }
-};
-
 struct remove_death_fx
 {
   QL_WHERE(is_alive == true);
@@ -505,7 +379,7 @@ struct process_on_kill_event
 
 static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
 {
-  if (!auto_move.jump)
+  if (!auto_move.jump && auto_move.length > 0.f && auto_move.duration > 0.f)
   {
     if (glm::length(vel) > 0.f)
       vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
@@ -551,51 +425,17 @@ struct on_enenmy_kill_handler
 {
   QL_HAVE(enemy);
 
-  ECS_RUN(const EventOnKillEnemy &ev, const glm::vec2 &pos)
+  ECS_RUN(const EventOnKillEnemy &ev)
   {
     JFrameAllocator alloc;
     JFrameValue comps(rapidjson::kObjectType);
     {
       JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(pos.x, alloc);
-      arr.PushBack(pos.y, alloc);
+      arr.PushBack(ev.pos.x, alloc);
+      arr.PushBack(ev.pos.y, alloc);
       comps.AddMember("pos", eastl::move(arr), alloc);
     }
     g_mgr->createEntity("death_fx", comps);
-  }
-};
-
-struct on_enenmy_hit_wall_handler
-{
-  QL_HAVE(enemy);
-
-  ECS_RUN(const EventOnWallHit &ev, const glm::vec2 &pos, glm::vec2 &vel, float &dir)
-  {
-    if (glm::dot(ev.normal, ev.vel) >= 0.f)
-      return;
-
-    if (ev.normal.x < 0.f || ev.normal.x > 0.f)
-    {
-      vel.x = ev.normal.x * abs(ev.vel.x);
-      dir = -float(dir);
-    }
-  }
-};
-
-struct on_enenmy_hit_ground_handler
-{
-  QL_HAVE(enemy);
-
-  ECS_RUN(const EventOnWallHit &ev, glm::vec2 &vel, bool &is_on_ground)
-  {
-    if (glm::dot(ev.normal, ev.vel) >= 0.f)
-      return;
-
-    if (ev.normal.y < 0.f)
-    {
-      is_on_ground = true;
-      vel.x = 0.f;
-    }
   }
 };
 

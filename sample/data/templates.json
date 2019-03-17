@@ -35,9 +35,7 @@
     "update_active_auto_move",
     "update_always_active_auto_move",
     "update_auto_move_collisions",
-    "check_physics_contacts",
-    "update_collisions",
-    "update_physics_collisions",
+    "update_player_collisions",
     "update_physics",
     "update_kinematic_physics_body",
     "update_boid",
@@ -423,14 +421,44 @@
             }
           }
         },
-        "collision_rect": {
-          "$type": "vec4",
+        "auto_move": {
+          "$type": "auto_move",
+          "$value": {
+            "duration": 2.0,
+            "length": 64.0,
+            "jump": false
+          }
+        },
+        "collision_shape": {
+          "$type": "collision_shape",
           "$value": [
-            0.0,
-            0.0,
-            32.0,
-            20.0
+            {
+              "type": "box",
+              "size": [
+                36.0,
+                20.0
+              ],
+              "center": [
+                18.0,
+                14.0
+              ],
+              "angle": 0.0,
+              "material": {
+                "density": 1.0,
+                "friction": 0.5
+              }
+            }
           ]
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "kinematic"
+          }
+        },
+        "is_on_ground": {
+          "$type": "bool",
+          "$value": true
         }
       }
     },
@@ -506,14 +534,32 @@
             "jump": false
           }
         },
-        "collision_rect": {
-          "$type": "vec4",
+        "collision_shape": {
+          "$type": "collision_shape",
           "$value": [
-            0.0,
-            0.0,
-            32.0,
-            20.0
+            {
+              "type": "box",
+              "size": [
+                36.0,
+                36.0
+              ],
+              "center": [
+                18.0,
+                18.0
+              ],
+              "angle": 0.0,
+              "material": {
+                "density": 1.0,
+                "friction": 0.5
+              }
+            }
           ]
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "kinematic"
+          }
         }
       }
     },
@@ -523,6 +569,10 @@
         "enemy"
       ],
       "$components": {
+        "wall_collidable": {
+          "$type": "tag",
+          "$value": {}
+        },
         "texture": {
           "$type": "texture",
           "$value": {
@@ -634,14 +684,32 @@
             "jump": true
           }
         },
-        "collision_rect": {
-          "$type": "vec4",
+        "collision_shape": {
+          "$type": "collision_shape",
           "$value": [
-            0.0,
-            -5.0,
-            35.0,
-            32.0
+            {
+              "type": "box",
+              "size": [
+                36.0,
+                28.0
+              ],
+              "center": [
+                18.0,
+                14.0
+              ],
+              "angle": 0.0,
+              "material": {
+                "density": 1.0,
+                "friction": 0.5
+              }
+            }
           ]
+        },
+        "phys_body": {
+          "$type": "phys_body",
+          "$value": {
+            "type": "kinematic"
+          }
         }
       }
     },
@@ -717,15 +785,6 @@
           "$value": {
             "type": "dynamic"
           }
-        },
-        "collision_rect": {
-          "$type": "vec4",
-          "$value": [
-            6.0,
-            0.0,
-            20.0,
-            32.0
-          ]
         },
         "dir": {
           "$type": "float",
@@ -910,15 +969,6 @@
             "type": "static"
           }
         },
-        "collision_rect": {
-          "$type": "vec4",
-          "$value": [
-            0.0,
-            0.0,
-            32.0,
-            32.0
-          ]
-        },
         "dir": {
           "$type": "float",
           "$value": 1.0
@@ -958,15 +1008,6 @@
         "base-textured-block"
       ],
       "$components": {
-        "collision_rect": {
-          "$type": "vec4",
-          "$value": [
-            0.0,
-            0.0,
-            32.0,
-            32.0
-          ]
-        },
         "frame": {
           "$type": "vec4",
           "$value": [
@@ -1063,15 +1104,6 @@
         "base-textured-block"
       ],
       "$components": {
-        "collision_rect": {
-          "$type": "vec4",
-          "$value": [
-            0.0,
-            0.0,
-            16.0,
-            16.0
-          ]
-        },
         "collision_shape": {
           "$type": "collision_shape",
           "$value": [
@@ -1115,15 +1147,6 @@
           "$value": {
             "path": "../assets/environment/tileset.png"
           }
-        },
-        "collision_rect": {
-          "$type": "vec4",
-          "$value": [
-            0.0,
-            0.0,
-            16.0,
-            16.0
-          ]
         },
         "collision_shape": {
           "$type": "collision_shape",
