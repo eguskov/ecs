@@ -36,6 +36,20 @@ static constexpr ConstQueryDesc InactiveLift_query_desc = {
   empty_desc_array,
   make_const_array(InactiveLift_track_components),
 };
+static constexpr ConstCompDesc CageBlock_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+};
+static constexpr ConstCompDesc CageBlock_have_components[] = {
+  {HASH("cage"), 0},
+};
+static constexpr ConstQueryDesc CageBlock_query_desc = {
+  make_const_array(CageBlock_components),
+  make_const_array(CageBlock_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 static constexpr ConstCompDesc NotBindedTrigger_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
   {HASH("key"), Desc<StringHash>::Size},
@@ -157,6 +171,26 @@ static constexpr ConstQueryDesc InactiveEnableLiftAction_query_desc = {
   empty_desc_array,
   make_const_array(InactiveEnableLiftAction_track_components),
 };
+static constexpr ConstCompDesc InactiveOpenCageAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc InactiveOpenCageAction_have_components[] = {
+  {HASH("open_cage_action"), 0},
+  {HASH("is_active"), 0},
+};
+static constexpr ConstCompDesc InactiveOpenCageAction_track_components[] = {
+  {HASH("is_active"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc InactiveOpenCageAction_query_desc = {
+  make_const_array(InactiveOpenCageAction_components),
+  make_const_array(InactiveOpenCageAction_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(InactiveOpenCageAction_track_components),
+};
 static constexpr ConstCompDesc InactiveKillPlayerAction_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
   {HASH("key"), Desc<StringHash>::Size},
@@ -214,6 +248,9 @@ using InactiveLiftBuilder = StructBuilder<
   StructField<StringHash, INDEX_OF_COMPONENT(InactiveLift, key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveLift, is_active)>
 >;
+using CageBlockBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(CageBlock, eid)>
+>;
 using NotBindedTriggerBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(NotBindedTrigger, eid)>,
   StructField<StringHash, INDEX_OF_COMPONENT(NotBindedTrigger, key)>,
@@ -248,6 +285,11 @@ using InactiveEnableLiftActionBuilder = StructBuilder<
   StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, key)>,
   StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, lift_key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveEnableLiftAction, is_active)>
+>;
+using InactiveOpenCageActionBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(InactiveOpenCageAction, eid)>,
+  StructField<StringHash, INDEX_OF_COMPONENT(InactiveOpenCageAction, key)>,
+  StructField<bool, INDEX_OF_COMPONENT(InactiveOpenCageAction, is_active)>
 >;
 using InactiveKillPlayerActionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(InactiveKillPlayerAction, eid)>,
@@ -298,6 +340,7 @@ static RegQuery _reg_query_InactiveLift(HASH("triggers.cpp_InactiveLift"), Inact
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
+static RegQuery _reg_query_CageBlock(HASH("triggers.cpp_CageBlock"), CageBlock_query_desc, nullptr);
 static RegQuery _reg_query_NotBindedTrigger(HASH("triggers.cpp_NotBindedTrigger"), NotBindedTrigger_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
@@ -324,6 +367,12 @@ static RegQuery _reg_query_InactiveZoneTrigger(HASH("triggers.cpp_InactiveZoneTr
 });
 static RegQuery _reg_query_Action(HASH("triggers.cpp_Action"), Action_query_desc, nullptr);
 static RegQuery _reg_query_InactiveEnableLiftAction(HASH("triggers.cpp_InactiveEnableLiftAction"), InactiveEnableLiftAction_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(is_active, bool);
+  return is_active == false;
+});
+static RegQuery _reg_query_InactiveOpenCageAction(HASH("triggers.cpp_InactiveOpenCageAction"), InactiveOpenCageAction_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
@@ -369,6 +418,20 @@ template <typename Callable> void InactiveLift::foreach(Callable callback)
     {
       GET_COMPONENT(InactiveLift, q, StringHash, key),
       GET_COMPONENT(InactiveLift, q, bool, is_active)
+    });
+}
+int CageBlock::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_CageBlock"));
+  return query.entitiesCount;
+}
+template <typename Callable> void CageBlock::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_CageBlock"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(CageBlock, q, EntityId, eid)
     });
 }
 int NotBindedTrigger::count()
@@ -470,6 +533,22 @@ template <typename Callable> void InactiveEnableLiftAction::foreach(Callable cal
       GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, key),
       GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, lift_key),
       GET_COMPONENT(InactiveEnableLiftAction, q, bool, is_active)
+    });
+}
+int InactiveOpenCageAction::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  return query.entitiesCount;
+}
+template <typename Callable> void InactiveOpenCageAction::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(InactiveOpenCageAction, q, EntityId, eid),
+      GET_COMPONENT(InactiveOpenCageAction, q, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, q, bool, is_active)
     });
 }
 int InactiveKillPlayerAction::count()
@@ -580,6 +659,38 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
   }
 }
 static RegSys _reg_sys_update_active_switch_triggers("update_active_switch_triggers", &update_active_switch_triggers_run, "UpdateStage");
+
+static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
+{
+  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
+  {
+    InactiveOpenCageAction action =
+    {
+      GET_COMPONENT(InactiveOpenCageAction, q1, EntityId, eid),
+      GET_COMPONENT(InactiveOpenCageAction, q1, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, q1, bool, is_active)
+    };
+    if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
+    {
+      Query &query2 = *pquery2;
+      for (auto q2 = query2.begin(), e = query2.end(); q2 != e; ++q2)
+      {
+        ActiveTrigger trigger =
+        {
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
+          GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
+          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
+          GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
+        };
+        update_active_open_cage_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+      }
+    }
+  }
+}
+static RegSys _reg_sys_update_active_open_cage_triggers("update_active_open_cage_triggers", &update_active_open_cage_triggers_run, "UpdateStage");
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {

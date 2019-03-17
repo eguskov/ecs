@@ -30,6 +30,7 @@
     "update_inactive_zone_triggers",
     "update_active_switch_triggers",
     "update_active_zone_triggers",
+    "update_active_open_cage_triggers",
     "update_auto_jump",
     "update_script",
     "update_active_auto_move",
@@ -1099,6 +1100,18 @@
       }
     },
     {
+      "$name": "block-big-cage",
+      "$extends": [
+        "block-big"
+      ],
+      "$components": {
+        "cage": {
+          "$type": "tag",
+          "$value": {}
+        }
+      }
+    },
+    {
       "$name": "block",
       "$extends": [
         "base-textured-block"
@@ -1322,6 +1335,18 @@
       ],
       "$components": {
         "kill_player_action": {
+          "$type": "tag",
+          "$value": {}
+        }
+      }
+    },
+    {
+      "$name": "open-cage-action",
+      "$extends": [
+        "action"
+      ],
+      "$components": {
+        "open_cage_action": {
           "$type": "tag",
           "$value": {}
         }

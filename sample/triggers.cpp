@@ -13,6 +13,15 @@ struct InactiveLift
   bool &is_active;
 };
 
+struct CageBlock
+{
+  ECS_QUERY;
+
+  QL_HAVE(cage);
+
+  const EntityId &eid;
+};
+
 struct NotBindedTrigger
 {
   ECS_QUERY;
@@ -86,6 +95,18 @@ struct InactiveEnableLiftAction
   const EntityId &eid;
   const StringHash &key;
   const StringHash &lift_key;
+  bool &is_active;
+};
+
+struct InactiveOpenCageAction
+{
+  ECS_QUERY;
+
+  QL_HAVE(open_cage_action);
+  QL_WHERE(is_active == false);
+
+  const EntityId &eid;
+  const StringHash &key;
   bool &is_active;
 };
 
@@ -225,6 +246,26 @@ struct update_active_switch_triggers
         lift.is_active = true;
         // print("*** Action lift: "+lift.key.str());
       }
+    });
+  }
+};
+
+struct update_active_open_cage_triggers
+{
+  QL_INDEX(ActiveTrigger action_eid);
+  QL_INDEX_LOOKUP(action.eid);
+
+  ECS_RUN(const UpdateStage &stage, InactiveOpenCageAction &&action, ActiveTrigger &&trigger)
+  {
+    ASSERT(!(action.eid == trigger.eid)); // Check for entity collision
+    ASSERT(action.eid == trigger.action_eid);
+
+    // print("*** Activate EnableLiftAction: "+trigger.key.str()+" => "+action.key.str());
+    action.is_active = true;
+
+    CageBlock::foreach([&](CageBlock &&cage)
+    {
+      g_mgr->deleteEntity(cage.eid);
     });
   }
 };
