@@ -88,6 +88,24 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "build raylib",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Debug",
+        "/p:Platform=\"x86\"",
+        "/t:build",
+        "${workspaceRoot}\\..\\libs\\raylib\\projects\\VS2017\\raylib.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "build raylib release",
       "type": "shell",
       "command": "msbuild",
