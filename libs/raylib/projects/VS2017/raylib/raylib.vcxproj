@@ -76,8 +76,9 @@
     <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\..\release\libs\win32\msvc</OutDir>
     <IntDir>$(SolutionDir)$(ProjectName)\$(Configuration)\temp</IntDir>
+    <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug.DLL|Win32'">
     <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
