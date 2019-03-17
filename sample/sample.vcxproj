@@ -137,32 +137,32 @@
       <FileType>Document</FileType>
     </ClCompile>
     <CustomBuild Include="cef.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="cef.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="webui.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="update.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="script-update.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="physics.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="triggers.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -187,12 +187,12 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="update.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
     <CustomBuild Include="script-update.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
