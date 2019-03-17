@@ -14,6 +14,8 @@
 #include <EASTL/queue.h>
 #include <EASTL/unique_ptr.h>
 
+#include <rapidjson/prettywriter.h>
+
 #include <sstream>
 #include <atomic>
 #include <mutex>
@@ -662,7 +664,9 @@ static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &do
     if (fp)
     {
       rapidjson::FileWriteStream os(fp, writeBuffer.get(), writeBufferSize);
-      rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+      rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(os);
+      writer.SetIndent(' ', 2);
+      writer.SetFormatOptions(rapidjson::kFormatSingleLineArray);
       docToSave.Accept(writer);
       fclose(fp);
 
