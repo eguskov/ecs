@@ -1,0 +1,33 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "grid.cpp"
+
+static constexpr ConstCompDesc update_grid_cell_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("grid_cell"), Desc<int>::Size},
+};
+static constexpr ConstQueryDesc update_grid_cell_query_desc = {
+  make_const_array(update_grid_cell_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+
+
+
+
+static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_grid_cell::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_grid_cell, q, glm::vec2, pos),
+      GET_COMPONENT(update_grid_cell, q, int, grid_cell));
+}
+static RegSys _reg_sys_update_grid_cell("update_grid_cell", &update_grid_cell_run, "UpdateStage", update_grid_cell_query_desc, nullptr);
+
+#endif // __CODEGEN__

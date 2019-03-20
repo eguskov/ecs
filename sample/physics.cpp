@@ -8,6 +8,7 @@
 #include <Box2D/Box2D.h>
 
 #include "update.h"
+#include "grid.h"
 
 extern Camera2D camera;
 extern int screen_width;
@@ -200,6 +201,8 @@ struct Brick
 
   QL_HAVE(wall);
 
+  QL_INDEX(grid_cell);
+
   const CollisionShape &collision_shape;
   const glm::vec2 &pos;
 };
@@ -227,6 +230,26 @@ struct AliveEnemy
   const glm::vec2 &pos;
   bool &is_alive;
   glm::vec2 &vel;
+};
+
+struct PlayerCollision
+{
+  ECS_QUERY;
+
+  QL_HAVE(user_input);
+  QL_WHERE(grid_cell >= 0);
+
+  const EntityId &eid;
+  const CollisionShape &collision_shape;
+  const Gravity &gravity;
+  int grid_cell;
+
+  Jump &jump;
+
+  glm::vec2 &pos;
+  glm::vec2 &vel;
+
+  bool &is_on_ground;
 };
 
 struct init_physics_collision_handler
@@ -296,9 +319,7 @@ struct render_debug_physics
 {
   ECS_RUN(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
   {
-  #ifdef _DEBUG
     g_world->DrawDebugData();
-  #endif
   }
 };
 
@@ -315,28 +336,72 @@ struct update_kinematic_physics_body
 
 struct update_player_collisions
 {
-  QL_HAVE(user_input);
+  static __forceinline void process_collision(PlayerCollision &player, Brick &&brick)
+  {
+    const float minD = player.collision_shape.shapes[0].shape.m_radius + brick.collision_shape.shapes[0].shape.m_radius;
 
-  ECS_RUN(const UpdateStage &stage, const EntityId &eid, const CollisionShape &collision_shape, const Gravity &gravity, Jump &jump, bool &is_on_ground, glm::vec2 &pos, glm::vec2 &vel)
+    b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
+    b2Transform xfB = { { player.pos.x, player.pos.y }, b2Rot{0.f} };
+
+    b2Manifold manifold;
+    b2CollidePolygons(&manifold, &brick.collision_shape.shapes[0].shape, xfA, &player.collision_shape.shapes[0].shape, xfB);
+
+    int pointIndex = -1;
+    for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
+    {
+      b2WorldManifold worldManifold;
+      worldManifold.Initialize(&manifold, xfA, brick.collision_shape.shapes[0].shape.m_radius, xfB, player.collision_shape.shapes[0].shape.m_radius);
+
+      const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
+      const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
+
+      const float dy = player.collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - player.pos.y);
+      const float d = -worldManifold.separations[i];
+
+      if (normal.x != 0.f && dy <= minD)
+        continue;
+
+      pointIndex = i;
+    }
+
+    if (pointIndex >= 0)
+    {
+      b2WorldManifold worldManifold;
+      worldManifold.Initialize(&manifold, xfA, player.collision_shape.shapes[0].shape.m_radius, xfB, brick.collision_shape.shapes[0].shape.m_radius);
+
+      const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
+      const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
+
+      if (normal.y < 0.f)
+        player.is_on_ground = true;
+
+      const float d = -worldManifold.separations[pointIndex];
+      const float proj = glm::dot(player.vel, normal);
+      player.vel += glm::max(-proj, 0.f) * normal;
+      player.pos += glm::max(d - minD, 0.f) * normal;
+    }
+  }
+
+  ECS_RUN(const UpdateStage &stage, PlayerCollision &&player)
   {
     AliveEnemy::foreach([&](AliveEnemy &&enemy)
     {
       b2Transform xfA = { { enemy.pos.x, enemy.pos.y }, b2Rot{0.f} };
-      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+      b2Transform xfB = { { player.pos.x, player.pos.y }, b2Rot{0.f} };
 
       b2Manifold manifold;
-      b2CollidePolygons(&manifold, &enemy.collision_shape.shapes[0].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+      b2CollidePolygons(&manifold, &enemy.collision_shape.shapes[0].shape, xfA, &player.collision_shape.shapes[0].shape, xfB);
 
       int pointIndex = -1;
       for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
       {
         b2WorldManifold worldManifold;
-        worldManifold.Initialize(&manifold, xfA, enemy.collision_shape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
+        worldManifold.Initialize(&manifold, xfA, enemy.collision_shape.shapes[0].shape.m_radius, xfB, player.collision_shape.shapes[0].shape.m_radius);
 
         const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
         const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
 
-        const float dy = collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - pos.y);
+        const float dy = player.collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - player.pos.y);
         const float d = -worldManifold.separations[i];
 
         if (normal.y >= 0.f)
@@ -348,77 +413,95 @@ struct update_player_collisions
       if (pointIndex >= 0)
       {
         g_mgr->deleteEntity(enemy.eid);
-        g_mgr->sendEvent(eid, EventOnKillEnemy{ enemy.pos });
+        g_mgr->sendEvent(player.eid, EventOnKillEnemy{ enemy.pos });
 
         enemy.is_alive = false;
-
-        jump.active = true;
-        jump.startTime = stage.total;
-
         enemy.vel = glm::vec2(0.f, 0.f);
+
+        player.jump.active = true;
+        player.jump.startTime = stage.total;
       }
     });
 
     MovingBrick::foreach([&](MovingBrick &&brick)
     {
       b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
-      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+      b2Transform xfB = { { player.pos.x, player.pos.y }, b2Rot{0.f} };
 
       b2Manifold manifold;
-      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[1].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[1].shape, xfA, &player.collision_shape.shapes[0].shape, xfB);
 
-      if (manifold.pointCount > 0 && glm::dot(vel, brick.vel) >= 0.f)
+      if (manifold.pointCount > 0 && glm::dot(player.vel, brick.vel) >= 0.f)
       {
-        vel += brick.vel;
+        player.vel += brick.vel;
         // myVel.y = gravity.mass * 9.8f * stage.dt;
       }
     });
 
-    Brick::foreach([&](Brick &&brick)
-    {
-      const float minD = collision_shape.shapes[0].shape.m_radius + brick.collision_shape.shapes[0].shape.m_radius;
+    const float cellX = float(UNPACK_GRID_CELL_X(player.grid_cell));
+    const float cellY = float(UNPACK_GRID_CELL_Y(player.grid_cell));
 
-      b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
-      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+    glm::vec2 box(64.f, 64.f);
+    const int boxCellLeft = MAKE_GRID_INDEX(player.pos.x - box.x);
+    const int boxCellTop = MAKE_GRID_INDEX(player.pos.y - box.y);
+    const int boxCellRight = MAKE_GRID_INDEX(player.pos.x + box.x);
+    const int boxCellBottom = MAKE_GRID_INDEX(player.pos.y + box.y);
 
-      b2Manifold manifold;
-      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[0].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+    const int minX = boxCellLeft - int(cellX);
+    const int maxX = boxCellRight - int(cellX);
 
-      int pointIndex = -1;
-      for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
+    const int minY = boxCellTop - int(cellY);
+    const int maxY = boxCellBottom - int(cellY);
+
+    for (int x = minX; x <= maxX; ++x)
+      for (int y = minY; y <= maxY; ++y)
       {
-        b2WorldManifold worldManifold;
-        worldManifold.Initialize(&manifold, xfA, brick.collision_shape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
-
-        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-        const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
-
-        const float dy = collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - pos.y);
-        const float d = -worldManifold.separations[i];
-
-        if (normal.x != 0.f && dy <= minD)
-          continue;
-
-        pointIndex = i;
+        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(cellX + x, cellY + y)))
+          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+            process_collision(player, Brick::get(q));
       }
+  }
+};
 
-      if (pointIndex >= 0)
+struct render_debug_player_grid_cell
+{
+  QL_HAVE(user_input);
+  QL_WHERE(grid_cell >= 0);
+
+  ECS_RUN(const RenderDebugStage &stage, const glm::vec2 &pos, int grid_cell)
+  {
+    const float cellX = float(UNPACK_GRID_CELL_X(grid_cell));
+    const float cellY = float(UNPACK_GRID_CELL_Y(grid_cell));
+
+    glm::vec2 box(64.f, 64.f);
+    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
+    const int boxCellTop = MAKE_GRID_INDEX(pos.y - box.y);
+    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
+    const int boxCellBottom = MAKE_GRID_INDEX(pos.y + box.y);
+
+    const int minX = boxCellLeft - int(cellX);
+    const int maxX = boxCellRight - int(cellX);
+
+    const int minY = boxCellTop - int(cellY);
+    const int maxY = boxCellBottom - int(cellY);
+
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
+
+    for (int x = minX; x <= maxX; ++x)
+      for (int y = minY; y <= maxY; ++y)
       {
-        b2WorldManifold worldManifold;
-        worldManifold.Initialize(&manifold, xfA, collision_shape.shapes[0].shape.m_radius, xfB, brick.collision_shape.shapes[0].shape.m_radius);
+        const float nCellX = cellX + x;
+        const float nCellY = cellY + y;
+        DrawRectangleV(Vector2{hw + nCellX * float(GRID_CELL_SIZE), hh + nCellY * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, CLITERAL{ 0, 117, 44, 28 });
 
-        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-        const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
-
-        if (normal.y < 0.f)
-          is_on_ground = true;
-
-        const float d = -worldManifold.separations[pointIndex];
-        const float proj = glm::dot(vel, normal);
-        vel += glm::max(-proj, 0.f) * normal;
-        pos += glm::max(d - minD, 0.f) * normal;
+        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(cellX + x, cellY + y)))
+          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+          {
+            Brick brick = Brick::get(q);
+            DrawCircleV(Vector2{hw + brick.pos.x, hh + brick.pos.y}, 5.f, CLITERAL{ 255, 0, 0, 100 });
+          }
       }
-    });
   }
 };
 

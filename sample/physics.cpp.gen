@@ -85,25 +85,24 @@ static constexpr ConstQueryDesc update_kinematic_physics_body_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc update_player_collisions_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("collision_shape"), Desc<CollisionShape>::Size},
-  {HASH("gravity"), Desc<Gravity>::Size},
-  {HASH("jump"), Desc<Jump>::Size},
-  {HASH("is_on_ground"), Desc<bool>::Size},
+static constexpr ConstCompDesc render_debug_player_grid_cell_components[] = {
   {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("grid_cell"), Desc<int>::Size},
 };
-static constexpr ConstCompDesc update_player_collisions_have_components[] = {
+static constexpr ConstCompDesc render_debug_player_grid_cell_have_components[] = {
   {HASH("user_input"), 0},
+  {HASH("grid_cell"), 0},
 };
-static constexpr ConstQueryDesc update_player_collisions_query_desc = {
-  make_const_array(update_player_collisions_components),
-  make_const_array(update_player_collisions_have_components),
+static constexpr ConstCompDesc render_debug_player_grid_cell_track_components[] = {
+  {HASH("grid_cell"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc render_debug_player_grid_cell_query_desc = {
+  make_const_array(render_debug_player_grid_cell_components),
+  make_const_array(render_debug_player_grid_cell_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
+  make_const_array(render_debug_player_grid_cell_track_components),
 };
 static constexpr ConstCompDesc update_auto_move_collisions_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
@@ -185,6 +184,31 @@ static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   empty_desc_array,
   make_const_array(AliveEnemy_track_components),
 };
+static constexpr ConstCompDesc PlayerCollision_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("gravity"), Desc<Gravity>::Size},
+  {HASH("grid_cell"), Desc<int>::Size},
+  {HASH("jump"), Desc<Jump>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("is_on_ground"), Desc<bool>::Size},
+};
+static constexpr ConstCompDesc PlayerCollision_have_components[] = {
+  {HASH("user_input"), 0},
+  {HASH("grid_cell"), 0},
+};
+static constexpr ConstCompDesc PlayerCollision_track_components[] = {
+  {HASH("grid_cell"), Desc<bool>::Size},
+};
+static constexpr ConstQueryDesc PlayerCollision_query_desc = {
+  make_const_array(PlayerCollision_components),
+  make_const_array(PlayerCollision_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  make_const_array(PlayerCollision_track_components),
+};
 using BrickBuilder = StructBuilder<
   StructField<CollisionShape, INDEX_OF_COMPONENT(Brick, collision_shape)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(Brick, pos)>
@@ -201,6 +225,32 @@ using AliveEnemyBuilder = StructBuilder<
   StructField<bool, INDEX_OF_COMPONENT(AliveEnemy, is_alive)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(AliveEnemy, vel)>
 >;
+using PlayerCollisionBuilder = StructBuilder<
+  StructField<EntityId, INDEX_OF_COMPONENT(PlayerCollision, eid)>,
+  StructField<CollisionShape, INDEX_OF_COMPONENT(PlayerCollision, collision_shape)>,
+  StructField<Gravity, INDEX_OF_COMPONENT(PlayerCollision, gravity)>,
+  StructField<int, INDEX_OF_COMPONENT(PlayerCollision, grid_cell)>,
+  StructField<Jump, INDEX_OF_COMPONENT(PlayerCollision, jump)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerCollision, pos)>,
+  StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerCollision, vel)>,
+  StructField<bool, INDEX_OF_COMPONENT(PlayerCollision, is_on_ground)>
+>;
+static constexpr ConstCompDesc index_by_Brick_grid_cell_components[] = {
+  {HASH("collision_shape"), Desc<CollisionShape>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc index_by_Brick_grid_cell_have_components[] = {
+  {HASH("wall"), 0},
+  {HASH("grid_cell"), 0},
+};
+static constexpr ConstQueryDesc index_by_Brick_grid_cell_query_desc = {
+  make_const_array(index_by_Brick_grid_cell_components),
+  make_const_array(index_by_Brick_grid_cell_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 
 static RegQuery _reg_query_Brick(HASH("physics.cpp_Brick"), Brick_query_desc, nullptr);
 static RegQuery _reg_query_MovingBrick(HASH("physics.cpp_MovingBrick"), MovingBrick_query_desc, nullptr);
@@ -210,7 +260,14 @@ static RegQuery _reg_query_AliveEnemy(HASH("physics.cpp_AliveEnemy"), AliveEnemy
   GET_COMPONENT_VALUE(is_alive, bool);
   return is_alive == true;
 });
+static RegQuery _reg_query_PlayerCollision(HASH("physics.cpp_PlayerCollision"), PlayerCollision_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(grid_cell, float);
+  return grid_cell >= 0;
+});
 
+static RegIndex _reg_index_index_by_Brick_grid_cell(HASH("physics.cpp_index_by_Brick_grid_cell"), HASH("grid_cell"), index_by_Brick_grid_cell_query_desc, nullptr);
 
 int Brick::count()
 {
@@ -227,6 +284,17 @@ template <typename Callable> void Brick::foreach(Callable callback)
       GET_COMPONENT(Brick, q, glm::vec2, pos)
     });
 }
+Index* Brick::index()
+{
+  return g_mgr->getIndexByName(HASH("physics.cpp_index_by_Brick_grid_cell"));
+}
+Brick Brick::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(Brick, iter, CollisionShape, collision_shape),
+      GET_COMPONENT(Brick, iter, glm::vec2, pos)
+    };
+}
 int MovingBrick::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_MovingBrick"));
@@ -242,6 +310,18 @@ template <typename Callable> void MovingBrick::foreach(Callable callback)
       GET_COMPONENT(MovingBrick, q, glm::vec2, pos),
       GET_COMPONENT(MovingBrick, q, glm::vec2, vel)
     });
+}
+Index* MovingBrick::index()
+{
+  return nullptr;
+}
+MovingBrick MovingBrick::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(MovingBrick, iter, CollisionShape, collision_shape),
+      GET_COMPONENT(MovingBrick, iter, glm::vec2, pos),
+      GET_COMPONENT(MovingBrick, iter, glm::vec2, vel)
+    };
 }
 int AliveEnemy::count()
 {
@@ -261,6 +341,76 @@ template <typename Callable> void AliveEnemy::foreach(Callable callback)
       GET_COMPONENT(AliveEnemy, q, glm::vec2, vel)
     });
 }
+Index* AliveEnemy::index()
+{
+  return nullptr;
+}
+AliveEnemy AliveEnemy::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(AliveEnemy, iter, EntityId, eid),
+      GET_COMPONENT(AliveEnemy, iter, CollisionShape, collision_shape),
+      GET_COMPONENT(AliveEnemy, iter, glm::vec2, pos),
+      GET_COMPONENT(AliveEnemy, iter, bool, is_alive),
+      GET_COMPONENT(AliveEnemy, iter, glm::vec2, vel)
+    };
+}
+int PlayerCollision::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  return query.entitiesCount;
+}
+template <typename Callable> void PlayerCollision::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(PlayerCollision, q, EntityId, eid),
+      GET_COMPONENT(PlayerCollision, q, CollisionShape, collision_shape),
+      GET_COMPONENT(PlayerCollision, q, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, q, int, grid_cell),
+      GET_COMPONENT(PlayerCollision, q, Jump, jump),
+      GET_COMPONENT(PlayerCollision, q, glm::vec2, pos),
+      GET_COMPONENT(PlayerCollision, q, glm::vec2, vel),
+      GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)
+    });
+}
+Index* PlayerCollision::index()
+{
+  return nullptr;
+}
+PlayerCollision PlayerCollision::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(PlayerCollision, iter, EntityId, eid),
+      GET_COMPONENT(PlayerCollision, iter, CollisionShape, collision_shape),
+      GET_COMPONENT(PlayerCollision, iter, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, iter, int, grid_cell),
+      GET_COMPONENT(PlayerCollision, iter, Jump, jump),
+      GET_COMPONENT(PlayerCollision, iter, glm::vec2, pos),
+      GET_COMPONENT(PlayerCollision, iter, glm::vec2, vel),
+      GET_COMPONENT(PlayerCollision, iter, bool, is_on_ground)
+    };
+}
+static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_player_collisions::run(*(UpdateStage*)stage_or_event.mem,
+    {
+      GET_COMPONENT(PlayerCollision, q, EntityId, eid),
+      GET_COMPONENT(PlayerCollision, q, CollisionShape, collision_shape),
+      GET_COMPONENT(PlayerCollision, q, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, q, int, grid_cell),
+      GET_COMPONENT(PlayerCollision, q, Jump, jump),
+      GET_COMPONENT(PlayerCollision, q, glm::vec2, pos),
+      GET_COMPONENT(PlayerCollision, q, glm::vec2, vel),
+      GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)
+    });
+}
+static RegSys _reg_sys_update_player_collisions("update_player_collisions", &update_player_collisions_run, "UpdateStage");
+
 static void init_physics_collision_handler_run(const RawArg &stage_or_event, Query &query)
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
@@ -314,19 +464,19 @@ static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Quer
 }
 static RegSys _reg_sys_update_kinematic_physics_body("update_kinematic_physics_body", &update_kinematic_physics_body_run, "UpdateStage", update_kinematic_physics_body_query_desc, nullptr);
 
-static void update_player_collisions_run(const RawArg &stage_or_event, Query &query)
+static void render_debug_player_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_player_collisions::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_player_collisions, q, EntityId, eid),
-      GET_COMPONENT(update_player_collisions, q, CollisionShape, collision_shape),
-      GET_COMPONENT(update_player_collisions, q, Gravity, gravity),
-      GET_COMPONENT(update_player_collisions, q, Jump, jump),
-      GET_COMPONENT(update_player_collisions, q, bool, is_on_ground),
-      GET_COMPONENT(update_player_collisions, q, glm::vec2, pos),
-      GET_COMPONENT(update_player_collisions, q, glm::vec2, vel));
+    render_debug_player_grid_cell::run(*(RenderDebugStage*)stage_or_event.mem,
+      GET_COMPONENT(render_debug_player_grid_cell, q, glm::vec2, pos),
+      GET_COMPONENT(render_debug_player_grid_cell, q, int, grid_cell));
 }
-static RegSys _reg_sys_update_player_collisions("update_player_collisions", &update_player_collisions_run, "UpdateStage", update_player_collisions_query_desc, nullptr);
+static RegSys _reg_sys_render_debug_player_grid_cell("render_debug_player_grid_cell", &render_debug_player_grid_cell_run, "RenderDebugStage", render_debug_player_grid_cell_query_desc, 
+[](const Archetype &type, int entity_idx)
+{
+  GET_COMPONENT_VALUE(grid_cell, float);
+  return grid_cell >= 0;
+});
 
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query &query)
 {

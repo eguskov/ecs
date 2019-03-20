@@ -46,6 +46,7 @@
     "update_position_for_active",
     "update_boid_position",
     "validate_position",
+    "update_grid_cell",
     "select_current_anim_frame",
     "select_current_anim_frame_for_player",
     "update_anim_frame",
@@ -54,6 +55,7 @@
     "render_normal",
     "render_boid",
     "render_debug_physics",
+    "render_debug_player_grid_cell",
     "on_enenmy_kill_handler",
     "on_enenmy_hit_wall_handler",
     "on_enenmy_hit_ground_handler"
@@ -320,7 +322,7 @@
         },
         "grid_cell": {
           "$type": "int",
-          "$value": 1
+          "$value": -1
         },
         "pos": {
           "$type": "vec2",
@@ -719,7 +721,7 @@
       "$components": {
         "grid_cell": {
           "$type": "int",
-          "$value": 2
+          "$value": -1
         },
         "hud": {
           "$type": "hud",
@@ -934,7 +936,7 @@
         },
         "grid_cell": {
           "$type": "int",
-          "$value": 3
+          "$value": -1
         },
         "pos": {
           "$type": "vec2",

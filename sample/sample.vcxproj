@@ -164,6 +164,10 @@
       <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
+    <CustomBuild Include="grid.cpp">
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="update.cpp.gen">
@@ -182,6 +186,9 @@
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="triggers.cpp.gen">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="grid.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>
