@@ -22,6 +22,8 @@ struct VisitorState
 
   struct Function
   {
+    int indexId = -1;
+
     eastl::string name;
     eastl::string kind;
     eastl::string comment;
@@ -38,7 +40,6 @@ struct VisitorState
   struct System : Function
   {
     bool fromQuery = false;
-    int indexId = -1;
   };
 
   struct Query : Function

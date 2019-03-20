@@ -332,6 +332,21 @@ int main(int argc, char* argv[])
         out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
       out << "};" << std::endl;
 
+      if (!i.have.empty())
+      {
+        out << "static constexpr ConstCompDesc " << i.name << "_have_components[] = {" << std::endl;
+        for (const auto &p : i.have)
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
+        out << "};" << std::endl;
+      }
+      if (!i.notHave.empty())
+      {
+        out << "static constexpr ConstCompDesc " << i.name << "_not_have_components[] = {" << std::endl;
+        for (const auto &p : i.notHave)
+          out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
+        out << "};" << std::endl;
+      }
+
       out << "static constexpr ConstQueryDesc " << i.name << "_query_desc = {" << std::endl;
       out << "  make_const_array(" << i.name << "_components)," << std::endl;
       if (i.have.empty()) out << "  empty_desc_array," << std::endl;
@@ -381,6 +396,30 @@ int main(int argc, char* argv[])
         out << "GET_COMPONENT(" << q.name << ", q, " << p.pureType << ", " << p.name << ")";
       }
       out << "\n    });" << std::endl;
+      out << "}\n";
+
+      out << "Index* " << q.name << "::index()\n";
+      out << "{\n";
+      if (q.indexId >= 0)
+      {
+        const auto &i = state.indices[q.indexId];
+        out << "  return g_mgr->getIndexByName(HASH(\"" << basename << "_" << i.name << "\"));\n";
+      }
+      else
+        out << "  return nullptr;\n";
+      out << "}\n";
+
+      out << q.name << " " << q.name << "::get(Query::AllIterator &iter)\n";
+      out << "{\n";
+      out << "  return {\n      ";
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        if (i != 0)
+          out << ",\n      ";
+        out << "GET_COMPONENT(" << q.name << ", iter, " << p.pureType << ", " << p.name << ")";
+      }
+      out << "\n    };" << std::endl;
       out << "}\n";
     }
 

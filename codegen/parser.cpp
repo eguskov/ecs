@@ -402,6 +402,46 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
             }
           }
         }
+        else if (name == "ql_index")
+        {
+          eastl::vector<VisitorState::Parameter> fields;
+          read_struct_fields(cursor, fields);
+
+          eastl::string indexComponent = fields[0].name;
+          eastl::string indexName = "index_by_" + q.name + "_" + indexComponent;
+
+          auto indexRes = eastl::find_if(state.indices.begin(), state.indices.end(), [&] (const VisitorState::Index &i) { return i.name == indexName; });
+          if (indexRes != state.indices.end())
+          {
+            q.indexId = eastl::distance(state.indices.begin(), indexRes);
+            return;
+          }
+
+          q.indexId = state.indices.size();
+          auto &i = state.indices.push_back();
+
+          for (const auto &f : fields)
+          {
+            i.parameters.emplace_back().name = f.name;
+            i.parameters.back().pureType = f.pureType;
+            i.parameters.back().type = f.type;
+          }
+
+          i.name = indexName;
+          i.componentName = indexComponent;
+          i.parameters = q.parameters;
+          i.have = q.have;
+          i.notHave = q.notHave;
+          i.filter = q.filter;
+
+          auto componentRes = eastl::find_if(i.parameters.begin(), i.parameters.end(), [&] (const VisitorState::Parameter &p) { return p.name == indexComponent; });
+          auto haveRes = eastl::find_if(i.have.begin(), i.have.end(), [&] (const VisitorState::Parameter &p) { return p.name == indexComponent; });
+          if (componentRes == i.parameters.end() && haveRes == i.have.end())
+          {
+            auto &p = i.have.emplace_back();
+            p.name = i.componentName;
+          }
+        }
       });
     }
 
