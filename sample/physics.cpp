@@ -252,6 +252,24 @@ struct PlayerCollision
   bool &is_on_ground;
 };
 
+struct EnemyCollision
+{
+  ECS_QUERY;
+
+  QL_HAVE(enemy, auto_move, wall_collidable);
+  QL_WHERE(is_alive == true);
+
+  const EntityId &eid;
+  const CollisionShape &collision_shape;
+
+  glm::vec2 &pos;
+  glm::vec2 &vel;
+
+  float &dir;
+
+  bool &is_on_ground;
+};
+
 struct init_physics_collision_handler
 {
   ECS_RUN(const EventOnEntityCreate &ev, const EntityId &eid, PhysicsBody &phys_body, CollisionShape &collision_shape)
@@ -438,25 +456,16 @@ struct update_player_collisions
       }
     });
 
-    const float cellX = float(UNPACK_GRID_CELL_X(player.grid_cell));
-    const float cellY = float(UNPACK_GRID_CELL_Y(player.grid_cell));
-
     glm::vec2 box(64.f, 64.f);
     const int boxCellLeft = MAKE_GRID_INDEX(player.pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(player.pos.y - box.y);
     const int boxCellRight = MAKE_GRID_INDEX(player.pos.x + box.x);
     const int boxCellBottom = MAKE_GRID_INDEX(player.pos.y + box.y);
 
-    const int minX = boxCellLeft - int(cellX);
-    const int maxX = boxCellRight - int(cellX);
-
-    const int minY = boxCellTop - int(cellY);
-    const int maxY = boxCellBottom - int(cellY);
-
-    for (int x = minX; x <= maxX; ++x)
-      for (int y = minY; y <= maxY; ++y)
+    for (int x = boxCellLeft; x <= boxCellRight; ++x)
+      for (int y = boxCellTop; y <= boxCellBottom; ++y)
       {
-        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(cellX + x, cellY + y)))
+        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
             process_collision(player, Brick::get(q));
       }
@@ -470,8 +479,8 @@ struct render_debug_player_grid_cell
 
   ECS_RUN(const RenderDebugStage &stage, const glm::vec2 &pos, int grid_cell)
   {
-    const float cellX = float(UNPACK_GRID_CELL_X(grid_cell));
-    const float cellY = float(UNPACK_GRID_CELL_Y(grid_cell));
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
 
     glm::vec2 box(64.f, 64.f);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
@@ -479,23 +488,12 @@ struct render_debug_player_grid_cell
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
     const int boxCellBottom = MAKE_GRID_INDEX(pos.y + box.y);
 
-    const int minX = boxCellLeft - int(cellX);
-    const int maxX = boxCellRight - int(cellX);
-
-    const int minY = boxCellTop - int(cellY);
-    const int maxY = boxCellBottom - int(cellY);
-
-    const float hw = screen_width * 0.5f;
-    const float hh = screen_height * 0.5f;
-
-    for (int x = minX; x <= maxX; ++x)
-      for (int y = minY; y <= maxY; ++y)
+    for (int x = boxCellLeft; x <= boxCellRight; ++x)
+      for (int y = boxCellTop; y <= boxCellBottom; ++y)
       {
-        const float nCellX = cellX + x;
-        const float nCellY = cellY + y;
-        DrawRectangleV(Vector2{hw + nCellX * float(GRID_CELL_SIZE), hh + nCellY * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, CLITERAL{ 0, 117, 44, 28 });
+        DrawRectangleV(Vector2{hw + float(x) * float(GRID_CELL_SIZE), hh + float(y) * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, CLITERAL{ 0, 117, 44, 28 });
 
-        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(cellX + x, cellY + y)))
+        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
           {
             Brick brick = Brick::get(q);
@@ -507,62 +505,64 @@ struct render_debug_player_grid_cell
 
 struct update_auto_move_collisions
 {
-  QL_HAVE(enemy, auto_move, wall_collidable);
-  QL_WHERE(is_alive == true);
-
-  ECS_RUN(const UpdateStage &stage, const EntityId &eid, const CollisionShape &collision_shape, glm::vec2 &pos, glm::vec2 &vel, float &dir, bool &is_on_ground)
+  static __forceinline void process_collision(EnemyCollision &enemy, Brick &&brick)
   {
-    Brick::foreach([&](Brick &&brick)
+    b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
+    b2Transform xfB = { { enemy.pos.x, enemy.pos.y }, b2Rot{0.f} };
+
+    b2Manifold manifold;
+    b2CollidePolygons(&manifold, &brick.collision_shape.shapes[0].shape, xfA, &enemy.collision_shape.shapes[0].shape, xfB);
+
+    int pointIndex = -1;
+    for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
     {
-      b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };
-      b2Transform xfB = { { pos.x, pos.y }, b2Rot{0.f} };
+      pointIndex = i;
+    }
 
-      b2Manifold manifold;
-      b2CollidePolygons(&manifold, &brick.collision_shape.shapes[0].shape, xfA, &collision_shape.shapes[0].shape, xfB);
+    if (pointIndex >= 0)
+    {
+      b2WorldManifold worldManifold;
+      worldManifold.Initialize(&manifold, xfA, enemy.collision_shape.shapes[0].shape.m_radius, xfB, brick.collision_shape.shapes[0].shape.m_radius);
 
-      int pointIndex = -1;
-      for (int i = 0; i < manifold.pointCount && pointIndex < 0; ++i)
+      const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
+      const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
+
+      const float d = -worldManifold.separations[pointIndex];
+      const float proj = glm::dot(enemy.vel, normal);
+
+      if (glm::dot(normal, enemy.vel) < 0.f &&
+          (normal.x < 0.f || normal.x > 0.f))
       {
-        b2WorldManifold worldManifold;
-        worldManifold.Initialize(&manifold, xfA, brick.collision_shape.shapes[0].shape.m_radius, xfB, collision_shape.shapes[0].shape.m_radius);
-
-        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-        const glm::vec2 hitPos = { worldManifold.points[i].x, worldManifold.points[i].y };
-
-        const float dy = collision_shape.shapes[0].shape.m_centroid.y - 0.5f * (hitPos.y - pos.y);
-        const float d = -worldManifold.separations[i];
-
-        pointIndex = i;
+        enemy.vel.x = normal.x * abs(enemy.vel.x);
+        enemy.dir = -enemy.dir;
       }
 
-      if (pointIndex >= 0)
+      if (glm::dot(normal, enemy.vel) < 0.f && normal.y < 0.f)
       {
-        b2WorldManifold worldManifold;
-        worldManifold.Initialize(&manifold, xfA, collision_shape.shapes[0].shape.m_radius, xfB, brick.collision_shape.shapes[0].shape.m_radius);
-
-        const glm::vec2 normal = { worldManifold.normal.x, worldManifold.normal.y };
-        const glm::vec2 hitPos = { worldManifold.points[pointIndex].x, worldManifold.points[pointIndex].y };
-
-        const float d = -worldManifold.separations[pointIndex];
-        const float proj = glm::dot(vel, normal);
-
-        if (glm::dot(normal, vel) < 0.f &&
-            (normal.x < 0.f || normal.x > 0.f))
-        {
-          vel.x = normal.x * abs(vel.x);
-          dir = -float(dir);
-        }
-
-        if (glm::dot(normal, vel) < 0.f && normal.y < 0.f)
-        {
-          is_on_ground = true;
-          vel.x = 0.f;
-        }
-
-        if (proj < 0.f)
-          vel += fabsf(proj) * normal;
-        pos += fabsf(d) * normal;
+        enemy.is_on_ground = true;
+        enemy.vel.x = 0.f;
       }
-    });
+
+      if (proj < 0.f)
+        enemy.vel += fabsf(proj) * normal;
+      enemy.pos += fabsf(d) * normal;
+    }
+  }
+
+  ECS_RUN(const UpdateStage &stage, EnemyCollision &&enemy)
+  {
+    glm::vec2 box(64.f, 64.f);
+    const int boxCellLeft = MAKE_GRID_INDEX(enemy.pos.x - box.x);
+    const int boxCellTop = MAKE_GRID_INDEX(enemy.pos.y - box.y);
+    const int boxCellRight = MAKE_GRID_INDEX(enemy.pos.x + box.x);
+    const int boxCellBottom = MAKE_GRID_INDEX(enemy.pos.y + box.y);
+
+    for (int x = boxCellLeft; x <= boxCellRight; ++x)
+      for (int y = boxCellTop; y <= boxCellBottom; ++y)
+      {
+        if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(x, y)))
+          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+            process_collision(enemy, Brick::get(q));
+      }
   }
 };
