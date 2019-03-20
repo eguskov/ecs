@@ -67,6 +67,10 @@ struct EntityManager;
   #define ECS_QUERY\
     template <typename Callable> static __forceinline void foreach(Callable);\
     static __forceinline int count();\
+    static auto detect_self_helper() -> std::remove_reference<decltype(*this)>::type;\
+    using Self = decltype(detect_self_helper());\
+    static __forceinline Self get(Query::AllIterator &iter);\
+    static __forceinline Index* index();\
 
   #define ECS_SYSTEM
 #endif

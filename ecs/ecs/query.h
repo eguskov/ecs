@@ -131,12 +131,15 @@ struct QueryDesc
 
   eastl::vector<CompDesc> haveComponents;
   eastl::vector<CompDesc> notHaveComponents;
+  // TODO: Remove
   eastl::vector<CompDesc> isTrueComponents;
+  // TODO: Remove
   eastl::vector<CompDesc> isFalseComponents;
 
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
 
+  // TODO: Remove
   eastl::vector<int> joinQueries;
   eastl::vector<QueryLink> joinLinks;
 
@@ -176,6 +179,34 @@ struct QueryDesc
       if (components[i].name == name)
         return i;
     return -1;
+  }
+
+  bool isDependOnComponent(const HashedString &name) const
+  {
+    for (int i = 0; i < (int)components.size(); ++i)
+      if (components[i].name == name)
+        return true;
+    for (int i = 0; i < (int)haveComponents.size(); ++i)
+      if (haveComponents[i].name == name)
+        return true;
+    for (int i = 0; i < (int)notHaveComponents.size(); ++i)
+      if (notHaveComponents[i].name == name)
+        return true;
+    return false;
+  }
+
+  bool isDependOnComponent(const ConstHashedString &name) const
+  {
+    for (int i = 0; i < (int)components.size(); ++i)
+      if (components[i].name == name)
+        return true;
+    for (int i = 0; i < (int)haveComponents.size(); ++i)
+      if (haveComponents[i].name == name)
+        return true;
+    for (int i = 0; i < (int)notHaveComponents.size(); ++i)
+      if (notHaveComponents[i].name == name)
+        return true;
+    return false;
   }
 
   bool isValid() const

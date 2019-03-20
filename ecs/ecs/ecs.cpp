@@ -672,7 +672,9 @@ void EntityManager::tick()
         rebuildIndex(i);
   }
 
-  if (queriesInvalidated)
+  // TODO: Perform only queries are depent on changed component
+  // if (queriesInvalidated)
+  if (shouldInvalidateQueries)
     sendEventBroadcastSync(EventOnChangeDetected{});
 
   const int streamIndex = currentEventStream;
@@ -975,11 +977,14 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
         if (::memcmp(snapshot[i++], type.storages[index]->data(), type.storages[index]->size()))
         {
           for (auto &q : queries)
-            q.dirty = true;
+            if (q.desc.isDependOnComponent(name))
+              q.dirty = true;
           for (auto &q : namedQueries)
-            q.dirty = true;
+            if (q.desc.isDependOnComponent(name))
+              q.dirty = true;
           for (auto &i : namedIndices)
-            i.dirty = true;
+            if (i.desc.isDependOnComponent(name))
+              i.dirty = true;
           // break;
           // TODO: Correct way to interrupt the cycle
           return;
