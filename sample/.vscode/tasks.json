@@ -52,6 +52,24 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "build release full",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Release",
+        "/p:Platform=\"x86\"",
+        "/t:clean,build",
+        "${workspaceRoot}\\..\\ecs.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "build AngelScript",
       "type": "shell",
       "command": "msbuild",
