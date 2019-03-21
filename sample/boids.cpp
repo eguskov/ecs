@@ -163,14 +163,14 @@ struct render_boid_debug
     DrawCircleLines(int(hw + pos.x), int(hh - pos.y), SEPARATION_RADIUS, CLITERAL{ 0, 255, 0, 150 });
     DrawCircleV(Vector2{hw + flock_center.x, hh - flock_center.y}, 10.f, CLITERAL{ 0, 0, 255, 150 });
 
-    glm::vec2 box(128.f, 128.f);
+    glm::vec2 box(RADIUS, RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
     const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop; ++y)
+      for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
       {
         DrawRectangleV(Vector2{hw + float(x) * float(GRID_CELL_SIZE), hh - float(y) * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, CLITERAL{ 0, 117, 44, 28 });
 
@@ -252,7 +252,7 @@ struct update_boid_separation
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
   {
-    glm::vec2 box(128.f, 128.f);
+    glm::vec2 box(RADIUS, RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -262,7 +262,7 @@ struct update_boid_separation
     glm::vec2 separationDir(0.f, 0.f);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop; ++y)
+      for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
         if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
           {
@@ -293,7 +293,7 @@ struct update_boid_alignment
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
   {
-    glm::vec2 box(128.f, 128.f);
+    glm::vec2 box(RADIUS, RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -303,7 +303,7 @@ struct update_boid_alignment
     glm::vec2 flockDir(0.f, 0.f);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop; ++y)
+      for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
         if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
           {
@@ -331,7 +331,7 @@ struct update_boid_cohesion
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, float mass, glm::vec2 &flock_center, glm::vec2 &force)
   {
-    glm::vec2 box(128.f, 128.f);
+    glm::vec2 box(RADIUS, RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -341,7 +341,7 @@ struct update_boid_cohesion
     glm::vec2 center(0.f, 0.f);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop; ++y)
+      for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
         if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
           {
