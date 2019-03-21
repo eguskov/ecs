@@ -11,6 +11,34 @@
       "processId": "${command:pickProcess}"
     },
     {
+      "name": "(Debug) Boids",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
+      "args": ["data/entities_boids.json"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build",
+      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample.natvis"
+    },
+    {
+      "name": "(Release) Boids",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\..\\Release\\sample.exe",
+      "args": ["data/entities_boids.json"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build release",
+      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample.natvis"
+    },
+    {
       "name": "(Debug) Sample",
       "type": "cppvsdbg",
       "request": "launch",

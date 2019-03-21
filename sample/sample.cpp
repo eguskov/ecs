@@ -27,6 +27,7 @@
 #include <log4cplus/initializer.h>
 
 #include "update.h"
+#include "boids.h"
 
 #include "cef.h"
 #include "webui.h"
@@ -155,10 +156,14 @@ int main(int argc, char *argv[])
   camera.target = Vector2{ hw, hh };
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
-  camera.zoom = 1.0f;
+  camera.zoom = 0.20f;
+
+  const char *entitiesFilename = "data/entities.json";
+  if (argc > 1)
+    entitiesFilename = argv[1];
 
   FILE *file = nullptr;
-  ::fopen_s(&file, "data/entities.json", "rb");
+  ::fopen_s(&file, entitiesFilename, "rb");
   if (file)
   {
     size_t sz = ::ftell(file);
@@ -204,6 +209,35 @@ int main(int argc, char *argv[])
       if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
     }
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    {
+      Vector2 pos = GetMousePosition();
+      g_mgr->sendEventBroadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
+    }
+    if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
+    {
+      Vector2 pos = GetMousePosition();
+      g_mgr->sendEventBroadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
+    }
+    if (IsKeyPressed(KEY_SPACE))
+    {
+      Vector2 pos = GetMousePosition();
+      g_mgr->sendEventBroadcast(EventOnClickSpace{glm::vec2(pos.x, pos.y)});
+    }
+
+    if (IsKeyPressed(KEY_Q))
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{0.25f});
+    if (IsKeyPressed(KEY_A))
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-0.25f});
+    if (IsKeyPressed(KEY_W))
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{0.25f});
+    if (IsKeyPressed(KEY_S))
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-0.25f});
+    if (IsKeyPressed(KEY_E))
+      g_mgr->sendEventBroadcast(EventOnChangeWander{0.25f});
+    if (IsKeyPressed(KEY_D))
+      g_mgr->sendEventBroadcast(EventOnChangeWander{-0.25f});
 
     if (totalTime > nextResetMinMax)
     {

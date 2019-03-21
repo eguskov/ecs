@@ -237,7 +237,7 @@ struct PlayerCollision
   ECS_QUERY;
 
   QL_HAVE(user_input);
-  QL_WHERE(grid_cell >= 0);
+  QL_WHERE(grid_cell != -1);
 
   const EntityId &eid;
   const CollisionShape &collision_shape;
@@ -475,7 +475,7 @@ struct update_player_collisions
 struct render_debug_player_grid_cell
 {
   QL_HAVE(user_input);
-  QL_WHERE(grid_cell >= 0);
+  QL_WHERE(grid_cell != -1);
 
   ECS_RUN(const RenderDebugStage &stage, const glm::vec2 &pos, int grid_cell)
   {

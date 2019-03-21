@@ -3,6 +3,8 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
+#include <raylib.h>
+
 struct EventOnKillEnemy : Event
 {
   glm::vec2 pos = { 0.f, 0.f };
@@ -106,3 +108,25 @@ struct Gravity
   };
 }
 DEF_COMP(Gravity, gravity);
+
+struct TextureAtlas
+{
+  eastl::string path;
+  Texture2D id;
+
+  TextureAtlas() = default;
+  TextureAtlas(TextureAtlas &&assign);
+
+  void operator=(TextureAtlas &&assign);
+
+  TextureAtlas(const TextureAtlas&) { ASSERT(false); }
+  void operator=(const TextureAtlas&) { ASSERT(false); }
+
+  bool set(const JFrameValue &value)
+  {
+    ASSERT(value.HasMember("path"));
+    path = value["path"].GetString();
+    return true;
+  };
+}
+DEF_COMP(TextureAtlas, texture);

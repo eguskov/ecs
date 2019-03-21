@@ -1,0 +1,26 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "boids.h"
+
+static RegCompSpec<EventOnClickMouseLeftButton> _reg_event_EventOnClickMouseLeftButton;
+int RegCompSpec<EventOnClickMouseLeftButton>::ID = -1;
+
+static RegCompSpec<EventOnClickSpace> _reg_event_EventOnClickSpace;
+int RegCompSpec<EventOnClickSpace>::ID = -1;
+
+static RegCompSpec<EventOnChangeCohesion> _reg_event_EventOnChangeCohesion;
+int RegCompSpec<EventOnChangeCohesion>::ID = -1;
+
+static RegCompSpec<EventOnChangeAlignment> _reg_event_EventOnChangeAlignment;
+int RegCompSpec<EventOnChangeAlignment>::ID = -1;
+
+static RegCompSpec<EventOnChangeWander> _reg_event_EventOnChangeWander;
+int RegCompSpec<EventOnChangeWander>::ID = -1;
+
+
+
+
+#endif // __CODEGEN__

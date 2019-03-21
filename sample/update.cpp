@@ -37,38 +37,6 @@ struct UserInput
 }
 DEF_COMP(UserInput, user_input);
 
-struct TextureAtlas
-{
-  eastl::string path;
-  Texture2D id;
-
-  TextureAtlas() = default;
-  TextureAtlas(TextureAtlas &&assign)
-  {
-    path = eastl::move(assign.path);
-    id = assign.id;
-    assign.id = Texture2D {};
-  }
-
-  void operator=(TextureAtlas &&assign)
-  {
-    path = eastl::move(assign.path);
-    id = assign.id;
-    assign.id = Texture2D {};
-  }
-
-  TextureAtlas(const TextureAtlas&) { ASSERT(false); }
-  void operator=(const TextureAtlas&) { ASSERT(false); }
-
-  bool set(const JFrameValue &value)
-  {
-    ASSERT(value.HasMember("path"));
-    path = value["path"].GetString();
-    return true;
-  };
-}
-DEF_COMP(TextureAtlas, texture);
-
 struct AnimGraph
 {
   struct Node
@@ -121,6 +89,20 @@ struct AnimState
   }
 }
 DEF_COMP(AnimState, anim_state);
+
+TextureAtlas::TextureAtlas(TextureAtlas &&assign)
+{
+  path = eastl::move(assign.path);
+  id = assign.id;
+  assign.id = Texture2D {};
+}
+
+void TextureAtlas::operator=(TextureAtlas &&assign)
+{
+  path = eastl::move(assign.path);
+  id = assign.id;
+  assign.id = Texture2D {};
+}
 
 // TODO: Implement texture manager
 static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;

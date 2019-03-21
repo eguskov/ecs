@@ -168,12 +168,19 @@
       <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>
+    <CustomBuild Include="boids.cpp">
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="update.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="update.h.gen">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="boids.h.gen">
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="physics.cpp.gen">
@@ -191,9 +198,16 @@
     <ClCompile Include="grid.cpp.gen">
       <FileType>Document</FileType>
     </ClCompile>
+    <ClCompile Include="boids.cpp.gen">
+      <FileType>Document</FileType>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="update.h">
+      <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
+      <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="boids.h">
       <Command Condition="'$(Platform)'=='Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
       <Outputs Condition="'$(Platform)'=='Win32'">$(ProjectDir)%(Identity).gen</Outputs>
     </CustomBuild>

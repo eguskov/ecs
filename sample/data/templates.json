@@ -40,11 +40,18 @@
     "update_physics",
     "update_kinematic_physics_body",
     "update_boid",
+    "update_boid_wander",
+    "update_boid_separation",
+    "update_boid_alignment",
+    "update_boid_cohesion",
+    "apply_boid_force",
+    "control_boid_velocity",
     "remove_death_fx",
     "update_spawner",
     "update_position",
     "update_position_for_active",
     "update_boid_position",
+    "update_boid_rotation",
     "validate_position",
     "update_grid_cell",
     "select_current_anim_frame",
@@ -56,9 +63,16 @@
     "render_boid",
     "render_debug_physics",
     "render_debug_player_grid_cell",
+    "render_boid_debug",
+    "render_hud_boid",
     "on_enenmy_kill_handler",
     "on_enenmy_hit_wall_handler",
-    "on_enenmy_hit_ground_handler"
+    "on_enenmy_hit_ground_handler",
+    "on_mouse_click_handler_boid",
+    "on_click_space_handler_boid",
+    "on_change_cohesion_handler_boid",
+    "on_change_alignment_handler_boid",
+    "on_change_wander_handler_boid"
   ],
   "$templates$v1": [
     {
@@ -1355,11 +1369,24 @@
       }
     },
     {
+      "$name": "click_handler_boid",
+      "$components": {
+        "click_handler_boid": {
+          "$type": "tag",
+          "$value": {}
+        }
+      }
+    },
+    {
       "$name": "boid",
       "$components": {
         "boid": {
           "$type": "tag",
           "$value": {}
+        },
+        "grid_cell": {
+          "$type": "int",
+          "$value": -1
         },
         "pos": {
           "$type": "vec2",
@@ -1369,9 +1396,29 @@
           "$type": "vec2",
           "$value": [0, 0]
         },
+        "force": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
         "rotation": {
           "$type": "float",
           "$value": 0.0
+        },
+        "wander_timer": {
+          "$type": "float",
+          "$value": 0.0
+        },
+        "wander_vel": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "mass": {
+          "$type": "float",
+          "$value": 1.0
+        },
+        "flock_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
         },
         "texture": {
           "$type": "texture",

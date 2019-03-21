@@ -11,9 +11,6 @@ template <> int RegCompSpec<HUD>::ID = -1;
 static RegCompSpec<UserInput> _reg_comp_user_input("user_input");
 template <> int RegCompSpec<UserInput>::ID = -1;
 
-static RegCompSpec<TextureAtlas> _reg_comp_texture("texture");
-template <> int RegCompSpec<TextureAtlas>::ID = -1;
-
 static RegCompSpec<AnimGraph> _reg_comp_anim_graph("anim_graph");
 template <> int RegCompSpec<AnimGraph>::ID = -1;
 

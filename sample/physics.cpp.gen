@@ -272,7 +272,7 @@ static RegQuery _reg_query_PlayerCollision(HASH("physics.cpp_PlayerCollision"), 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(grid_cell, float);
-  return grid_cell >= 0;
+  return grid_cell != -1;
 });
 static RegQuery _reg_query_EnemyCollision(HASH("physics.cpp_EnemyCollision"), EnemyCollision_query_desc, 
 [](const Archetype &type, int entity_idx)
@@ -539,7 +539,7 @@ static RegSys _reg_sys_render_debug_player_grid_cell("render_debug_player_grid_c
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(grid_cell, float);
-  return grid_cell >= 0;
+  return grid_cell != -1;
 });
 
 #endif // __CODEGEN__
