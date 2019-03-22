@@ -354,6 +354,16 @@ struct Query
     {
       return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
     }
+
+    inline void advance(int offset)
+    {
+      // TODO: Fix for end iterator q != e must work!!!
+      idx = offset;
+      while (idx > entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
+        idx -= entitiesInChunk[chunkIdx];
+        ++chunkIdx;
+      }
+    }
   };
 
   struct RawIterator
@@ -540,6 +550,20 @@ struct Query
   inline AllIterator end()
   {
     return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
+  }
+
+  inline AllIterator begin(int offset)
+  {
+    auto iter = AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
+    iter.advance(offset);
+    return iter;
+  }
+
+  inline AllIterator end(int offset)
+  {
+    auto iter = AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
+    iter.advance(offset);
+    return iter;
   }
 
   void addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count);

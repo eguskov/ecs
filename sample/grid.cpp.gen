@@ -21,9 +21,9 @@ static constexpr ConstQueryDesc update_grid_cell_query_desc = {
 
 
 
-static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
+static void update_grid_cell_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+  for (auto q = begin, e = end; q != e; ++q)
     update_grid_cell::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_grid_cell, q, glm::vec2, pos),
       GET_COMPONENT(update_grid_cell, q, int, grid_cell));

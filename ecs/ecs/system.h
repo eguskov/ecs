@@ -112,7 +112,7 @@ struct RawArgSpec : RawArg
 struct RegSys
 {
   enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
-  using SystemCallback = void (*)(const RawArg &stage_or_event, Query &query);
+  using SystemCallback = void (*)(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator);
 
   char *name = nullptr;
   char *stageName = nullptr;

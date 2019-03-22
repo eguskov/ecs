@@ -119,7 +119,8 @@
       "iomanip": "cpp",
       "cstdarg": "cpp",
       "xfunctional": "cpp",
-      "cctype": "cpp"
+      "cctype": "cpp",
+      "xxatomic": "cpp"
     },
     "editor.renderWhitespace": "all",
     "editor.tokenColorCustomizations": {

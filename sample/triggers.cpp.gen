@@ -420,6 +420,17 @@ template <typename Callable> void InactiveLift::foreach(Callable callback)
       GET_COMPONENT(InactiveLift, q, bool, is_active)
     });
 }
+Index* InactiveLift::index()
+{
+  return nullptr;
+}
+InactiveLift InactiveLift::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveLift, iter, StringHash, key),
+      GET_COMPONENT(InactiveLift, iter, bool, is_active)
+    };
+}
 int CageBlock::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_CageBlock"));
@@ -433,6 +444,16 @@ template <typename Callable> void CageBlock::foreach(Callable callback)
     {
       GET_COMPONENT(CageBlock, q, EntityId, eid)
     });
+}
+Index* CageBlock::index()
+{
+  return nullptr;
+}
+CageBlock CageBlock::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(CageBlock, iter, EntityId, eid)
+    };
 }
 int NotBindedTrigger::count()
 {
@@ -452,6 +473,20 @@ template <typename Callable> void NotBindedTrigger::foreach(Callable callback)
       GET_COMPONENT(NotBindedTrigger, q, bool, is_binded)
     });
 }
+Index* NotBindedTrigger::index()
+{
+  return nullptr;
+}
+NotBindedTrigger NotBindedTrigger::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(NotBindedTrigger, iter, EntityId, eid),
+      GET_COMPONENT(NotBindedTrigger, iter, StringHash, key),
+      GET_COMPONENT(NotBindedTrigger, iter, StringHash, action_key),
+      GET_COMPONENT(NotBindedTrigger, iter, EntityId, action_eid),
+      GET_COMPONENT(NotBindedTrigger, iter, bool, is_binded)
+    };
+}
 int ActiveTrigger::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_ActiveTrigger"));
@@ -470,6 +505,20 @@ template <typename Callable> void ActiveTrigger::foreach(Callable callback)
       GET_COMPONENT(ActiveTrigger, q, bool, is_active)
     });
 }
+Index* ActiveTrigger::index()
+{
+  return nullptr;
+}
+ActiveTrigger ActiveTrigger::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(ActiveTrigger, iter, EntityId, eid),
+      GET_COMPONENT(ActiveTrigger, iter, EntityId, action_eid),
+      GET_COMPONENT(ActiveTrigger, iter, StringHash, key),
+      GET_COMPONENT(ActiveTrigger, iter, glm::vec2, pos),
+      GET_COMPONENT(ActiveTrigger, iter, bool, is_active)
+    };
+}
 int InactiveSwitchTrigger::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
@@ -485,6 +534,18 @@ template <typename Callable> void InactiveSwitchTrigger::foreach(Callable callba
       GET_COMPONENT(InactiveSwitchTrigger, q, glm::vec2, pos),
       GET_COMPONENT(InactiveSwitchTrigger, q, bool, is_active)
     });
+}
+Index* InactiveSwitchTrigger::index()
+{
+  return nullptr;
+}
+InactiveSwitchTrigger InactiveSwitchTrigger::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveSwitchTrigger, iter, StringHash, key),
+      GET_COMPONENT(InactiveSwitchTrigger, iter, glm::vec2, pos),
+      GET_COMPONENT(InactiveSwitchTrigger, iter, bool, is_active)
+    };
 }
 int InactiveZoneTrigger::count()
 {
@@ -503,6 +564,19 @@ template <typename Callable> void InactiveZoneTrigger::foreach(Callable callback
       GET_COMPONENT(InactiveZoneTrigger, q, bool, is_active)
     });
 }
+Index* InactiveZoneTrigger::index()
+{
+  return nullptr;
+}
+InactiveZoneTrigger InactiveZoneTrigger::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveZoneTrigger, iter, StringHash, key),
+      GET_COMPONENT(InactiveZoneTrigger, iter, glm::vec2, pos),
+      GET_COMPONENT(InactiveZoneTrigger, iter, glm::vec4, collision_rect),
+      GET_COMPONENT(InactiveZoneTrigger, iter, bool, is_active)
+    };
+}
 int Action::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
@@ -517,6 +591,17 @@ template <typename Callable> void Action::foreach(Callable callback)
       GET_COMPONENT(Action, q, EntityId, eid),
       GET_COMPONENT(Action, q, StringHash, key)
     });
+}
+Index* Action::index()
+{
+  return nullptr;
+}
+Action Action::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(Action, iter, EntityId, eid),
+      GET_COMPONENT(Action, iter, StringHash, key)
+    };
 }
 int InactiveEnableLiftAction::count()
 {
@@ -535,6 +620,19 @@ template <typename Callable> void InactiveEnableLiftAction::foreach(Callable cal
       GET_COMPONENT(InactiveEnableLiftAction, q, bool, is_active)
     });
 }
+Index* InactiveEnableLiftAction::index()
+{
+  return nullptr;
+}
+InactiveEnableLiftAction InactiveEnableLiftAction::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveEnableLiftAction, iter, EntityId, eid),
+      GET_COMPONENT(InactiveEnableLiftAction, iter, StringHash, key),
+      GET_COMPONENT(InactiveEnableLiftAction, iter, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, iter, bool, is_active)
+    };
+}
 int InactiveOpenCageAction::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
@@ -550,6 +648,18 @@ template <typename Callable> void InactiveOpenCageAction::foreach(Callable callb
       GET_COMPONENT(InactiveOpenCageAction, q, StringHash, key),
       GET_COMPONENT(InactiveOpenCageAction, q, bool, is_active)
     });
+}
+Index* InactiveOpenCageAction::index()
+{
+  return nullptr;
+}
+InactiveOpenCageAction InactiveOpenCageAction::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveOpenCageAction, iter, EntityId, eid),
+      GET_COMPONENT(InactiveOpenCageAction, iter, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, iter, bool, is_active)
+    };
 }
 int InactiveKillPlayerAction::count()
 {
@@ -567,6 +677,18 @@ template <typename Callable> void InactiveKillPlayerAction::foreach(Callable cal
       GET_COMPONENT(InactiveKillPlayerAction, q, bool, is_active)
     });
 }
+Index* InactiveKillPlayerAction::index()
+{
+  return nullptr;
+}
+InactiveKillPlayerAction InactiveKillPlayerAction::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(InactiveKillPlayerAction, iter, EntityId, eid),
+      GET_COMPONENT(InactiveKillPlayerAction, iter, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, iter, bool, is_active)
+    };
+}
 int AlivePlayer::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
@@ -582,6 +704,17 @@ template <typename Callable> void AlivePlayer::foreach(Callable callback)
       GET_COMPONENT(AlivePlayer, q, glm::vec2, pos)
     });
 }
+Index* AlivePlayer::index()
+{
+  return nullptr;
+}
+AlivePlayer AlivePlayer::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(AlivePlayer, iter, EntityId, eid),
+      GET_COMPONENT(AlivePlayer, iter, glm::vec2, pos)
+    };
+}
 int PlayerSpawnZone::count()
 {
   Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_PlayerSpawnZone"));
@@ -596,7 +729,17 @@ template <typename Callable> void PlayerSpawnZone::foreach(Callable callback)
       GET_COMPONENT(PlayerSpawnZone, q, glm::vec2, pos)
     });
 }
-static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
+Index* PlayerSpawnZone::index()
+{
+  return nullptr;
+}
+PlayerSpawnZone PlayerSpawnZone::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(PlayerSpawnZone, iter, glm::vec2, pos)
+    };
+}
+static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
@@ -627,7 +770,7 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
 }
 static RegSys _reg_sys_bind_trigger_to_action("bind_trigger_to_action", &bind_trigger_to_action_run, "UpdateStage");
 
-static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
+static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
@@ -660,7 +803,7 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
 }
 static RegSys _reg_sys_update_active_switch_triggers("update_active_switch_triggers", &update_active_switch_triggers_run, "UpdateStage");
 
-static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
+static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
@@ -692,7 +835,7 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
 }
 static RegSys _reg_sys_update_active_open_cage_triggers("update_active_open_cage_triggers", &update_active_open_cage_triggers_run, "UpdateStage");
 
-static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
+static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
@@ -724,7 +867,7 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
 }
 static RegSys _reg_sys_update_active_zone_triggers("update_active_zone_triggers", &update_active_zone_triggers_run, "UpdateStage");
 
-static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
+static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
@@ -749,7 +892,7 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
 }
 static RegSys _reg_sys_update_inactive_switch_triggers("update_inactive_switch_triggers", &update_inactive_switch_triggers_run, "UpdateStage");
 
-static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
+static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
 {
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
@@ -775,9 +918,9 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
 }
 static RegSys _reg_sys_update_inactive_zone_triggers("update_inactive_zone_triggers", &update_inactive_zone_triggers_run, "UpdateStage");
 
-static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
+static void update_player_spawner_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+  for (auto q = begin, e = end; q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }
 static RegSys _reg_sys_update_player_spawner("update_player_spawner", &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);

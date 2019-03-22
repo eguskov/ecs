@@ -1,5 +1,6 @@
 #include "ecs.h"
 
+#include "jobmanager.h"
 #include "stages/dispatchEvent.stage.h"
 
 #include <sstream>
@@ -144,6 +145,8 @@ void EntityManager::release()
 {
   delete g_mgr;
   g_mgr = nullptr;
+
+  jobmanager::release();
 }
 
 EntityManager::EntityManager()
@@ -158,6 +161,8 @@ EntityManager::~EntityManager()
 
 void EntityManager::init()
 {
+  jobmanager::init();
+
   eidComp = find_comp("eid");
   eidCompId = eidComp->id;
 
@@ -1003,7 +1008,17 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      sys.desc->sys(stage, query);
+      if (::strcmp("update_boid_separation", sys.desc->name) == 0)
+      {
+        jobmanager::add_job(64, query.entitiesCount,
+          [&](int from, int count)
+          {
+            sys.desc->sys(stage, query.begin(from), query.end(from + count));
+          });
+        jobmanager::do_and_wait_all_tasks_done();
+      }
+      else
+        sys.desc->sys(stage, query.begin(), query.end());
     }
 
   checkFrameSnapshot(snapshot);
@@ -1060,7 +1075,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
           compIdx++;
         }
 
-        sys.desc->sys(ev, query);
+        sys.desc->sys(ev, query.begin(), query.end());
       }
     }
 }
@@ -1076,7 +1091,7 @@ void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
     if (sys.desc->stageId == event_id)
     {
       auto &query = queries[sys.desc->id];
-      sys.desc->sys(ev, query);
+      sys.desc->sys(ev, query.begin(), query.end());
     }
 }
 

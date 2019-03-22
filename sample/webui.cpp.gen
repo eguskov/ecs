@@ -37,4 +37,14 @@ template <typename Callable> void Script::foreach(Callable callback)
       GET_COMPONENT(Script, q, script::ScriptComponent, script)
     });
 }
+Index* Script::index()
+{
+  return nullptr;
+}
+Script Script::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(Script, iter, script::ScriptComponent, script)
+    };
+}
 #endif // __CODEGEN__

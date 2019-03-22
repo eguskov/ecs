@@ -21,13 +21,13 @@ static constexpr ConstQueryDesc update_position_query_desc = {
 
 
 
-static void update_position_run(const RawArg &stage_or_event, Query &query)
+static void update_position_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+  for (auto q = begin, e = end; q != e; ++q)
     update_position::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_position, q, glm::vec3, vel),
       GET_COMPONENT(update_position, q, glm::vec3, pos));
 }
-static RegSys _reg_sys_update_position("update_position", &update_position_run, "UpdateStage", update_position_query_desc);
+static RegSys _reg_sys_update_position("update_position", &update_position_run, "UpdateStage", update_position_query_desc, nullptr);
 
 #endif // __CODEGEN__

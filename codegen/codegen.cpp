@@ -461,7 +461,7 @@ int main(int argc, char* argv[])
 
       const auto &query = state.queries[sys.parameters[1].queryId];
 
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
       out << fmt::format("  Query &query = *g_mgr->getQueryByName(HASH(\"{basename}_{query}\"));\n",
@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
       const auto &query = state.queries[sys.parameters[2].queryId];
       const auto &index =  state.indices[sys.indexId];
 
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
       out << fmt::format("  Index &index = *g_mgr->getIndexByName(HASH(\"{basename}_{index}\"));\n",
@@ -514,7 +514,7 @@ int main(int argc, char* argv[])
 
       const auto &index =  state.indices[sys.indexId];
 
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
       out << "  Index &index = *g_mgr->getIndexByName(HASH(\"" << basename << "_" << index.name << "\"));\n";
@@ -591,7 +591,7 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : systemsJoinQueries)
     {
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
       assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
@@ -658,7 +658,7 @@ int main(int argc, char* argv[])
 
       const auto &query = state.queries[sys.parameters[1].queryId];
 
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
       out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
@@ -683,10 +683,10 @@ int main(int argc, char* argv[])
 
     for (const auto &sys : systemsInternalQuery)
     {
-      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
+      out << "  for (auto q = begin, e = end; q != e; ++q)\n";
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
