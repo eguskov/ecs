@@ -225,17 +225,22 @@ int main(int argc, char *argv[])
       Vector2 pos = GetMousePosition();
       g_mgr->sendEventBroadcast(EventOnClickSpace{glm::vec2(pos.x, pos.y)});
     }
+    if (IsKeyPressed(KEY_LEFT_CONTROL))
+    {
+      Vector2 pos = GetMousePosition();
+      g_mgr->sendEventBroadcast(EventOnClickLeftControl{glm::vec2(pos.x, pos.y)});
+    }
 
     if (IsKeyPressed(KEY_Q))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{10.0f});
     if (IsKeyPressed(KEY_A))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-10.0f});
     if (IsKeyPressed(KEY_W))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{10.0f});
     if (IsKeyPressed(KEY_S))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-10.0f});
     if (IsKeyPressed(KEY_E))
-      g_mgr->sendEventBroadcast(EventOnChangeWander{0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeWander{10.0f});
     if (IsKeyPressed(KEY_D))
       g_mgr->sendEventBroadcast(EventOnChangeWander{-0.25f});
 

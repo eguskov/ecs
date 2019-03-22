@@ -20,12 +20,17 @@ extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
 
-static float COHESION = 3.f;
-static float ALIGNMENT = 4.f;
-static float WANDER = 0.5f;
+static float COHESION = 100.f;
+static float ALIGNMENT = 200.f;
+static float WANDER = 100.0f;
+static float SEPARATION = 1500.0f;
+static float AVOID_WALLS = 500.0f;
+static float AVOID_OBSTACLE = 1000.0f;
 
-static float RADIUS = 256.f;
-static float SEPARATION_RADIUS = 32.f;
+static float COHESION_RADIUS = 256.f;
+static float ALIGNMENT_RADIUS = 128.f;
+static float SEPARATION_RADIUS = 64.f;
+static float OBSTACLE_RADIUS = 200.f;
 
 struct Boid
 {
@@ -39,6 +44,15 @@ struct Boid
   const glm::vec2 &pos;
   const glm::vec2 &vel;
   float mass;
+};
+
+struct BoidObstacle
+{
+  ECS_QUERY;
+
+  QL_HAVE(boid_obstacle);
+
+  const glm::vec2 &pos;
 };
 
 struct on_mouse_click_handler_boid
@@ -91,13 +105,34 @@ struct on_click_space_handler_boid
   }
 };
 
+struct on_click_left_control_handler_boid
+{
+  QL_HAVE(click_handler_boid);
+
+  ECS_RUN(const EventOnClickLeftControl &ev)
+  {
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
+
+    JFrameAllocator alloc;
+    JFrameValue comps(rapidjson::kObjectType);
+    {
+      JFrameValue arr(rapidjson::kArrayType);
+      arr.PushBack(( ev.pos.x - hw) * (1.f / camera.zoom), alloc);
+      arr.PushBack((-ev.pos.y + hh) * (1.f / camera.zoom), alloc);
+      comps.AddMember("pos", eastl::move(arr), alloc);
+    }
+    g_mgr->createEntity("boid_obstacle", comps);
+  }
+};
+
 struct on_change_cohesion_handler_boid
 {
   QL_HAVE(click_handler_boid);
 
   ECS_RUN(const EventOnChangeCohesion &ev)
   {
-    COHESION = glm::max(COHESION + ev.delta, 0.25f);
+    COHESION = glm::max(COHESION + ev.delta, 0.0f);
   }
 };
 
@@ -107,7 +142,7 @@ struct on_change_alignment_handler_boid
 
   ECS_RUN(const EventOnChangeAlignment &ev)
   {
-    ALIGNMENT = glm::max(ALIGNMENT + ev.delta, 0.25f);
+    ALIGNMENT = glm::max(ALIGNMENT + ev.delta, 0.0f);
   }
 };
 
@@ -117,7 +152,7 @@ struct on_change_wander_handler_boid
 
   ECS_RUN(const EventOnChangeWander &ev)
   {
-    WANDER = glm::max(WANDER + ev.delta, 0.25f);
+    WANDER = glm::max(WANDER + ev.delta, 0.0f);
   }
 };
 
@@ -133,18 +168,33 @@ struct render_hud_boid
   }
 };
 
+struct render_boid_obstacle
+{
+  QL_HAVE(boid_obstacle);
+
+  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
+  {
+    const float hw = screen_width * 0.5f;
+    const float hh = screen_height * 0.5f;
+    Rectangle rect = {frame.x, frame.y, frame.z, frame.w};
+    Rectangle destRec = {hw + pos.x, hh - pos.y, fabsf(frame.z) * 5.f, fabsf(frame.w) * 5.f};
+
+    DrawTexturePro(texture.id, rect, destRec, Vector2{0.5f * frame.z * 5.f, 0.5f * frame.w * 5.f}, 0.f, WHITE);
+  }
+};
+
 struct render_boid
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float rotation)
+  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float mass, float rotation)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
     Rectangle rect = {frame.x, frame.y, frame.z, frame.w};
     Rectangle destRec = {hw + pos.x, hh - pos.y, fabsf(frame.z) * mass, fabsf(frame.w) * mass};
 
-    DrawTexturePro(texture.id, rect, destRec, Vector2{0.5f * frame.z, 0.5f * frame.w}, -rotation, WHITE);
+    DrawTexturePro(texture.id, rect, destRec, Vector2{0.5f * frame.z * mass, 0.5f * frame.w * mass}, -rotation, WHITE);
   }
 };
 
@@ -159,11 +209,11 @@ struct render_boid_debug
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
-    DrawCircleLines(int(hw + pos.x), int(hh - pos.y), RADIUS, CLITERAL{ 255, 0, 0, 150 });
+    DrawCircleLines(int(hw + pos.x), int(hh - pos.y), COHESION_RADIUS, CLITERAL{ 255, 0, 0, 150 });
     DrawCircleLines(int(hw + pos.x), int(hh - pos.y), SEPARATION_RADIUS, CLITERAL{ 0, 255, 0, 150 });
     DrawCircleV(Vector2{hw + flock_center.x, hh - flock_center.y}, 10.f, CLITERAL{ 0, 0, 255, 150 });
 
-    glm::vec2 box(RADIUS, RADIUS);
+    glm::vec2 box(COHESION_RADIUS, COHESION_RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -206,11 +256,11 @@ struct update_boid_rotation
   }
 };
 
-struct update_boid
+struct update_boid_avoid_walls
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
   {
     const float hw = 0.5f * screen_width * (1.f / camera.zoom);
     const float hh = 0.5f * screen_height * (1.f / camera.zoom);
@@ -219,10 +269,47 @@ struct update_boid
 
     glm::vec2 futurePos = pos + vel * 1.5f * mass;
     if (futurePos.x >= hw || futurePos.x <= -hw || futurePos.y >= hh || futurePos.y <= -hh)
+    {
+      move_to_center_timer = 5.f;
       targetVel = glm::vec2(-vel.y, vel.x);
+    }
 
     glm::vec2 steer = targetVel - vel;
-    force += steer * 5.0f;
+    if (glm::length(steer) > 0.f)
+      force += glm::normalize(steer) * AVOID_WALLS;
+  }
+};
+
+struct update_boid_avoid_obstacle
+{
+  QL_HAVE(boid);
+
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &force)
+  {
+    BoidObstacle::foreach([&](BoidObstacle &&obstacle)
+    {
+      const float dist = glm::length(obstacle.pos - pos);
+      if (dist <= OBSTACLE_RADIUS)
+        force += glm::normalize(pos - obstacle.pos) * AVOID_OBSTACLE;
+    });
+  }
+};
+
+struct update_boid_move_to_center
+{
+  QL_HAVE(boid);
+
+  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
+  {
+    if (move_to_center_timer > 0.f)
+    {
+      move_to_center_timer -= stage.dt;
+
+      glm::vec2 center(0.f, 0.f);
+      glm::vec2 steer = center - pos;
+      if (glm::length(steer) > 0.f)
+        force += glm::normalize(steer) * AVOID_WALLS;
+    }
   }
 };
 
@@ -242,7 +329,8 @@ struct update_boid_wander
     }
 
     glm::vec2 steer = wander_vel - vel;
-    force += steer * WANDER;
+    if (glm::length(steer) > 0.f)
+      force += glm::normalize(steer) * WANDER;
   }
 };
 
@@ -252,7 +340,7 @@ struct update_boid_separation
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
   {
-    glm::vec2 box(RADIUS, RADIUS);
+    glm::vec2 box(SEPARATION_RADIUS, SEPARATION_RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -260,6 +348,8 @@ struct update_boid_separation
 
     float flockmatesWeight = 0.f;
     glm::vec2 separationDir(0.f, 0.f);
+
+    glm::vec2 dir = glm::normalize(vel);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
       for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
@@ -270,7 +360,10 @@ struct update_boid_separation
             if (boid.eid != eid)
             {
               const float dist = glm::length(pos - boid.pos);
-              if (dist < boid.mass * SEPARATION_RADIUS && boid.mass >= mass)
+              float cosA = 1.f;
+              if (dist > 0.f)
+                cosA = glm::dot(dir, glm::normalize(boid.pos - pos));
+              if (dist < boid.mass * SEPARATION_RADIUS && boid.mass >= mass && cosA > -0.90f)
               {
                 flockmatesWeight += boid.mass;
                 separationDir += boid.mass * (pos - boid.pos);
@@ -280,9 +373,8 @@ struct update_boid_separation
 
     if (flockmatesWeight > 0.f && glm::length(separationDir) > 0.f)
     {
-      separationDir = 150.f * glm::normalize(separationDir / flockmatesWeight);
-      glm::vec2 steer = separationDir - vel;
-      force += steer * 50.0f;
+      separationDir = glm::normalize(separationDir / flockmatesWeight);
+      force += glm::normalize(separationDir) * SEPARATION;
     }
   }
 };
@@ -293,7 +385,7 @@ struct update_boid_alignment
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
   {
-    glm::vec2 box(RADIUS, RADIUS);
+    glm::vec2 box(ALIGNMENT_RADIUS, ALIGNMENT_RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -309,7 +401,7 @@ struct update_boid_alignment
           {
             Boid boid = Boid::get(q);
             const float dist = glm::length(pos - boid.pos);
-            if (boid.eid != eid && dist < RADIUS && boid.mass >= mass)
+            if (boid.eid != eid && dist < ALIGNMENT_RADIUS && boid.mass >= mass)
             {
               flockmatesWeight += boid.mass;
               flockDir += boid.mass * boid.vel;
@@ -319,8 +411,9 @@ struct update_boid_alignment
     if (flockmatesWeight > 0.f && glm::length(flockDir) > 0.f)
     {
       flockDir /= flockmatesWeight;
-      glm::vec2 steer = 150.f * glm::normalize(flockDir - vel);
-      force += steer * ALIGNMENT;
+      glm::vec2 steer = flockDir - vel;
+      if (glm::length(steer) > 0.f)
+        force += glm::normalize(steer) * ALIGNMENT;
     }
   }
 };
@@ -331,7 +424,7 @@ struct update_boid_cohesion
 
   ECS_RUN(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, float mass, glm::vec2 &flock_center, glm::vec2 &force)
   {
-    glm::vec2 box(RADIUS, RADIUS);
+    glm::vec2 box(COHESION_RADIUS, COHESION_RADIUS);
     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y);
     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
@@ -347,7 +440,7 @@ struct update_boid_cohesion
           {
             Boid boid = Boid::get(q);
             const float dist = glm::length(pos - boid.pos);
-            if (boid.eid != eid && dist < RADIUS && boid.mass >= mass)
+            if (boid.eid != eid && dist < COHESION_RADIUS && boid.mass >= mass)
             {
               flockmatesWeight += boid.mass;
               center += boid.mass * boid.pos;
@@ -358,8 +451,9 @@ struct update_boid_cohesion
     {
       center /= flockmatesWeight;
       flock_center = center;
-      glm::vec2 steer = 150.f * glm::normalize(center - pos);
-      force += steer * COHESION;
+      glm::vec2 steer = center - pos;
+      if (glm::length(steer) > 0.f)
+        force += glm::normalize(steer) * COHESION;
     }
   }
 };
@@ -368,11 +462,15 @@ struct control_boid_velocity
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, glm::vec2 &vel)
+  ECS_RUN(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
   {
     if (glm::length(vel) == 0.f)
-      vel.x = 150.f;
-    vel = 150.f * glm::normalize(vel);
+    {
+      float rndX = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
+      float rndY = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
+      vel = glm::vec2(rndX, rndY);
+    }
+    vel = max_vel * glm::normalize(vel);
   }
 };
 
@@ -382,10 +480,7 @@ struct apply_boid_force
 
   ECS_RUN(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
   {
-    glm::vec2 dv = force * (1.f / mass) * stage.dt;
-    if (glm::length(dv) > 20.f)
-      dv = 20.f * glm::normalize(dv);
-    vel += dv;
+    vel += force * (1.f / mass) * stage.dt;
     force = glm::vec2(0.f, 0.f);
   }
 };

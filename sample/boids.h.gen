@@ -11,6 +11,9 @@ int RegCompSpec<EventOnClickMouseLeftButton>::ID = -1;
 static RegCompSpec<EventOnClickSpace> _reg_event_EventOnClickSpace;
 int RegCompSpec<EventOnClickSpace>::ID = -1;
 
+static RegCompSpec<EventOnClickLeftControl> _reg_event_EventOnClickLeftControl;
+int RegCompSpec<EventOnClickLeftControl>::ID = -1;
+
 static RegCompSpec<EventOnChangeCohesion> _reg_event_EventOnChangeCohesion;
 int RegCompSpec<EventOnChangeCohesion>::ID = -1;
 

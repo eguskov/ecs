@@ -3,10 +3,6 @@
     {
       "$template": "click_handler_boid",
       "$components": {}
-    },
-    {
-      "$template": "boid",
-      "$components": {}
     }
   ]
 }

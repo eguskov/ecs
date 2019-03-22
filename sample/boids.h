@@ -16,6 +16,14 @@ struct EventOnClickSpace : Event
 }
 DEF_EVENT(EventOnClickSpace);
 
+struct EventOnClickLeftControl : Event
+{
+  glm::vec2 pos = { 0.f, 0.f };
+  EventOnClickLeftControl() = default;
+  EventOnClickLeftControl(const glm::vec2 &p) : pos(p) {}
+}
+DEF_EVENT(EventOnClickLeftControl);
+
 struct EventOnChangeCohesion : Event
 {
   float delta = 0.f;

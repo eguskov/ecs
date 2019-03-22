@@ -27,6 +27,17 @@ static constexpr ConstQueryDesc on_click_space_handler_boid_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
+static constexpr ConstCompDesc on_click_left_control_handler_boid_have_components[] = {
+  {HASH("click_handler_boid"), 0},
+};
+static constexpr ConstQueryDesc on_click_left_control_handler_boid_query_desc = {
+  empty_desc_array,
+  make_const_array(on_click_left_control_handler_boid_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 static constexpr ConstCompDesc on_change_cohesion_handler_boid_have_components[] = {
   {HASH("click_handler_boid"), 0},
 };
@@ -71,11 +82,26 @@ static constexpr ConstQueryDesc render_hud_boid_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
+static constexpr ConstCompDesc render_boid_obstacle_components[] = {
+  {HASH("texture"), Desc<TextureAtlas>::Size},
+  {HASH("frame"), Desc<glm::vec4>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc render_boid_obstacle_have_components[] = {
+  {HASH("boid_obstacle"), 0},
+};
+static constexpr ConstQueryDesc render_boid_obstacle_query_desc = {
+  make_const_array(render_boid_obstacle_components),
+  make_const_array(render_boid_obstacle_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 static constexpr ConstCompDesc render_boid_components[] = {
   {HASH("texture"), Desc<TextureAtlas>::Size},
   {HASH("frame"), Desc<glm::vec4>::Size},
   {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
   {HASH("mass"), Desc<float>::Size},
   {HASH("rotation"), Desc<float>::Size},
 };
@@ -141,18 +167,50 @@ static constexpr ConstQueryDesc update_boid_rotation_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc update_boid_components[] = {
+static constexpr ConstCompDesc update_boid_avoid_walls_components[] = {
   {HASH("pos"), Desc<glm::vec2>::Size},
   {HASH("vel"), Desc<glm::vec2>::Size},
   {HASH("mass"), Desc<float>::Size},
+  {HASH("move_to_center_timer"), Desc<float>::Size},
   {HASH("force"), Desc<glm::vec2>::Size},
 };
-static constexpr ConstCompDesc update_boid_have_components[] = {
+static constexpr ConstCompDesc update_boid_avoid_walls_have_components[] = {
   {HASH("boid"), 0},
 };
-static constexpr ConstQueryDesc update_boid_query_desc = {
-  make_const_array(update_boid_components),
-  make_const_array(update_boid_have_components),
+static constexpr ConstQueryDesc update_boid_avoid_walls_query_desc = {
+  make_const_array(update_boid_avoid_walls_components),
+  make_const_array(update_boid_avoid_walls_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_boid_avoid_obstacle_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("force"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_boid_avoid_obstacle_have_components[] = {
+  {HASH("boid"), 0},
+};
+static constexpr ConstQueryDesc update_boid_avoid_obstacle_query_desc = {
+  make_const_array(update_boid_avoid_obstacle_components),
+  make_const_array(update_boid_avoid_obstacle_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
+static constexpr ConstCompDesc update_boid_move_to_center_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("move_to_center_timer"), Desc<float>::Size},
+  {HASH("force"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc update_boid_move_to_center_have_components[] = {
+  {HASH("boid"), 0},
+};
+static constexpr ConstQueryDesc update_boid_move_to_center_query_desc = {
+  make_const_array(update_boid_move_to_center_components),
+  make_const_array(update_boid_move_to_center_have_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -230,6 +288,7 @@ static constexpr ConstQueryDesc update_boid_cohesion_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc control_boid_velocity_components[] = {
+  {HASH("max_vel"), Desc<float>::Size},
   {HASH("vel"), Desc<glm::vec2>::Size},
 };
 static constexpr ConstCompDesc control_boid_velocity_have_components[] = {
@@ -277,11 +336,28 @@ static constexpr ConstQueryDesc Boid_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
+static constexpr ConstCompDesc BoidObstacle_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size},
+};
+static constexpr ConstCompDesc BoidObstacle_have_components[] = {
+  {HASH("boid_obstacle"), 0},
+};
+static constexpr ConstQueryDesc BoidObstacle_query_desc = {
+  make_const_array(BoidObstacle_components),
+  make_const_array(BoidObstacle_have_components),
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+  empty_desc_array,
+};
 using BoidBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(Boid, eid)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(Boid, pos)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(Boid, vel)>,
   StructField<float, INDEX_OF_COMPONENT(Boid, mass)>
+>;
+using BoidObstacleBuilder = StructBuilder<
+  StructField<glm::vec2, INDEX_OF_COMPONENT(BoidObstacle, pos)>
 >;
 static constexpr ConstCompDesc index_by_Boid_grid_cell_components[] = {
   {HASH("eid"), Desc<EntityId>::Size},
@@ -303,6 +379,7 @@ static constexpr ConstQueryDesc index_by_Boid_grid_cell_query_desc = {
 };
 
 static RegQuery _reg_query_Boid(HASH("boids.cpp_Boid"), Boid_query_desc, nullptr);
+static RegQuery _reg_query_BoidObstacle(HASH("boids.cpp_BoidObstacle"), BoidObstacle_query_desc, nullptr);
 
 static RegIndex _reg_index_index_by_Boid_grid_cell(HASH("boids.cpp_index_by_Boid_grid_cell"), HASH("grid_cell"), index_by_Boid_grid_cell_query_desc, nullptr);
 
@@ -336,6 +413,30 @@ Boid Boid::get(Query::AllIterator &iter)
       GET_COMPONENT(Boid, iter, float, mass)
     };
 }
+int BoidObstacle::count()
+{
+  Query &query = *g_mgr->getQueryByName(HASH("boids.cpp_BoidObstacle"));
+  return query.entitiesCount;
+}
+template <typename Callable> void BoidObstacle::foreach(Callable callback)
+{
+  Query &query = *g_mgr->getQueryByName(HASH("boids.cpp_BoidObstacle"));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    callback(
+    {
+      GET_COMPONENT(BoidObstacle, q, glm::vec2, pos)
+    });
+}
+Index* BoidObstacle::index()
+{
+  return nullptr;
+}
+BoidObstacle BoidObstacle::get(Query::AllIterator &iter)
+{
+  return {
+      GET_COMPONENT(BoidObstacle, iter, glm::vec2, pos)
+    };
+}
 static void on_mouse_click_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
@@ -349,6 +450,13 @@ static void on_click_space_handler_boid_run(const RawArg &stage_or_event, Query 
     on_click_space_handler_boid::run(*(EventOnClickSpace*)stage_or_event.mem);
 }
 static RegSys _reg_sys_on_click_space_handler_boid("on_click_space_handler_boid", &on_click_space_handler_boid_run, "EventOnClickSpace", on_click_space_handler_boid_query_desc, nullptr);
+
+static void on_click_left_control_handler_boid_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    on_click_left_control_handler_boid::run(*(EventOnClickLeftControl*)stage_or_event.mem);
+}
+static RegSys _reg_sys_on_click_left_control_handler_boid("on_click_left_control_handler_boid", &on_click_left_control_handler_boid_run, "EventOnClickLeftControl", on_click_left_control_handler_boid_query_desc, nullptr);
 
 static void on_change_cohesion_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -378,6 +486,16 @@ static void render_hud_boid_run(const RawArg &stage_or_event, Query &query)
 }
 static RegSys _reg_sys_render_hud_boid("render_hud_boid", &render_hud_boid_run, "RenderHUDStage", render_hud_boid_query_desc, nullptr);
 
+static void render_boid_obstacle_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    render_boid_obstacle::run(*(RenderStage*)stage_or_event.mem,
+      GET_COMPONENT(render_boid_obstacle, q, TextureAtlas, texture),
+      GET_COMPONENT(render_boid_obstacle, q, glm::vec4, frame),
+      GET_COMPONENT(render_boid_obstacle, q, glm::vec2, pos));
+}
+static RegSys _reg_sys_render_boid_obstacle("render_boid_obstacle", &render_boid_obstacle_run, "RenderStage", render_boid_obstacle_query_desc, nullptr);
+
 static void render_boid_run(const RawArg &stage_or_event, Query &query)
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
@@ -385,7 +503,6 @@ static void render_boid_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(render_boid, q, TextureAtlas, texture),
       GET_COMPONENT(render_boid, q, glm::vec4, frame),
       GET_COMPONENT(render_boid, q, glm::vec2, pos),
-      GET_COMPONENT(render_boid, q, glm::vec2, vel),
       GET_COMPONENT(render_boid, q, float, mass),
       GET_COMPONENT(render_boid, q, float, rotation));
 }
@@ -425,16 +542,36 @@ static void update_boid_rotation_run(const RawArg &stage_or_event, Query &query)
 }
 static RegSys _reg_sys_update_boid_rotation("update_boid_rotation", &update_boid_rotation_run, "UpdateStage", update_boid_rotation_query_desc, nullptr);
 
-static void update_boid_run(const RawArg &stage_or_event, Query &query)
+static void update_boid_avoid_walls_run(const RawArg &stage_or_event, Query &query)
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid, q, glm::vec2, pos),
-      GET_COMPONENT(update_boid, q, glm::vec2, vel),
-      GET_COMPONENT(update_boid, q, float, mass),
-      GET_COMPONENT(update_boid, q, glm::vec2, force));
+    update_boid_avoid_walls::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, pos),
+      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, vel),
+      GET_COMPONENT(update_boid_avoid_walls, q, float, mass),
+      GET_COMPONENT(update_boid_avoid_walls, q, float, move_to_center_timer),
+      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, force));
 }
-static RegSys _reg_sys_update_boid("update_boid", &update_boid_run, "UpdateStage", update_boid_query_desc, nullptr);
+static RegSys _reg_sys_update_boid_avoid_walls("update_boid_avoid_walls", &update_boid_avoid_walls_run, "UpdateStage", update_boid_avoid_walls_query_desc, nullptr);
+
+static void update_boid_avoid_obstacle_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_boid_avoid_obstacle::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, pos),
+      GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, force));
+}
+static RegSys _reg_sys_update_boid_avoid_obstacle("update_boid_avoid_obstacle", &update_boid_avoid_obstacle_run, "UpdateStage", update_boid_avoid_obstacle_query_desc, nullptr);
+
+static void update_boid_move_to_center_run(const RawArg &stage_or_event, Query &query)
+{
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_boid_move_to_center::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, pos),
+      GET_COMPONENT(update_boid_move_to_center, q, float, move_to_center_timer),
+      GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, force));
+}
+static RegSys _reg_sys_update_boid_move_to_center("update_boid_move_to_center", &update_boid_move_to_center_run, "UpdateStage", update_boid_move_to_center_query_desc, nullptr);
 
 static void update_boid_wander_run(const RawArg &stage_or_event, Query &query)
 {
@@ -487,6 +624,7 @@ static void control_boid_velocity_run(const RawArg &stage_or_event, Query &query
 {
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     control_boid_velocity::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(control_boid_velocity, q, float, max_vel),
       GET_COMPONENT(control_boid_velocity, q, glm::vec2, vel));
 }
 static RegSys _reg_sys_control_boid_velocity("control_boid_velocity", &control_boid_velocity_run, "UpdateStage", control_boid_velocity_query_desc, nullptr);

@@ -39,11 +39,13 @@
     "update_player_collisions",
     "update_physics",
     "update_kinematic_physics_body",
-    "update_boid",
+    "update_boid_avoid_walls",
+    "update_boid_avoid_obstacle",
     "update_boid_wander",
     "update_boid_separation",
     "update_boid_alignment",
     "update_boid_cohesion",
+    "update_boid_move_to_center",
     "apply_boid_force",
     "control_boid_velocity",
     "remove_death_fx",
@@ -61,6 +63,7 @@
     "render_walls",
     "render_normal",
     "render_boid",
+    "render_boid_obstacle",
     "render_debug_physics",
     "render_debug_player_grid_cell",
     "render_boid_debug",
@@ -70,6 +73,7 @@
     "on_enenmy_hit_ground_handler",
     "on_mouse_click_handler_boid",
     "on_click_space_handler_boid",
+    "on_click_left_control_handler_boid",
     "on_change_cohesion_handler_boid",
     "on_change_alignment_handler_boid",
     "on_change_wander_handler_boid"
@@ -1412,11 +1416,51 @@
           "$type": "vec2",
           "$value": [0, 0]
         },
+        "move_to_center_timer": {
+          "$type": "float",
+          "$value": 0.0
+        },
         "mass": {
           "$type": "float",
           "$value": 1.0
         },
+        "max_vel": {
+          "$type": "float",
+          "$value": 150.0
+        },
         "flock_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "texture": {
+          "$type": "texture",
+          "$value": {
+            "path": "../assets/boid.png"
+          }
+        },
+        "frame": {
+          "$type": "vec4",
+          "$value": [
+            0,
+            0,
+            32,
+            32
+          ]
+        }
+      }
+    },
+    {
+      "$name": "boid_obstacle",
+      "$components": {
+        "boid_obstacle": {
+          "$type": "tag",
+          "$value": {}
+        },
+        "grid_cell": {
+          "$type": "int",
+          "$value": -1
+        },
+        "pos": {
           "$type": "vec2",
           "$value": [0, 0]
         },
