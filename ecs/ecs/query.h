@@ -357,9 +357,8 @@ struct Query
 
     inline void advance(int offset)
     {
-      // TODO: Fix for end iterator q != e must work!!!
       idx = offset;
-      while (idx > entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
+      while (idx >= entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
         idx -= entitiesInChunk[chunkIdx];
         ++chunkIdx;
       }

@@ -1435,7 +1435,7 @@
         "texture": {
           "$type": "texture",
           "$value": {
-            "path": "../assets/boid.png"
+            "path": "../assets/boid_fish.png"
           }
         },
         "frame": {
@@ -1443,8 +1443,8 @@
           "$value": [
             0,
             0,
-            32,
-            32
+            256,
+            256
           ]
         }
       }

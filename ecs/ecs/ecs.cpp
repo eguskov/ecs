@@ -1008,9 +1008,11 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      if (::strcmp("update_boid_separation", sys.desc->name) == 0)
+      if (::strcmp("update_boid_separation", sys.desc->name) == 0 ||
+          ::strcmp("update_boid_alignment", sys.desc->name) == 0 ||
+          ::strcmp("update_boid_cohesion", sys.desc->name) == 0)
       {
-        jobmanager::add_job(64, query.entitiesCount,
+        jobmanager::add_job(128, query.entitiesCount,
           [&](int from, int count)
           {
             sys.desc->sys(stage, query.begin(from), query.end(from + count));

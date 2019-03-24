@@ -282,15 +282,15 @@ int main(int argc, char *argv[])
     BeginMode2D(camera);
     g_mgr->tick(RenderStage{});
     EndMode2D();
-    const float renderDelta = (float)((GetTime() - t) * 1e3);
-
-    minRenderDelta = eastl::min(minRenderDelta, renderDelta);
 
     #ifdef _DEBUG
     BeginMode2D(camera);
     g_mgr->tick(RenderDebugStage{});
     EndMode2D();
     #endif
+
+    const float renderDelta = (float)((GetTime() - t) * 1e3);
+    minRenderDelta = eastl::min(minRenderDelta, renderDelta);
 
     DrawText(FormatText("ECS time: %2.2f ms (%2.2f ms)", /* delta */minDelta, /* renderDelta */ minRenderDelta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);

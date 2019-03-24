@@ -206,6 +206,7 @@ struct render_boid_debug
 
   ECS_RUN(const RenderDebugStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &flock_center, int grid_cell)
   {
+    return;
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
