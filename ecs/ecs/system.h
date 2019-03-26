@@ -56,6 +56,7 @@ struct EntityManager;
 
   #define ECS_QUERY struct ecs_query {};
   #define ECS_SYSTEM struct ecs_system {};
+  #define ECS_SYSTEM_IN_JOBS struct ecs_system_in_jobs {};
 #else
   #define QL_HAVE(...)
   #define QL_NOT_HAVE(...)
@@ -73,13 +74,16 @@ struct EntityManager;
     static __forceinline Index* index();\
 
   #define ECS_SYSTEM
+  #define ECS_SYSTEM_IN_JOBS
 #endif
 
 #ifdef _DEBUG
 #define ECS_RUN ECS_SYSTEM; static void run
+#define ECS_RUN_IN_JOBS ECS_SYSTEM; static void run
 #define ECS_RUN_T ECS_SYSTEM; template <typename _> static void run
 #else
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run
+#define ECS_RUN_IN_JOBS ECS_SYSTEM_IN_JOBS; static __forceinline void run
 #define ECS_RUN_T ECS_SYSTEM; template <typename _> static __forceinline void run
 #endif
 
@@ -112,7 +116,7 @@ struct RawArgSpec : RawArg
 struct RegSys
 {
   enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
-  using SystemCallback = void (*)(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator);
+  using SystemCallback = void (*)(const RawArg &stage_or_event, Query&);
 
   char *name = nullptr;
   char *stageName = nullptr;

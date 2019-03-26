@@ -1008,19 +1008,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
     if (sys.desc->stageId == stage_id)
     {
       auto &query = queries[sys.desc->id];
-      if (::strcmp("update_boid_separation", sys.desc->name) == 0 ||
-          ::strcmp("update_boid_alignment", sys.desc->name) == 0 ||
-          ::strcmp("update_boid_cohesion", sys.desc->name) == 0)
-      {
-        jobmanager::add_job(128, query.entitiesCount,
-          [&](int from, int count)
-          {
-            sys.desc->sys(stage, query.begin(from), query.end(from + count));
-          });
-        jobmanager::do_and_wait_all_tasks_done();
-      }
-      else
-        sys.desc->sys(stage, query.begin(), query.end());
+      sys.desc->sys(stage, query);
     }
 
   checkFrameSnapshot(snapshot);
@@ -1077,7 +1065,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
           compIdx++;
         }
 
-        sys.desc->sys(ev, query.begin(), query.end());
+        sys.desc->sys(ev, query);
       }
     }
 }
@@ -1093,7 +1081,7 @@ void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
     if (sys.desc->stageId == event_id)
     {
       auto &query = queries[sys.desc->id];
-      sys.desc->sys(ev, query.begin(), query.end());
+      sys.desc->sys(ev, query);
     }
 }
 

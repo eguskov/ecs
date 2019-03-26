@@ -558,13 +558,6 @@ struct Query
     return iter;
   }
 
-  inline AllIterator end(int offset)
-  {
-    auto iter = AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
-    iter.advance(offset);
-    return iter;
-  }
-
   void addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count);
 
   bool dirty = false;

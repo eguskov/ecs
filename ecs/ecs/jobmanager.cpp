@@ -70,19 +70,24 @@ struct JobManager
 
     while (!worker.terminated.load())
     {
-      std::unique_lock<std::mutex> lock(jobs->startWorkerMutex);
-      jobs->startWorkerCV.wait(lock, [&](){ return worker.started; });
+      {
+        std::unique_lock<std::mutex> lock(jobs->startWorkerMutex);
+        jobs->startWorkerCV.wait(lock, [&](){ return worker.started; });
+      }
 
       worker.cpuNo = ::GetCurrentProcessorNumber();
 
       for (const auto &t : worker.tasks)
         t.task(t.from, t.count);
 
+      const int tasksCount = worker.tasks.size();
+
+      worker.started = false;
+      worker.tasks.clear();
+
       {
         std::lock_guard<std::mutex> lock(jobs->doneWorkerMutex);
-        jobs->doneTasksCount += worker.tasks.size();
-        worker.started = false;
-        worker.tasks.clear();
+        jobs->doneTasksCount += tasksCount;
       }
       jobs->doneWorkerCV.notify_one();
     }
@@ -181,7 +186,7 @@ void jobmanager::release()
   jobs = nullptr;
 }
 
-void jobmanager::add_job(int chunk_size, int items_count, const task_t &task)
+void jobmanager::add_job(int items_count, const task_t &task)
 {
   ASSERT(jobs != nullptr);
   ASSERT(jobs->tasks.empty());
@@ -191,13 +196,13 @@ void jobmanager::add_job(int chunk_size, int items_count, const task_t &task)
 
   int itemsLeft = items_count;
 
-  chunk_size = items_count / jobs->workersCount;
-  chunk_size = chunk_size == 0 ? items_count : chunk_size;
+  int chunkSize = items_count / jobs->workersCount;
+  chunkSize = chunkSize == 0 ? items_count : chunkSize;
 
-  int tasksCount = (items_count / chunk_size) + ((items_count % chunk_size) ? 1 : 0);
+  int tasksCount = (items_count / chunkSize) + ((items_count % chunkSize) ? 1 : 0);
   jobs->tasks.reserve(tasksCount);
-  for (int i = 0; i < items_count; i += chunk_size, itemsLeft -= chunk_size)
-    jobs->addTask(task, i, eastl::min(chunk_size, itemsLeft));
+  for (int i = 0; i < items_count; i += chunkSize, itemsLeft -= chunkSize)
+    jobs->addTask(task, i, eastl::min(chunkSize, itemsLeft));
 }
 
 void jobmanager::do_and_wait_all_tasks_done()
