@@ -40,6 +40,7 @@ struct VisitorState
   struct System : Function
   {
     bool fromQuery = false;
+    bool inJobs = false;
   };
 
   struct Query : Function

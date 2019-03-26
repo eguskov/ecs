@@ -353,8 +353,10 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
 
     bool isQuery = false;
     bool isSystem = false;
+    bool isSystemInJobs = false;
     foreach_struct_decl(cursor, [&isQuery](CXCursor, const eastl::string &name) { if (name == "ecs_query") isQuery = true; });
     foreach_struct_decl(cursor, [&isSystem](CXCursor, const eastl::string &name) { if (name == "ecs_system") isSystem = true; });
+    foreach_struct_decl(cursor, [&isSystemInJobs](CXCursor, const eastl::string &name) { if (name == "ecs_system_in_jobs") isSystemInJobs = true; });
 
     if (isQuery)
     {
@@ -445,11 +447,12 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       });
     }
 
-    if (isSystem)
+    if (isSystem || isSystemInJobs)
     {
       auto structName = to_string(clang_getCursorSpelling(cursor));
       auto &s = state.systems.push_back();
       s.name = eastl::move(structName);
+      s.inJobs = isSystemInJobs;
 
       CXCursor runCursor = find_method(cursor, "run");
       assert(!clang_equalCursors(runCursor, clang_getNullCursor()));
