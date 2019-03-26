@@ -739,7 +739,7 @@ PlayerSpawnZone PlayerSpawnZone::get(Query::AllIterator &iter)
       GET_COMPONENT(PlayerSpawnZone, iter, glm::vec2, pos)
     };
 }
-static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
@@ -770,7 +770,7 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query::AllI
 }
 static RegSys _reg_sys_bind_trigger_to_action("bind_trigger_to_action", &bind_trigger_to_action_run, "UpdateStage");
 
-static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
@@ -803,7 +803,7 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
 }
 static RegSys _reg_sys_update_active_switch_triggers("update_active_switch_triggers", &update_active_switch_triggers_run, "UpdateStage");
 
-static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
@@ -835,7 +835,7 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
 }
 static RegSys _reg_sys_update_active_open_cage_triggers("update_active_open_cage_triggers", &update_active_open_cage_triggers_run, "UpdateStage");
 
-static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
@@ -867,7 +867,7 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query:
 }
 static RegSys _reg_sys_update_active_zone_triggers("update_active_zone_triggers", &update_active_zone_triggers_run, "UpdateStage");
 
-static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
@@ -892,7 +892,7 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
 }
 static RegSys _reg_sys_update_inactive_switch_triggers("update_inactive_switch_triggers", &update_inactive_switch_triggers_run, "UpdateStage");
 
-static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query::AllIterator, Query::AllIterator)
+static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
@@ -918,9 +918,9 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
 }
 static RegSys _reg_sys_update_inactive_zone_triggers("update_inactive_zone_triggers", &update_inactive_zone_triggers_run, "UpdateStage");
 
-static void update_player_spawner_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }
 static RegSys _reg_sys_update_player_spawner("update_player_spawner", &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);

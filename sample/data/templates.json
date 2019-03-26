@@ -56,6 +56,7 @@
     "update_boid_rotation",
     "validate_position",
     "update_grid_cell",
+    "update_small_grid_cell",
     "select_current_anim_frame",
     "select_current_anim_frame_for_player",
     "update_anim_frame",
@@ -1389,6 +1390,10 @@
           "$value": {}
         },
         "grid_cell": {
+          "$type": "int",
+          "$value": -1
+        },
+        "small_grid_cell": {
           "$type": "int",
           "$value": -1
         },

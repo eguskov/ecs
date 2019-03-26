@@ -339,17 +339,17 @@ static constexpr ConstQueryDesc update_auto_jump_query_desc = {
 
 
 
-static void load_texture_handler_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void load_texture_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     load_texture_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(load_texture_handler, q, TextureAtlas, texture));
 }
 static RegSys _reg_sys_load_texture_handler("load_texture_handler", &load_texture_handler_run, "EventOnEntityCreate", load_texture_handler_query_desc, nullptr);
 
-static void update_position_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_position, q, glm::vec2, vel),
       GET_COMPONENT(update_position, q, glm::vec2, pos));
@@ -361,9 +361,9 @@ static RegSys _reg_sys_update_position("update_position", &update_position_run, 
   return is_alive == true;
 });
 
-static void update_position_for_active_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_position_for_active_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position_for_active::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_position_for_active, q, glm::vec2, vel),
       GET_COMPONENT(update_position_for_active, q, glm::vec2, pos));
@@ -376,9 +376,9 @@ static RegSys _reg_sys_update_position_for_active("update_position_for_active", 
   return is_alive == true && is_active == true;
 });
 
-static void update_anim_frame_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_anim_frame, q, AnimGraph, anim_graph),
       GET_COMPONENT(update_anim_frame, q, AnimState, anim_state),
@@ -386,9 +386,9 @@ static void update_anim_frame_run(const RawArg &stage_or_event, Query::AllIterat
 }
 static RegSys _reg_sys_update_anim_frame("update_anim_frame", &update_anim_frame_run, "UpdateStage", update_anim_frame_query_desc, nullptr);
 
-static void render_walls_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void render_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_walls::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_walls, q, TextureAtlas, texture),
       GET_COMPONENT(render_walls, q, glm::vec4, frame),
@@ -401,9 +401,9 @@ static RegSys _reg_sys_render_walls("render_walls", &render_walls_run, "RenderSt
   return is_alive == true;
 });
 
-static void render_normal_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void render_normal_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_normal::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_normal, q, TextureAtlas, texture),
       GET_COMPONENT(render_normal, q, glm::vec4, frame),
@@ -417,17 +417,17 @@ static RegSys _reg_sys_render_normal("render_normal", &render_normal_run, "Rende
   return is_alive == true;
 });
 
-static void read_controls_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void read_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     read_controls::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(read_controls, q, UserInput, user_input));
 }
 static RegSys _reg_sys_read_controls("read_controls", &read_controls_run, "UpdateStage", read_controls_query_desc, nullptr);
 
-static void apply_controls_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void apply_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_controls::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_controls, q, UserInput, user_input),
       GET_COMPONENT(apply_controls, q, bool, is_on_ground),
@@ -437,9 +437,9 @@ static void apply_controls_run(const RawArg &stage_or_event, Query::AllIterator 
 }
 static RegSys _reg_sys_apply_controls("apply_controls", &apply_controls_run, "UpdateStage", apply_controls_query_desc, nullptr);
 
-static void apply_jump_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void apply_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_jump::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_jump, q, Jump, jump),
       GET_COMPONENT(apply_jump, q, bool, is_on_ground),
@@ -447,9 +447,9 @@ static void apply_jump_run(const RawArg &stage_or_event, Query::AllIterator begi
 }
 static RegSys _reg_sys_apply_jump("apply_jump", &apply_jump_run, "UpdateStage", apply_jump_query_desc, nullptr);
 
-static void apply_gravity_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void apply_gravity_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_gravity::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_gravity, q, Gravity, gravity),
       GET_COMPONENT(apply_gravity, q, glm::vec2, vel));
@@ -461,9 +461,9 @@ static RegSys _reg_sys_apply_gravity("apply_gravity", &apply_gravity_run, "Updat
   return is_alive == true;
 });
 
-static void select_current_anim_frame_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame, q, glm::vec2, vel),
       GET_COMPONENT(select_current_anim_frame, q, AnimGraph, anim_graph),
@@ -473,9 +473,9 @@ static void select_current_anim_frame_run(const RawArg &stage_or_event, Query::A
 }
 static RegSys _reg_sys_select_current_anim_frame("select_current_anim_frame", &select_current_anim_frame_run, "UpdateStage", select_current_anim_frame_query_desc, nullptr);
 
-static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame_for_player::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame_for_player, q, glm::vec2, vel),
       GET_COMPONENT(select_current_anim_frame_for_player, q, AnimGraph, anim_graph),
@@ -486,9 +486,9 @@ static void select_current_anim_frame_for_player_run(const RawArg &stage_or_even
 }
 static RegSys _reg_sys_select_current_anim_frame_for_player("select_current_anim_frame_for_player", &select_current_anim_frame_for_player_run, "UpdateStage", select_current_anim_frame_for_player_query_desc, nullptr);
 
-static void remove_death_fx_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void remove_death_fx_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     remove_death_fx::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(remove_death_fx, q, EntityId, eid),
       GET_COMPONENT(remove_death_fx, q, AnimState, anim_state),
@@ -501,25 +501,25 @@ static RegSys _reg_sys_remove_death_fx("remove_death_fx", &remove_death_fx_run, 
   return is_alive == true;
 });
 
-static void update_camera_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_camera_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_camera::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_camera, q, glm::vec2, pos));
 }
 static RegSys _reg_sys_update_camera("update_camera", &update_camera_run, "UpdateStage", update_camera_query_desc, nullptr);
 
-static void process_on_kill_event_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void process_on_kill_event_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     process_on_kill_event::run(*(EventOnKillEnemy*)stage_or_event.mem,
       GET_COMPONENT(process_on_kill_event, q, HUD, hud));
 }
 static RegSys _reg_sys_process_on_kill_event("process_on_kill_event", &process_on_kill_event_run, "EventOnKillEnemy", process_on_kill_event_query_desc, nullptr);
 
-static void update_active_auto_move_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_active_auto_move, q, AutoMove, auto_move),
       GET_COMPONENT(update_active_auto_move, q, glm::vec2, vel),
@@ -533,9 +533,9 @@ static RegSys _reg_sys_update_active_auto_move("update_active_auto_move", &updat
   return is_alive == true && is_active == true;
 });
 
-static void update_always_active_auto_move_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_always_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_always_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_always_active_auto_move, q, AutoMove, auto_move),
       GET_COMPONENT(update_always_active_auto_move, q, glm::vec2, vel),
@@ -548,16 +548,16 @@ static RegSys _reg_sys_update_always_active_auto_move("update_always_active_auto
   return is_alive == true;
 });
 
-static void on_enenmy_kill_handler_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void on_enenmy_kill_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_enenmy_kill_handler::run(*(EventOnKillEnemy*)stage_or_event.mem);
 }
 static RegSys _reg_sys_on_enenmy_kill_handler("on_enenmy_kill_handler", &on_enenmy_kill_handler_run, "EventOnKillEnemy", on_enenmy_kill_handler_query_desc, nullptr);
 
-static void update_auto_jump_run(const RawArg &stage_or_event, Query::AllIterator begin, Query::AllIterator end)
+static void update_auto_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = begin, e = end; q != e; ++q)
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_jump::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_auto_jump, q, bool, is_alive),
       GET_COMPONENT(update_auto_jump, q, Jump, jump),

@@ -143,13 +143,6 @@ int main(int argc, char *argv[])
 
   EntityManager::create();
 
-  jobmanager::add_job(64, 1000,
-    [](int from, int count)
-    {
-      // DEBUG_LOG("From: " << from << "; Count: " << count);
-    });
-  jobmanager::do_and_wait_all_tasks_done();
-
   if (g_enable_cef)
     cef::init();
 

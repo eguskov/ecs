@@ -457,10 +457,10 @@ struct update_player_collisions
     });
 
     glm::vec2 box(64.f, 64.f);
-    const int boxCellLeft = MAKE_GRID_INDEX(player.pos.x - box.x);
-    const int boxCellTop = MAKE_GRID_INDEX(player.pos.y - box.y);
-    const int boxCellRight = MAKE_GRID_INDEX(player.pos.x + box.x);
-    const int boxCellBottom = MAKE_GRID_INDEX(player.pos.y + box.y);
+    const int boxCellLeft = MAKE_GRID_INDEX(player.pos.x - box.x, GRID_CELL_SIZE);
+    const int boxCellTop = MAKE_GRID_INDEX(player.pos.y - box.y, GRID_CELL_SIZE);
+    const int boxCellRight = MAKE_GRID_INDEX(player.pos.x + box.x, GRID_CELL_SIZE);
+    const int boxCellBottom = MAKE_GRID_INDEX(player.pos.y + box.y, GRID_CELL_SIZE);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
       for (int y = boxCellTop; y <= boxCellBottom; ++y)
@@ -483,10 +483,10 @@ struct render_debug_player_grid_cell
     const float hh = screen_height * 0.5f;
 
     glm::vec2 box(64.f, 64.f);
-    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x);
-    const int boxCellTop = MAKE_GRID_INDEX(pos.y - box.y);
-    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x);
-    const int boxCellBottom = MAKE_GRID_INDEX(pos.y + box.y);
+    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, GRID_CELL_SIZE);
+    const int boxCellTop = MAKE_GRID_INDEX(pos.y - box.y, GRID_CELL_SIZE);
+    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, GRID_CELL_SIZE);
+    const int boxCellBottom = MAKE_GRID_INDEX(pos.y + box.y, GRID_CELL_SIZE);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
       for (int y = boxCellTop; y <= boxCellBottom; ++y)
@@ -552,10 +552,10 @@ struct update_auto_move_collisions
   ECS_RUN(const UpdateStage &stage, EnemyCollision &&enemy)
   {
     glm::vec2 box(64.f, 64.f);
-    const int boxCellLeft = MAKE_GRID_INDEX(enemy.pos.x - box.x);
-    const int boxCellTop = MAKE_GRID_INDEX(enemy.pos.y - box.y);
-    const int boxCellRight = MAKE_GRID_INDEX(enemy.pos.x + box.x);
-    const int boxCellBottom = MAKE_GRID_INDEX(enemy.pos.y + box.y);
+    const int boxCellLeft = MAKE_GRID_INDEX(enemy.pos.x - box.x, GRID_CELL_SIZE);
+    const int boxCellTop = MAKE_GRID_INDEX(enemy.pos.y - box.y, GRID_CELL_SIZE);
+    const int boxCellRight = MAKE_GRID_INDEX(enemy.pos.x + box.x, GRID_CELL_SIZE);
+    const int boxCellBottom = MAKE_GRID_INDEX(enemy.pos.y + box.y, GRID_CELL_SIZE);
 
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
       for (int y = boxCellTop; y <= boxCellBottom; ++y)
