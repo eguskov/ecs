@@ -531,16 +531,18 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
   buildComponentsValuesFromTemplate(templateId, comps, tmpValue);
 
   int freeIndex = -1;
-  if (!freeEntityQueue.empty())
+
+  static constexpr uint32_t MINIMUM_FREE_INDICES = 1024;
+  if (freeEntityQueue.size() > MINIMUM_FREE_INDICES)
   {
     freeIndex = freeEntityQueue.front();
-    freeEntityQueue.pop();
+    freeEntityQueue.pop_front();
   }
 
   auto &e = freeIndex >= 0 ? entities[freeIndex] : entities.emplace_back();
   if (freeIndex < 0)
   {
-    e.eid.generation = std::rand() % eastl::numeric_limits<uint16_t>::max();
+    e.eid.generation = 0;
     e.eid.index = entities.size() - 1;
   }
   e.templateId = templateId;
@@ -606,11 +608,11 @@ void EntityManager::tick()
 
       type.entitiesCount--;
 
-      entity.eid.generation = (entity.eid.generation + 1) % std::numeric_limits<uint16_t>::max();
+      entity.eid.generation = (entity.eid.generation + 1) % EntityId::INDEX_LIMIT;
       entity.ready = false;
       entity.indexInArchetype = -1;
 
-      freeEntityQueue.push(eid.index);
+      freeEntityQueue.push_back(eid.index);
     }
 
     deleteQueue.pop();

@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 #include <future>
+#include <EASTL/deque.h>
 
 #include "io/json.h"
 
@@ -174,7 +175,7 @@ struct EntityManager
 
   eastl::queue<CreateQueueData> createQueue;
   eastl::queue<EntityId> deleteQueue;
-  eastl::queue<int> freeEntityQueue;
+  eastl::deque<uint32_t> freeEntityQueue;
 
   eastl::set<HashedString> trackComponents;
 
