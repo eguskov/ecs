@@ -76,7 +76,7 @@
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\..\\libs\\EASTL\\doc\\EASTL.natvis"
     },
     {
       "name": "(Release) Benchmark",

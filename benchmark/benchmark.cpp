@@ -157,6 +157,31 @@ int main()
     testSoARaw.vel[i] = { 1.f, 1.f, 1.f };
   }
 
+  const float dt = 1.f / 60.f;
+
+  /*{
+    static const int MEASURE_COUNT = 1000;
+
+    PerfMeasure<MEASURE_COUNT> perf("Test");
+
+    for (int i = 0; i < MEASURE_COUNT; ++i)
+    {
+      perf.startMeasure();
+      jobmanager::add_job(count, 4096,
+        [&](int from, int count)
+        {
+          auto b = testJobManager.begin() + from;
+          auto e = b + count;
+          for (; b != e; ++b)
+          {
+            (*b).pos += (*b).vel * dt;
+          }
+        });
+      jobmanager::do_and_wait_all_tasks_done();
+      perf.stopMeasure();
+    }
+  }*/
+
   {
     PERF_TIME(Create);
     for (int j = 0; j < 1; ++j)
@@ -168,9 +193,7 @@ int main()
     }
   }
 
-  const float dt = 1.f / 60.f;
-
-  static const int MEASURE_COUNT = 1000;
+  static const int MEASURE_COUNT = 10;
 
   {
     PerfMeasure<MEASURE_COUNT> perf("Native   ");
@@ -185,22 +208,54 @@ int main()
   }
 
   {
-    PerfMeasure<MEASURE_COUNT> perf("JM Native");
-    for (int i = 0; i < MEASURE_COUNT; ++i)
+    auto task = [&](int from, int count)
     {
-      perf.startMeasure();
-      jobmanager::add_job(count,
-        [&](int from, int count)
-        {
-          auto b = testJobManager.begin() + from;
-          auto e = b + count;
-          for (; b != e; ++b)
-            (*b).pos += (*b).vel * dt;
-        });
-      jobmanager::do_and_wait_all_tasks_done();
-      perf.stopMeasure();
+      auto b = testJobManager.begin() + from;
+      auto e = b + count;
+      for (; b != e; ++b)
+        (*b).pos += (*b).vel * dt;
+    };
+
+    {
+      PerfMeasure<MEASURE_COUNT> perf("JM Native");
+      for (int i = 0; i < MEASURE_COUNT; ++i)
+      {
+        perf.startMeasure();
+        jobmanager::add_job(count, 1024, task);
+        jobmanager::do_and_wait_all_tasks_done();
+        perf.stopMeasure();
+      }
     }
+
+    // std::cout << "futureJobsMutex: " << jobmanager::get_stat().scheduler.futureJobsMutex << "ms" << "\n";
+
+    std::cout << "doneTasksMutex: " << jobmanager::get_stat().scheduler.doneTasksMutex << "ms" << "\n";
+    std::cout << "receiveDoneTasks: " << jobmanager::get_stat().scheduler.receiveDoneTasks << "ms" << "\n";
+    double sum = 0.0;
+    for (int i = 0; i < (int)jobmanager::get_stat().scheduler.steps.size(); ++i)
+    {
+      sum += jobmanager::get_stat().scheduler.steps[i];
+      std::cout << "step[" << i << "]: " << jobmanager::get_stat().scheduler.steps[i] << "ms" << "\n";
+    }
+    std::cout << "steps: " << sum << "ms" << "\n";
+
+    std::cout << "createJob: " << jobmanager::get_stat().jm.createJob << "ms" << "\n";
+    std::cout << "startJobs: " << jobmanager::get_stat().jm.startJobs << "ms" << "\n";
+    std::cout << "doneJobsMutex: " << jobmanager::get_stat().jm.doneJobsMutex << "ms" << "\n";
+    std::cout << "deleteJob: " << jobmanager::get_stat().jm.deleteJob << "ms" << "\n";
+    std::cout << "doAndWaitAllTasksDone: " << jobmanager::get_stat().jm.doAndWaitAllTasksDone << "ms" << "\n";
+
+    for (int i = 0; i < (int)jobmanager::get_stat().workers.total.size(); ++i)
+      if (jobmanager::get_stat().workers.total[i] > 0.0)
+      {
+        std::cout << "workers[" << i << "]: total: " << jobmanager::get_stat().workers.total[i] << "ms" << "\n";
+        std::cout << "workers[" << i << "]: task:  " << jobmanager::get_stat().workers.task[i] << "ms" << "\n";
+      }
   }
+
+  std::cin.get();
+
+  return 0;
 
   {
     auto stage = UpdateStage{ dt, 10.f };
@@ -213,7 +268,7 @@ int main()
     for (int i = 0; i < MEASURE_COUNT; ++i)
     {
       perf.startMeasure();
-      jobmanager::add_job(query.entitiesCount,
+      jobmanager::add_job(query.entitiesCount, 1024,
         [&](int from, int count)
         {
           auto begin = query.begin(from);

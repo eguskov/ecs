@@ -39,8 +39,8 @@ struct Boid
 
   QL_HAVE(boid);
 
-  QL_INDEX(grid_cell);
-  QL_INDEX(small_grid_cell);
+  // QL_INDEX(grid_cell);
+  // QL_INDEX(small_grid_cell);
 
   const EntityId &eid;
   const glm::vec2 &pos;
@@ -54,7 +54,7 @@ struct BoidSmallGrid
 
   QL_HAVE(boid);
 
-  QL_INDEX(small_grid_cell);
+  // QL_INDEX(small_grid_cell);
 
   const EntityId &eid;
   const glm::vec2 &pos;
@@ -92,7 +92,8 @@ struct on_mouse_click_handler_boid
       // float mass = 1.f + (3.f - (1.f)) * float(::rand())/float(RAND_MAX);
       // comps.AddMember("mass", mass, alloc);
     }
-    g_mgr->createEntity("boid", comps);
+    for (int i = 0; i < 1000; ++i)
+      g_mgr->createEntity("boid", comps);
   }
 };
 
@@ -222,6 +223,7 @@ struct render_boid_debug
 
   ECS_RUN(const RenderDebugStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &flock_center)
   {
+    return;
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
@@ -257,7 +259,7 @@ struct update_boid_position
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
   {
     pos += vel * stage.dt;
   }
@@ -267,7 +269,7 @@ struct update_boid_rotation
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, float &rotation)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, float &rotation)
   {
     const glm::vec2 dir = glm::normalize(vel);
     rotation = glm::degrees(glm::acos(dir.x)) * glm::sign(vel.y);
@@ -278,7 +280,7 @@ struct update_boid_avoid_walls
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
   {
     const float hw = 0.5f * screen_width * (1.f / camera.zoom);
     const float hh = 0.5f * screen_height * (1.f / camera.zoom);
@@ -302,7 +304,7 @@ struct update_boid_avoid_obstacle
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &force)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &force)
   {
     BoidObstacle::foreach([&](BoidObstacle &&obstacle)
     {
@@ -317,7 +319,7 @@ struct update_boid_move_to_center
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
   {
     if (move_to_center_timer > 0.f)
     {
@@ -335,7 +337,7 @@ struct update_boid_wander
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &force, glm::vec2 &wander_vel, float &wander_timer)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &force, glm::vec2 &wander_vel, float &wander_timer)
   {
     wander_timer -= stage.dt;
     if (wander_timer <= 0.f)
@@ -352,157 +354,157 @@ struct update_boid_wander
   }
 };
 
-struct update_boid_separation
-{
-  QL_HAVE(boid);
+// struct update_boid_separation
+// {
+//   QL_HAVE(boid);
 
-  ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
-  {
-    glm::vec2 box(SEPARATION_RADIUS, SEPARATION_RADIUS);
-    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, SMALL_GRID_CELL_SIZE);
-    const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, SMALL_GRID_CELL_SIZE);
-    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, SMALL_GRID_CELL_SIZE);
-    const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, SMALL_GRID_CELL_SIZE);
+//   ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
+//   {
+//     glm::vec2 box(SEPARATION_RADIUS, SEPARATION_RADIUS);
+//     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, SMALL_GRID_CELL_SIZE);
+//     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, SMALL_GRID_CELL_SIZE);
+//     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, SMALL_GRID_CELL_SIZE);
+//     const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, SMALL_GRID_CELL_SIZE);
 
-    float flockmatesWeight = 0.f;
-    glm::vec2 separationDir(0.f, 0.f);
+//     float flockmatesWeight = 0.f;
+//     glm::vec2 separationDir(0.f, 0.f);
 
-    glm::vec2 dir = glm::normalize(vel);
+//     glm::vec2 dir = glm::normalize(vel);
 
-    for (int x = boxCellLeft; x <= boxCellRight; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
-        if (Query *cell = BoidSmallGrid::index()->find(MAKE_GRID_CELL(x, y)))
-          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
-          {
-            BoidSmallGrid boid = BoidSmallGrid::get(q);
-            if (boid.eid != eid)
-            {
-              const float dist = glm::length(pos - boid.pos);
-              float cosA = 1.f;
-              if (dist > 0.f)
-                cosA = glm::dot(dir, glm::normalize(boid.pos - pos));
-              if (dist < boid.mass * SEPARATION_RADIUS && boid.mass >= mass/*  && cosA > -0.90f */)
-              {
-                flockmatesWeight += boid.mass;
-                separationDir += boid.mass * (pos - boid.pos);
-              }
-            }
-          }
+//     for (int x = boxCellLeft; x <= boxCellRight; ++x)
+//       for (int y = boxCellBottom; y <= boxCellTop + 1; ++y)
+//         if (Query *cell = BoidSmallGrid::index()->find(MAKE_GRID_CELL(x, y)))
+//           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+//           {
+//             BoidSmallGrid boid = BoidSmallGrid::get(q);
+//             if (boid.eid != eid)
+//             {
+//               const float dist = glm::length(pos - boid.pos);
+//               float cosA = 1.f;
+//               if (dist > 0.f)
+//                 cosA = glm::dot(dir, glm::normalize(boid.pos - pos));
+//               if (dist < boid.mass * SEPARATION_RADIUS && boid.mass >= mass/*  && cosA > -0.90f */)
+//               {
+//                 flockmatesWeight += boid.mass;
+//                 separationDir += boid.mass * (pos - boid.pos);
+//               }
+//             }
+//           }
 
-    if (flockmatesWeight > 0.f && glm::length(separationDir) > 0.f)
-    {
-      separationDir = glm::normalize(separationDir / flockmatesWeight);
-      force += separationDir * SEPARATION;
-    }
-  }
-};
+//     if (flockmatesWeight > 0.f && glm::length(separationDir) > 0.f)
+//     {
+//       separationDir = glm::normalize(separationDir / flockmatesWeight);
+//       force += separationDir * SEPARATION;
+//     }
+//   }
+// };
 
-struct update_boid_alignment
-{
-  static constexpr int MAX_COUNT = 100;
+// struct update_boid_alignment
+// {
+//   static constexpr int MAX_COUNT = 100;
 
-  QL_HAVE(boid);
+//   QL_HAVE(boid);
 
-  ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
-  {
-    glm::vec2 box(ALIGNMENT_RADIUS, ALIGNMENT_RADIUS);
-    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, GRID_CELL_SIZE);
-    const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, GRID_CELL_SIZE);
-    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, GRID_CELL_SIZE);
-    const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, GRID_CELL_SIZE);
+//   ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, const glm::vec2 &vel, float mass, glm::vec2 &force)
+//   {
+//     glm::vec2 box(ALIGNMENT_RADIUS, ALIGNMENT_RADIUS);
+//     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, GRID_CELL_SIZE);
+//     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, GRID_CELL_SIZE);
+//     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, GRID_CELL_SIZE);
+//     const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, GRID_CELL_SIZE);
 
-    float flockmatesWeight = 0.f;
-    glm::vec2 flockDir(0.f, 0.f);
+//     float flockmatesWeight = 0.f;
+//     glm::vec2 flockDir(0.f, 0.f);
 
-    int flockmatesCount = 0;
-    bool process = true;
+//     int flockmatesCount = 0;
+//     bool process = true;
 
-    for (int x = boxCellLeft; x <= boxCellRight && process; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop + 1 && process; ++y)
-        if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
-          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
-          {
-            Boid boid = Boid::get(q);
-            const float dist = glm::length(pos - boid.pos);
-            if (boid.eid != eid && dist < ALIGNMENT_RADIUS && boid.mass >= mass)
-            {
-              ++flockmatesCount;
-              flockmatesWeight += boid.mass;
-              flockDir += boid.mass * boid.vel;
-            }
-            if (flockmatesCount >= MAX_COUNT)
-            {
-              process = false;
-              break;
-            }
-          }
+//     for (int x = boxCellLeft; x <= boxCellRight && process; ++x)
+//       for (int y = boxCellBottom; y <= boxCellTop + 1 && process; ++y)
+//         if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
+//           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+//           {
+//             Boid boid = Boid::get(q);
+//             const float dist = glm::length(pos - boid.pos);
+//             if (boid.eid != eid && dist < ALIGNMENT_RADIUS && boid.mass >= mass)
+//             {
+//               ++flockmatesCount;
+//               flockmatesWeight += boid.mass;
+//               flockDir += boid.mass * boid.vel;
+//             }
+//             if (flockmatesCount >= MAX_COUNT)
+//             {
+//               process = false;
+//               break;
+//             }
+//           }
 
-    if (flockmatesWeight > 0.f && glm::length(flockDir) > 0.f)
-    {
-      flockDir /= flockmatesWeight;
-      glm::vec2 steer = flockDir - vel;
-      if (glm::length(steer) > 0.f)
-        force += glm::normalize(steer) * ALIGNMENT;
-    }
-  }
-};
+//     if (flockmatesWeight > 0.f && glm::length(flockDir) > 0.f)
+//     {
+//       flockDir /= flockmatesWeight;
+//       glm::vec2 steer = flockDir - vel;
+//       if (glm::length(steer) > 0.f)
+//         force += glm::normalize(steer) * ALIGNMENT;
+//     }
+//   }
+// };
 
-struct update_boid_cohesion
-{
-  static constexpr int MAX_COUNT = 100;
+// struct update_boid_cohesion
+// {
+//   static constexpr int MAX_COUNT = 100;
 
-  QL_HAVE(boid);
+//   QL_HAVE(boid);
 
-  ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, float mass, glm::vec2 &flock_center, glm::vec2 &force)
-  {
-    glm::vec2 box(COHESION_RADIUS, COHESION_RADIUS);
-    const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, GRID_CELL_SIZE);
-    const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, GRID_CELL_SIZE);
-    const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, GRID_CELL_SIZE);
-    const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, GRID_CELL_SIZE);
+//   ECS_RUN_IN_JOBS(const UpdateStage &stage, const EntityId &eid, const glm::vec2 &pos, float mass, glm::vec2 &flock_center, glm::vec2 &force)
+//   {
+//     glm::vec2 box(COHESION_RADIUS, COHESION_RADIUS);
+//     const int boxCellLeft = MAKE_GRID_INDEX(pos.x - box.x, GRID_CELL_SIZE);
+//     const int boxCellTop = MAKE_GRID_INDEX(pos.y + box.y, GRID_CELL_SIZE);
+//     const int boxCellRight = MAKE_GRID_INDEX(pos.x + box.x, GRID_CELL_SIZE);
+//     const int boxCellBottom = MAKE_GRID_INDEX(pos.y - box.y, GRID_CELL_SIZE);
 
-    float flockmatesWeight = 0.f;
-    glm::vec2 center(0.f, 0.f);
+//     float flockmatesWeight = 0.f;
+//     glm::vec2 center(0.f, 0.f);
 
-    int flockmatesCount = 0;
-    bool process = true;
+//     int flockmatesCount = 0;
+//     bool process = true;
 
-    for (int x = boxCellLeft; x <= boxCellRight && process; ++x)
-      for (int y = boxCellBottom; y <= boxCellTop + 1 && process; ++y)
-        if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
-          for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
-          {
-            Boid boid = Boid::get(q);
-            const float dist = glm::length(pos - boid.pos);
-            if (boid.eid != eid && dist < COHESION_RADIUS && boid.mass >= mass)
-            {
-              ++flockmatesCount;
-              flockmatesWeight += boid.mass;
-              center += boid.mass * boid.pos;
-            }
-            if (flockmatesCount >= MAX_COUNT)
-            {
-              process = false;
-              break;
-            }
-          }
+//     for (int x = boxCellLeft; x <= boxCellRight && process; ++x)
+//       for (int y = boxCellBottom; y <= boxCellTop + 1 && process; ++y)
+//         if (Query *cell = Boid::index()->find(MAKE_GRID_CELL(x, y)))
+//           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
+//           {
+//             Boid boid = Boid::get(q);
+//             const float dist = glm::length(pos - boid.pos);
+//             if (boid.eid != eid && dist < COHESION_RADIUS && boid.mass >= mass)
+//             {
+//               ++flockmatesCount;
+//               flockmatesWeight += boid.mass;
+//               center += boid.mass * boid.pos;
+//             }
+//             if (flockmatesCount >= MAX_COUNT)
+//             {
+//               process = false;
+//               break;
+//             }
+//           }
 
-    if (flockmatesWeight > 0.f)
-    {
-      center /= flockmatesWeight;
-      flock_center = center;
-      glm::vec2 steer = center - pos;
-      if (glm::length(steer) > 0.f)
-        force += glm::normalize(steer) * COHESION;
-    }
-  }
-};
+//     if (flockmatesWeight > 0.f)
+//     {
+//       center /= flockmatesWeight;
+//       flock_center = center;
+//       glm::vec2 steer = center - pos;
+//       if (glm::length(steer) > 0.f)
+//         force += glm::normalize(steer) * COHESION;
+//     }
+//   }
+// };
 
 struct control_boid_velocity
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
   {
     if (glm::length(vel) == 0.f)
     {
@@ -518,7 +520,7 @@ struct apply_boid_force
 {
   QL_HAVE(boid);
 
-  ECS_RUN(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
   {
     vel += force * (1.f / mass) * stage.dt;
     force = glm::vec2(0.f, 0.f);

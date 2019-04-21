@@ -232,60 +232,6 @@ static constexpr ConstQueryDesc update_boid_wander_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc update_boid_separation_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstCompDesc update_boid_separation_have_components[] = {
-  {HASH("boid"), 0},
-};
-static constexpr ConstQueryDesc update_boid_separation_query_desc = {
-  make_const_array(update_boid_separation_components),
-  make_const_array(update_boid_separation_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_boid_alignment_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstCompDesc update_boid_alignment_have_components[] = {
-  {HASH("boid"), 0},
-};
-static constexpr ConstQueryDesc update_boid_alignment_query_desc = {
-  make_const_array(update_boid_alignment_components),
-  make_const_array(update_boid_alignment_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstCompDesc update_boid_cohesion_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("flock_center"), Desc<glm::vec2>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
-};
-static constexpr ConstCompDesc update_boid_cohesion_have_components[] = {
-  {HASH("boid"), 0},
-};
-static constexpr ConstQueryDesc update_boid_cohesion_query_desc = {
-  make_const_array(update_boid_cohesion_components),
-  make_const_array(update_boid_cohesion_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
 static constexpr ConstCompDesc control_boid_velocity_components[] = {
   {HASH("max_vel"), Desc<float>::Size},
   {HASH("vel"), Desc<glm::vec2>::Size},
@@ -381,49 +327,11 @@ using BoidSmallGridBuilder = StructBuilder<
 using BoidObstacleBuilder = StructBuilder<
   StructField<glm::vec2, INDEX_OF_COMPONENT(BoidObstacle, pos)>
 >;
-static constexpr ConstCompDesc index_by_Boid_grid_cell_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-};
-static constexpr ConstCompDesc index_by_Boid_grid_cell_have_components[] = {
-  {HASH("boid"), 0},
-  {HASH("grid_cell"), 0},
-};
-static constexpr ConstQueryDesc index_by_Boid_grid_cell_query_desc = {
-  make_const_array(index_by_Boid_grid_cell_components),
-  make_const_array(index_by_Boid_grid_cell_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstCompDesc index_by_BoidSmallGrid_small_grid_cell_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-};
-static constexpr ConstCompDesc index_by_BoidSmallGrid_small_grid_cell_have_components[] = {
-  {HASH("boid"), 0},
-  {HASH("small_grid_cell"), 0},
-};
-static constexpr ConstQueryDesc index_by_BoidSmallGrid_small_grid_cell_query_desc = {
-  make_const_array(index_by_BoidSmallGrid_small_grid_cell_components),
-  make_const_array(index_by_BoidSmallGrid_small_grid_cell_have_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
 
 static RegQuery _reg_query_Boid(HASH("boids.cpp_Boid"), Boid_query_desc, nullptr);
 static RegQuery _reg_query_BoidSmallGrid(HASH("boids.cpp_BoidSmallGrid"), BoidSmallGrid_query_desc, nullptr);
 static RegQuery _reg_query_BoidObstacle(HASH("boids.cpp_BoidObstacle"), BoidObstacle_query_desc, nullptr);
 
-static RegIndex _reg_index_index_by_Boid_grid_cell(HASH("boids.cpp_index_by_Boid_grid_cell"), HASH("grid_cell"), index_by_Boid_grid_cell_query_desc, nullptr);
-static RegIndex _reg_index_index_by_BoidSmallGrid_small_grid_cell(HASH("boids.cpp_index_by_BoidSmallGrid_small_grid_cell"), HASH("small_grid_cell"), index_by_BoidSmallGrid_small_grid_cell_query_desc, nullptr);
 
 int Boid::count()
 {
@@ -444,7 +352,7 @@ template <typename Callable> void Boid::foreach(Callable callback)
 }
 Index* Boid::index()
 {
-  return g_mgr->getIndexByName(HASH("boids.cpp_index_by_Boid_grid_cell"));
+  return nullptr;
 }
 Boid Boid::get(Query::AllIterator &iter)
 {
@@ -474,7 +382,7 @@ template <typename Callable> void BoidSmallGrid::foreach(Callable callback)
 }
 Index* BoidSmallGrid::index()
 {
-  return g_mgr->getIndexByName(HASH("boids.cpp_index_by_BoidSmallGrid_small_grid_cell"));
+  return nullptr;
 }
 BoidSmallGrid BoidSmallGrid::get(Query::AllIterator &iter)
 {
@@ -597,135 +505,129 @@ static RegSys _reg_sys_render_boid_debug("render_boid_debug", &render_boid_debug
 
 static void update_boid_position_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_position::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_position, q, glm::vec2, vel),
-      GET_COMPONENT(update_boid_position, q, glm::vec2, pos));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_position::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_position, q, glm::vec2, vel),
+        GET_COMPONENT(update_boid_position, q, glm::vec2, pos));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_position("update_boid_position", &update_boid_position_run, "UpdateStage", update_boid_position_query_desc, nullptr);
 
 static void update_boid_rotation_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_rotation::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_rotation, q, glm::vec2, vel),
-      GET_COMPONENT(update_boid_rotation, q, float, rotation));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_rotation::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_rotation, q, glm::vec2, vel),
+        GET_COMPONENT(update_boid_rotation, q, float, rotation));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_rotation("update_boid_rotation", &update_boid_rotation_run, "UpdateStage", update_boid_rotation_query_desc, nullptr);
 
 static void update_boid_avoid_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_avoid_walls::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, pos),
-      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, vel),
-      GET_COMPONENT(update_boid_avoid_walls, q, float, mass),
-      GET_COMPONENT(update_boid_avoid_walls, q, float, move_to_center_timer),
-      GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, force));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_avoid_walls::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, pos),
+        GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, vel),
+        GET_COMPONENT(update_boid_avoid_walls, q, float, mass),
+        GET_COMPONENT(update_boid_avoid_walls, q, float, move_to_center_timer),
+        GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, force));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_avoid_walls("update_boid_avoid_walls", &update_boid_avoid_walls_run, "UpdateStage", update_boid_avoid_walls_query_desc, nullptr);
 
 static void update_boid_avoid_obstacle_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_avoid_obstacle::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, pos),
-      GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, force));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_avoid_obstacle::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, pos),
+        GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, force));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_avoid_obstacle("update_boid_avoid_obstacle", &update_boid_avoid_obstacle_run, "UpdateStage", update_boid_avoid_obstacle_query_desc, nullptr);
 
 static void update_boid_move_to_center_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_move_to_center::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, pos),
-      GET_COMPONENT(update_boid_move_to_center, q, float, move_to_center_timer),
-      GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, force));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_move_to_center::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, pos),
+        GET_COMPONENT(update_boid_move_to_center, q, float, move_to_center_timer),
+        GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, force));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_move_to_center("update_boid_move_to_center", &update_boid_move_to_center_run, "UpdateStage", update_boid_move_to_center_query_desc, nullptr);
 
 static void update_boid_wander_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_boid_wander::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(update_boid_wander, q, glm::vec2, vel),
-      GET_COMPONENT(update_boid_wander, q, glm::vec2, force),
-      GET_COMPONENT(update_boid_wander, q, glm::vec2, wander_vel),
-      GET_COMPONENT(update_boid_wander, q, float, wander_timer));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      update_boid_wander::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(update_boid_wander, q, glm::vec2, vel),
+        GET_COMPONENT(update_boid_wander, q, glm::vec2, force),
+        GET_COMPONENT(update_boid_wander, q, glm::vec2, wander_vel),
+        GET_COMPONENT(update_boid_wander, q, float, wander_timer));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_update_boid_wander("update_boid_wander", &update_boid_wander_run, "UpdateStage", update_boid_wander_query_desc, nullptr);
 
 static void control_boid_velocity_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    control_boid_velocity::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(control_boid_velocity, q, float, max_vel),
-      GET_COMPONENT(control_boid_velocity, q, glm::vec2, vel));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      control_boid_velocity::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(control_boid_velocity, q, float, max_vel),
+        GET_COMPONENT(control_boid_velocity, q, glm::vec2, vel));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_control_boid_velocity("control_boid_velocity", &control_boid_velocity_run, "UpdateStage", control_boid_velocity_query_desc, nullptr);
 
 static void apply_boid_force_run(const RawArg &stage_or_event, Query &query)
 {
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_boid_force::run(*(UpdateStage*)stage_or_event.mem,
-      GET_COMPONENT(apply_boid_force, q, float, mass),
-      GET_COMPONENT(apply_boid_force, q, glm::vec2, force),
-      GET_COMPONENT(apply_boid_force, q, glm::vec2, vel));
+  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  {
+    auto begin = query.begin(from);
+    auto end = query.begin(from + count);
+    for (auto q = begin, e = end; q != e; ++q)
+      apply_boid_force::run(*(UpdateStage*)stage_or_event.mem,
+        GET_COMPONENT(apply_boid_force, q, float, mass),
+        GET_COMPONENT(apply_boid_force, q, glm::vec2, force),
+        GET_COMPONENT(apply_boid_force, q, glm::vec2, vel));
+  });
+  jobmanager::do_and_wait_all_tasks_done();
 }
 static RegSys _reg_sys_apply_boid_force("apply_boid_force", &apply_boid_force_run, "UpdateStage", apply_boid_force_query_desc, nullptr);
-
-static void update_boid_separation_run(const RawArg &stage_or_event, Query &query)
-{
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
-  {
-    auto begin = query.begin(from);
-    auto end = query.begin(from + count);
-    for (auto q = begin, e = end; q != e; ++q)
-      update_boid_separation::run(*(UpdateStage*)stage_or_event.mem,
-        GET_COMPONENT(update_boid_separation, q, EntityId, eid),
-        GET_COMPONENT(update_boid_separation, q, glm::vec2, pos),
-        GET_COMPONENT(update_boid_separation, q, glm::vec2, vel),
-        GET_COMPONENT(update_boid_separation, q, float, mass),
-        GET_COMPONENT(update_boid_separation, q, glm::vec2, force));
-  });
-  jobmanager::do_and_wait_all_tasks_done();
-}
-static RegSys _reg_sys_update_boid_separation("update_boid_separation", &update_boid_separation_run, "UpdateStage", update_boid_separation_query_desc, nullptr);
-
-static void update_boid_alignment_run(const RawArg &stage_or_event, Query &query)
-{
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
-  {
-    auto begin = query.begin(from);
-    auto end = query.begin(from + count);
-    for (auto q = begin, e = end; q != e; ++q)
-      update_boid_alignment::run(*(UpdateStage*)stage_or_event.mem,
-        GET_COMPONENT(update_boid_alignment, q, EntityId, eid),
-        GET_COMPONENT(update_boid_alignment, q, glm::vec2, pos),
-        GET_COMPONENT(update_boid_alignment, q, glm::vec2, vel),
-        GET_COMPONENT(update_boid_alignment, q, float, mass),
-        GET_COMPONENT(update_boid_alignment, q, glm::vec2, force));
-  });
-  jobmanager::do_and_wait_all_tasks_done();
-}
-static RegSys _reg_sys_update_boid_alignment("update_boid_alignment", &update_boid_alignment_run, "UpdateStage", update_boid_alignment_query_desc, nullptr);
-
-static void update_boid_cohesion_run(const RawArg &stage_or_event, Query &query)
-{
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
-  {
-    auto begin = query.begin(from);
-    auto end = query.begin(from + count);
-    for (auto q = begin, e = end; q != e; ++q)
-      update_boid_cohesion::run(*(UpdateStage*)stage_or_event.mem,
-        GET_COMPONENT(update_boid_cohesion, q, EntityId, eid),
-        GET_COMPONENT(update_boid_cohesion, q, glm::vec2, pos),
-        GET_COMPONENT(update_boid_cohesion, q, float, mass),
-        GET_COMPONENT(update_boid_cohesion, q, glm::vec2, flock_center),
-        GET_COMPONENT(update_boid_cohesion, q, glm::vec2, force));
-  });
-  jobmanager::do_and_wait_all_tasks_done();
-}
-static RegSys _reg_sys_update_boid_cohesion("update_boid_cohesion", &update_boid_cohesion_run, "UpdateStage", update_boid_cohesion_query_desc, nullptr);
 
 #endif // __CODEGEN__
