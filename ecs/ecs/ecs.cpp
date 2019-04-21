@@ -1018,7 +1018,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
 void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 {
-  ASSERT(!(eid == kInvalidEid));
+  ASSERT(eid);
   events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
 }
 
