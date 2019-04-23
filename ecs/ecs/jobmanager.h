@@ -10,16 +10,24 @@ namespace jobmanager
   {
     struct
     {
-      double futureJobsMutex = 0.0;
-      double doneTasksMutex = 0.0;
-      double receiveDoneTasks = 0.0;
-      eastl::array<double, 6> steps = {};
+      double total = 0.0;
+      double doneTasks = 0.0;
+      double doneTasksTotal = 0.0;
+      double finalizeTasks = 0.0;
+      double finalizeJobsToRemove = 0.0;
+      double finalizeDeleteJobs = 0.0;
+      double finalizeDeleteJobsTotal = 0.0;
+      double popQueue = 0.0;
+      double popQueueTotal = 0.0;
+      double assignTasks = 0.0;
+      double startWorkers = 0.0;
     } scheduler;
 
     struct
     {
       double createJob = 0.0;
       double startJobs = 0.0;
+      double startJobQueues = 0.0;
       double doneJobsMutex = 0.0;
       double deleteJob = 0.0;
       double doAndWaitAllTasksDone = 0.0;
@@ -29,7 +37,7 @@ namespace jobmanager
     {
       eastl::array<double, 16> total = {};
       eastl::array<double, 16> task = {};
-      eastl::array<double, 16> finalize = {};
+      eastl::array<double, 16> done = {};
     } workers;
   };
 

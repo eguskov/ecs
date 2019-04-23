@@ -182,7 +182,7 @@ int main()
     }
   }*/
 
-  {
+  /*{
     PERF_TIME(Create);
     for (int j = 0; j < 1; ++j)
     {
@@ -191,9 +191,9 @@ int main()
       g_mgr->tick();
       clear_frame_mem();
     }
-  }
+  }*/
 
-  static const int MEASURE_COUNT = 2;
+  static const int MEASURE_COUNT = 100;
 
   {
     PerfMeasure<MEASURE_COUNT> perf("Native   ");
@@ -208,6 +208,8 @@ int main()
   }
 
   {
+    jobmanager::reset_stat();
+
     Test *testBegin = testJobManager.data();
     auto task = [testBegin, dt](int from, int count)
     {
@@ -223,6 +225,79 @@ int main()
       {
         perf.startMeasure();
         jobmanager::add_job(count, 1024, task);
+        jobmanager::do_and_wait_all_tasks_done();
+        perf.stopMeasure();
+      }
+    }
+
+    std::cout << " #";
+    std::cout << "  task";
+    std::cout << "  done";
+    std::cout << " total";
+    std::cout << "\n";
+
+    double sum = 0.0;
+
+    for (int i = 0; i < (int)jobmanager::get_stat().workers.total.size(); ++i)
+      if (jobmanager::get_stat().workers.total[i] > 0.0)
+      {
+        sum += jobmanager::get_stat().workers.total[i];
+        printf("%2d%6.2f%6.2f%6.2f\n",
+          i,
+          jobmanager::get_stat().workers.task[i],
+          jobmanager::get_stat().workers.done[i],
+          jobmanager::get_stat().workers.total[i]);
+      }
+
+    printf("--------------------\n");
+    printf("              %6.2f\n", sum);
+
+    std::cout << "scheduler: total: " << jobmanager::get_stat().scheduler.total << "ms" << "\n";
+    std::cout << "scheduler: assignTasks: " << jobmanager::get_stat().scheduler.assignTasks << "ms" << "\n";
+    std::cout << "scheduler: startWorkers: " << jobmanager::get_stat().scheduler.startWorkers << "ms" << "\n";
+    std::cout << "scheduler: popQueue: " << jobmanager::get_stat().scheduler.popQueue << "ms" << "\n";
+    std::cout << "scheduler: popQueueTotal: " << jobmanager::get_stat().scheduler.popQueueTotal << "ms" << "\n";
+    std::cout << "scheduler: doneTasks: " << jobmanager::get_stat().scheduler.doneTasks << "ms" << "\n";
+    std::cout << "scheduler: doneTasksTotal: " << jobmanager::get_stat().scheduler.doneTasksTotal << "ms" << "\n";
+    std::cout << "scheduler: finalizeTasks: " << jobmanager::get_stat().scheduler.finalizeTasks << "ms" << "\n";
+    std::cout << "scheduler: finalizeJobsToRemove: " << jobmanager::get_stat().scheduler.finalizeJobsToRemove << "ms" << "\n";
+    std::cout << "scheduler: finalizeDeleteJobs: " << jobmanager::get_stat().scheduler.finalizeDeleteJobs << "ms" << "\n";
+    std::cout << "scheduler: finalizeDeleteJobsTotal: " << jobmanager::get_stat().scheduler.finalizeDeleteJobsTotal << "ms" << "\n";
+    std::cout << "createJob: " << jobmanager::get_stat().jm.createJob << "ms" << "\n";
+    std::cout << "startJobs: " << jobmanager::get_stat().jm.startJobs << "ms" << "\n";
+    std::cout << "startJobQueues: " << jobmanager::get_stat().jm.startJobQueues << "ms" << "\n";
+    std::cout << "doneJobsMutex: " << jobmanager::get_stat().jm.doneJobsMutex << "ms" << "\n";
+    std::cout << "deleteJob: " << jobmanager::get_stat().jm.deleteJob << "ms" << "\n";
+    std::cout << "doAndWaitAllTasksDone: " << jobmanager::get_stat().jm.doAndWaitAllTasksDone << "ms" << "\n";
+  }
+
+  /*{
+    jobmanager::reset_stat();
+
+    Test *testBeginA = testJobManager.data();
+    auto taskA = [testBeginA, dt](int from, int count)
+    {
+      auto b = testBeginA + from;
+      auto e = b + count;
+      for (; b != e; ++b)
+        (*b).pos += (*b).vel * dt;
+    };
+    Test *testBeginB = testJobManager.data() + (count / 2);
+    auto taskB = [testBeginB, dt](int from, int count)
+    {
+      auto b = testBeginB + from;
+      auto e = b + count;
+      for (; b != e; ++b)
+        (*b).pos += (*b).vel * dt;
+    };
+
+    {
+      PerfMeasure<MEASURE_COUNT> perf("JM Native");
+      for (int i = 0; i < MEASURE_COUNT; ++i)
+      {
+        perf.startMeasure();
+        auto jobA = jobmanager::add_job(count / 2, 1024, taskA);
+        auto jobB = jobmanager::add_job({ jobA }, count / 2, 1024, taskB);
         jobmanager::do_and_wait_all_tasks_done();
         perf.stopMeasure();
       }
@@ -249,7 +324,7 @@ int main()
     std::cout << "doneJobsMutex: " << jobmanager::get_stat().jm.doneJobsMutex << "ms" << "\n";
     std::cout << "deleteJob: " << jobmanager::get_stat().jm.deleteJob << "ms" << "\n";
     std::cout << "doAndWaitAllTasksDone: " << jobmanager::get_stat().jm.doAndWaitAllTasksDone << "ms" << "\n";
-  }
+  }*/
 
   std::cin.get();
 

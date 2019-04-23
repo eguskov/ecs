@@ -1,11 +1,3 @@
-#define VER 2
-
-#if VER == 2
-
-#include "jobmanager-v2.cpp"
-
-#else
-
 #include "jobmanager.h"
 
 #include "debug.h"
@@ -24,7 +16,10 @@
 #include <atomic>
 #include <chrono>
 
+#define USE_OS_EVENTS 1
+
 using JobId = jobmanager::JobId;
+using DependencyList = jobmanager::DependencyList;
 
 static inline JobId make_jid(uint8_t gen, uint32_t index)
 {
@@ -53,295 +48,363 @@ struct ScopeTime
 };
 
 using ScopeTimeMS = ScopeTime<std::milli>;
-using ScopeTimeNS = ScopeTime<std::nano>;
+using ScopeTimeUS = ScopeTime<std::micro>;
+
+#ifdef _DEBUG
+#define SCOPE_TIME(v) ScopeTimeMS _time(v);
+#define SCOPE_TIME_N(v, n) ScopeTimeMS _time_##n(v);
+#else
+#define SCOPE_TIME(...)
+#define SCOPE_TIME_N(...)
+#endif
 
 struct JobManager
 {
   struct Job
   {
-    int tasksCount = 0;
-
     int itemsCount = 0;
     int chunkSize = 0;
 
-    jobmanager::task_t task;
+    jobmanager::callback_t task;
+
+    bool queued = false;
   };
 
   struct Task
   {
     JobId jid;
-    jobmanager::task_t task;
     int from;
     int count;
+    int jobIdx;
   };
 
   struct Worker
   {
-    std::mutex futureTasksMutex;
-    std::condition_variable futureTasksCV;
-    eastl::vector<Task> futureTasks;
+    std::mutex startMutex;
 
-    std::mutex doneTasksMutex;
-    eastl::vector<JobId> doneTasks;
+    #if USE_OS_EVENTS
+    HANDLE startEvent = NULL;
+    #else
+    std::condition_variable startCV;
+    #endif
 
-    eastl::queue<Task> tasks;
+    eastl::vector<Task> tasks;
+    eastl::vector<jobmanager::callback_t> jobCallbacks;
 
     std::atomic<bool> terminated = false;
     bool started = false;
   };
 
+  struct Scheduler
+  {
+    std::mutex startMutex;
+
+    #if USE_OS_EVENTS
+    HANDLE startEvent = NULL;
+    #else
+    std::condition_variable startCV;
+    #endif
+
+    std::atomic<bool> terminated = false;
+    bool started = false;
+  };
+
+  struct JobInQueue
+  {
+    JobId jid;
+    jobmanager::callback_t callback;
+    int tasksCount = 0;
+  };
+
   int workersCount = 0;
-  int doneTasksCount = 0;
-  int processedTasksCount = 0;
 
   std::thread::id mainThreadId;
   uint32_t mainCpuNo = 0;
 
-  std::mutex startWorkerMutex;
-  std::condition_variable startWorkerCV;
-
-  std::mutex doneWorkerMutex;
-  std::condition_variable doneWorkerCV;
-
   eastl::array<Worker, 16> workers;
   eastl::array<std::thread, 16> workersThread;
+  eastl::bitset<16> startedWorkers;
 
-  struct Scheduler
-  {
-    std::mutex futureJobsMutex;
-    eastl::vector<JobId> futureJobIds;
-    eastl::vector<Job> futureJobs;
-    eastl::vector<eastl::vector<JobId>> futureJobDependencies;
 
-    eastl::vector<JobId> jobIds;
-    eastl::vector<Job> jobs;
-    eastl::vector<eastl::vector<JobId>> jobDependencies;
-
-    std::mutex doneJobsMutex;
-    eastl::vector<JobId> doneJobs;
-    std::condition_variable doneJobsCV;
-
-    std::mutex mutex;
-    std::condition_variable cv;
-
-    std::atomic<bool> terminated = false;
-    bool started = false;
-  } scheduler;
+  std::mutex doneWorkersMutex;
+  eastl::bitset<16> doneWorkers;
+  #if USE_OS_EVENTS
+  HANDLE doneWorkersEvent = NULL;
+  #else
+  std::condition_variable doneWorkersCV;
+  #endif
 
   std::thread schedulerThread;
+  Scheduler scheduler;
 
-  eastl::vector<Task> tasks;
   eastl::deque<uint32_t> freeJobQueue;
 
   int jobsCount = 0;
   eastl::vector<Job> jobs;
   eastl::vector<uint8_t> jobGenerations;
-  eastl::vector<eastl::vector<JobId>> jobDependencies;
+  eastl::vector<DependencyList> jobDependencies;
 
   eastl::vector<JobId> jobsToStart;
+  eastl::vector<JobId> jobsToRemove;
 
-  static void worker_routine(JobManager *g_jm, int worker_id)
+
+  std::mutex doneJobMutex;
+  #if USE_OS_EVENTS
+  HANDLE doneJobEvent = NULL;
+  #else
+  std::condition_variable doneJobCV;
+  #endif
+
+  std::mutex currentTasksMutex;
+  eastl::queue<eastl::vector<Task>> tasksQueue;
+  eastl::queue<eastl::vector<JobInQueue>> jobsQueue;
+
+  eastl::vector<Task> currentTasks;
+  eastl::vector<JobInQueue> currentJobs;
+
+  static void worker_routine(JobManager *jm, int worker_id)
   {
-    Worker &worker = g_jm->workers[worker_id];
+    Worker &worker = jm->workers[worker_id];
 
-    while (!worker.terminated.load())
+    while (true)
     {
       {
-        std::unique_lock<std::mutex> lock(worker.futureTasksMutex);
-        worker.futureTasksCV.wait(lock, [&](){ return !worker.futureTasks.empty(); });
+        #if USE_OS_EVENTS
+        ::WaitForSingleObjectEx(worker.startEvent, INFINITE, TRUE);
+        #else
+        std::unique_lock<std::mutex> lock(worker.startMutex);
+        worker.startCV.wait(lock, [&](){ return worker.started; });
+        #endif
 
-        for (int i = 0; i < (int)worker.futureTasks.size(); ++i)
-          worker.tasks.push(worker.futureTasks[i]);
-        worker.futureTasks.clear();
+        ASSERT(worker.started);
+
+        if (worker.terminated.load())
+          return;
       }
 
-      ScopeTimeMS _time(g_stat.workers.total[worker_id]);
+      SCOPE_TIME(g_stat.workers.total[worker_id]);
 
-      while (!worker.tasks.empty())
       {
-        Task task = worker.tasks.front();
-        worker.tasks.pop();
+        SCOPE_TIME(g_stat.workers.task[worker_id]);
+        for (const Task &task : worker.tasks)
+          worker.jobCallbacks[task.jobIdx](task.from, task.count);
+      }
 
-        {
-          ScopeTimeMS _time(g_stat.workers.task[worker_id]);
-          task.task(task.from, task.count);
-        }
+      {
+        SCOPE_TIME(g_stat.workers.done[worker_id]);
+        std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
+        jm->doneWorkers.set(worker_id);
+      }
+      #if USE_OS_EVENTS
+      ::SetEvent(jm->doneWorkersEvent);
+      #else
+      jm->doneWorkersCV.notify_one();
+      #endif
 
-        {
-          std::lock_guard<std::mutex> lock(worker.doneTasksMutex);
-          worker.doneTasks.push_back(task.jid);
-        }
-
-        {
-          std::lock_guard<std::mutex> lock(g_jm->doneWorkerMutex);
-          ++g_jm->doneTasksCount;
-        }
-        g_jm->doneWorkerCV.notify_one();
+      {
+        std::lock_guard<std::mutex> lock(worker.startMutex);
+        worker.started = false;
       }
     }
   }
 
-  static void scheduler_routine(JobManager *g_jm)
+  static void scheduler_routine(JobManager *jm)
   {
-    Scheduler &scheduler = g_jm->scheduler;
-    while (!scheduler.terminated.load())
+    Scheduler &scheduler = jm->scheduler;
+
+    while (true)
     {
       {
-        ScopeTimeMS _time(g_stat.scheduler.futureJobsMutex);
+        #if USE_OS_EVENTS
+        if (!scheduler.started)
+          ::WaitForSingleObjectEx(scheduler.startEvent, INFINITE, TRUE);
+        #else
+        std::unique_lock<std::mutex> lock(scheduler.startMutex);
+        scheduler.startCV.wait(lock, [&](){ return scheduler.started; });
+        #endif
 
-        std::unique_lock<std::mutex> lock(scheduler.futureJobsMutex);
-        scheduler.cv.wait(lock, [&](){ return !scheduler.futureJobs.empty(); });
+        if (scheduler.terminated.load())
+          return;
       }
 
-      // 0. Copy future jobs to current
-      // 1. Find jobs without dependencies
-      // 2. Create tasks for each job
-      // 3. Send tasks to workers
-      // 4. Receive done tasks from workers
-      // 5. Send done jobs
-      // 6. Goto 1.
+      SCOPE_TIME(g_stat.scheduler.total);
 
-      // 0.
+      bool popFromQueue = false;
       {
-        ScopeTimeMS _time(g_stat.scheduler.steps[0]);
-
-        std::lock_guard<std::mutex> lock(scheduler.futureJobsMutex);
-        for (int i = 0; i < (int)scheduler.futureJobIds.size(); ++i)
+        SCOPE_TIME_N(g_stat.scheduler.popQueueTotal, 1);
+        std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
+        SCOPE_TIME_N(g_stat.scheduler.popQueue, 2);
+        popFromQueue = jm->currentJobs.empty() && jm->currentTasks.empty() && !jm->jobsQueue.empty() && !jm->tasksQueue.empty();
+        if (popFromQueue)
         {
-          scheduler.jobIds.push_back(scheduler.futureJobIds[i]);
-          scheduler.jobs.push_back(scheduler.futureJobs[i]);
-          scheduler.jobDependencies.push_back(scheduler.futureJobDependencies[i]);
-        }
-        scheduler.futureJobIds.clear();
-        scheduler.futureJobs.clear();
-        scheduler.futureJobDependencies.clear();
-      }
-
-      eastl::fixed_vector<int, 128, true> jobsToStart;
-      // 1.
-      {
-        ScopeTimeMS _time(g_stat.scheduler.steps[1]);
-
-        for (int i = 0; i < (int)scheduler.jobs.size(); ++i)
-          jobsToStart.push_back(i);
-      }
-
-      // 2.
-      eastl::vector<Task> tasksToStart;
-      {
-        ScopeTimeMS _time(g_stat.scheduler.steps[2]);
-
-        for (int jobIdx : jobsToStart)
-        {
-          const JobId &jid = scheduler.jobIds[jobIdx];
-          Job &job = scheduler.jobs[jobIdx];
-
-          int itemsLeft = job.itemsCount;
-          job.tasksCount = (job.itemsCount / job.chunkSize) + ((job.itemsCount % job.chunkSize) ? 1 : 0);
-          tasksToStart.reserve(job.tasksCount);
-          for (int i = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize)
-          {
-            Task &t = tasksToStart.push_back();
-            t.jid = jid;
-            t.task = job.task;
-            t.from = i;
-            t.count = eastl::min(job.chunkSize, itemsLeft);
-          }
+          jm->currentJobs = eastl::move(jm->jobsQueue.front());
+          jm->currentTasks = eastl::move(jm->tasksQueue.front());
+          jm->jobsQueue.pop();
+          jm->tasksQueue.pop();
         }
       }
 
-      // 3.
-      {
-        ScopeTimeMS _time(g_stat.scheduler.steps[3]);
-        int workerNo = 0;
-        for (const Task &task : tasksToStart)
+      if (popFromQueue)
+        for (int i = 0; i < jm->workersCount; ++i)
         {
+          #ifdef _DEBUG
           {
-            std::lock_guard<std::mutex> lock(g_jm->workers[workerNo].futureTasksMutex);
-            g_jm->workers[workerNo].futureTasks.push_back(task);
+            std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
+            ASSERT(!jm->workers[i].started);
           }
-          g_jm->workers[workerNo].futureTasksCV.notify_one();
-
-          workerNo = (workerNo + 1) % g_jm->workersCount;
+          #endif
+          jm->workers[i].jobCallbacks.clear();
+          jm->workers[i].jobCallbacks.reserve(jm->currentJobs.size());
+          for (const auto &job : jm->currentJobs)
+            jm->workers[i].jobCallbacks.push_back(job.callback);
         }
-      }
 
-      // 4.
+      const int currentTasksCount = jm->currentTasks.size();
+
       {
-        ScopeTimeMS _time(g_stat.scheduler.steps[4]);
-        while (!scheduler.jobs.empty())
-        {
-          {
-            ScopeTimeMS _time(g_stat.scheduler.doneTasksMutex);
-            std::unique_lock<std::mutex> lock(g_jm->doneWorkerMutex);
-            g_jm->doneWorkerCV.wait(lock, [&] { return g_jm->doneTasksCount > 0; });
-            g_jm->doneTasksCount = 0;
-          }
+        SCOPE_TIME(g_stat.scheduler.assignTasks);
 
-          eastl::vector<JobId> doneTasks;
-          {
-            ScopeTimeMS _time(g_stat.scheduler.receiveDoneTasks);
-            for (int i = 0; i < g_jm->workersCount; ++i)
+        const int tasksPerWorker = (currentTasksCount + (jm->workersCount - (currentTasksCount % jm->workersCount))) / jm->workersCount;
+
+        auto currentTasksIter = jm->currentTasks.begin();
+        int tasksLeft = currentTasksCount;
+
+        for (int i = 0; i < jm->workersCount && tasksLeft > 0; ++i, tasksLeft -= tasksPerWorker, currentTasksIter += tasksPerWorker)
+        {
+          int tasksCount = eastl::min(tasksPerWorker, tasksLeft);
+
+          eastl::vector<Task> squashedTasks;
+          squashedTasks.reserve(tasksCount);
+
+          squashedTasks.push_back(*currentTasksIter);
+
+          auto lastJobId = currentTasksIter->jid;
+          for (auto taskIt = currentTasksIter + 1, taskEndIt = currentTasksIter + tasksCount; taskIt != taskEndIt; ++taskIt)
+            if (taskIt->jid == lastJobId)
             {
-              Worker &worker = g_jm->workers[i];
-              {
-                std::lock_guard<std::mutex> lock(worker.doneTasksMutex);
-                for (const JobId &jid : worker.doneTasks)
-                  doneTasks.push_back(jid);
-                worker.doneTasks.clear();
-              }
+              Task &curTask = squashedTasks.back();
+              ASSERT(taskIt->from == curTask.from + curTask.count);
+              curTask.count += taskIt->count;
             }
-          }
+            else
+            {
+              lastJobId = taskIt->jid;
+              squashedTasks.push_back(*taskIt);
+            }
 
-          {
-            // std::lock_guard<std::mutex> lock(g_jm->doneWorkerMutex);
-            // g_jm->processedTasksCount += doneTasks.size();
-            // g_jm->doneTasksCount -= doneTasks.size();
-            ASSERT(g_jm->doneTasksCount >= 0);
-          }
-
-          for (const JobId &jid : doneTasks)
-            for (int i = 0; i < (int)scheduler.jobIds.size(); ++i)
-              if (scheduler.jobIds[i] == jid)
+          for (const auto &task : squashedTasks)
+            for (auto &job : jm->currentJobs)
+              if (job.jid == task.jid)
               {
-                ASSERT(scheduler.jobs[i].tasksCount >= 1);
-                --scheduler.jobs[i].tasksCount;
+                ++job.tasksCount;
                 break;
               }
 
-          // 5.
+          jm->workers[i].tasks = eastl::move(squashedTasks);
+        }
+
+        jm->currentTasks.clear();
+      }
+
+      if (currentTasksCount > 0)
+      {
+        SCOPE_TIME(g_stat.scheduler.startWorkers);
+
+        for (int i = 0; i < jm->workersCount; ++i)
+        {
+          jm->startedWorkers.set(i);
           {
-            ScopeTimeMS _time(g_stat.scheduler.steps[5]);
-
-            int jobsCount = scheduler.jobs.size();
-            eastl::vector<int> doneJobs;
-            for (int i = jobsCount - 1; i >= 0; --i)
-              if (scheduler.jobs[i].tasksCount == 0)
-                doneJobs.push_back(i);
-
-            {
-              std::lock_guard<std::mutex> lock(scheduler.doneJobsMutex);
-              for (int i : doneJobs)
-                scheduler.doneJobs.push_back(scheduler.jobIds[i]);
-            }
-
-            for (int i : doneJobs)
-            {
-              scheduler.jobs.erase(scheduler.jobs.begin() + i);
-              scheduler.jobIds.erase(scheduler.jobIds.begin() + i);
-              scheduler.jobDependencies.erase(scheduler.jobDependencies.begin() + i);
-            }
-
-            if (!scheduler.doneJobs.empty())
-              scheduler.doneJobsCV.notify_one();
+            std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
+            jm->workers[i].started = true;
           }
+          #if USE_OS_EVENTS
+          ::SetEvent(jm->workers[i].startEvent);
+          #else
+          jm->workers[i].startCV.notify_one();
+          #endif
         }
       }
 
-      // {
-      //   std::lock_guard<std::mutex> lock(scheduler.mutex);
-      //   scheduler.started = false;
-      // }
+      eastl::array<eastl::vector<Task>, 16> doneTasks;
+      {
+        SCOPE_TIME(g_stat.scheduler.doneTasksTotal);
+
+        eastl::bitset<16> doneWorkers;
+        {
+          #if USE_OS_EVENTS
+          ::WaitForSingleObjectEx(jm->doneWorkersEvent, INFINITE, TRUE);
+          #else
+          std::unique_lock<std::mutex> lock(jm->doneWorkersMutex);
+          jm->doneWorkersCV.wait(lock, [&](){ return jm->doneWorkers.any(); });
+          #endif
+
+          SCOPE_TIME(g_stat.scheduler.doneTasks);
+          {
+            #if USE_OS_EVENTS
+            std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
+            #endif
+            doneWorkers = jm->doneWorkers;
+          }
+          jm->doneWorkers.reset();
+        }
+
+        for (int i = 0; i < jm->workersCount; ++i)
+          if (doneWorkers[i])
+          {
+            jm->startedWorkers.reset(i);
+            doneTasks[i] = eastl::move(jm->workers[i].tasks);
+            jm->workers[i].tasks.clear();
+          }
+      }
+
+      {
+        SCOPE_TIME(g_stat.scheduler.finalizeTasks);
+
+        eastl::vector<JobId> jobsToRemove;
+        jobsToRemove.reserve(jm->currentJobs.size());
+
+        for (int workerIdx = 0; workerIdx < jm->workersCount; ++workerIdx)
+          for (const Task &task : doneTasks[workerIdx])
+          {
+            SCOPE_TIME(g_stat.scheduler.finalizeJobsToRemove);
+
+            std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
+            for (int i = jm->currentJobs.size() - 1; i >= 0; --i)
+              if (task.jid == jm->currentJobs[i].jid)
+              {
+                if (--jm->currentJobs[i].tasksCount == 0)
+                {
+                  jm->currentJobs.erase(jm->currentJobs.begin() + i);
+                  jobsToRemove.push_back(task.jid);
+                }
+                break;
+              }
+          }
+
+        if (!jobsToRemove.empty())
+        {
+          SCOPE_TIME_N(g_stat.scheduler.finalizeDeleteJobsTotal, 1);
+          {
+            std::lock_guard<std::mutex> lock(jm->doneJobMutex);
+            SCOPE_TIME_N(g_stat.scheduler.finalizeDeleteJobs, 2);
+            jm->jobsToRemove = eastl::move(jobsToRemove);
+          }
+          #if USE_OS_EVENTS
+          ::SetEvent(jm->doneJobEvent);
+          #else
+          jm->doneJobCV.notify_one();
+          #endif
+        }
+
+        {
+          std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
+          if (jm->jobsQueue.empty() && !jm->startedWorkers.any())
+          {
+            std::lock_guard<std::mutex> lock(scheduler.startMutex);
+            scheduler.started = false;
+          }
+        }
+      }
     }
   }
 
@@ -353,12 +416,18 @@ struct JobManager
     HANDLE handle = ::GetCurrentThread();
     ::SetThreadAffinityMask(handle, 1 << mainCpuNo);
 
+    doneWorkers.reset();
+    startedWorkers.reset();
+
     workersCount = std::thread::hardware_concurrency() - 1;
     ASSERT(workersCount < (int)workers.size());
 
     DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
     for (int i = 0; i < workersCount; ++i, ++cpuNo)
     {
+      #if USE_OS_EVENTS
+      workers[i].startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+      #endif
       workersThread[i] = eastl::move(std::thread(worker_routine, this, i));
       HANDLE handle = (HANDLE)workersThread[i].native_handle();
 
@@ -368,23 +437,37 @@ struct JobManager
       ::SetThreadAffinityMask(handle, 1 << cpuNo);
     }
 
+    #if USE_OS_EVENTS
+    doneWorkersEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+    doneJobEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    scheduler.startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+    #endif
+
     schedulerThread = eastl::move(std::thread(scheduler_routine, this));
-    ::SetThreadAffinityMask((HANDLE)schedulerThread.native_handle(), 1 << mainCpuNo);
+
+    // This reduce wait time on doneJobMutex
+    ::SetThreadAffinityMask((HANDLE)schedulerThread.native_handle(), 1 << ((mainCpuNo + 1) % workersCount));
+    // ::SetThreadAffinityMask((HANDLE)schedulerThread.native_handle(), 1 << mainCpuNo);
 
     doAndWaitAllTasksDone();
   }
 
   ~JobManager()
   {
-    // TODO: stop threads !!!
+    doAndWaitAllTasksDone();
 
     scheduler.terminated.store(true);
 
     {
-      std::lock_guard<std::mutex> lock(scheduler.mutex);
+      std::lock_guard<std::mutex> lock(scheduler.startMutex);
       scheduler.started = true;
     }
-    scheduler.cv.notify_all();
+    #if USE_OS_EVENTS
+    ::SetEvent(scheduler.startEvent);
+    #else
+    scheduler.startCV.notify_one();
+    #endif
 
     if (schedulerThread.joinable())
       schedulerThread.join();
@@ -392,24 +475,44 @@ struct JobManager
     for (int i = 0; i < workersCount; ++i)
       workers[i].terminated.store(true);
 
-    doAndWaitAllTasksDone();
+    for (int i = 0; i < workersCount; ++i)
+    {
+      {
+        std::lock_guard<std::mutex> lock(workers[i].startMutex);
+        workers[i].started = true;
+      }
+      #if USE_OS_EVENTS
+      ::SetEvent(workers[i].startEvent);
+      #else
+      workers[i].startCV.notify_one();
+      #endif
+    }
 
     for (int i = 0; i < workersCount; ++i)
+    {
       if (workersThread[i].joinable())
         workersThread[i].join();
+    }
+
+    #if USE_OS_EVENTS
+    for (int i = 0; i < workersCount; ++i)
+      ::CloseHandle(workers[i].startEvent);
+
+    ::CloseHandle(doneWorkersEvent);
+    #endif
   }
 
-  void addTask(const jobmanager::task_t &task, int from, int count)
+  JobId createJob(int items_count, int chunk_size, const jobmanager::callback_t &task, const jobmanager::DependencyList &dependencies)
   {
-    Task &t = tasks.push_back();
-    t.task = task;
-    t.from = from;
-    t.count = count;
+    jobmanager::DependencyList tmpDependencies(dependencies);
+    return createJob(items_count, chunk_size, task, eastl::move(tmpDependencies));
   }
 
-  JobId createJob(int items_count, int chunk_size, const jobmanager::task_t &task)
+  JobId createJob(int items_count, int chunk_size, const jobmanager::callback_t &task, jobmanager::DependencyList &&dependencies = {})
   {
-    ScopeTimeMS _time(g_stat.jm.createJob);
+    std::lock_guard<std::mutex> lock(doneJobMutex);
+
+    SCOPE_TIME(g_stat.jm.createJob);
 
     uint32_t freeIndex = jobs.size();
   
@@ -423,7 +526,7 @@ struct JobManager
     {
       jobs.emplace_back();
       jobGenerations.push_back(0);
-      jobDependencies.emplace_back();
+      jobDependencies.push_back(eastl::move(dependencies));
     }
 
     ++jobsCount;
@@ -442,10 +545,10 @@ struct JobManager
   void deleteJob(const JobId &jid)
   {
     ASSERT(jobGenerations[jid.index] == jid.generation);
-    ASSERT(jobs[jid.index].tasksCount == 0);
 
     --jobsCount;
 
+    jobs[jid.index].queued = false;
     jobGenerations[jid.index] = (jobGenerations[jid.index] + 1) % JobId::INDEX_LIMIT;
     freeJobQueue.push_back(jid.index);
   }
@@ -457,80 +560,101 @@ struct JobManager
 
   void startJobs()
   {
-    ScopeTimeMS _time(g_stat.jm.startJobs);
+    if (jobsToStart.empty())
+      return;
 
+    SCOPE_TIME(g_stat.jm.startJobs);
+
+    while (!jobsToStart.empty())
     {
-      std::lock_guard<std::mutex> lock(scheduler.futureJobsMutex);
-      for (const JobId &jid : jobsToStart)
-      {
-        scheduler.futureJobIds.push_back(jid);
-        scheduler.futureJobs.push_back(jobs[jid.index]);
+      SCOPE_TIME(g_stat.jm.startJobQueues);
 
-        // Dependencies already in scheduler or will be added in this loop
-        scheduler.futureJobDependencies.push_back(jobDependencies[jid.index]);
+      eastl::vector<Task> futureTasks;
+      eastl::vector<JobInQueue> futureJobs;
+
+      futureJobs.reserve(jobsToStart.size());
+
+      for (int jobIdx = jobsToStart.size() - 1; jobIdx >= 0; --jobIdx)
+      {
+        JobId jid = jobsToStart[jobIdx];
+
+        const Job &job = jobs[jid.index];
+
+        bool canStart = true;
+        const DependencyList &deps = jobDependencies[jid.index];
+        for (const JobId &depJid : deps)
+          if (!isDone(depJid) && !jobs[depJid.index].queued)
+          {
+            canStart = false;
+            break;
+          }
+
+        if (canStart)
+        {
+          jobsToStart.erase(jobsToStart.begin() + jobIdx);
+
+          int itemsLeft = job.itemsCount;
+          int tasksCount = (job.itemsCount / job.chunkSize) + ((job.itemsCount % job.chunkSize) ? 1 : 0);
+
+          futureJobs.push_back({jid, job.task, 0});
+          futureTasks.resize(tasksCount);
+
+          for (int i = 0, taskIdx = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize, ++taskIdx)
+          {
+            Task t;
+            t.jid = jid;
+            t.from = i;
+            t.count = eastl::min(job.chunkSize, itemsLeft);
+            t.jobIdx = futureJobs.size() - 1;
+            futureTasks[taskIdx] = eastl::move(t);
+          }
+        }
+      }
+
+      for (auto &job : futureJobs)
+        jobs[job.jid.index].queued = true;
+
+      ASSERT(!futureTasks.empty());
+
+      {
+        std::lock_guard<std::mutex> lock(currentTasksMutex);
+        tasksQueue.push(eastl::move(futureTasks));
+        jobsQueue.push(eastl::move(futureJobs));
       }
     }
-    scheduler.cv.notify_one();
 
-    jobsToStart.clear();
+    {
+      std::lock_guard<std::mutex> lock(scheduler.startMutex);
+      scheduler.started = true;
+    }
+    #if USE_OS_EVENTS
+    ::SetEvent(scheduler.startEvent);
+    #else
+    scheduler.startCV.notify_one();
+    #endif
   }
 
   void doAndWaitAllTasksDone()
   {
-    ScopeTimeMS _time(g_stat.jm.doAndWaitAllTasksDone);
+    SCOPE_TIME(g_stat.jm.doAndWaitAllTasksDone);
 
     startJobs();
 
     while (jobsCount > 0)
     {
-      eastl::vector<JobId> doneJobs;
-      {
-        ScopeTimeMS _time(g_stat.jm.doneJobsMutex);
+      SCOPE_TIME(g_stat.jm.doneJobsMutex);
+      #if USE_OS_EVENTS
+      ::WaitForSingleObjectEx(doneJobEvent, INFINITE, TRUE);
+      #else
+      std::unique_lock<std::mutex> lock(doneJobMutex);
+      doneJobCV.wait(lock, [&](){ return !jobsToRemove.empty(); });
+      #endif
 
-        std::unique_lock<std::mutex> lock(scheduler.doneJobsMutex);
-        scheduler.doneJobsCV.wait(lock, [&] { return !scheduler.doneJobs.empty(); });
-
-        for (const JobId& jid : scheduler.doneJobs)
-          doneJobs.push_back(jid);
-        scheduler.doneJobs.clear();
-      }
-
-      {
-        ScopeTimeMS _time(g_stat.jm.deleteJob);
-
-        for (const JobId& jid : doneJobs)
-          deleteJob(jid);
-      }
+      for (const JobId &jid : jobsToRemove)
+        deleteJob(jid);
+      
+      jobsToRemove.clear();
     }
-
-    // const int tasksPerWorker = tasks.size() / workersCount;
-    // const int extraTasksPerWorker = tasks.size() % workersCount;
-
-    // for (int i = 0; i < workersCount; ++i)
-    //   workers[i].tasks.reserve(tasksPerWorker + extraTasksPerWorker);
-
-    // const int tasksCount = tasks.size();
-
-    // int workerNo = 0;
-    // for (int i = 0; i < tasksCount; ++i)
-    // {
-    //   workers[workerNo].tasks.push_back(tasks[i]);
-    //   workerNo = (workerNo + 1) % workersCount;
-    // }
-
-    // doneTasksCount = 0;
-
-    // {
-    //   std::lock_guard<std::mutex> lock(startWorkerMutex);
-    //   for (int i = 0; i < workersCount; ++i)
-    //     workers[i].started = true;
-    // }
-    // startWorkerCV.notify_all();
-
-    // std::unique_lock<std::mutex> lock(doneWorkerMutex);
-    // doneWorkerCV.wait(lock, [&](){ return doneTasksCount >= tasksCount; });
-
-    // tasks.clear();
   }
 };
 
@@ -547,30 +671,34 @@ void jobmanager::release()
   g_jm = nullptr;
 }
 
-JobId jobmanager::add_job(int items_count, const task_t &task)
+JobId jobmanager::add_job(int items_count, const callback_t &task)
 {
   return add_job(items_count, 64, task);
 }
 
-JobId jobmanager::add_job(int items_count, int chunk_size, const task_t &task)
+JobId jobmanager::add_job(int items_count, int chunk_size, const callback_t &task)
 {
   ASSERT(g_jm != nullptr);
-  ASSERT(g_jm->tasks.empty());
+  ASSERT(g_jm->tasksQueue.empty());
   ASSERT(items_count > 0);
   ASSERT(chunk_size > 0);
 
   if (items_count <= 0)
     return JobId{};
 
-  JobId jid = g_jm->createJob(items_count, chunk_size, task);
+  return g_jm->createJob(items_count, chunk_size, task);
+}
 
-  // int itemsLeft = items_count;
-  // int tasksCount = (items_count / chunk_size) + ((items_count % chunk_size) ? 1 : 0);
-  // g_jm->tasks.reserve(tasksCount);
-  // for (int i = 0; i < items_count; i += chunk_size, itemsLeft -= chunk_size)
-  //   g_jm->addTask(task, i, eastl::min(chunk_size, itemsLeft));
+JobId jobmanager::add_job(const jobmanager::DependencyList &dependencies, int items_count, int chunk_size, const callback_t &task)
+{
+  ASSERT(g_jm != nullptr);
+  return g_jm->createJob(items_count, chunk_size, task, dependencies);
+}
 
-  return jid;
+JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies, int items_count, int chunk_size, const callback_t &task)
+{
+  ASSERT(g_jm != nullptr);
+  return g_jm->createJob(items_count, chunk_size, task, eastl::move(dependencies));
 }
 
 void jobmanager::do_and_wait_all_tasks_done()
@@ -594,5 +722,3 @@ const jobmanager::Stat& jobmanager::get_stat()
 {
   return g_stat;
 }
-
-#endif

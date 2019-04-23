@@ -54,8 +54,8 @@ TEST(JobManager, Dependencies)
       (*b) *= 2;
   };
 
-  auto jobA = jobmanager::add_job(count, 1024, taskA);
-  auto jobB = jobmanager::add_job({ jobA }, count, 1024, taskB);
+  auto jobA = jobmanager::add_job(count, 16, taskA);
+  auto jobB = jobmanager::add_job({ jobA }, count, 16, taskB);
   jobmanager::do_and_wait_all_tasks_done();
 
   for (int i = 0; i < count; ++i)
