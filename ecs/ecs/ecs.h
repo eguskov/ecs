@@ -165,6 +165,7 @@ struct EntityManager
   eastl::vector<eastl::string> order;
   eastl::vector<EntityTemplate> templates;
   eastl::vector<Archetype> archetypes;
+  int entitiesCount = 0;
   eastl::vector<Entity> entities;
   eastl::hash_map<HashedString, const RegComp*> componentDescByNames;
   eastl::vector<System> systems;

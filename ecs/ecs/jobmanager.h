@@ -2,6 +2,7 @@
 
 #include <EASTL/functional.h>
 #include <EASTL/array.h>
+#include <EASTL/fixed_vector.h>
 
 namespace jobmanager
 {
@@ -28,12 +29,11 @@ namespace jobmanager
     {
       eastl::array<double, 16> total = {};
       eastl::array<double, 16> task = {};
-      eastl::array<double, 16> currentTasksMutex = {};
-      eastl::array<double, 16> currentTasksMutexTotal = {};
+      eastl::array<double, 16> finalize = {};
     } workers;
   };
 
-  using task_t = eastl::function<void(int /* from */, int /* cout */)>;
+  using callback_t = eastl::function<void(int /* from */, int /* cout */)>;
 
   struct JobId
   {
@@ -60,13 +60,18 @@ namespace jobmanager
     operator bool() const { return handle != 0xFFFFFFFF; }
   };
 
+  using DependencyList = eastl::fixed_vector<JobId, 16, true>;
+
   void init();
   void release();
 
   // TODO: REMOVE THIS
-  JobId add_job(int items_count, const task_t &task);
+  JobId add_job(int items_count, const callback_t &task);
 
-  JobId add_job(int items_count, int chunk_size, const task_t &task);
+  JobId add_job(int items_count, int chunk_size, const callback_t &task);
+  JobId add_job(const DependencyList &dependencies, int items_count, int chunk_size, const callback_t &task);
+  JobId add_job(DependencyList &&dependencies, int items_count, int chunk_size, const callback_t &task);
+
   void wait(const JobId &jid);
   void start_jobs();
   void do_and_wait_all_tasks_done();

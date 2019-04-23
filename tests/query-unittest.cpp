@@ -65,7 +65,7 @@ struct QueryTest : public testing::Test
     }
 
     ASSERT_EQ(30ul, eids.size());
-    ASSERT_EQ(30ul, g_mgr->entities.size());
+    ASSERT_EQ(30ul, g_mgr->entitiesCount);
   }
 
   void TearDown() override

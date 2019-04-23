@@ -129,6 +129,7 @@
     <ClCompile Include="tests.cpp" />
     <ClCompile Include="query-unittest.cpp" />
     <ClCompile Include="template-unittest.cpp" />
+    <ClCompile Include="jobmanager-unittest.cpp" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

@@ -549,6 +549,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
   e.archetypeId = templ.archetypeId;
   e.ready = true;
 
+  ++entitiesCount;
+
   archetypes[e.archetypeId].entitiesCount++;
   if (archetypes[e.archetypeId].entitiesCount > archetypes[e.archetypeId].entitiesCapacity)
     archetypes[e.archetypeId].entitiesCapacity = archetypes[e.archetypeId].entitiesCount;
@@ -606,7 +608,8 @@ void EntityManager::tick()
       // eid
       type.storages.back()->deallocate(entity.indexInArchetype * type.storages.back()->elemSize);
 
-      type.entitiesCount--;
+      --entitiesCount;
+      --type.entitiesCount;
 
       entity.eid.generation = (entity.eid.generation + 1) % EntityId::INDEX_LIMIT;
       entity.ready = false;
