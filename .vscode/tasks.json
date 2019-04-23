@@ -21,7 +21,7 @@
         "/p:Configuration=Debug",
         "/p:Platform=\"x86\"",
         "/t:build",
-        "${workspaceRoot}\\..\\ecs.sln"
+        "${workspaceRoot}\\ecs.sln"
       ],
       "group": {
         "kind": "build",
@@ -42,7 +42,7 @@
         "/p:Configuration=Release",
         "/p:Platform=\"x86\"",
         "/t:build",
-        "${workspaceRoot}\\..\\ecs.sln"
+        "${workspaceRoot}\\ecs.sln"
       ],
       "group": "build",
       "presentation": {
@@ -60,7 +60,7 @@
         "/p:Configuration=Release",
         "/p:Platform=\"x86\"",
         "/t:clean,build",
-        "${workspaceRoot}\\..\\ecs.sln"
+        "${workspaceRoot}\\ecs.sln"
       ],
       "group": "build",
       "presentation": {
@@ -78,7 +78,7 @@
         "/p:Configuration=Debug",
         "/p:Platform=\"Win32\"",
         "/t:build",
-        "${workspaceRoot}\\..\\libs\\angelscript\\angelscript\\projects\\msvc2015\\angelscript.sln"
+        "${workspaceRoot}\\libs\\angelscript\\angelscript\\projects\\msvc2015\\angelscript.sln"
       ],
       "group": "build",
       "presentation": {
@@ -96,7 +96,7 @@
         "/p:Configuration=Release",
         "/p:Platform=\"Win32\"",
         "/t:build",
-        "${workspaceRoot}\\..\\libs\\angelscript\\angelscript\\projects\\msvc2015\\angelscript.sln"
+        "${workspaceRoot}\\libs\\angelscript\\angelscript\\projects\\msvc2015\\angelscript.sln"
       ],
       "group": "build",
       "presentation": {
@@ -114,7 +114,7 @@
         "/p:Configuration=Debug",
         "/p:Platform=\"x86\"",
         "/t:build",
-        "${workspaceRoot}\\..\\libs\\raylib\\projects\\VS2017\\raylib.sln"
+        "${workspaceRoot}\\libs\\raylib\\projects\\VS2017\\raylib.sln"
       ],
       "group": "build",
       "presentation": {
@@ -132,7 +132,7 @@
         "/p:Configuration=Release",
         "/p:Platform=\"x86\"",
         "/t:build",
-        "${workspaceRoot}\\..\\libs\\raylib\\projects\\VS2017\\raylib.sln"
+        "${workspaceRoot}\\libs\\raylib\\projects\\VS2017\\raylib.sln"
       ],
       "group": "build",
       "presentation": {
@@ -153,6 +153,57 @@
       "presentation": {
         "reveal": "always",
         "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build fmt",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Debug",
+        "/p:Platform=\"Win32\"",
+        "/t:build",
+        "${workspaceRoot}\\libs\\fmt\\fmt.vcxproj"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build fmt release",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "/property:GenerateFullPaths=true",
+        "/p:Configuration=Release",
+        "/p:Platform=\"Win32\"",
+        "/t:build",
+        "${workspaceRoot}\\libs\\fmt\\fmt.vcxproj"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "${workspaceRoot}\\Debug\\tests.exe",
+      "args": [
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always"
       },
       "problemMatcher": []
     }

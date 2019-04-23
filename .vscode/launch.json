@@ -14,95 +14,124 @@
       "name": "(Debug) Boids",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
+      "program": "${workspaceFolder}\\Debug\\sample.exe",
       "args": ["data/entities_boids.json"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
       "visualizerFile": "${workspaceFolder}\\sample.natvis"
     },
     {
       "name": "(Release) Boids",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Release\\sample.exe",
+      "program": "${workspaceFolder}\\Release\\sample.exe",
       "args": ["data/entities_boids.json"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build release",
-      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
       "visualizerFile": "${workspaceFolder}\\sample.natvis"
     },
     {
       "name": "(Debug) Sample",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Debug\\sample.exe",
+      "program": "${workspaceFolder}\\Debug\\sample.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      // "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
       "visualizerFile": "${workspaceFolder}\\sample.natvis"
     },
     {
       "name": "(Release) Sample",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Release\\sample.exe",
+      "program": "${workspaceFolder}\\Release\\sample.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build release",
-      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
     },
     {
       "name": "(Debug) Benchmark",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Debug\\benchmark.exe",
+      "program": "${workspaceFolder}\\Debug\\benchmark.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}\\..\\benchmark",
+      "cwd": "${workspaceFolder}\\benchmark",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      "visualizerFile": "${workspaceFolder}\\..\\libs\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\libs\\EASTL\\doc\\EASTL.natvis"
     },
     {
       "name": "(Release) Benchmark",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Release\\benchmark.exe",
+      "program": "${workspaceFolder}\\Release\\benchmark.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}\\..\\benchmark",
+      "cwd": "${workspaceFolder}\\benchmark",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build release",
-      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
     },
     {
       "name": "(Debug) GitBuild",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\..\\Debug\\build.exe",
+      "program": "${workspaceFolder}\\Debug\\build.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}\\..\\git-build",
+      "cwd": "${workspaceFolder}\\git-build",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
-      "visualizerFile": "${workspaceFolder}\\..\\EASTL\\doc\\EASTL.natvis"
+      "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
     },
+    {
+      "name": "(Debug) Codegen",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\Debug\\codegen.exe",
+      "args": [
+        "${workspaceFolder}\\..\\ecs\\sample\\codegen-test.cpp",
+        "stop"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": "build",
+      "visualizerFile": "${workspaceFolder}\\..\\ecs\\sample\\sample.natvis"
+    },
+    {
+      "name": "(Debug) Tests",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\Debug\\tests.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\tests",
+      "environment": [],
+      "externalConsole": true,
+      // "preLaunchTask": "build",
+      "visualizerFile": "${workspaceFolder}\\sample\\sample.natvis"
+    }
   ]
 }

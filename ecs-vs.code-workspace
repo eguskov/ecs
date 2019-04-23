@@ -1,28 +1,7 @@
 {
   "folders": [
     {
-      "path": "webui"
-    },
-    {
-      "path": "sample"
-    },
-    {
-      "path": "ecs"
-    },
-    {
-      "path": "script"
-    },
-    {
-      "path": "codegen"
-    },
-    {
-      "path": "git-build"
-    },
-    {
-      "path": "tests"
-    },
-    {
-      "path": "benchmark"
+      "path": "."
     }
   ],
   "settings": {
@@ -123,7 +102,8 @@
       "xxatomic": "cpp",
       "clocale": "cpp",
       "cwctype": "cpp",
-      "numeric": "cpp"
+      "numeric": "cpp",
+      "queue": "cpp"
     },
     "editor.renderWhitespace": "all",
     "editor.tokenColorCustomizations": {
