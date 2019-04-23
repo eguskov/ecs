@@ -640,7 +640,7 @@ struct QueryIterable
 
   inline T&& operator*()
   {
-    return eastl::move(typename Builder::build<T>(first));
+    return eastl::move(typename Builder::template build<T>(first));
   }
 
   inline void operator++()

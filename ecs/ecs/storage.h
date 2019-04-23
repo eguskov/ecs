@@ -29,8 +29,8 @@ struct Storage
   virtual eastl::tuple<uint8_t*, int> allocate() = 0;
   virtual void deallocate(int offset) = 0;
 
-  virtual uint8_t* data() = 0;
-  virtual int size() = 0;
+  virtual uint8_t* data() const = 0;
+  virtual int size() const = 0;
 
   virtual void copyTo(Storage *dst) = 0;
 
@@ -103,12 +103,12 @@ struct StorageSpec final : Storage
     items.reset_lose_memory();
   }
 
-  uint8_t* data() override final
+  uint8_t* data() const override final
   {
     return (uint8_t*)items.data();
   }
 
-  int size() override final
+  int size() const override final
   {
     return items.size() * elemSize;
   }

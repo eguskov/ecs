@@ -28,6 +28,8 @@ namespace jobmanager
     {
       eastl::array<double, 16> total = {};
       eastl::array<double, 16> task = {};
+      eastl::array<double, 16> currentTasksMutex = {};
+      eastl::array<double, 16> currentTasksMutexTotal = {};
     } workers;
   };
 

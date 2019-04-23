@@ -1,6 +1,10 @@
+#define VER 2
+
+#if VER == 2
+
 #include "jobmanager-v2.cpp"
 
-#if 0
+#else
 
 #include "jobmanager.h"
 

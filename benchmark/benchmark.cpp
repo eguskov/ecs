@@ -250,6 +250,8 @@ int main()
       {
         std::cout << "workers[" << i << "]: total: " << jobmanager::get_stat().workers.total[i] << "ms" << "\n";
         std::cout << "workers[" << i << "]: task:  " << jobmanager::get_stat().workers.task[i] << "ms" << "\n";
+        std::cout << "workers[" << i << "]: currentTasksMutex:  " << jobmanager::get_stat().workers.currentTasksMutex[i] << "ms" << "\n";
+        std::cout << "workers[" << i << "]: currentTasksMutexTotal:  " << jobmanager::get_stat().workers.currentTasksMutexTotal[i] << "ms" << "\n";
       }
   }
 
