@@ -9,6 +9,7 @@ struct EntityId
   static constexpr uint32_t INDEX_MASK = (1 << INDEX_BITS) - 1;
 
   static constexpr uint32_t GENERATION_BITS = 8;
+  static constexpr uint32_t GENERATION_LIMIT = (1 << GENERATION_BITS);
   static constexpr uint32_t GENERATION_MASK = (1 << GENERATION_BITS) - 1;
 
   union

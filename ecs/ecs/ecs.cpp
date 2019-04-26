@@ -611,7 +611,7 @@ void EntityManager::tick()
       --entitiesCount;
       --type.entitiesCount;
 
-      entity.eid.generation = (entity.eid.generation + 1) % EntityId::INDEX_LIMIT;
+      entity.eid.generation = (entity.eid.generation + 1) % EntityId::GENERATION_LIMIT;
       entity.ready = false;
       entity.indexInArchetype = -1;
 
