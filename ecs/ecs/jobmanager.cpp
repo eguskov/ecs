@@ -21,6 +21,8 @@
 using JobId = jobmanager::JobId;
 using DependencyList = jobmanager::DependencyList;
 
+static const jobmanager::callback_t EMPTY_CALLBACK = [](int,int){};
+
 static inline JobId make_jid(uint8_t gen, uint32_t index)
 {
   return JobId(((uint32_t)gen << JobId::INDEX_BITS | index));
@@ -125,7 +127,6 @@ struct JobManager
   eastl::array<std::thread, 16> workersThread;
   eastl::bitset<16> startedWorkers;
 
-
   std::mutex doneWorkersMutex;
   eastl::bitset<16> doneWorkers;
   #if USE_OS_EVENTS
@@ -191,6 +192,11 @@ struct JobManager
       }
 
       {
+        std::lock_guard<std::mutex> lock(worker.startMutex);
+        worker.started = false;
+      }
+
+      {
         SCOPE_TIME(g_stat.workers.done[worker_id]);
         std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
         jm->doneWorkers.set(worker_id);
@@ -200,11 +206,6 @@ struct JobManager
       #else
       jm->doneWorkersCV.notify_one();
       #endif
-
-      {
-        std::lock_guard<std::mutex> lock(worker.startMutex);
-        worker.started = false;
-      }
     }
   }
 
@@ -230,6 +231,7 @@ struct JobManager
       SCOPE_TIME(g_stat.scheduler.total);
 
       bool popFromQueue = false;
+      if (!jm->startedWorkers.any())
       {
         SCOPE_TIME_N(g_stat.scheduler.popQueueTotal, 1);
         std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
@@ -311,18 +313,19 @@ struct JobManager
         SCOPE_TIME(g_stat.scheduler.startWorkers);
 
         for (int i = 0; i < jm->workersCount; ++i)
-        {
-          jm->startedWorkers.set(i);
+          if (!jm->workers[i].tasks.empty())
           {
-            std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
-            jm->workers[i].started = true;
+            jm->startedWorkers.set(i);
+            {
+              std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
+              jm->workers[i].started = true;
+            }
+            #if USE_OS_EVENTS
+            ::SetEvent(jm->workers[i].startEvent);
+            #else
+            jm->workers[i].startCV.notify_one();
+            #endif
           }
-          #if USE_OS_EVENTS
-          ::SetEvent(jm->workers[i].startEvent);
-          #else
-          jm->workers[i].startCV.notify_one();
-          #endif
-        }
       }
 
       eastl::array<eastl::vector<Task>, 16> doneTasks;
@@ -330,6 +333,8 @@ struct JobManager
         SCOPE_TIME(g_stat.scheduler.doneTasksTotal);
 
         eastl::bitset<16> doneWorkers;
+
+        if (jm->startedWorkers.any())
         {
           #if USE_OS_EVENTS
           ::WaitForSingleObjectEx(jm->doneWorkersEvent, INFINITE, TRUE);
@@ -344,8 +349,8 @@ struct JobManager
             std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
             #endif
             doneWorkers = jm->doneWorkers;
+            jm->doneWorkers.reset();
           }
-          jm->doneWorkers.reset();
         }
 
         for (int i = 0; i < jm->workersCount; ++i)
@@ -539,12 +544,16 @@ struct JobManager
     JobId jid = make_jid(jobGenerations[freeIndex], freeIndex);
     jobsToStart.push_back(jid);
 
+    std::cout << "createJob: " << jid.handle << std::endl;
+
     return jid;
   }
 
   void deleteJob(const JobId &jid)
   {
     ASSERT(jobGenerations[jid.index] == jid.generation);
+
+    std::cout << "deleteJob: " << jid.handle << std::endl;
 
     --jobsCount;
 
@@ -578,16 +587,22 @@ struct JobManager
       {
         JobId jid = jobsToStart[jobIdx];
 
-        const Job &job = jobs[jid.index];
-
         bool canStart = true;
-        const DependencyList &deps = jobDependencies[jid.index];
-        for (const JobId &depJid : deps)
-          if (!isDone(depJid) && !jobs[depJid.index].queued)
-          {
-            canStart = false;
-            break;
-          }
+        Job job;
+
+        {
+          std::lock_guard<std::mutex> lock(doneJobMutex);
+
+          job = jobs[jid.index];
+
+          const DependencyList &deps = jobDependencies[jid.index];
+          for (const JobId &depJid : deps)
+            if (!isDone(depJid) && !jobs[depJid.index].queued)
+            {
+              canStart = false;
+              break;
+            }
+        }
 
         if (canStart)
         {
@@ -597,22 +612,25 @@ struct JobManager
           int tasksCount = (job.itemsCount / job.chunkSize) + ((job.itemsCount % job.chunkSize) ? 1 : 0);
 
           futureJobs.push_back({jid, job.task, 0});
-          futureTasks.resize(tasksCount);
+          futureTasks.reserve(futureTasks.size() + tasksCount);
 
-          for (int i = 0, taskIdx = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize, ++taskIdx)
+          for (int i = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize)
           {
             Task t;
             t.jid = jid;
             t.from = i;
             t.count = eastl::min(job.chunkSize, itemsLeft);
             t.jobIdx = futureJobs.size() - 1;
-            futureTasks[taskIdx] = eastl::move(t);
+            futureTasks.push_back(eastl::move(t));
           }
         }
       }
 
-      for (auto &job : futureJobs)
-        jobs[job.jid.index].queued = true;
+      {
+        std::lock_guard<std::mutex> lock(doneJobMutex);
+        for (auto &job : futureJobs)
+          jobs[job.jid.index].queued = true;
+      }
 
       ASSERT(!futureTasks.empty());
 
@@ -650,8 +668,13 @@ struct JobManager
       doneJobCV.wait(lock, [&](){ return !jobsToRemove.empty(); });
       #endif
 
-      for (const JobId &jid : jobsToRemove)
-        deleteJob(jid);
+      {
+        #if USE_OS_EVENTS
+        std::lock_guard<std::mutex> lock(doneJobMutex);
+        #endif
+        for (const JobId &jid : jobsToRemove)
+          deleteJob(jid);
+      }
       
       jobsToRemove.clear();
     }
@@ -699,6 +722,18 @@ JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies, int items_c
 {
   ASSERT(g_jm != nullptr);
   return g_jm->createJob(items_count, chunk_size, task, eastl::move(dependencies));
+}
+
+JobId jobmanager::add_job(const jobmanager::DependencyList &dependencies)
+{
+  ASSERT(g_jm != nullptr);
+  return g_jm->createJob(1, 1, EMPTY_CALLBACK, eastl::move(dependencies));
+}
+
+JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies)
+{
+  ASSERT(g_jm != nullptr);
+  return g_jm->createJob(1, 1, EMPTY_CALLBACK, eastl::move(dependencies));
 }
 
 void jobmanager::do_and_wait_all_tasks_done()

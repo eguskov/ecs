@@ -193,7 +193,7 @@ int main()
     }
   }*/
 
-  static const int MEASURE_COUNT = 100;
+  static const int MEASURE_COUNT = 1000;
 
   {
     PerfMeasure<MEASURE_COUNT> perf("Native   ");

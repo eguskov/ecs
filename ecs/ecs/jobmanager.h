@@ -80,6 +80,9 @@ namespace jobmanager
   JobId add_job(const DependencyList &dependencies, int items_count, int chunk_size, const callback_t &task);
   JobId add_job(DependencyList &&dependencies, int items_count, int chunk_size, const callback_t &task);
 
+  JobId add_job(const DependencyList &dependencies);
+  JobId add_job(DependencyList &&dependencies);
+
   void wait(const JobId &jid);
   void start_jobs();
   void do_and_wait_all_tasks_done();
