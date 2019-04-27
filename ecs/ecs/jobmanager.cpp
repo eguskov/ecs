@@ -24,8 +24,6 @@
 using JobId = jobmanager::JobId;
 using DependencyList = jobmanager::DependencyList;
 
-static const jobmanager::callback_t EMPTY_CALLBACK = [](int,int){};
-
 static inline JobId make_jid(uint16_t gen, uint32_t index)
 {
   return JobId(((uint32_t)gen << JobId::INDEX_BITS | index));
@@ -183,9 +181,11 @@ struct JobManager
   std::mutex currentTasksMutex;
   eastl::queue<eastl::vector<Task>> tasksQueue;
   eastl::queue<eastl::vector<JobInQueue>> jobsQueue;
+  eastl::queue<eastl::vector<JobId>> barriersQueue;
 
   eastl::vector<Task> currentTasks;
   eastl::vector<JobInQueue> currentJobs;
+  eastl::vector<JobId> currentBarriers;
 
   static void worker_routine(JobManager *jm, int worker_id)
   {
@@ -264,14 +264,22 @@ struct JobManager
         SCOPE_TIME_N(g_stat.scheduler.popQueueTotal, 1);
         std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
         SCOPE_TIME_N(g_stat.scheduler.popQueue, 2);
-        popFromQueue = jm->currentJobs.empty() && jm->currentTasks.empty() && !jm->jobsQueue.empty() && !jm->tasksQueue.empty();
+        popFromQueue =
+          jm->currentJobs.empty() &&
+          jm->currentTasks.empty() &&
+          jm->currentBarriers.empty() &&
+          !jm->jobsQueue.empty() &&
+          !jm->barriersQueue.empty() &&
+          !jm->tasksQueue.empty();
         if (popFromQueue)
         {
           THREAD_LOG("Scheduler: popFromQueue");
 
           jm->currentJobs = eastl::move(jm->jobsQueue.front());
           jm->currentTasks = eastl::move(jm->tasksQueue.front());
+          jm->currentBarriers = eastl::move(jm->barriersQueue.front());
           jm->jobsQueue.pop();
+          jm->barriersQueue.pop();
           jm->tasksQueue.pop();
         }
       }
@@ -404,7 +412,14 @@ struct JobManager
         SCOPE_TIME(g_stat.scheduler.finalizeTasks);
 
         eastl::vector<JobId> jobsToRemove;
-        jobsToRemove.reserve(jm->currentJobs.size());
+        jobsToRemove.reserve(jm->currentJobs.size() + jm->currentBarriers.size());
+
+        if (!jm->currentBarriers.empty())
+        {
+          jobsToRemove.resize(jm->currentBarriers.size());
+          eastl::uninitialized_copy_n(jm->currentBarriers.begin(), jm->currentBarriers.size(), jobsToRemove.begin());
+          jm->currentBarriers.clear();
+        }
 
         for (int workerIdx = 0; workerIdx < jm->workersCount; ++workerIdx)
           for (const Task &task : doneTasks[workerIdx])
@@ -444,7 +459,7 @@ struct JobManager
 
         {
           std::lock_guard<std::mutex> lock(jm->currentTasksMutex);
-          if (jm->jobsQueue.empty() && !jm->startedWorkers.any())
+          if (jm->jobsQueue.empty() && jm->barriersQueue.empty() && !jm->startedWorkers.any())
           {
             std::lock_guard<std::mutex> lock(scheduler.startMutex);
             scheduler.started = false;
@@ -621,6 +636,7 @@ struct JobManager
 
       eastl::vector<Task> futureTasks;
       eastl::vector<JobInQueue> futureJobs;
+      eastl::vector<JobId> futureBarriers;
 
       futureJobs.reserve(jobsToStart.size());
 
@@ -649,36 +665,44 @@ struct JobManager
         {
           jobsToStart.erase(jobsToStart.begin() + jobIdx);
 
-          int itemsLeft = job.itemsCount;
-          int tasksCount = (job.itemsCount / job.chunkSize) + ((job.itemsCount % job.chunkSize) ? 1 : 0);
-
-          futureJobs.push_back({jid, job.task, 0});
-          futureTasks.reserve(futureTasks.size() + tasksCount);
-
-          for (int i = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize)
+          if (job.task)
           {
-            Task t;
-            t.jid = jid;
-            t.from = i;
-            t.count = eastl::min(job.chunkSize, itemsLeft);
-            t.jobIdx = futureJobs.size() - 1;
-            futureTasks.push_back(eastl::move(t));
+            int itemsLeft = job.itemsCount;
+            int tasksCount = (job.itemsCount / job.chunkSize) + ((job.itemsCount % job.chunkSize) ? 1 : 0);
+
+            futureJobs.push_back({jid, job.task, 0});
+            futureTasks.reserve(futureTasks.size() + tasksCount);
+
+            for (int i = 0; i < job.itemsCount; i += job.chunkSize, itemsLeft -= job.chunkSize)
+            {
+              Task t;
+              t.jid = jid;
+              t.from = i;
+              t.count = eastl::min(job.chunkSize, itemsLeft);
+              t.jobIdx = futureJobs.size() - 1;
+              futureTasks.push_back(eastl::move(t));
+            }
           }
+          else
+            futureBarriers.push_back(jid);
         }
       }
 
       {
         std::lock_guard<std::mutex> lock(doneJobMutex);
-        for (auto &job : futureJobs)
+        for (const auto &job : futureJobs)
           jobs[job.jid.index].queued = true;
+        for (const auto &jid : futureBarriers)
+          jobs[jid.index].queued = true;
       }
 
-      ASSERT(!futureTasks.empty());
+      ASSERT(!futureTasks.empty() || !futureBarriers.empty());
 
       {
         std::lock_guard<std::mutex> lock(currentTasksMutex);
         tasksQueue.push(eastl::move(futureTasks));
         jobsQueue.push(eastl::move(futureJobs));
+        barriersQueue.push(eastl::move(futureBarriers));
       }
     }
 
@@ -770,13 +794,13 @@ JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies, int items_c
 JobId jobmanager::add_job(const jobmanager::DependencyList &dependencies)
 {
   ASSERT(g_jm != nullptr);
-  return g_jm->createJob(1, 1, EMPTY_CALLBACK, eastl::move(dependencies));
+  return g_jm->createJob(1, 1, nullptr, eastl::move(dependencies));
 }
 
 JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies)
 {
   ASSERT(g_jm != nullptr);
-  return g_jm->createJob(1, 1, EMPTY_CALLBACK, eastl::move(dependencies));
+  return g_jm->createJob(1, 1, nullptr, eastl::move(dependencies));
 }
 
 void jobmanager::do_and_wait_all_tasks_done()
