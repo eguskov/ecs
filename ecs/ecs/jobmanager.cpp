@@ -23,12 +23,33 @@ using DependencyList = jobmanager::DependencyList;
 
 static const jobmanager::callback_t EMPTY_CALLBACK = [](int,int){};
 
-static inline JobId make_jid(uint8_t gen, uint32_t index)
+static inline JobId make_jid(uint16_t gen, uint32_t index)
 {
   return JobId(((uint32_t)gen << JobId::INDEX_BITS | index));
 }
 
 static jobmanager::Stat g_stat;
+
+static std::mutex g_output_mutex;
+static eastl::vector<eastl::string> g_output_buffer;
+
+#define THREAD_LOG(fmt, ...)\
+{\
+  std::lock_guard<std::mutex> lock(g_output_mutex);\
+  g_output_buffer.emplace_back(eastl::string::CtorSprintf(), fmt, __VA_ARGS__);\
+}\
+
+#define THREAD_LOG_FLUSH \
+{\
+  std::lock_guard<std::mutex> lock(g_output_mutex);\
+  g_output_buffer.clear();\
+}\
+
+// Comment this in case of debug
+#undef THREAD_LOG
+#undef THREAD_LOG_FLUSH
+#define THREAD_LOG(...)
+#define THREAD_LOG_FLUSH
 
 template <typename Period>
 struct ScopeTime
@@ -183,6 +204,8 @@ struct JobManager
           return;
       }
 
+      THREAD_LOG("Worker[%d]: start", worker_id);
+
       SCOPE_TIME(g_stat.workers.total[worker_id]);
 
       {
@@ -195,6 +218,8 @@ struct JobManager
         std::lock_guard<std::mutex> lock(worker.startMutex);
         worker.started = false;
       }
+
+      THREAD_LOG("Worker[%d]: done", worker_id);
 
       {
         SCOPE_TIME(g_stat.workers.done[worker_id]);
@@ -239,6 +264,8 @@ struct JobManager
         popFromQueue = jm->currentJobs.empty() && jm->currentTasks.empty() && !jm->jobsQueue.empty() && !jm->tasksQueue.empty();
         if (popFromQueue)
         {
+          THREAD_LOG("Scheduler: popFromQueue");
+
           jm->currentJobs = eastl::move(jm->jobsQueue.front());
           jm->currentTasks = eastl::move(jm->tasksQueue.front());
           jm->jobsQueue.pop();
@@ -278,7 +305,8 @@ struct JobManager
           eastl::vector<Task> squashedTasks;
           squashedTasks.reserve(tasksCount);
 
-          squashedTasks.push_back(*currentTasksIter);
+          if (tasksCount > 0)
+            squashedTasks.push_back(*currentTasksIter);
 
           auto lastJobId = currentTasksIter->jid;
           for (auto taskIt = currentTasksIter + 1, taskEndIt = currentTasksIter + tasksCount; taskIt != taskEndIt; ++taskIt)
@@ -302,6 +330,9 @@ struct JobManager
                 break;
               }
 
+          for (const auto &task : squashedTasks)
+            THREAD_LOG("Scheduler: assign task from [%d] to [%d]", task.jid, i);
+
           jm->workers[i].tasks = eastl::move(squashedTasks);
         }
 
@@ -315,6 +346,8 @@ struct JobManager
         for (int i = 0; i < jm->workersCount; ++i)
           if (!jm->workers[i].tasks.empty())
           {
+            THREAD_LOG("Scheduler: start [%d]", i);
+
             jm->startedWorkers.set(i);
             {
               std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
@@ -356,6 +389,8 @@ struct JobManager
         for (int i = 0; i < jm->workersCount; ++i)
           if (doneWorkers[i])
           {
+            THREAD_LOG("Scheduler: Worker [%d] done", i);
+
             jm->startedWorkers.reset(i);
             doneTasks[i] = eastl::move(jm->workers[i].tasks);
             jm->workers[i].tasks.clear();
@@ -377,6 +412,7 @@ struct JobManager
             for (int i = jm->currentJobs.size() - 1; i >= 0; --i)
               if (task.jid == jm->currentJobs[i].jid)
               {
+                THREAD_LOG("Scheduler: worker[%d] done task from [%d] left [%d]", workerIdx, task.jid.handle, jm->currentJobs[i].tasksCount - 1);
                 if (--jm->currentJobs[i].tasksCount == 0)
                 {
                   jm->currentJobs.erase(jm->currentJobs.begin() + i);
@@ -392,7 +428,9 @@ struct JobManager
           {
             std::lock_guard<std::mutex> lock(jm->doneJobMutex);
             SCOPE_TIME_N(g_stat.scheduler.finalizeDeleteJobs, 2);
-            jm->jobsToRemove = eastl::move(jobsToRemove);
+            const size_t offset = jm->jobsToRemove.size();
+            jm->jobsToRemove.resize(offset + jobsToRemove.size());
+            eastl::uninitialized_copy_n(jobsToRemove.begin(), jobsToRemove.size(), jm->jobsToRemove.begin() + offset);
           }
           #if USE_OS_EVENTS
           ::SetEvent(jm->doneJobEvent);
@@ -544,7 +582,7 @@ struct JobManager
     JobId jid = make_jid(jobGenerations[freeIndex], freeIndex);
     jobsToStart.push_back(jid);
 
-    std::cout << "createJob: " << jid.handle << std::endl;
+    THREAD_LOG("createJob: %d", jid.handle);
 
     return jid;
   }
@@ -553,12 +591,12 @@ struct JobManager
   {
     ASSERT(jobGenerations[jid.index] == jid.generation);
 
-    std::cout << "deleteJob: " << jid.handle << std::endl;
+    THREAD_LOG("deleteJob: %d", jid.handle);
 
     --jobsCount;
 
     jobs[jid.index].queued = false;
-    jobGenerations[jid.index] = (jobGenerations[jid.index] + 1) % JobId::INDEX_LIMIT;
+    jobGenerations[jid.index] = uint16_t(jobGenerations[jid.index] + 1) % JobId::GENERATION_LIMIT;
     freeJobQueue.push_back(jid.index);
   }
 
@@ -675,9 +713,11 @@ struct JobManager
         for (const JobId &jid : jobsToRemove)
           deleteJob(jid);
       }
-      
+
       jobsToRemove.clear();
     }
+
+    THREAD_LOG_FLUSH;
   }
 };
 
