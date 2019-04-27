@@ -16,6 +16,9 @@
 #include <atomic>
 #include <chrono>
 
+// TODO: Optimize memory usage with containers
+// TODO: More optimizations
+
 #define USE_OS_EVENTS 1
 
 using JobId = jobmanager::JobId;
