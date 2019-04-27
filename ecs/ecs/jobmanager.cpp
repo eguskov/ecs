@@ -21,6 +21,30 @@
 
 #define USE_OS_EVENTS 1
 
+#if USE_OS_EVENTS
+
+  #define DECL_CV(n) HANDLE n##Event = NULL;
+  #define INIT_CV(n) n##Event = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+  #define DEL_CV(n) ::CloseHandle(n##Event);
+  #define NOTIFY_CV(n) ::SetEvent(n##Event);
+  #define WAIT_CV(n, c) ::WaitForSingleObjectEx(n##Event, INFINITE, TRUE);
+  #define WAIT_CV_COND(n, c) if (!c) ::WaitForSingleObjectEx(n##Event, INFINITE, TRUE);
+  #define LOCK(m) std::lock_guard<std::mutex> lock(m##Mutex);
+
+#else
+
+  #define DECL_CV(n) std::condition_variable n##CV;
+  #define INIT_CV(...)
+  #define DEL_CV(...)
+  #define NOTIFY_CV(n) n##CV.notify_one();
+  #define WAIT_CV(n, c)\
+    std::unique_lock<std::mutex> lock(n##Mutex);\
+    n##CV.wait(lock, [&](){ return c; });
+  #define WAIT_CV_COND(n, c) WAIT_CV(n, c)
+  #define LOCK(...)
+
+#endif
+
 using JobId = jobmanager::JobId;
 using DependencyList = jobmanager::DependencyList;
 
@@ -106,11 +130,7 @@ struct JobManager
   {
     std::mutex startMutex;
 
-    #if USE_OS_EVENTS
-    HANDLE startEvent = NULL;
-    #else
-    std::condition_variable startCV;
-    #endif
+    DECL_CV(start);
 
     eastl::vector<Task> tasks;
     eastl::vector<jobmanager::callback_t> jobCallbacks;
@@ -123,11 +143,7 @@ struct JobManager
   {
     std::mutex startMutex;
 
-    #if USE_OS_EVENTS
-    HANDLE startEvent = NULL;
-    #else
-    std::condition_variable startCV;
-    #endif
+    DECL_CV(start);
 
     std::atomic<bool> terminated = false;
     bool started = false;
@@ -151,11 +167,8 @@ struct JobManager
 
   std::mutex doneWorkersMutex;
   eastl::bitset<16> doneWorkers;
-  #if USE_OS_EVENTS
-  HANDLE doneWorkersEvent = NULL;
-  #else
-  std::condition_variable doneWorkersCV;
-  #endif
+
+  DECL_CV(doneWorkers);
 
   std::thread schedulerThread;
   Scheduler scheduler;
@@ -172,11 +185,8 @@ struct JobManager
 
 
   std::mutex doneJobMutex;
-  #if USE_OS_EVENTS
-  HANDLE doneJobEvent = NULL;
-  #else
-  std::condition_variable doneJobCV;
-  #endif
+
+  DECL_CV(doneJob);
 
   std::mutex currentTasksMutex;
   eastl::queue<eastl::vector<Task>> tasksQueue;
@@ -194,12 +204,7 @@ struct JobManager
     while (true)
     {
       {
-        #if USE_OS_EVENTS
-        ::WaitForSingleObjectEx(worker.startEvent, INFINITE, TRUE);
-        #else
-        std::unique_lock<std::mutex> lock(worker.startMutex);
-        worker.startCV.wait(lock, [&](){ return worker.started; });
-        #endif
+        WAIT_CV(worker.start, worker.started);
 
         ASSERT(worker.started);
 
@@ -229,11 +234,7 @@ struct JobManager
         std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
         jm->doneWorkers.set(worker_id);
       }
-      #if USE_OS_EVENTS
-      ::SetEvent(jm->doneWorkersEvent);
-      #else
-      jm->doneWorkersCV.notify_one();
-      #endif
+      NOTIFY_CV(jm->doneWorkers);
     }
   }
 
@@ -244,13 +245,7 @@ struct JobManager
     while (true)
     {
       {
-        #if USE_OS_EVENTS
-        if (!scheduler.started)
-          ::WaitForSingleObjectEx(scheduler.startEvent, INFINITE, TRUE);
-        #else
-        std::unique_lock<std::mutex> lock(scheduler.startMutex);
-        scheduler.startCV.wait(lock, [&](){ return scheduler.started; });
-        #endif
+        WAIT_CV_COND(scheduler.start, scheduler.started)
 
         if (scheduler.terminated.load())
           return;
@@ -364,11 +359,7 @@ struct JobManager
               std::lock_guard<std::mutex> lock(jm->workers[i].startMutex);
               jm->workers[i].started = true;
             }
-            #if USE_OS_EVENTS
-            ::SetEvent(jm->workers[i].startEvent);
-            #else
-            jm->workers[i].startCV.notify_one();
-            #endif
+            NOTIFY_CV(jm->workers[i].start);
           }
       }
 
@@ -380,18 +371,11 @@ struct JobManager
 
         if (jm->startedWorkers.any())
         {
-          #if USE_OS_EVENTS
-          ::WaitForSingleObjectEx(jm->doneWorkersEvent, INFINITE, TRUE);
-          #else
-          std::unique_lock<std::mutex> lock(jm->doneWorkersMutex);
-          jm->doneWorkersCV.wait(lock, [&](){ return jm->doneWorkers.any(); });
-          #endif
+          WAIT_CV(jm->doneWorkers, jm->doneWorkers.any());
 
           SCOPE_TIME(g_stat.scheduler.doneTasks);
           {
-            #if USE_OS_EVENTS
-            std::lock_guard<std::mutex> lock(jm->doneWorkersMutex);
-            #endif
+            LOCK(jm->doneWorkers);
             doneWorkers = jm->doneWorkers;
             jm->doneWorkers.reset();
           }
@@ -450,11 +434,7 @@ struct JobManager
             jm->jobsToRemove.resize(offset + jobsToRemove.size());
             eastl::uninitialized_copy_n(jobsToRemove.begin(), jobsToRemove.size(), jm->jobsToRemove.begin() + offset);
           }
-          #if USE_OS_EVENTS
-          ::SetEvent(jm->doneJobEvent);
-          #else
-          jm->doneJobCV.notify_one();
-          #endif
+          NOTIFY_CV(jm->doneJob);
         }
 
         {
@@ -486,9 +466,8 @@ struct JobManager
     DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
     for (int i = 0; i < workersCount; ++i, ++cpuNo)
     {
-      #if USE_OS_EVENTS
-      workers[i].startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-      #endif
+      INIT_CV(workers[i].start);
+
       workersThread[i] = eastl::move(std::thread(worker_routine, this, i));
       HANDLE handle = (HANDLE)workersThread[i].native_handle();
 
@@ -498,12 +477,9 @@ struct JobManager
       ::SetThreadAffinityMask(handle, 1 << cpuNo);
     }
 
-    #if USE_OS_EVENTS
-    doneWorkersEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-    doneJobEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-
-    scheduler.startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-    #endif
+    INIT_CV(doneWorkers);
+    INIT_CV(doneJob);
+    INIT_CV(scheduler.start);
 
     schedulerThread = eastl::move(std::thread(scheduler_routine, this));
 
@@ -524,11 +500,7 @@ struct JobManager
       std::lock_guard<std::mutex> lock(scheduler.startMutex);
       scheduler.started = true;
     }
-    #if USE_OS_EVENTS
-    ::SetEvent(scheduler.startEvent);
-    #else
-    scheduler.startCV.notify_one();
-    #endif
+    NOTIFY_CV(scheduler.start);
 
     if (schedulerThread.joinable())
       schedulerThread.join();
@@ -542,25 +514,19 @@ struct JobManager
         std::lock_guard<std::mutex> lock(workers[i].startMutex);
         workers[i].started = true;
       }
-      #if USE_OS_EVENTS
-      ::SetEvent(workers[i].startEvent);
-      #else
-      workers[i].startCV.notify_one();
-      #endif
+      NOTIFY_CV(workers[i].start);
     }
 
     for (int i = 0; i < workersCount; ++i)
-    {
       if (workersThread[i].joinable())
         workersThread[i].join();
-    }
 
-    #if USE_OS_EVENTS
     for (int i = 0; i < workersCount; ++i)
-      ::CloseHandle(workers[i].startEvent);
+      DEL_CV(workers[i].start);
 
-    ::CloseHandle(doneWorkersEvent);
-    #endif
+    DEL_CV(doneWorkers);
+    DEL_CV(doneJob);
+    DEL_CV(scheduler.start);
   }
 
   JobId createJob(int items_count, int chunk_size, const jobmanager::callback_t &task, const jobmanager::DependencyList &dependencies)
@@ -710,11 +676,7 @@ struct JobManager
       std::lock_guard<std::mutex> lock(scheduler.startMutex);
       scheduler.started = true;
     }
-    #if USE_OS_EVENTS
-    ::SetEvent(scheduler.startEvent);
-    #else
-    scheduler.startCV.notify_one();
-    #endif
+    NOTIFY_CV(scheduler.start);
   }
 
   void doAndWaitAllTasksDone()
@@ -726,17 +688,11 @@ struct JobManager
     while (jobsCount > 0)
     {
       SCOPE_TIME(g_stat.jm.doneJobsMutex);
-      #if USE_OS_EVENTS
-      ::WaitForSingleObjectEx(doneJobEvent, INFINITE, TRUE);
-      #else
-      std::unique_lock<std::mutex> lock(doneJobMutex);
-      doneJobCV.wait(lock, [&](){ return !jobsToRemove.empty(); });
-      #endif
+
+      WAIT_CV(doneJob, !jobsToRemove.empty());
 
       {
-        #if USE_OS_EVENTS
-        std::lock_guard<std::mutex> lock(doneJobMutex);
-        #endif
+        LOCK(doneJob);
         for (const JobId &jid : jobsToRemove)
           deleteJob(jid);
       }
