@@ -34,10 +34,17 @@ static constexpr ConstArray<T> make_empty_array()
   return ConstArray<T>(nullptr, 0);
 }
 
+enum CompDescFlags
+{
+  kNone = 0,
+  kWrite = 1 << 0,
+};
+
 struct ConstCompDesc
 {
   ConstHashedString name;
   int size;
+  uint32_t flags = CompDescFlags::kNone;
 };
 
 constexpr ConstArray<const ConstCompDesc> empty_desc_array = make_empty_array<const ConstCompDesc>();

@@ -169,6 +169,7 @@ struct EntityManager
   eastl::vector<Entity> entities;
   eastl::hash_map<HashedString, const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
+  eastl::vector<eastl::vector<int>> systemDependencies;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
   eastl::vector<Query> namedQueries;

@@ -6,8 +6,8 @@
 #include "grid.cpp"
 
 static constexpr ConstCompDesc update_grid_cell_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("grid_cell"), Desc<int>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("grid_cell"), Desc<int>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc update_grid_cell_query_desc = {
   make_const_array(update_grid_cell_components),
@@ -18,8 +18,8 @@ static constexpr ConstQueryDesc update_grid_cell_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_small_grid_cell_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("small_grid_cell"), Desc<int>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("small_grid_cell"), Desc<int>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc update_small_grid_cell_query_desc = {
   make_const_array(update_small_grid_cell_components),
@@ -35,7 +35,7 @@ static constexpr ConstQueryDesc update_small_grid_cell_query_desc = {
 
 static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -44,13 +44,14 @@ static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
         GET_COMPONENT(update_grid_cell, q, glm::vec2, pos),
         GET_COMPONENT(update_grid_cell, q, int, grid_cell));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_grid_cell("update_grid_cell", &update_grid_cell_run, "UpdateStage", update_grid_cell_query_desc, nullptr);
 
 static void update_small_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -59,7 +60,8 @@ static void update_small_grid_cell_run(const RawArg &stage_or_event, Query &quer
         GET_COMPONENT(update_small_grid_cell, q, glm::vec2, pos),
         GET_COMPONENT(update_small_grid_cell, q, int, small_grid_cell));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_small_grid_cell("update_small_grid_cell", &update_small_grid_cell_run, "UpdateStage", update_small_grid_cell_query_desc, nullptr);
 

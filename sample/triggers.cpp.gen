@@ -18,8 +18,8 @@ static constexpr ConstQueryDesc update_player_spawner_query_desc = {
 };
 
 static constexpr ConstCompDesc InactiveLift_components[] = {
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveLift_have_components[] = {
   {HASH("lift"), 0},
@@ -37,7 +37,7 @@ static constexpr ConstQueryDesc InactiveLift_query_desc = {
   make_const_array(InactiveLift_track_components),
 };
 static constexpr ConstCompDesc CageBlock_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc CageBlock_have_components[] = {
   {HASH("cage"), 0},
@@ -51,11 +51,11 @@ static constexpr ConstQueryDesc CageBlock_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc NotBindedTrigger_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("action_key"), Desc<StringHash>::Size},
-  {HASH("action_eid"), Desc<EntityId>::Size},
-  {HASH("is_binded"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("action_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kWrite},
+  {HASH("is_binded"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc NotBindedTrigger_have_components[] = {
   {HASH("trigger"), 0},
@@ -73,11 +73,11 @@ static constexpr ConstQueryDesc NotBindedTrigger_query_desc = {
   make_const_array(NotBindedTrigger_track_components),
 };
 static constexpr ConstCompDesc ActiveTrigger_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("action_eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc ActiveTrigger_have_components[] = {
   {HASH("trigger"), 0},
@@ -95,9 +95,9 @@ static constexpr ConstQueryDesc ActiveTrigger_query_desc = {
   make_const_array(ActiveTrigger_track_components),
 };
 static constexpr ConstCompDesc InactiveSwitchTrigger_components[] = {
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveSwitchTrigger_have_components[] = {
   {HASH("switch_trigger"), 0},
@@ -115,10 +115,10 @@ static constexpr ConstQueryDesc InactiveSwitchTrigger_query_desc = {
   make_const_array(InactiveSwitchTrigger_track_components),
 };
 static constexpr ConstCompDesc InactiveZoneTrigger_components[] = {
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("collision_rect"), Desc<glm::vec4>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveZoneTrigger_have_components[] = {
   {HASH("zone_trigger"), 0},
@@ -136,8 +136,8 @@ static constexpr ConstQueryDesc InactiveZoneTrigger_query_desc = {
   make_const_array(InactiveZoneTrigger_track_components),
 };
 static constexpr ConstCompDesc Action_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc Action_have_components[] = {
   {HASH("action"), 0},
@@ -151,10 +151,10 @@ static constexpr ConstQueryDesc Action_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc InactiveEnableLiftAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("lift_key"), Desc<StringHash>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("lift_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveEnableLiftAction_have_components[] = {
   {HASH("enable_lift_action"), 0},
@@ -172,9 +172,9 @@ static constexpr ConstQueryDesc InactiveEnableLiftAction_query_desc = {
   make_const_array(InactiveEnableLiftAction_track_components),
 };
 static constexpr ConstCompDesc InactiveOpenCageAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveOpenCageAction_have_components[] = {
   {HASH("open_cage_action"), 0},
@@ -192,9 +192,9 @@ static constexpr ConstQueryDesc InactiveOpenCageAction_query_desc = {
   make_const_array(InactiveOpenCageAction_track_components),
 };
 static constexpr ConstCompDesc InactiveKillPlayerAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc InactiveKillPlayerAction_have_components[] = {
   {HASH("kill_player_action"), 0},
@@ -212,8 +212,8 @@ static constexpr ConstQueryDesc InactiveKillPlayerAction_query_desc = {
   make_const_array(InactiveKillPlayerAction_track_components),
 };
 static constexpr ConstCompDesc AlivePlayer_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc AlivePlayer_have_components[] = {
   {HASH("user_input"), 0},
@@ -231,7 +231,7 @@ static constexpr ConstQueryDesc AlivePlayer_query_desc = {
   make_const_array(AlivePlayer_track_components),
 };
 static constexpr ConstCompDesc PlayerSpawnZone_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc PlayerSpawnZone_have_components[] = {
   {HASH("player_spawn_zone"), 0},
@@ -304,11 +304,11 @@ using PlayerSpawnZoneBuilder = StructBuilder<
   StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerSpawnZone, pos)>
 >;
 static constexpr ConstCompDesc index_by_NotBindedTrigger_action_key_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("action_key"), Desc<StringHash>::Size},
-  {HASH("action_eid"), Desc<EntityId>::Size},
-  {HASH("is_binded"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("action_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kWrite},
+  {HASH("is_binded"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc index_by_NotBindedTrigger_action_key_query_desc = {
   make_const_array(index_by_NotBindedTrigger_action_key_components),
@@ -319,11 +319,11 @@ static constexpr ConstQueryDesc index_by_NotBindedTrigger_action_key_query_desc 
   empty_desc_array,
 };
 static constexpr ConstCompDesc index_by_ActiveTrigger_action_eid_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("action_eid"), Desc<EntityId>::Size},
-  {HASH("key"), Desc<StringHash>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc index_by_ActiveTrigger_action_eid_query_desc = {
   make_const_array(index_by_ActiveTrigger_action_eid_components),

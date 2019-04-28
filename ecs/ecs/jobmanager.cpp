@@ -487,12 +487,12 @@ struct JobManager
     ::SetThreadAffinityMask((HANDLE)schedulerThread.native_handle(), 1 << ((mainCpuNo + 1) % workersCount));
     // ::SetThreadAffinityMask((HANDLE)schedulerThread.native_handle(), 1 << mainCpuNo);
 
-    doAndWaitAllTasksDone();
+    waitAllJobs();
   }
 
   ~JobManager()
   {
-    doAndWaitAllTasksDone();
+    waitAllJobs();
 
     scheduler.terminated.store(true);
 
@@ -586,7 +586,7 @@ struct JobManager
 
   inline bool isDone(const JobId &jid) const
   {
-    return jobGenerations[jid.index] != jid.generation;
+    return jid.handle == 0xFFFFFFFF || jobGenerations[jid.index] != jid.generation;
   }
 
   void startJobs()
@@ -679,26 +679,35 @@ struct JobManager
     NOTIFY_CV(scheduler.start);
   }
 
-  void doAndWaitAllTasksDone()
+  void waitDoneJobs()
   {
-    SCOPE_TIME(g_stat.jm.doAndWaitAllTasksDone);
+    SCOPE_TIME(g_stat.jm.doneJobsMutex);
+
+    WAIT_CV(doneJob, !jobsToRemove.empty());
+
+    {
+      LOCK(doneJob);
+      for (const JobId &jid : jobsToRemove)
+        deleteJob(jid);
+    }
+
+    jobsToRemove.clear();
+  }
+
+  void wait(const JobId &jid)
+  {
+    while (!isDone(jid))
+      waitDoneJobs();
+  }
+
+  void waitAllJobs()
+  {
+    SCOPE_TIME(g_stat.jm.waitAllJobs);
 
     startJobs();
 
     while (jobsCount > 0)
-    {
-      SCOPE_TIME(g_stat.jm.doneJobsMutex);
-
-      WAIT_CV(doneJob, !jobsToRemove.empty());
-
-      {
-        LOCK(doneJob);
-        for (const JobId &jid : jobsToRemove)
-          deleteJob(jid);
-      }
-
-      jobsToRemove.clear();
-    }
+      waitDoneJobs();
 
     THREAD_LOG_FLUSH;
   }
@@ -724,13 +733,12 @@ JobId jobmanager::add_job(int items_count, const callback_t &task)
 
 JobId jobmanager::add_job(int items_count, int chunk_size, const callback_t &task)
 {
-  ASSERT(g_jm != nullptr);
-  ASSERT(g_jm->tasksQueue.empty());
-  ASSERT(items_count > 0);
-  ASSERT(chunk_size > 0);
-
   if (items_count <= 0)
     return JobId{};
+
+  ASSERT(g_jm != nullptr);
+  ASSERT(g_jm->tasksQueue.empty());
+  ASSERT(chunk_size > 0);
 
   return g_jm->createJob(items_count, chunk_size, task);
 }
@@ -759,10 +767,16 @@ JobId jobmanager::add_job(jobmanager::DependencyList &&dependencies)
   return g_jm->createJob(1, 1, nullptr, eastl::move(dependencies));
 }
 
-void jobmanager::do_and_wait_all_tasks_done()
+void jobmanager::wait(const JobId &jid)
 {
   ASSERT(g_jm != nullptr);
-  g_jm->doAndWaitAllTasksDone();
+  g_jm->wait(jid);
+}
+
+void jobmanager::wait_all_jobs()
+{
+  ASSERT(g_jm != nullptr);
+  g_jm->waitAllJobs();
 }
 
 void jobmanager::start_jobs()

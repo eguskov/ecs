@@ -83,9 +83,9 @@ static constexpr ConstQueryDesc render_hud_boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_boid_obstacle_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size},
-  {HASH("frame"), Desc<glm::vec4>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size, CompDescFlags::kNone},
+  {HASH("frame"), Desc<glm::vec4>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc render_boid_obstacle_have_components[] = {
   {HASH("boid_obstacle"), 0},
@@ -99,11 +99,11 @@ static constexpr ConstQueryDesc render_boid_obstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_boid_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size},
-  {HASH("frame"), Desc<glm::vec4>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("rotation"), Desc<float>::Size},
+  {HASH("texture"), Desc<TextureAtlas>::Size, CompDescFlags::kNone},
+  {HASH("frame"), Desc<glm::vec4>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("mass"), Desc<float>::Size, CompDescFlags::kNone},
+  {HASH("rotation"), Desc<float>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc render_boid_have_components[] = {
   {HASH("boid"), 0},
@@ -117,9 +117,9 @@ static constexpr ConstQueryDesc render_boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc render_boid_debug_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("flock_center"), Desc<glm::vec2>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("flock_center"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc render_boid_debug_have_components[] = {
   {HASH("boid"), 0},
@@ -137,8 +137,8 @@ static constexpr ConstQueryDesc render_boid_debug_query_desc = {
   make_const_array(render_boid_debug_track_components),
 };
 static constexpr ConstCompDesc update_boid_position_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_position_have_components[] = {
   {HASH("boid"), 0},
@@ -152,8 +152,8 @@ static constexpr ConstQueryDesc update_boid_position_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_rotation_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("rotation"), Desc<float>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("rotation"), Desc<float>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_rotation_have_components[] = {
   {HASH("boid"), 0},
@@ -167,11 +167,11 @@ static constexpr ConstQueryDesc update_boid_rotation_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_avoid_walls_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("move_to_center_timer"), Desc<float>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("mass"), Desc<float>::Size, CompDescFlags::kNone},
+  {HASH("move_to_center_timer"), Desc<float>::Size, CompDescFlags::kWrite},
+  {HASH("force"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_avoid_walls_have_components[] = {
   {HASH("boid"), 0},
@@ -185,8 +185,8 @@ static constexpr ConstQueryDesc update_boid_avoid_walls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_avoid_obstacle_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("force"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_avoid_obstacle_have_components[] = {
   {HASH("boid"), 0},
@@ -200,9 +200,9 @@ static constexpr ConstQueryDesc update_boid_avoid_obstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_move_to_center_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("move_to_center_timer"), Desc<float>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("move_to_center_timer"), Desc<float>::Size, CompDescFlags::kWrite},
+  {HASH("force"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_move_to_center_have_components[] = {
   {HASH("boid"), 0},
@@ -216,10 +216,10 @@ static constexpr ConstQueryDesc update_boid_move_to_center_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_wander_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
-  {HASH("wander_vel"), Desc<glm::vec2>::Size},
-  {HASH("wander_timer"), Desc<float>::Size},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("force"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
+  {HASH("wander_vel"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
+  {HASH("wander_timer"), Desc<float>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc update_boid_wander_have_components[] = {
   {HASH("boid"), 0},
@@ -233,8 +233,8 @@ static constexpr ConstQueryDesc update_boid_wander_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc control_boid_velocity_components[] = {
-  {HASH("max_vel"), Desc<float>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("max_vel"), Desc<float>::Size, CompDescFlags::kNone},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc control_boid_velocity_have_components[] = {
   {HASH("boid"), 0},
@@ -248,9 +248,9 @@ static constexpr ConstQueryDesc control_boid_velocity_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc apply_boid_force_components[] = {
-  {HASH("mass"), Desc<float>::Size},
-  {HASH("force"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
+  {HASH("mass"), Desc<float>::Size, CompDescFlags::kNone},
+  {HASH("force"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstCompDesc apply_boid_force_have_components[] = {
   {HASH("boid"), 0},
@@ -265,10 +265,10 @@ static constexpr ConstQueryDesc apply_boid_force_query_desc = {
 };
 
 static constexpr ConstCompDesc Boid_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("mass"), Desc<float>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc Boid_have_components[] = {
   {HASH("boid"), 0},
@@ -282,10 +282,10 @@ static constexpr ConstQueryDesc Boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc BoidSmallGrid_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size},
-  {HASH("pos"), Desc<glm::vec2>::Size},
-  {HASH("vel"), Desc<glm::vec2>::Size},
-  {HASH("mass"), Desc<float>::Size},
+  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+  {HASH("mass"), Desc<float>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc BoidSmallGrid_have_components[] = {
   {HASH("boid"), 0},
@@ -299,7 +299,7 @@ static constexpr ConstQueryDesc BoidSmallGrid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstCompDesc BoidObstacle_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size},
+  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
 };
 static constexpr ConstCompDesc BoidObstacle_have_components[] = {
   {HASH("boid_obstacle"), 0},
@@ -505,7 +505,7 @@ static RegSys _reg_sys_render_boid_debug("render_boid_debug", &render_boid_debug
 
 static void update_boid_position_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -514,13 +514,14 @@ static void update_boid_position_run(const RawArg &stage_or_event, Query &query)
         GET_COMPONENT(update_boid_position, q, glm::vec2, vel),
         GET_COMPONENT(update_boid_position, q, glm::vec2, pos));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_position("update_boid_position", &update_boid_position_run, "UpdateStage", update_boid_position_query_desc, nullptr);
 
 static void update_boid_rotation_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -529,13 +530,14 @@ static void update_boid_rotation_run(const RawArg &stage_or_event, Query &query)
         GET_COMPONENT(update_boid_rotation, q, glm::vec2, vel),
         GET_COMPONENT(update_boid_rotation, q, float, rotation));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_rotation("update_boid_rotation", &update_boid_rotation_run, "UpdateStage", update_boid_rotation_query_desc, nullptr);
 
 static void update_boid_avoid_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -547,13 +549,14 @@ static void update_boid_avoid_walls_run(const RawArg &stage_or_event, Query &que
         GET_COMPONENT(update_boid_avoid_walls, q, float, move_to_center_timer),
         GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, force));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_avoid_walls("update_boid_avoid_walls", &update_boid_avoid_walls_run, "UpdateStage", update_boid_avoid_walls_query_desc, nullptr);
 
 static void update_boid_avoid_obstacle_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -562,13 +565,14 @@ static void update_boid_avoid_obstacle_run(const RawArg &stage_or_event, Query &
         GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, pos),
         GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, force));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_avoid_obstacle("update_boid_avoid_obstacle", &update_boid_avoid_obstacle_run, "UpdateStage", update_boid_avoid_obstacle_query_desc, nullptr);
 
 static void update_boid_move_to_center_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -578,13 +582,14 @@ static void update_boid_move_to_center_run(const RawArg &stage_or_event, Query &
         GET_COMPONENT(update_boid_move_to_center, q, float, move_to_center_timer),
         GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, force));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_move_to_center("update_boid_move_to_center", &update_boid_move_to_center_run, "UpdateStage", update_boid_move_to_center_query_desc, nullptr);
 
 static void update_boid_wander_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -595,13 +600,14 @@ static void update_boid_wander_run(const RawArg &stage_or_event, Query &query)
         GET_COMPONENT(update_boid_wander, q, glm::vec2, wander_vel),
         GET_COMPONENT(update_boid_wander, q, float, wander_timer));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_update_boid_wander("update_boid_wander", &update_boid_wander_run, "UpdateStage", update_boid_wander_query_desc, nullptr);
 
 static void control_boid_velocity_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -610,13 +616,14 @@ static void control_boid_velocity_run(const RawArg &stage_or_event, Query &query
         GET_COMPONENT(control_boid_velocity, q, float, max_vel),
         GET_COMPONENT(control_boid_velocity, q, glm::vec2, vel));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_control_boid_velocity("control_boid_velocity", &control_boid_velocity_run, "UpdateStage", control_boid_velocity_query_desc, nullptr);
 
 static void apply_boid_force_run(const RawArg &stage_or_event, Query &query)
 {
-  jobmanager::add_job(query.entitiesCount, [&](int from, int count)
+  auto job = jobmanager::add_job(query.entitiesCount, 256, [&](int from, int count)
   {
     auto begin = query.begin(from);
     auto end = query.begin(from + count);
@@ -626,7 +633,8 @@ static void apply_boid_force_run(const RawArg &stage_or_event, Query &query)
         GET_COMPONENT(apply_boid_force, q, glm::vec2, force),
         GET_COMPONENT(apply_boid_force, q, glm::vec2, vel));
   });
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::start_jobs();
+  jobmanager::wait(job);
 }
 static RegSys _reg_sys_apply_boid_force("apply_boid_force", &apply_boid_force_run, "UpdateStage", apply_boid_force_query_desc, nullptr);
 

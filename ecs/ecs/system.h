@@ -57,6 +57,7 @@ struct EntityManager;
   #define ECS_QUERY struct ecs_query {};
   #define ECS_SYSTEM struct ecs_system {};
   #define ECS_SYSTEM_IN_JOBS struct ecs_system_in_jobs {};
+  #define ECS_JOBS_CHUNK_SIZE(n) struct ecs_jobs_chunk_size { static constexpr char const *ql_expr = #n; };
 #else
   #define QL_HAVE(...)
   #define QL_NOT_HAVE(...)
@@ -75,11 +76,12 @@ struct EntityManager;
 
   #define ECS_SYSTEM
   #define ECS_SYSTEM_IN_JOBS
+  #define ECS_JOBS_CHUNK_SIZE(...)
 #endif
 
 #ifdef _DEBUG
 #define ECS_RUN ECS_SYSTEM; static void run
-#define ECS_RUN_IN_JOBS ECS_SYSTEM; static void run
+#define ECS_RUN_IN_JOBS ECS_SYSTEM_IN_JOBS; static void run
 #define ECS_RUN_T ECS_SYSTEM; template <typename _> static void run
 #else
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run

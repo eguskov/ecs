@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstCompDesc " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!q.have.empty())
@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstCompDesc " << i.name << "_components[] = {" << std::endl;
       for (const auto &p : i.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!i.have.empty())
@@ -709,7 +709,7 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
       out << "{\n";
-      out << "  jobmanager::add_job(query.entitiesCount, [&](int from, int count)\n";
+      out << "  auto job = jobmanager::add_job(query.entitiesCount, " << sys.chunkSize << ", [&](int from, int count)\n";
       out << "  {\n";
       out << "    auto begin = query.begin(from);\n";
       out << "    auto end = query.begin(from + count);\n";
@@ -722,7 +722,8 @@ int main(int argc, char* argv[])
       }
       out << ");\n";
       out << "  });\n";
-      out << "  jobmanager::do_and_wait_all_tasks_done();\n";
+      out << "  jobmanager::start_jobs();\n";
+      out << "  jobmanager::wait(job);\n";
       out << "}\n";
 
       out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",

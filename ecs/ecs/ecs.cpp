@@ -171,6 +171,7 @@ void EntityManager::init()
   {
     FILE *file = nullptr;
     ::fopen_s(&file, "data/templates.json", "rb");
+    ASSERT_FMT(file != nullptr, "data/templates.json not found!");
     if (file)
     {
       size_t sz = ::ftell(file);
@@ -241,6 +242,41 @@ void EntityManager::init()
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
+
+  systemDependencies.resize(systems.size());
+
+  for (int i = reg_sys_count - 1; i >= 0; --i)
+  {
+    auto &deps = systemDependencies[systems[i].desc->id];
+    for (int j = i - 1; j >= 0; --j)
+    {
+      // TODO: abort loop normaly instead of dry runs
+      bool found = false;
+      for (const auto &compI : systems[i].desc->queryDesc.components)
+        for (const auto &compJ : systems[j].desc->queryDesc.components)
+          if (!found && compI.name == compJ.name && (compJ.flags & CompDescFlags::kWrite))
+          {
+            // TODO: Check query intersection!!!
+            found = true;
+            deps.push_back(j);
+            break;
+          }
+    }
+  }
+
+  for (const auto &sys : systems)
+  {
+    DEBUG_LOG(sys.desc->name);
+    if (systemDependencies[sys.desc->id].empty())
+    {
+      DEBUG_LOG("  []");
+    }
+    else
+    {
+      for (int dep : systemDependencies[sys.desc->id])
+        DEBUG_LOG("  " << systems[dep].desc->name);
+    }
+  }
 
   queries.resize(reg_sys_count);
   for (const auto &sys : systems)
@@ -583,6 +619,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
 void EntityManager::tick()
 {
+  jobmanager::wait_all_jobs();
+
   bool shouldInvalidateQueries = false;
 
   while (!deleteQueue.empty())

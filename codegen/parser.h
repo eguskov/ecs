@@ -17,6 +17,8 @@ struct VisitorState
 
     int queryId = -1;
 
+    bool isRW = false;
+
     Parameter() = default;
   };
 
@@ -41,6 +43,7 @@ struct VisitorState
   {
     bool fromQuery = false;
     bool inJobs = false;
+    eastl::string chunkSize;
   };
 
   struct Query : Function

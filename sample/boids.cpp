@@ -206,6 +206,7 @@ struct render_boid
 
   ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float mass, float rotation)
   {
+    return;
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
     Rectangle rect = {frame.x, frame.y, frame.z, frame.w};
@@ -259,6 +260,8 @@ struct update_boid_position
 {
   QL_HAVE(boid);
 
+  ECS_JOBS_CHUNK_SIZE(256);
+
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
   {
     pos += vel * stage.dt;
@@ -268,6 +271,8 @@ struct update_boid_position
 struct update_boid_rotation
 {
   QL_HAVE(boid);
+
+  ECS_JOBS_CHUNK_SIZE(256);
 
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, float &rotation)
   {
@@ -279,6 +284,8 @@ struct update_boid_rotation
 struct update_boid_avoid_walls
 {
   QL_HAVE(boid);
+
+  ECS_JOBS_CHUNK_SIZE(256);
 
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
   {
@@ -304,6 +311,8 @@ struct update_boid_avoid_obstacle
 {
   QL_HAVE(boid);
 
+  ECS_JOBS_CHUNK_SIZE(256);
+
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &force)
   {
     BoidObstacle::foreach([&](BoidObstacle &&obstacle)
@@ -318,6 +327,8 @@ struct update_boid_avoid_obstacle
 struct update_boid_move_to_center
 {
   QL_HAVE(boid);
+
+  ECS_JOBS_CHUNK_SIZE(256);
 
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
   {
@@ -337,6 +348,8 @@ struct update_boid_wander
 {
   QL_HAVE(boid);
 
+  ECS_JOBS_CHUNK_SIZE(256);
+
   ECS_RUN_IN_JOBS(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &force, glm::vec2 &wander_vel, float &wander_timer)
   {
     wander_timer -= stage.dt;
@@ -351,6 +364,37 @@ struct update_boid_wander
     glm::vec2 steer = wander_vel - vel;
     if (glm::length(steer) > 0.f)
       force += glm::normalize(steer) * WANDER;
+  }
+};
+
+struct control_boid_velocity
+{
+  QL_HAVE(boid);
+
+  ECS_JOBS_CHUNK_SIZE(256);
+
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
+  {
+    if (glm::length(vel) == 0.f)
+    {
+      float rndX = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
+      float rndY = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
+      vel = glm::vec2(rndX, rndY);
+    }
+    vel = max_vel * glm::normalize(vel);
+  }
+};
+
+struct apply_boid_force
+{
+  QL_HAVE(boid);
+
+  ECS_JOBS_CHUNK_SIZE(256);
+
+  ECS_RUN_IN_JOBS(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
+  {
+    vel += force * (1.f / mass) * stage.dt;
+    force = glm::vec2(0.f, 0.f);
   }
 };
 
@@ -499,30 +543,3 @@ struct update_boid_wander
 //     }
 //   }
 // };
-
-struct control_boid_velocity
-{
-  QL_HAVE(boid);
-
-  ECS_RUN_IN_JOBS(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
-  {
-    if (glm::length(vel) == 0.f)
-    {
-      float rndX = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
-      float rndY = -1.f + (1.f - (-1.f)) * float(::rand())/float(RAND_MAX);
-      vel = glm::vec2(rndX, rndY);
-    }
-    vel = max_vel * glm::normalize(vel);
-  }
-};
-
-struct apply_boid_force
-{
-  QL_HAVE(boid);
-
-  ECS_RUN_IN_JOBS(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
-  {
-    vel += force * (1.f / mass) * stage.dt;
-    force = glm::vec2(0.f, 0.f);
-  }
-};

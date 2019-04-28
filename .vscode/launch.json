@@ -17,12 +17,12 @@
       "program": "${workspaceFolder}\\Debug\\sample.exe",
       "args": ["data/entities_boids.json"],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}\\sample",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
       // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
-      "visualizerFile": "${workspaceFolder}\\sample.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample\\sample.natvis"
     },
     {
       "name": "(Release) Boids",
@@ -31,12 +31,12 @@
       "program": "${workspaceFolder}\\Release\\sample.exe",
       "args": ["data/entities_boids.json"],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}\\sample",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build release",
       // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
-      "visualizerFile": "${workspaceFolder}\\sample.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample\\sample.natvis"
     },
     {
       "name": "(Debug) Sample",
@@ -45,12 +45,12 @@
       "program": "${workspaceFolder}\\Debug\\sample.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}\\sample",
       "environment": [],
       "externalConsole": true,
       "preLaunchTask": "build",
       // "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
-      "visualizerFile": "${workspaceFolder}\\sample.natvis"
+      "visualizerFile": "${workspaceFolder}\\sample\\sample.natvis"
     },
     {
       "name": "(Release) Sample",
@@ -110,14 +110,14 @@
       "request": "launch",
       "program": "${workspaceFolder}\\Debug\\codegen.exe",
       "args": [
-        "${workspaceFolder}\\..\\ecs\\sample\\codegen-test.cpp",
+        "..\\sample\\boids.cpp",
         "stop"
       ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}\\Debug",
       "environment": [],
       "externalConsole": true,
-      "preLaunchTask": "build",
+      // "preLaunchTask": "build",
       "visualizerFile": "${workspaceFolder}\\..\\ecs\\sample\\sample.natvis"
     },
     {

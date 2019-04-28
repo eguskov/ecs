@@ -123,11 +123,58 @@ struct PerfMeasure
   }
 };
 
+void plot()
+{
+  const int totalCount = 1000000;
+  const int step = 10000;
+
+  eastl::vector<Test> test;
+  test.resize(totalCount);
+
+  eastl::vector<Test> testJobManager;
+  testJobManager.resize(totalCount);
+
+  const float dt = 1.f / 60.f;
+
+  for (int cnt = step; cnt <= totalCount; cnt += step)
+  {
+    {
+      auto _s = std::chrono::high_resolution_clock::now();
+      for (int i = 0, sz = cnt; i < sz; ++i)
+        test[i].pos += test[i].vel * dt;
+      std::chrono::duration<double, std::milli> _diff = std::chrono::high_resolution_clock::now() - _s;
+      std::cout << cnt << ", " << _diff.count();
+    }
+
+    {
+      Test *testBegin = testJobManager.data();
+      auto task = [testBegin, dt](int from, int count)
+      {
+        auto b = testBegin + from;
+        auto e = b + count;
+        for (; b != e; ++b)
+          (*b).pos += (*b).vel * dt;
+      };
+
+      auto _s = std::chrono::high_resolution_clock::now();
+      jobmanager::add_job(cnt, 64, task);
+      jobmanager::wait_all_jobs();
+      std::chrono::duration<double, std::milli> _diff = std::chrono::high_resolution_clock::now() - _s;
+      std::cout << ", " << _diff.count();
+    }
+
+    std::cout << "\n";
+  }
+}
+
 int main()
 {
   using namespace std::chrono_literals;
 
   EntityManager::create();
+
+  plot();
+  return 0;
 
   const int count = 50000;
 
@@ -177,7 +224,7 @@ int main()
             (*b).pos += (*b).vel * dt;
           }
         });
-      jobmanager::do_and_wait_all_tasks_done();
+      jobmanager::wait_all_jobs();
       perf.stopMeasure();
     }
   }*/
@@ -225,7 +272,7 @@ int main()
       {
         perf.startMeasure();
         jobmanager::add_job(count, 1024, task);
-        jobmanager::do_and_wait_all_tasks_done();
+        jobmanager::wait_all_jobs();
         perf.stopMeasure();
       }
     }
@@ -268,7 +315,7 @@ int main()
     std::cout << "startJobQueues: " << jobmanager::get_stat().jm.startJobQueues << "ms" << "\n";
     std::cout << "doneJobsMutex: " << jobmanager::get_stat().jm.doneJobsMutex << "ms" << "\n";
     std::cout << "deleteJob: " << jobmanager::get_stat().jm.deleteJob << "ms" << "\n";
-    std::cout << "doAndWaitAllTasksDone: " << jobmanager::get_stat().jm.doAndWaitAllTasksDone << "ms" << "\n";
+    std::cout << "waitAllJobs: " << jobmanager::get_stat().jm.waitAllJobs << "ms" << "\n";
   }
 
   /*{
@@ -298,7 +345,7 @@ int main()
         perf.startMeasure();
         auto jobA = jobmanager::add_job(count / 2, 1024, taskA);
         auto jobB = jobmanager::add_job({ jobA }, count / 2, 1024, taskB);
-        jobmanager::do_and_wait_all_tasks_done();
+        jobmanager::wait_all_jobs();
         perf.stopMeasure();
       }
     }
@@ -351,7 +398,7 @@ int main()
               GET_COMPONENT(update_position, q, glm::vec3, vel),
               GET_COMPONENT(update_position, q, glm::vec3, pos));
         });
-      jobmanager::do_and_wait_all_tasks_done();
+      jobmanager::wait_all_jobs();
       perf.stopMeasure();
     }
   }

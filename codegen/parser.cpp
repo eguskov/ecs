@@ -143,6 +143,8 @@ void read_function_params(CXCursor cursor, T &parameters)
       p.type = to_string(clang_getTypeSpelling(clang_getCursorType(cursor)));
       p.pureType = std::regex_replace(p.type.c_str(), std::regex("(?:const|\\&|(?:\\s+))"), "").c_str();
 
+      p.isRW = p.type.find("&") != eastl::string::npos && p.type.find("const ") == eastl::string::npos;
+
       read_template_ref(cursor, p.templateRef);
     }
 
@@ -222,6 +224,8 @@ void read_struct_fields(CXCursor cursor, T &fields)
       p.name = to_string(clang_getCursorSpelling(cursor));
       p.type = to_string(clang_getTypeSpelling(clang_getCursorType(cursor)));
       p.pureType = std::regex_replace(p.type.c_str(), std::regex("(?:const|\\&|(?:\\s+))"), "").c_str();
+
+      p.isRW = p.type.find("&") != eastl::string::npos && p.type.find("const ") == eastl::string::npos;
 
       if (kind == CXCursor_VarDecl)
         p.value = read_string_literal(cursor);
@@ -453,6 +457,19 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       auto &s = state.systems.push_back();
       s.name = eastl::move(structName);
       s.inJobs = isSystemInJobs;
+
+      if (s.inJobs)
+      {
+        foreach_struct_decl(cursor, [&](CXCursor cursor, const eastl::string &name)
+        {
+          if (name == "ecs_jobs_chunk_size")
+          {
+            eastl::vector<VisitorState::Parameter> fields;
+            read_struct_fields(cursor, fields);
+            s.chunkSize = fields[0].value;
+          }
+        });
+      }
 
       CXCursor runCursor = find_method(cursor, "run");
       assert(!clang_equalCursors(runCursor, clang_getNullCursor()));

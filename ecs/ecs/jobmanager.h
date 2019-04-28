@@ -30,7 +30,7 @@ namespace jobmanager
       double startJobQueues = 0.0;
       double doneJobsMutex = 0.0;
       double deleteJob = 0.0;
-      double doAndWaitAllTasksDone = 0.0;
+      double waitAllJobs = 0.0;
     } jm;
 
     struct
@@ -86,7 +86,7 @@ namespace jobmanager
 
   void wait(const JobId &jid);
   void start_jobs();
-  void do_and_wait_all_tasks_done();
+  void wait_all_jobs();
 
   void reset_stat();
   const Stat& get_stat();

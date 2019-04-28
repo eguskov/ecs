@@ -22,7 +22,7 @@ TEST(JobManager, doAndWaitAllTasksDone)
   };
 
   jobmanager::add_job(count, 1024, task);
-  jobmanager::do_and_wait_all_tasks_done();
+  jobmanager::wait_all_jobs();
 
   for (int i = 0; i < count; ++i)
     EXPECT_EQ(i, data[i]);
@@ -67,11 +67,14 @@ TEST(JobManager, Dependencies)
 
   auto jobA1 = jobmanager::add_job(count/2, 16, taskA1);
   auto jobA2 = jobmanager::add_job(count/2, 16, taskA2);
+  jobmanager::start_jobs();
+
   auto jobA = jobmanager::add_job({ jobA1, jobA2 });
   jobmanager::start_jobs();
 
   auto jobB = jobmanager::add_job({ jobA }, count, 16, taskB);
-  jobmanager::do_and_wait_all_tasks_done();
+
+  jobmanager::wait_all_jobs();
 
   for (int i = 0; i < count; ++i)
     if (i < count / 2)
