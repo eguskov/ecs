@@ -537,6 +537,9 @@ struct JobManager
 
   JobId createJob(int items_count, int chunk_size, const jobmanager::callback_t &task, jobmanager::DependencyList &&dependencies = {})
   {
+    if (items_count <= 0)
+      return JobId {};
+
     std::lock_guard<std::mutex> lock(doneJobMutex);
 
     SCOPE_TIME(g_stat.jm.createJob);
@@ -553,7 +556,7 @@ struct JobManager
     {
       jobs.emplace_back();
       jobGenerations.push_back(0);
-      jobDependencies.push_back(eastl::move(dependencies));
+      jobDependencies.push_back({});
     }
 
     ++jobsCount;
@@ -562,6 +565,8 @@ struct JobManager
     j.itemsCount = items_count;
     j.chunkSize = chunk_size;
     j.task = task;
+
+    jobDependencies[freeIndex] = eastl::move(dependencies);
 
     JobId jid = make_jid(jobGenerations[freeIndex], freeIndex);
     jobsToStart.push_back(jid);
@@ -726,18 +731,12 @@ void jobmanager::release()
   g_jm = nullptr;
 }
 
-JobId jobmanager::add_job(int items_count, const callback_t &task)
-{
-  return add_job(items_count, 64, task);
-}
-
 JobId jobmanager::add_job(int items_count, int chunk_size, const callback_t &task)
 {
   if (items_count <= 0)
     return JobId{};
 
   ASSERT(g_jm != nullptr);
-  ASSERT(g_jm->tasksQueue.empty());
   ASSERT(chunk_size > 0);
 
   return g_jm->createJob(items_count, chunk_size, task);

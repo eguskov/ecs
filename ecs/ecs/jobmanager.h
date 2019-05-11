@@ -74,12 +74,10 @@ namespace jobmanager
   void init();
   void release();
 
-  // TODO: REMOVE THIS
-  JobId add_job(int items_count, const callback_t &task);
-
   JobId add_job(int items_count, int chunk_size, const callback_t &task);
   JobId add_job(const DependencyList &dependencies, int items_count, int chunk_size, const callback_t &task);
   JobId add_job(DependencyList &&dependencies, int items_count, int chunk_size, const callback_t &task);
+  // TODO: add_job(..., callback_t &&task)
 
   JobId add_job(const DependencyList &dependencies);
   JobId add_job(DependencyList &&dependencies);
