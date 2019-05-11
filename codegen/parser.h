@@ -43,6 +43,7 @@ struct VisitorState
   {
     bool fromQuery = false;
     bool inJobs = false;
+    bool addJobs = false;
     eastl::string chunkSize;
   };
 

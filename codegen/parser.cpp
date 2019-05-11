@@ -471,6 +471,9 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
         });
       }
 
+      CXCursor addJobsCursor = find_method(cursor, "addJobs");
+      s.addJobs = !clang_equalCursors(addJobsCursor, clang_getNullCursor());
+
       CXCursor runCursor = find_method(cursor, "run");
       assert(!clang_equalCursors(runCursor, clang_getNullCursor()));
 

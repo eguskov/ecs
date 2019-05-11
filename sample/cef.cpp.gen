@@ -72,37 +72,42 @@ static constexpr ConstQueryDesc cef_toggle_webui_handler_query_desc = {
 
 static void cef_ready_handler_run(const RawArg &stage_or_event, Query &query)
 {
+  wait_system_dependencies(HASH("cef_ready_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     cef_ready_handler::run(*(CEFEventOnReady*)stage_or_event.mem);
 }
-static RegSys _reg_sys_cef_ready_handler("cef_ready_handler", &cef_ready_handler_run, "CEFEventOnReady", cef_ready_handler_query_desc, nullptr);
+static RegSys _reg_sys_cef_ready_handler(HASH("cef_ready_handler"), &cef_ready_handler_run, "CEFEventOnReady", cef_ready_handler_query_desc, nullptr);
 
 static void cef_after_created_handler_run(const RawArg &stage_or_event, Query &query)
 {
+  wait_system_dependencies(HASH("cef_after_created_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     cef_after_created_handler::run(*(CEFEventOnAfterCreated*)stage_or_event.mem);
 }
-static RegSys _reg_sys_cef_after_created_handler("cef_after_created_handler", &cef_after_created_handler_run, "CEFEventOnAfterCreated", cef_after_created_handler_query_desc, nullptr);
+static RegSys _reg_sys_cef_after_created_handler(HASH("cef_after_created_handler"), &cef_after_created_handler_run, "CEFEventOnAfterCreated", cef_after_created_handler_query_desc, nullptr);
 
 static void cef_click_outside_handler_run(const RawArg &stage_or_event, Query &query)
 {
+  wait_system_dependencies(HASH("cef_click_outside_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     cef_click_outside_handler::run(*(cef::EventOnClickOutside*)stage_or_event.mem);
 }
-static RegSys _reg_sys_cef_click_outside_handler("cef_click_outside_handler", &cef_click_outside_handler_run, "cef::EventOnClickOutside", cef_click_outside_handler_query_desc, nullptr);
+static RegSys _reg_sys_cef_click_outside_handler(HASH("cef_click_outside_handler"), &cef_click_outside_handler_run, "cef::EventOnClickOutside", cef_click_outside_handler_query_desc, nullptr);
 
 static void cef_toggle_dev_tools_handler_run(const RawArg &stage_or_event, Query &query)
 {
+  wait_system_dependencies(HASH("cef_toggle_dev_tools_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     cef_toggle_dev_tools_handler::run(*(cef::CmdToggleDevTools*)stage_or_event.mem);
 }
-static RegSys _reg_sys_cef_toggle_dev_tools_handler("cef_toggle_dev_tools_handler", &cef_toggle_dev_tools_handler_run, "cef::CmdToggleDevTools", cef_toggle_dev_tools_handler_query_desc, nullptr);
+static RegSys _reg_sys_cef_toggle_dev_tools_handler(HASH("cef_toggle_dev_tools_handler"), &cef_toggle_dev_tools_handler_run, "cef::CmdToggleDevTools", cef_toggle_dev_tools_handler_query_desc, nullptr);
 
 static void cef_toggle_webui_handler_run(const RawArg &stage_or_event, Query &query)
 {
+  wait_system_dependencies(HASH("cef_toggle_webui_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     cef_toggle_webui_handler::run(*(cef::CmdToggleWebUI*)stage_or_event.mem);
 }
-static RegSys _reg_sys_cef_toggle_webui_handler("cef_toggle_webui_handler", &cef_toggle_webui_handler_run, "cef::CmdToggleWebUI", cef_toggle_webui_handler_query_desc, nullptr);
+static RegSys _reg_sys_cef_toggle_webui_handler(HASH("cef_toggle_webui_handler"), &cef_toggle_webui_handler_run, "cef::CmdToggleWebUI", cef_toggle_webui_handler_query_desc, nullptr);
 
 #endif // __CODEGEN__

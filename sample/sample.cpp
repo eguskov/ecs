@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   camera.target = Vector2{ hw, hh };
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
-  camera.zoom = 0.20f;
+  camera.zoom = 0.15f /* 0.5f */;
 
   const char *entitiesFilename = "data/entities.json";
   if (argc > 1)
@@ -233,17 +233,21 @@ int main(int argc, char *argv[])
     }
 
     if (IsKeyPressed(KEY_Q))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{10.0f});
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{50.0f});
     if (IsKeyPressed(KEY_A))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-10.0f});
+      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-50.0f});
     if (IsKeyPressed(KEY_W))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{10.0f});
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{50.0f});
     if (IsKeyPressed(KEY_S))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-10.0f});
+      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-50.0f});
     if (IsKeyPressed(KEY_E))
-      g_mgr->sendEventBroadcast(EventOnChangeWander{10.0f});
+      g_mgr->sendEventBroadcast(EventOnChangeSeparation{50.0f});
     if (IsKeyPressed(KEY_D))
-      g_mgr->sendEventBroadcast(EventOnChangeWander{-0.25f});
+      g_mgr->sendEventBroadcast(EventOnChangeSeparation{-50.0f});
+    if (IsKeyPressed(KEY_R))
+      g_mgr->sendEventBroadcast(EventOnChangeWander{50.0f});
+    if (IsKeyPressed(KEY_F))
+      g_mgr->sendEventBroadcast(EventOnChangeWander{-50.0f});
 
     if (totalTime > nextResetMinMax)
     {
@@ -257,6 +261,9 @@ int main(int argc, char *argv[])
 
     double t = GetTime();
     g_mgr->tick();
+    // Clear FrameMem here because it might be used for Jobs
+    // This is valid until all jobs live one frame
+    clear_frame_mem();
 
     const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f / 60.f);
     g_mgr->tick(UpdateStage{ dt, totalTime });
@@ -302,8 +309,6 @@ int main(int argc, char *argv[])
       cef::update();
 
     webui::update();
-
-    clear_frame_mem();
   }
 
   webui::release();

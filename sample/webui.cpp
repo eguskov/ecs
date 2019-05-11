@@ -598,7 +598,7 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
 
       bson_array_of_documents(bson, "systems", g_mgr->systems, [&](int, const System &sys)
       {
-        bson.add("name", sys.desc->name);
+        bson.add("name", sys.desc->name.str);
 
         bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstCompDesc &comp)
         {

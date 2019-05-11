@@ -39,12 +39,11 @@
     "update_player_collisions",
     "update_physics",
     "update_kinematic_physics_body",
+    "copy_boid_state",
     "update_boid_avoid_walls",
     "update_boid_avoid_obstacle",
     "update_boid_wander",
-    "update_boid_separation",
-    "update_boid_alignment",
-    "update_boid_cohesion",
+    "update_boid_rules",
     "update_boid_move_to_center",
     "apply_boid_force",
     "control_boid_velocity",
@@ -77,6 +76,7 @@
     "on_click_left_control_handler_boid",
     "on_change_cohesion_handler_boid",
     "on_change_alignment_handler_boid",
+    "on_change_separation_handler_boid",
     "on_change_wander_handler_boid"
   ],
   "$templates$v1": [
@@ -1401,6 +1401,10 @@
           "$type": "vec2",
           "$value": [0, 0]
         },
+        "cur_pos": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
         "vel": {
           "$type": "vec2",
           "$value": [0, 0]
@@ -1410,6 +1414,10 @@
           "$value": [0, 0]
         },
         "rotation": {
+          "$type": "float",
+          "$value": 0.0
+        },
+        "cur_rotation": {
           "$type": "float",
           "$value": 0.0
         },
@@ -1433,7 +1441,27 @@
           "$type": "float",
           "$value": 150.0
         },
-        "flock_center": {
+        "cur_separation_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "separation_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "cur_cohesion_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "cohesion_center": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "cur_alignment_dir": {
+          "$type": "vec2",
+          "$value": [0, 0]
+        },
+        "alignment_dir": {
           "$type": "vec2",
           "$value": [0, 0]
         },

@@ -40,6 +40,14 @@ struct EventOnChangeAlignment : Event
 }
 DEF_EVENT(EventOnChangeAlignment);
 
+struct EventOnChangeSeparation : Event
+{
+  float delta = 0.f;
+  EventOnChangeSeparation() = default;
+  EventOnChangeSeparation(const float &d) : delta(d) {}
+}
+DEF_EVENT(EventOnChangeSeparation);
+
 struct EventOnChangeWander : Event
 {
   float delta = 0.f;

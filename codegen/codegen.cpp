@@ -430,6 +430,7 @@ int main(int argc, char* argv[])
     decltype(state.systems) systemsGroupBy;
     decltype(state.systems) systemsQueryIterable;
     decltype(state.systems) systemsInternalQueryInJobs;
+    decltype(state.systems) systemsAddJobs;
 
     for (const auto &sys : state.systems)
     {
@@ -454,6 +455,8 @@ int main(int argc, char* argv[])
       }
       else if (sys.inJobs)
         systemsInternalQueryInJobs.push_back(sys);
+      else if (sys.addJobs)
+        systemsAddJobs.push_back(sys);
       else
         systemsInternalQuery.push_back(sys);
     }
@@ -470,6 +473,9 @@ int main(int argc, char* argv[])
       out << fmt::format("  Query &query = *g_mgr->getQueryByName(HASH(\"{basename}_{query}\"));\n",
         fmt::arg("basename", basename),
         fmt::arg("query", query.name));
+      
+      out << "  if (query.entitiesCount <= 0)\n";
+      out << "    return;\n";
 
       out << fmt::format("  {system}::run(*({stage}*)stage_or_event.mem, QueryIterable<{query}, {query}Builder>(query));\n",
         fmt::arg("system", sys.name),
@@ -478,8 +484,9 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {query}_query_desc, RegSys::Mode::FROM_EXTERNAL_QUERY);\n\n",
         fmt::arg("system", sys.name),
+        fmt::arg("query", query.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
 
@@ -492,6 +499,8 @@ int main(int argc, char* argv[])
 
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
+
+      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << fmt::format("  Index &index = *g_mgr->getIndexByName(HASH(\"{basename}_{index}\"));\n",
         fmt::arg("basename", basename),
@@ -506,7 +515,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -519,6 +528,8 @@ int main(int argc, char* argv[])
 
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
+
+      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << "  Index &index = *g_mgr->getIndexByName(HASH(\"" << basename << "_" << index.name << "\"));\n";
 
@@ -587,7 +598,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -596,6 +607,8 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
+
+      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
 
@@ -650,7 +663,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -663,6 +676,8 @@ int main(int argc, char* argv[])
 
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
+
+      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
@@ -679,7 +694,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -688,7 +703,7 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
       out << "{\n";
-
+      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
@@ -699,7 +714,7 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
@@ -726,7 +741,36 @@ int main(int argc, char* argv[])
       out << "  jobmanager::wait(job);\n";
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(\"{system}\", &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
+    }
+
+    for (const auto &sys : systemsAddJobs)
+    {
+      out << fmt::format("static void {system}_add_jobs(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+      out << "  const int systemId = g_mgr->getSystemId(HASH(\"" << sys.name << "\"));\n";
+      out << "  auto stage = *(" << sys.parameters[0].pureType << "*)stage_or_event.mem;\n";
+      out << "  jobmanager::callback_t task = [&query, stage](int from, int count)\n";
+      out << "  {\n";
+      out << "    auto begin = query.begin(from);\n";
+      out << "    auto end = query.begin(from + count);\n";
+      out << "    for (auto q = begin, e = end; q != e; ++q)\n";
+      out << "      " << sys.name << "::run(stage";
+      for (int i = 1; i < (int)sys.parameters.size(); ++i)
+      {
+        const auto &p = sys.parameters[i];
+        out << ",\n        GET_COMPONENT(" << sys.name << ", q, " << p.pureType << ", " << p.name << ")";
+      }
+      out << ");\n";
+      out << "  };\n";
+      out << "  g_mgr->systemJobs[systemId] = " << sys.name << "::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);\n";
+      out << "  jobmanager::start_jobs();\n";
+      out << "}\n";
+
+      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));

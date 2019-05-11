@@ -20,6 +20,9 @@ int RegCompSpec<EventOnChangeCohesion>::ID = -1;
 static RegCompSpec<EventOnChangeAlignment> _reg_event_EventOnChangeAlignment;
 int RegCompSpec<EventOnChangeAlignment>::ID = -1;
 
+static RegCompSpec<EventOnChangeSeparation> _reg_event_EventOnChangeSeparation;
+int RegCompSpec<EventOnChangeSeparation>::ID = -1;
+
 static RegCompSpec<EventOnChangeWander> _reg_event_EventOnChangeWander;
 int RegCompSpec<EventOnChangeWander>::ID = -1;
 
