@@ -146,6 +146,8 @@ struct QueryDesc
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
 
+  eastl::vector<int> archetypes;
+
   // TODO: Remove
   eastl::vector<int> joinQueries;
   eastl::vector<QueryLink> joinLinks;
@@ -341,8 +343,20 @@ struct Query
       return chunk.beginData + idx * chunk.elemSize;
     }
 
+    uint8_t* getRaw(int comp_idx) const
+    {
+      auto &chunk = chunks[comp_idx + chunkIdx * componentsCount];
+      return chunk.beginData + idx * chunk.elemSize;
+    }
+
     template<typename T>
     T& get(int comp_idx)
+    {
+      return *(T*)getRaw(comp_idx);
+    }
+
+    template<typename T>
+    T& get(int comp_idx) const
     {
       return *(T*)getRaw(comp_idx);
     }
@@ -364,11 +378,18 @@ struct Query
 
     inline void advance(int offset)
     {
-      idx = offset;
+      idx += offset;
       while (idx >= entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
         idx -= entitiesInChunk[chunkIdx];
         ++chunkIdx;
       }
+    }
+
+    inline AllIterator operator+(int offset) const
+    {
+      AllIterator it(*this);
+      it.advance(offset);
+      return it;
     }
   };
 
@@ -601,14 +622,14 @@ struct StructBuilder
   template <typename T>
   struct helper
   {
-    static inline typename T::Type& get(Query::AllIterator &iter)
+    static inline typename T::Type& get(const Query::AllIterator &iter)
     {
       return iter.get<typename T::Type>(T::index);
     }
   };
 
   template <typename Struct>
-  static inline Struct build(Query::AllIterator &iter)
+  static inline Struct build(const Query::AllIterator &iter)
   {
     return { helper<Head>::get(iter), helper<Tail>::get(iter)... };
   }
@@ -645,9 +666,14 @@ struct QueryIterable
     return QueryIterable(last, last);
   }
 
-  inline T&& operator*()
+  static inline T deref(const Query::AllIterator &it)
   {
-    return eastl::move(typename Builder::template build<T>(first));
+    return typename Builder::template build<T>(it);
+  }
+
+  inline T operator*()
+  {
+    return deref(first);
   }
 
   inline void operator++()

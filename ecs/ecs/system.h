@@ -83,10 +83,12 @@ struct EntityManager;
 #define ECS_RUN ECS_SYSTEM; static void run
 #define ECS_RUN_IN_JOBS ECS_SYSTEM_IN_JOBS; static void run
 #define ECS_RUN_T ECS_SYSTEM; template <typename _> static void run
+#define ECS_ADD_JOBS static jobmanager::JobId addJobs
 #else
 #define ECS_RUN ECS_SYSTEM; static __forceinline void run
 #define ECS_RUN_IN_JOBS ECS_SYSTEM_IN_JOBS; static __forceinline void run
 #define ECS_RUN_T ECS_SYSTEM; template <typename _> static __forceinline void run
+#define ECS_ADD_JOBS static __forceinline jobmanager::JobId addJobs
 #endif
 
 #define INDEX_OF_COMPONENT(query, component) eastl::integral_constant<int, index_of_component<_countof(query##_components)>::get(HASH(#component), query##_components)>::value
@@ -120,7 +122,7 @@ struct RegSys
   enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
   using SystemCallback = void (*)(const RawArg &stage_or_event, Query&);
 
-  char *name = nullptr;
+  ConstHashedString name;
   char *stageName = nullptr;
 
   int id = -1;
@@ -137,21 +139,24 @@ struct RegSys
   ConstQueryDesc queryDesc;
   SystemCallback sys = nullptr;
 
-  RegSys(const char *_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, filter_t &&f = nullptr) : id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
+  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, filter_t &&f = nullptr) : name(_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
   {
     next = reg_sys_head;
     reg_sys_head = this;
     ++reg_sys_count;
 
-    if (_name)
-      name = ::_strdup(_name);
     if (stage_name)
       stageName = ::_strdup(stage_name);
   }
 
-  RegSys(const char *_name, SystemCallback _sys, const char *stage_name) : RegSys(_name, _sys, stage_name, empty_query_desc)
+  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name) : RegSys(_name, _sys, stage_name, empty_query_desc)
   {
     mode = Mode::FROM_EXTERNAL_QUERY;
+  }
+
+  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, Mode _mode) : RegSys(_name, _sys, stage_name, query_desc)
+  {
+    mode = _mode;
   }
 
   virtual ~RegSys();
@@ -167,4 +172,4 @@ enum class ValueType
   kComponent
 };
 
-const RegSys *find_sys(const char *name);
+const RegSys *find_sys(const ConstHashedString &name);

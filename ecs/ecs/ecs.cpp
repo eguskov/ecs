@@ -1,6 +1,5 @@
 #include "ecs.h"
 
-#include "jobmanager.h"
 #include "stages/dispatchEvent.stage.h"
 
 #include <sstream>
@@ -23,20 +22,34 @@ int reg_query_count = 0;
 RegIndex *reg_index_head = nullptr;
 int reg_index_count = 0;
 
+inline static bool has_components(const Archetype &type, const eastl::vector<CompDesc> &components)
+{
+  for (const auto &c : components)
+    if (!type.hasCompontent(c.name))
+      return false;
+  return true;
+}
+
+inline static bool not_have_components(const Archetype &type, const eastl::vector<CompDesc> &components)
+{
+  for (const auto &c : components)
+    if (type.hasCompontent(c.name))
+      return false;
+  return true;
+}
+
 RegSys::~RegSys()
 {
-  if (name)
-    ::free(name);
   if (stageName)
     ::free(stageName);
 }
 
-const RegSys *find_sys(const char *name)
+const RegSys *find_sys(const ConstHashedString &name)
 {
   const RegSys *head = reg_sys_head;
   while (head)
   {
-    if (::strcmp(head->name, name) == 0)
+    if (head->name == name)
       return head;
     head = head->next;
   }
@@ -230,6 +243,8 @@ void EntityManager::init()
     }
   }
 
+  systemDescs.resize(reg_sys_count);
+
   for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
   {
     ASSERT(sys->sys != nullptr);
@@ -237,46 +252,12 @@ void EntityManager::init()
     const_cast<RegSys*>(sys)->stageId = find_comp(sys->stageName)->id;
     ASSERT(sys->stageId >= 0);
 
+    systemDescs[sys->id] = sys;
     systems.push_back({ getSystemWeight(sys->name), sys });
   }
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
-
-  systemDependencies.resize(systems.size());
-
-  for (int i = reg_sys_count - 1; i >= 0; --i)
-  {
-    auto &deps = systemDependencies[systems[i].desc->id];
-    for (int j = i - 1; j >= 0; --j)
-    {
-      // TODO: abort loop normaly instead of dry runs
-      bool found = false;
-      for (const auto &compI : systems[i].desc->queryDesc.components)
-        for (const auto &compJ : systems[j].desc->queryDesc.components)
-          if (!found && compI.name == compJ.name && (compJ.flags & CompDescFlags::kWrite))
-          {
-            // TODO: Check query intersection!!!
-            found = true;
-            deps.push_back(j);
-            break;
-          }
-    }
-  }
-
-  for (const auto &sys : systems)
-  {
-    DEBUG_LOG(sys.desc->name);
-    if (systemDependencies[sys.desc->id].empty())
-    {
-      DEBUG_LOG("  []");
-    }
-    else
-    {
-      for (int dep : systemDependencies[sys.desc->id])
-        DEBUG_LOG("  " << systems[dep].desc->name);
-    }
-  }
 
   queries.resize(reg_sys_count);
   for (const auto &sys : systems)
@@ -286,8 +267,82 @@ void EntityManager::init()
     q.sysId = sys.desc->id;
     q.desc = sys.desc->queryDesc;
     q.desc.filter = sys.desc->filter;
-    q.name = hash_str(sys.desc->name);
+    q.name = sys.desc->name;
     ASSERT_FMT(q.desc.isValid() || sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
+
+    for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
+    {
+      const auto &type = archetypes[archetypeId];
+      if (not_have_components(type, q.desc.notHaveComponents) &&
+          has_components(type, q.desc.components) &&
+          has_components(type, q.desc.haveComponents) &&
+          has_components(type, q.desc.isTrueComponents) &&
+          has_components(type, q.desc.isFalseComponents))
+      {
+        q.desc.archetypes.push_back(archetypeId);
+      }
+    }
+  }
+
+  systemJobs.resize(systems.size());
+  systemDependencies.resize(systems.size());
+
+  for (int i = reg_sys_count - 1; i >= 0; --i)
+  {
+    const auto &qI = queries[systems[i].desc->id];
+    const auto &compsI = systems[i].desc->queryDesc.components;
+    auto &deps = systemDependencies[systems[i].desc->id];
+
+    for (int j = i - 1; j >= 0; --j)
+    {
+      const auto &qJ = queries[systems[j].desc->id];
+
+      // TODO: abort loop normaly instead of dry runs
+
+      bool found = false;
+      for (int archI : qI.desc.archetypes)
+        for (int archJ : qJ.desc.archetypes)
+          if (!found && archI == archJ)
+          {
+            found = true;
+            break;
+          }
+
+      if (!found)
+        continue;
+
+      found = false;
+      for (const auto &compI : compsI)
+        for (const auto &compJ : systems[j].desc->queryDesc.components)
+          if (!found && compI.name == compJ.name && ((compJ.flags & CompDescFlags::kWrite) || (compI.flags & CompDescFlags::kWrite)))
+          {
+            // TODO: Check query intersection!!!
+            found = true;
+            deps.push_back(systems[j].desc->id);
+            break;
+          }
+    }
+  }
+
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
+  {
+    DEBUG_LOG(systems[i].desc->name.str);
+    if (systemDependencies[systems[i].desc->id].empty())
+    {
+      DEBUG_LOG("  []");
+    }
+    else
+    {
+      for (int dep : systemDependencies[systems[i].desc->id])
+        DEBUG_LOG("  " << systemDescs[dep]->name.str);
+    }
+  }
+
+  for (auto &sys : systems)
+  {
+    auto &q = queries[sys.desc->id];
+    if (sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY)
+      q.desc = empty_query_desc;
   }
 
   for (const auto &sys : systems)
@@ -326,9 +381,32 @@ void EntityManager::init()
   }
 }
 
-int EntityManager::getSystemWeight(const char *name) const
+int EntityManager::getSystemId(const ConstHashedString &name) const
 {
-  auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name; });
+  for (int i = 0, sz = systemDescs.size(); i < sz; ++i)
+    if (systemDescs[i]->name == name)
+      return systemDescs[i]->id;
+  return -1;
+}
+
+jobmanager::DependencyList EntityManager::getSystemDependencyList(int id) const
+{
+  jobmanager::DependencyList deps;
+  for (int d : g_mgr->systemDependencies[id])
+    if (g_mgr->systemJobs[d])
+      deps.push_back(g_mgr->systemJobs[d]);
+  return eastl::move(deps);
+}
+
+void EntityManager::waitSystemDependencies(int id) const
+{
+  for (int d : g_mgr->systemDependencies[id])
+    jobmanager::wait(g_mgr->systemJobs[d]);
+}
+
+int EntityManager::getSystemWeight(const ConstHashedString &name) const
+{
+  auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name.str; });
   ASSERT_FMT(res != order.end(), "System '%s' must be added to $order!", name);
   return (int)(res - order.begin());
 }
@@ -621,6 +699,9 @@ void EntityManager::tick()
 {
   jobmanager::wait_all_jobs();
 
+  for (auto &job : g_mgr->systemJobs)
+    job = jobmanager::JobId{};
+
   bool shouldInvalidateQueries = false;
 
   while (!deleteQueue.empty())
@@ -776,22 +857,6 @@ int Archetype::getComponentIndex(const HashedString &name) const
 int Archetype::getComponentIndex(const ConstHashedString &name) const
 {
   return getComponentIndex(HashedString(name));
-}
-
-inline static bool has_components(const Archetype &type, const eastl::vector<CompDesc> &components)
-{
-  for (const auto &c : components)
-    if (!type.hasCompontent(c.name))
-      return false;
-  return true;
-}
-
-inline static bool not_have_components(const Archetype &type, const eastl::vector<CompDesc> &components)
-{
-  for (const auto &c : components)
-    if (type.hasCompontent(c.name))
-      return false;
-  return true;
 }
 
 template <typename T>
@@ -1049,10 +1114,7 @@ void EntityManager::tickStage(int stage_id, const RawArg &stage)
 
   for (const auto &sys : systems)
     if (sys.desc->stageId == stage_id)
-    {
-      auto &query = queries[sys.desc->id];
-      sys.desc->sys(stage, query);
-    }
+      sys.desc->sys(stage, queries[sys.desc->id]);
 
   checkFrameSnapshot(snapshot);
 }

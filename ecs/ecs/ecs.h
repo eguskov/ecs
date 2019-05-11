@@ -18,6 +18,8 @@
 
 #include "components/core.h"
 
+#include "jobmanager.h"
+
 #define ECS_PULL(type) static int pull_##type = RegCompSpec<type>::ID;
 #define PULL_ESC_CORE ECS_PULL(bool);
 
@@ -169,7 +171,9 @@ struct EntityManager
   eastl::vector<Entity> entities;
   eastl::hash_map<HashedString, const RegComp*> componentDescByNames;
   eastl::vector<System> systems;
+  eastl::vector<const RegSys*> systemDescs;
   eastl::vector<eastl::vector<int>> systemDependencies;
+  eastl::vector<jobmanager::JobId> systemJobs;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Query> queries;
   eastl::vector<Query> namedQueries;
@@ -192,7 +196,11 @@ struct EntityManager
 
   void init();
 
-  int getSystemWeight(const char *name) const;
+  int getSystemId(const ConstHashedString &name) const;
+  jobmanager::DependencyList getSystemDependencyList(int id) const;
+  void waitSystemDependencies(int id) const;
+
+  int getSystemWeight(const ConstHashedString &name) const;
   const RegComp* getComponentDescByName(const char *name) const;
   const RegComp* getComponentDescByName(const HashedString &name) const;
   const RegComp* getComponentDescByName(const ConstHashedString &name) const;
@@ -277,3 +285,6 @@ struct EntityManager
 };
 
 extern EntityManager *g_mgr;
+
+inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(g_mgr->getSystemId(name)); }
+inline void wait_system_dependencies(int system_id) { g_mgr->waitSystemDependencies(system_id); }

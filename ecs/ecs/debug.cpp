@@ -3,10 +3,14 @@
 #ifdef _DEBUG
 #include <windows.h>
 
+#include <mutex>
 #include <sstream>
+
+static std::mutex g_assert_mutex;
 
 bool assert_handler(const char *message, const char *file, int line)
 {
+  std::lock_guard<std::mutex> lock(g_assert_mutex);
   // TODO: Write to log
 
   std::ostringstream oss;
@@ -25,6 +29,7 @@ bool assert_handler(const char *message, const char *file, int line)
 
 void fatal_handler(const char *message)
 {
+  std::lock_guard<std::mutex> lock(g_assert_mutex);
   // TODO: Write to log
 
   ::MessageBox(NULL, message, "FATAL", MB_OK | MB_ICONERROR);
