@@ -3,31 +3,7 @@
     {
       "name": "Win32",
       "includePath": [
-        "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/include",
-        "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/atlmfc/include",
-        "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/VS/include",
-        "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/VS/UnitTest/include",
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt",
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/um",
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/shared",
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/winrt",
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/cppwinrt",
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/script",
-        "${workspaceFolder}/libs/glm",
-        "${workspaceFolder}/libs/angelscript/angelscript/include",
-        "${workspaceFolder}/libs/angelscript/add_on",
-        "${workspaceFolder}/libs/raylib/src",
-        "${workspaceFolder}/libs/rapidjson/include",
-        "${workspaceFolder}/libs/EASTL/include",
-        "${workspaceFolder}/libs/EASTL/test/packages/EABase/include/Common",
-        "${workspaceFolder}/libs/mongoose",
-        "${workspaceFolder}/libs/jemalloc/include",
-        "${workspaceFolder}/libs/jemalloc/include/msvc_compat",
-        "${workspaceFolder}/libs/raylib/src/external/glfw/include",
-        "${workspaceFolder}/libs/cef",
-        "${workspaceFolder}/libs/Box2D",
-        "${workspaceFolder}/libs/log4cplus/include"
+        "${workspaceFolder}/**"
       ],
       "defines": [
         "_DEBUG",
@@ -39,10 +15,6 @@
       "intelliSenseMode": "msvc-x64",
       "browse": {
         "path": [
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/um",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/shared",
-          "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/winrt",
           "${workspaceRoot}"
         ],
         "limitSymbolsToIncludedHeaders": true,
