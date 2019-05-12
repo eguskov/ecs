@@ -19,6 +19,7 @@
 // TODO: Optimize memory usage with containers
 // TODO: More optimizations
 
+#define SQUASH_TASKS 0
 #define USE_OS_EVENTS 1
 
 #if USE_OS_EVENTS
@@ -316,6 +317,7 @@ struct JobManager
 
           auto lastJobId = currentTasksIter->jid;
           for (auto taskIt = currentTasksIter + 1, taskEndIt = currentTasksIter + tasksCount; taskIt != taskEndIt; ++taskIt)
+            #if SQUASH_TASKS
             if (taskIt->jid == lastJobId)
             {
               Task &curTask = squashedTasks.back();
@@ -327,6 +329,9 @@ struct JobManager
               lastJobId = taskIt->jid;
               squashedTasks.push_back(*taskIt);
             }
+            #else
+            squashedTasks.push_back(*taskIt);
+            #endif
 
           for (const auto &task : squashedTasks)
             for (auto &job : jm->currentJobs)
