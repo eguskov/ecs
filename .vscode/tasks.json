@@ -196,6 +196,7 @@
       "label": "test",
       "type": "shell",
       "command": "${workspaceRoot}\\Debug\\tests.exe",
+      "options": {"cwd": "${workspaceRoot}\\tests"},
       "args": [
       ],
       "group": {
