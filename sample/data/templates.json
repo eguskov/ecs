@@ -1389,14 +1389,6 @@
           "$type": "tag",
           "$value": {}
         },
-        "grid_cell": {
-          "$type": "int",
-          "$value": -1
-        },
-        "small_grid_cell": {
-          "$type": "int",
-          "$value": -1
-        },
         "pos": {
           "$type": "vec2",
           "$value": [0, 0]
@@ -1488,10 +1480,6 @@
         "boid_obstacle": {
           "$type": "tag",
           "$value": {}
-        },
-        "grid_cell": {
-          "$type": "int",
-          "$value": -1
         },
         "pos": {
           "$type": "vec2",
