@@ -561,7 +561,7 @@ void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
 {
   ASSERT(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
   asyncValues.emplace_back(eid, std::move(value));
-  if (eid.generation == entities[eid.index].eid.generation)
+  if (eid.generation == entityGenerations[eid.index])
     entities[eid.index].ready = false;
 }
 
@@ -643,12 +643,17 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
     freeEntityQueue.pop_front();
   }
 
-  auto &e = freeIndex >= 0 ? entities[freeIndex] : entities.emplace_back();
   if (freeIndex < 0)
   {
-    e.eid.generation = 0;
-    e.eid.index = entities.size() - 1;
+    freeIndex = entities.size();
+    entities.emplace_back();
+    entityGenerations.push_back(0);
   }
+
+  EntityId eid = make_eid(entityGenerations[freeIndex], freeIndex);
+
+  auto &e = entities[freeIndex];
+
   e.templateId = templateId;
   e.archetypeId = templ.archetypeId;
   e.ready = true;
@@ -675,14 +680,14 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
     uint8_t *mem = nullptr;
     int offset = 0;
     eastl::tie(mem, offset) = type.storages.back()->allocate();
-    new (mem) EntityId(e.eid);
+    new (mem) EntityId(eid);
 
     e.indexInArchetype = offset / sizeof(EntityId);
   }
 
-  sendEventSync(e.eid, EventOnEntityCreate{});
+  sendEventSync(eid, EventOnEntityCreate{});
 
-  return e.eid;
+  return eid;
 }
 
 void EntityManager::tick()
@@ -699,7 +704,7 @@ void EntityManager::tick()
     EntityId eid = deleteQueue.front();
 
     auto &entity = entities[eid.index];
-    if (eid.generation == entity.eid.generation)
+    if (eid.generation == entityGenerations[eid.index])
     {
       shouldInvalidateQueries = true;
 
@@ -720,7 +725,7 @@ void EntityManager::tick()
       --entitiesCount;
       --type.entitiesCount;
 
-      entity.eid.generation = (entity.eid.generation + 1) % EntityId::GENERATION_LIMIT;
+      entityGenerations[eid.index] = (eid.generation + 1) % EntityId::GENERATION_LIMIT;
       entity.ready = false;
       entity.indexInArchetype = -1;
 
@@ -750,7 +755,7 @@ void EntityManager::tick()
     {
       shouldInvalidateQueries = true;
 
-      if (v.eid.generation == entities[v.eid.index].eid.generation)
+      if (v.eid.generation == entityGenerations[v.eid.index])
       {
         entities[v.eid.index].ready = ready;
         sendEventSync(v.eid, EventOnEntityReady{});
@@ -1111,7 +1116,7 @@ void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
 
 void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
 {
-  if (eid.generation != entities[eid.index].eid.generation)
+  if (eid.generation != entityGenerations[eid.index])
     return;
 
   auto &e = entities[eid.index];

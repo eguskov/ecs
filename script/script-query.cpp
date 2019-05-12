@@ -68,7 +68,7 @@ asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl:
   asIScriptObject *object = nullptr;
   callValue<asIScriptObject*>([&](asIScriptObject **obj) { object = *obj; object->AddRef(); }, fn);
 
-  assert(eid.generation == g_mgr->entities[eid.index].eid.generation);
+  assert(eid.generation == g_mgr->entityGenerations[eid.index]);
 
   const auto &entity = g_mgr->entities[eid.index];
   auto &archetype = g_mgr->archetypes[entity.archetypeId];

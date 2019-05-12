@@ -320,7 +320,7 @@ namespace script
     script::debug::attach(eventCtx);
 
     auto &entity = g_mgr->entities[eid.index];
-    if (eid.generation != entity.eid.generation)
+    if (eid.generation != g_mgr->entityGenerations[eid.index])
       return;
 
     const auto &templ = g_mgr->templates[entity.templateId];

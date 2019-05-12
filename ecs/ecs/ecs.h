@@ -65,9 +65,6 @@ struct Entity
 {
   bool ready = false;
 
-  // TODO: Is this needed here??
-  EntityId eid;
-
   int templateId = -1;
   int archetypeId = -1;
   int indexInArchetype = -1;
@@ -168,6 +165,7 @@ struct EntityManager
   eastl::vector<Archetype> archetypes;
   int entitiesCount = 0;
   eastl::vector<Entity> entities;
+  eastl::vector<uint8_t> entityGenerations;
   eastl::hash_map<HashedString, const ComponentDescription*> componentDescByNames;
   eastl::vector<System> systems;
   eastl::vector<const SystemDescription*> systemDescs;
