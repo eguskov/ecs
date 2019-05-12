@@ -333,7 +333,7 @@ struct remove_death_fx
     if (anim_state.currentNode == "death" && anim_state.done)
     {
       is_alive = false;
-      g_mgr->deleteEntity(eid);
+      ecs::delete_entity(eid);
     }
   }
 };
@@ -417,7 +417,7 @@ struct on_enenmy_kill_handler
       arr.PushBack(ev.pos.y, alloc);
       comps.AddMember("pos", eastl::move(arr), alloc);
     }
-    g_mgr->createEntity("death_fx", comps);
+    ecs::create_entity("death_fx", comps);
   }
 };
 

@@ -741,7 +741,7 @@ PlayerSpawnZone PlayerSpawnZone::get(Query::AllIterator &iter)
 }
 static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("bind_trigger_to_action"));
+  ecs::wait_system_dependencies(HASH("bind_trigger_to_action"));
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -773,7 +773,7 @@ static RegSys _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &b
 
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_active_switch_triggers"));
+  ecs::wait_system_dependencies(HASH("update_active_switch_triggers"));
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -807,7 +807,7 @@ static RegSys _reg_sys_update_active_switch_triggers(HASH("update_active_switch_
 
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_active_open_cage_triggers"));
+  ecs::wait_system_dependencies(HASH("update_active_open_cage_triggers"));
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -840,7 +840,7 @@ static RegSys _reg_sys_update_active_open_cage_triggers(HASH("update_active_open
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_active_zone_triggers"));
+  ecs::wait_system_dependencies(HASH("update_active_zone_triggers"));
   Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -873,7 +873,7 @@ static RegSys _reg_sys_update_active_zone_triggers(HASH("update_active_zone_trig
 
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_inactive_switch_triggers"));
+  ecs::wait_system_dependencies(HASH("update_inactive_switch_triggers"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -899,7 +899,7 @@ static RegSys _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_swi
 
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_inactive_zone_triggers"));
+  ecs::wait_system_dependencies(HASH("update_inactive_zone_triggers"));
   Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
   Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
@@ -926,7 +926,7 @@ static RegSys _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_
 
 static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_player_spawner"));
+  ecs::wait_system_dependencies(HASH("update_player_spawner"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }

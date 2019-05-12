@@ -500,7 +500,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
+      out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << fmt::format("  Index &index = *g_mgr->getIndexByName(HASH(\"{basename}_{index}\"));\n",
         fmt::arg("basename", basename),
@@ -529,7 +529,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
+      out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << "  Index &index = *g_mgr->getIndexByName(HASH(\"" << basename << "_" << index.name << "\"));\n";
 
@@ -608,7 +608,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
+      out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       assert(sys.parameters.size() >= 2 && sys.parameters.size() <= 3);
 
@@ -677,7 +677,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
+      out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
       out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
@@ -703,7 +703,7 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
       out << "{\n";
-      out << "  wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
+      out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)

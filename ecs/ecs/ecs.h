@@ -286,5 +286,16 @@ struct EntityManager
 
 extern EntityManager *g_mgr;
 
-inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(g_mgr->getSystemId(name)); }
-inline void wait_system_dependencies(int system_id) { g_mgr->waitSystemDependencies(system_id); }
+namespace ecs
+{
+  inline void create_entity(const char *templ_name, const JValue &comps) { g_mgr->createEntity(templ_name, comps); }
+  inline void create_entity(const char *templ_name, const JFrameValue &comps) { g_mgr->createEntity(templ_name, comps); }
+  inline EntityId create_entity_sync(const char *templ_name, const JValue &comps) { return g_mgr->createEntitySync(templ_name, comps); }
+  inline void delete_entity(const EntityId &eid) { g_mgr->deleteEntity(eid); }
+
+  template <typename E> inline void send_event(EntityId eid, const E &ev) { g_mgr->sendEvent<E>(eid, ev); }
+  template <typename E> inline void send_event_broadcast(const E &ev) { g_mgr->sendEventBroadcast<E>(ev); }
+
+  inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(g_mgr->getSystemId(name)); }
+  inline void wait_system_dependencies(int system_id) { g_mgr->waitSystemDependencies(system_id); }
+} //ecs

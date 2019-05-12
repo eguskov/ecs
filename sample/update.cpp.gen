@@ -341,7 +341,7 @@ static constexpr ConstQueryDesc update_auto_jump_query_desc = {
 
 static void load_texture_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("load_texture_handler"));
+  ecs::wait_system_dependencies(HASH("load_texture_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     load_texture_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(load_texture_handler, q, TextureAtlas, texture));
@@ -350,7 +350,7 @@ static RegSys _reg_sys_load_texture_handler(HASH("load_texture_handler"), &load_
 
 static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_position"));
+  ecs::wait_system_dependencies(HASH("update_position"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_position, q, glm::vec2, vel),
@@ -365,7 +365,7 @@ static RegSys _reg_sys_update_position(HASH("update_position"), &update_position
 
 static void update_position_for_active_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_position_for_active"));
+  ecs::wait_system_dependencies(HASH("update_position_for_active"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_position_for_active::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_position_for_active, q, glm::vec2, vel),
@@ -381,7 +381,7 @@ static RegSys _reg_sys_update_position_for_active(HASH("update_position_for_acti
 
 static void update_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_anim_frame"));
+  ecs::wait_system_dependencies(HASH("update_anim_frame"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_anim_frame, q, AnimGraph, anim_graph),
@@ -392,7 +392,7 @@ static RegSys _reg_sys_update_anim_frame(HASH("update_anim_frame"), &update_anim
 
 static void render_walls_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_walls"));
+  ecs::wait_system_dependencies(HASH("render_walls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_walls::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_walls, q, TextureAtlas, texture),
@@ -408,7 +408,7 @@ static RegSys _reg_sys_render_walls(HASH("render_walls"), &render_walls_run, "Re
 
 static void render_normal_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_normal"));
+  ecs::wait_system_dependencies(HASH("render_normal"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_normal::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_normal, q, TextureAtlas, texture),
@@ -425,7 +425,7 @@ static RegSys _reg_sys_render_normal(HASH("render_normal"), &render_normal_run, 
 
 static void read_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("read_controls"));
+  ecs::wait_system_dependencies(HASH("read_controls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     read_controls::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(read_controls, q, UserInput, user_input));
@@ -434,7 +434,7 @@ static RegSys _reg_sys_read_controls(HASH("read_controls"), &read_controls_run, 
 
 static void apply_controls_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("apply_controls"));
+  ecs::wait_system_dependencies(HASH("apply_controls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_controls::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_controls, q, UserInput, user_input),
@@ -447,7 +447,7 @@ static RegSys _reg_sys_apply_controls(HASH("apply_controls"), &apply_controls_ru
 
 static void apply_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("apply_jump"));
+  ecs::wait_system_dependencies(HASH("apply_jump"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_jump::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_jump, q, Jump, jump),
@@ -458,7 +458,7 @@ static RegSys _reg_sys_apply_jump(HASH("apply_jump"), &apply_jump_run, "UpdateSt
 
 static void apply_gravity_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("apply_gravity"));
+  ecs::wait_system_dependencies(HASH("apply_gravity"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     apply_gravity::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(apply_gravity, q, Gravity, gravity),
@@ -473,7 +473,7 @@ static RegSys _reg_sys_apply_gravity(HASH("apply_gravity"), &apply_gravity_run, 
 
 static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("select_current_anim_frame"));
+  ecs::wait_system_dependencies(HASH("select_current_anim_frame"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame, q, glm::vec2, vel),
@@ -486,7 +486,7 @@ static RegSys _reg_sys_select_current_anim_frame(HASH("select_current_anim_frame
 
 static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("select_current_anim_frame_for_player"));
+  ecs::wait_system_dependencies(HASH("select_current_anim_frame_for_player"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     select_current_anim_frame_for_player::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame_for_player, q, glm::vec2, vel),
@@ -500,7 +500,7 @@ static RegSys _reg_sys_select_current_anim_frame_for_player(HASH("select_current
 
 static void remove_death_fx_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("remove_death_fx"));
+  ecs::wait_system_dependencies(HASH("remove_death_fx"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     remove_death_fx::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(remove_death_fx, q, EntityId, eid),
@@ -516,7 +516,7 @@ static RegSys _reg_sys_remove_death_fx(HASH("remove_death_fx"), &remove_death_fx
 
 static void update_camera_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_camera"));
+  ecs::wait_system_dependencies(HASH("update_camera"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_camera::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_camera, q, glm::vec2, pos));
@@ -525,7 +525,7 @@ static RegSys _reg_sys_update_camera(HASH("update_camera"), &update_camera_run, 
 
 static void process_on_kill_event_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("process_on_kill_event"));
+  ecs::wait_system_dependencies(HASH("process_on_kill_event"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     process_on_kill_event::run(*(EventOnKillEnemy*)stage_or_event.mem,
       GET_COMPONENT(process_on_kill_event, q, HUD, hud));
@@ -534,7 +534,7 @@ static RegSys _reg_sys_process_on_kill_event(HASH("process_on_kill_event"), &pro
 
 static void update_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_active_auto_move"));
+  ecs::wait_system_dependencies(HASH("update_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_active_auto_move, q, AutoMove, auto_move),
@@ -551,7 +551,7 @@ static RegSys _reg_sys_update_active_auto_move(HASH("update_active_auto_move"), 
 
 static void update_always_active_auto_move_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_always_active_auto_move"));
+  ecs::wait_system_dependencies(HASH("update_always_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_always_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_always_active_auto_move, q, AutoMove, auto_move),
@@ -567,7 +567,7 @@ static RegSys _reg_sys_update_always_active_auto_move(HASH("update_always_active
 
 static void on_enenmy_kill_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_enenmy_kill_handler"));
+  ecs::wait_system_dependencies(HASH("on_enenmy_kill_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_enenmy_kill_handler::run(*(EventOnKillEnemy*)stage_or_event.mem);
 }
@@ -575,7 +575,7 @@ static RegSys _reg_sys_on_enenmy_kill_handler(HASH("on_enenmy_kill_handler"), &o
 
 static void update_auto_jump_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_auto_jump"));
+  ecs::wait_system_dependencies(HASH("update_auto_jump"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_jump::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_auto_jump, q, bool, is_alive),

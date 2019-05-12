@@ -76,7 +76,7 @@ struct WebUIHandler : public CefClient, public CefDisplayHandler, public CefLife
 
     browsers.push_back(browser);
 
-    g_mgr->sendEvent(g_webui_eid, CEFEventOnAfterCreated{});
+    ecs::send_event(g_webui_eid, CEFEventOnAfterCreated{});
   }
 
   bool DoClose(CefRefPtr<CefBrowser> browser) override final
@@ -221,7 +221,7 @@ struct WebUIApp : public CefApp, public CefBrowserProcessHandler
     CefRefPtr<WebUIHandler> handler(new WebUIHandler);
     handlers.push_back(handler);
 
-    g_mgr->sendEvent(g_webui_eid, CEFEventOnReady{});
+    ecs::send_event(g_webui_eid, CEFEventOnReady{});
   }
 
   IMPLEMENT_REFCOUNTING(WebUIApp);
@@ -239,7 +239,7 @@ EntityId cef::get_eid()
 void cef::init()
 {
 #ifdef _DEBUG
-  g_webui_eid = g_mgr->createEntitySync("WebUI", JValue());
+  g_webui_eid = ecs::create_entity_sync("WebUI", JValue());
 
   CefEnableHighDPISupport();
 

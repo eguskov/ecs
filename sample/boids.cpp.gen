@@ -452,7 +452,7 @@ static RegSys _reg_sys_update_boid_rules(HASH("update_boid_rules"), &update_boid
 
 static void on_mouse_click_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_mouse_click_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_mouse_click_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_mouse_click_handler_boid::run(*(EventOnClickMouseLeftButton*)stage_or_event.mem);
 }
@@ -460,7 +460,7 @@ static RegSys _reg_sys_on_mouse_click_handler_boid(HASH("on_mouse_click_handler_
 
 static void on_click_space_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_click_space_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_click_space_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_click_space_handler_boid::run(*(EventOnClickSpace*)stage_or_event.mem);
 }
@@ -468,7 +468,7 @@ static RegSys _reg_sys_on_click_space_handler_boid(HASH("on_click_space_handler_
 
 static void on_click_left_control_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_click_left_control_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_click_left_control_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_click_left_control_handler_boid::run(*(EventOnClickLeftControl*)stage_or_event.mem);
 }
@@ -476,7 +476,7 @@ static RegSys _reg_sys_on_click_left_control_handler_boid(HASH("on_click_left_co
 
 static void on_change_cohesion_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_change_cohesion_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_change_cohesion_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_cohesion_handler_boid::run(*(EventOnChangeCohesion*)stage_or_event.mem);
 }
@@ -484,7 +484,7 @@ static RegSys _reg_sys_on_change_cohesion_handler_boid(HASH("on_change_cohesion_
 
 static void on_change_alignment_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_change_alignment_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_change_alignment_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_alignment_handler_boid::run(*(EventOnChangeAlignment*)stage_or_event.mem);
 }
@@ -492,7 +492,7 @@ static RegSys _reg_sys_on_change_alignment_handler_boid(HASH("on_change_alignmen
 
 static void on_change_separation_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_change_separation_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_change_separation_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_separation_handler_boid::run(*(EventOnChangeSeparation*)stage_or_event.mem);
 }
@@ -500,7 +500,7 @@ static RegSys _reg_sys_on_change_separation_handler_boid(HASH("on_change_separat
 
 static void on_change_wander_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("on_change_wander_handler_boid"));
+  ecs::wait_system_dependencies(HASH("on_change_wander_handler_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_wander_handler_boid::run(*(EventOnChangeWander*)stage_or_event.mem);
 }
@@ -508,7 +508,7 @@ static RegSys _reg_sys_on_change_wander_handler_boid(HASH("on_change_wander_hand
 
 static void render_hud_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_hud_boid"));
+  ecs::wait_system_dependencies(HASH("render_hud_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_hud_boid::run(*(RenderHUDStage*)stage_or_event.mem);
 }
@@ -516,7 +516,7 @@ static RegSys _reg_sys_render_hud_boid(HASH("render_hud_boid"), &render_hud_boid
 
 static void render_boid_obstacle_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_boid_obstacle"));
+  ecs::wait_system_dependencies(HASH("render_boid_obstacle"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_boid_obstacle::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_boid_obstacle, q, TextureAtlas, texture),
@@ -527,7 +527,7 @@ static RegSys _reg_sys_render_boid_obstacle(HASH("render_boid_obstacle"), &rende
 
 static void render_boid_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_boid"));
+  ecs::wait_system_dependencies(HASH("render_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_boid::run(*(RenderStage*)stage_or_event.mem,
       GET_COMPONENT(render_boid, q, TextureAtlas, texture),
@@ -542,7 +542,7 @@ static RegSys _reg_sys_render_boid(HASH("render_boid"), &render_boid_run, "Rende
 
 static void copy_boid_state_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("copy_boid_state"));
+  ecs::wait_system_dependencies(HASH("copy_boid_state"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     copy_boid_state::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(copy_boid_state, q, glm::vec2, pos),

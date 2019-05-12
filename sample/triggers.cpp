@@ -179,7 +179,7 @@ struct update_player_spawner
       arr.PushBack(0.f, alloc);
       comps.AddMember("vel", eastl::move(arr), alloc);
     }
-    g_mgr->createEntity("fox", comps);
+    ecs::create_entity("fox", comps);
   }
 };
 
@@ -265,7 +265,7 @@ struct update_active_open_cage_triggers
 
     CageBlock::foreach([&](CageBlock &&cage)
     {
-      g_mgr->deleteEntity(cage.eid);
+      ecs::delete_entity(cage.eid);
     });
   }
 };
@@ -285,7 +285,7 @@ struct update_active_zone_triggers
 
     AlivePlayer::foreach([&](AlivePlayer &&player)
     {
-      g_mgr->deleteEntity(player.eid);
+      ecs::delete_entity(player.eid);
     });
   }
 };

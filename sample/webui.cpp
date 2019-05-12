@@ -396,7 +396,7 @@ static void handle_reload_script(struct mg_connection *conn, int ev, void *ev_da
     {
       if (doc.HasMember("script"))
       {
-        g_mgr->sendEventBroadcast(CmdReloadScript{});
+        ecs::send_event_broadcast(CmdReloadScript{});
       }
     });
   }
@@ -670,7 +670,7 @@ static void ws_save_ecs_entities(struct mg_connection *conn, const JDocument &do
       docToSave.Accept(writer);
       fclose(fp);
 
-      g_mgr->sendEventBroadcast(CmdReloadScript{});
+      ecs::send_event_broadcast(CmdReloadScript{});
     }
   });
 }

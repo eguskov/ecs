@@ -597,7 +597,7 @@ namespace script
 
   void create_entity(const std::string &templ, const JFrameValue &m)
   {
-    g_mgr->createEntity(templ.c_str(), m);
+    ecs::create_entity(templ.c_str(), m);
   }
 
   void create_entities_from_file(const std::string &filename)
@@ -619,14 +619,14 @@ namespace script
       for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
       {
         const JFrameValue &ent = doc["$entities"][i];
-        g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
+        ecs::create_entity(ent["$template"].GetString(), ent["$components"]);
       }
     }
   }
 
   void delete_entity(const EntityId &eid)
   {
-    g_mgr->deleteEntity(eid);
+    ecs::delete_entity(eid);
   }
 
   bool init()

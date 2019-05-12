@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
     {
       const JFrameValue &ent = doc["$entities"][i];
-      g_mgr->createEntity(ent["$template"].GetString(), ent["$components"]);
+      ecs::create_entity(ent["$template"].GetString(), ent["$components"]);
     }
   }
 
@@ -203,51 +203,51 @@ int main(int argc, char *argv[])
     if (g_enable_cef)
     {
       if (IsKeyPressed(KEY_F11))
-        g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleDevTools{});
+        ecs::send_event(cef::get_eid(), cef::CmdToggleDevTools{});
       else if (IsKeyPressed(KEY_F10))
-        g_mgr->sendEvent(cef::get_eid(), cef::CmdToggleWebUI{});
+        ecs::send_event(cef::get_eid(), cef::CmdToggleWebUI{});
 
       if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-        g_mgr->sendEvent(cef::get_eid(), cef::EventOnClickOutside{});
+        ecs::send_event(cef::get_eid(), cef::EventOnClickOutside{});
     }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
       Vector2 pos = GetMousePosition();
-      g_mgr->sendEventBroadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
+      ecs::send_event_broadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
     }
     if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
     {
       Vector2 pos = GetMousePosition();
-      g_mgr->sendEventBroadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
+      ecs::send_event_broadcast(EventOnClickMouseLeftButton{glm::vec2(pos.x, pos.y)});
     }
     if (IsKeyPressed(KEY_SPACE))
     {
       Vector2 pos = GetMousePosition();
-      g_mgr->sendEventBroadcast(EventOnClickSpace{glm::vec2(pos.x, pos.y)});
+      ecs::send_event_broadcast(EventOnClickSpace{glm::vec2(pos.x, pos.y)});
     }
     if (IsKeyPressed(KEY_LEFT_CONTROL))
     {
       Vector2 pos = GetMousePosition();
-      g_mgr->sendEventBroadcast(EventOnClickLeftControl{glm::vec2(pos.x, pos.y)});
+      ecs::send_event_broadcast(EventOnClickLeftControl{glm::vec2(pos.x, pos.y)});
     }
 
     if (IsKeyPressed(KEY_Q))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{50.0f});
+      ecs::send_event_broadcast(EventOnChangeCohesion{50.0f});
     if (IsKeyPressed(KEY_A))
-      g_mgr->sendEventBroadcast(EventOnChangeCohesion{-50.0f});
+      ecs::send_event_broadcast(EventOnChangeCohesion{-50.0f});
     if (IsKeyPressed(KEY_W))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{50.0f});
+      ecs::send_event_broadcast(EventOnChangeAlignment{50.0f});
     if (IsKeyPressed(KEY_S))
-      g_mgr->sendEventBroadcast(EventOnChangeAlignment{-50.0f});
+      ecs::send_event_broadcast(EventOnChangeAlignment{-50.0f});
     if (IsKeyPressed(KEY_E))
-      g_mgr->sendEventBroadcast(EventOnChangeSeparation{50.0f});
+      ecs::send_event_broadcast(EventOnChangeSeparation{50.0f});
     if (IsKeyPressed(KEY_D))
-      g_mgr->sendEventBroadcast(EventOnChangeSeparation{-50.0f});
+      ecs::send_event_broadcast(EventOnChangeSeparation{-50.0f});
     if (IsKeyPressed(KEY_R))
-      g_mgr->sendEventBroadcast(EventOnChangeWander{50.0f});
+      ecs::send_event_broadcast(EventOnChangeWander{50.0f});
     if (IsKeyPressed(KEY_F))
-      g_mgr->sendEventBroadcast(EventOnChangeWander{-50.0f});
+      ecs::send_event_broadcast(EventOnChangeWander{-50.0f});
 
     if (totalTime > nextResetMinMax)
     {

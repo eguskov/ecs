@@ -77,7 +77,7 @@ struct on_mouse_click_handler_boid
       // comps.AddMember("mass", mass, alloc);
     }
     for (int i = 0; i < 1000; ++i)
-      g_mgr->createEntity("boid", comps);
+      ecs::create_entity("boid", comps);
   }
 };
 
@@ -102,7 +102,7 @@ struct on_click_space_handler_boid
       // float mass = 1.f + (3.f - (1.f)) * float(::rand())/float(RAND_MAX);
       comps.AddMember("mass", 3.f, alloc);
     }
-    g_mgr->createEntity("boid", comps);
+    ecs::create_entity("boid", comps);
   }
 };
 
@@ -123,7 +123,7 @@ struct on_click_left_control_handler_boid
       arr.PushBack((-ev.pos.y + hh) * (1.f / camera.zoom), alloc);
       comps.AddMember("pos", eastl::move(arr), alloc);
     }
-    g_mgr->createEntity("boid_obstacle", comps);
+    ecs::create_entity("boid_obstacle", comps);
   }
 };
 

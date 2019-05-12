@@ -443,7 +443,7 @@ EnemyCollision EnemyCollision::get(Query::AllIterator &iter)
 }
 static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_player_collisions"));
+  ecs::wait_system_dependencies(HASH("update_player_collisions"));
   Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_collisions::run(*(UpdateStage*)stage_or_event.mem,
@@ -462,7 +462,7 @@ static RegSys _reg_sys_update_player_collisions(HASH("update_player_collisions")
 
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&)
 {
-  wait_system_dependencies(HASH("update_auto_move_collisions"));
+  ecs::wait_system_dependencies(HASH("update_auto_move_collisions"));
   Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_EnemyCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_move_collisions::run(*(UpdateStage*)stage_or_event.mem,
@@ -479,7 +479,7 @@ static RegSys _reg_sys_update_auto_move_collisions(HASH("update_auto_move_collis
 
 static void init_physics_collision_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("init_physics_collision_handler"));
+  ecs::wait_system_dependencies(HASH("init_physics_collision_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_collision_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(init_physics_collision_handler, q, EntityId, eid),
@@ -490,7 +490,7 @@ static RegSys _reg_sys_init_physics_collision_handler(HASH("init_physics_collisi
 
 static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("init_physics_body_handler"));
+  ecs::wait_system_dependencies(HASH("init_physics_body_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_body_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(init_physics_body_handler, q, PhysicsBody, phys_body),
@@ -500,7 +500,7 @@ static RegSys _reg_sys_init_physics_body_handler(HASH("init_physics_body_handler
 
 static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("init_physics_world_handler"));
+  ecs::wait_system_dependencies(HASH("init_physics_world_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     init_physics_world_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(init_physics_world_handler, q, PhysicsWorld, phys_world));
@@ -509,7 +509,7 @@ static RegSys _reg_sys_init_physics_world_handler(HASH("init_physics_world_handl
 
 static void update_physics_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_physics"));
+  ecs::wait_system_dependencies(HASH("update_physics"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_physics::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_physics, q, PhysicsWorld, phys_world));
@@ -518,7 +518,7 @@ static RegSys _reg_sys_update_physics(HASH("update_physics"), &update_physics_ru
 
 static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_debug_physics"));
+  ecs::wait_system_dependencies(HASH("render_debug_physics"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_debug_physics::run(*(RenderDebugStage*)stage_or_event.mem,
       GET_COMPONENT(render_debug_physics, q, PhysicsWorld, phys_world));
@@ -527,7 +527,7 @@ static RegSys _reg_sys_render_debug_physics(HASH("render_debug_physics"), &rende
 
 static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("update_kinematic_physics_body"));
+  ecs::wait_system_dependencies(HASH("update_kinematic_physics_body"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_kinematic_physics_body::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_kinematic_physics_body, q, PhysicsBody, phys_body),
@@ -538,7 +538,7 @@ static RegSys _reg_sys_update_kinematic_physics_body(HASH("update_kinematic_phys
 
 static void render_debug_player_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
-  wait_system_dependencies(HASH("render_debug_player_grid_cell"));
+  ecs::wait_system_dependencies(HASH("render_debug_player_grid_cell"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_debug_player_grid_cell::run(*(RenderDebugStage*)stage_or_event.mem,
       GET_COMPONENT(render_debug_player_grid_cell, q, glm::vec2, pos),

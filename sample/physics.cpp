@@ -430,8 +430,8 @@ struct update_player_collisions
 
       if (pointIndex >= 0)
       {
-        g_mgr->deleteEntity(enemy.eid);
-        g_mgr->sendEvent(player.eid, EventOnKillEnemy{ enemy.pos });
+        ecs::delete_entity(enemy.eid);
+        ecs::send_event(player.eid, EventOnKillEnemy{ enemy.pos });
 
         enemy.is_alive = false;
         enemy.vel = glm::vec2(0.f, 0.f);
