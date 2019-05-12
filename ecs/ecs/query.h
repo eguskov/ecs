@@ -118,19 +118,6 @@ struct RegQuery
   RegQuery(const ConstHashedString &name, const ConstQueryDesc &desc, filter_t &&f = nullptr);
 };
 
-struct QueryLink
-{
-  // TODO: Link by query name
-  int firstTypeId = -1;
-  HashedString firstComponentName;
-
-  int secondTypeId = -1;
-  HashedString secondComponentName;
-
-  int componentSize = -1;
-  const RegComp *componentDesc = nullptr;
-};
-
 // TODO: Use constexpr QueryDescs in codegen
 struct QueryDesc
 {
@@ -147,10 +134,6 @@ struct QueryDesc
   eastl::vector<int> rwComponents;
 
   eastl::vector<int> archetypes;
-
-  // TODO: Remove
-  eastl::vector<int> joinQueries;
-  eastl::vector<QueryLink> joinLinks;
 
   filter_t filter;
 
@@ -222,7 +205,6 @@ struct QueryDesc
   {
     return
       !components.empty() ||
-      !joinQueries.empty() ||
       !haveComponents.empty() ||
       !notHaveComponents.empty() ||
       !isTrueComponents.empty() ||
@@ -602,11 +584,6 @@ struct Query
   int entitiesCount = 0;
   eastl::vector<int> entitiesInChunk;
   eastl::vector<QueryChunk> chunks;
-};
-
-struct JoinQuery : Query
-{
-  EntityVector eids;
 };
 
 template <typename T, int I>

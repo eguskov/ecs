@@ -12,8 +12,6 @@ namespace script
   {
     asIScriptFunction *fn = nullptr;
 
-    bool useJoin = false;
-
     int id = -1;
     int stageId = -1;
     int eventId = -1;
@@ -39,7 +37,7 @@ namespace script
     asIScriptContext *stageCtx = nullptr;
 
     eastl::vector<ScriptSys> systems;
-    eastl::vector<JoinQuery> systemQueries;
+    eastl::vector<Query> systemQueries;
 
     eastl::hash_map<TypeId, Query> dataQueries;
 
