@@ -51,7 +51,6 @@ struct EntityTemplate
   int archetypeId = -1;
 
   eastl::string name;
-  eastl::bitvector<> compMask;
   eastl::vector<CompDesc> components;
   eastl::vector<int> extends;
 };

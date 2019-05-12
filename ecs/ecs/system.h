@@ -134,8 +134,6 @@ struct RegSys
 
   const RegSys *next = nullptr;
 
-  // TODO: Remove compMask
-  eastl::bitvector<> compMask;
   ConstQueryDesc queryDesc;
   SystemCallback sys = nullptr;
 

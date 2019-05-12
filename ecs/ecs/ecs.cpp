@@ -487,8 +487,6 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
   auto &templ = templates.back();
   templ.docId = doc_id;
   templ.name = templ_name;
-  templ.compMask.resize(reg_comp_count);
-  templ.compMask.set(reg_comp_count, false);
 
   process_extends(this, templ, extends, componentDescByNames);
 
@@ -509,8 +507,6 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     auto &c = templ.components[i];
     c.id = i;
     offset += c.desc->size;
-
-    templ.compMask[c.desc->id] = true;
   }
   templ.size = offset;
 
