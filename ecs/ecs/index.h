@@ -6,15 +6,6 @@ struct ComponentDescription;
 
 struct Index
 {
-  struct Item
-  {
-    int32_t queryId;
-    uint32_t value;
-
-    inline bool operator==(const Item &rhs) const { return value == rhs.value; }
-    inline bool operator<(const Item &rhs) const { return value < rhs.value; }
-  };
-
   bool dirty = false;
 
   HashedString name;
@@ -22,7 +13,7 @@ struct Index
 
   QueryDescription desc;
 
-  eastl::vector<Item> items;
+  eastl::hash_map<uint32_t, int> itemsMap;
   eastl::vector<Query> queries;
 
   Query *find(uint32_t value);

@@ -868,9 +868,8 @@ inline static bool is_components_values_equal_to(const T &value, int entity_idx,
 
 Query* Index::find(uint32_t value)
 {
-  Item item = { -1, value };
-  auto res = eastl::lower_bound(items.begin(), items.end(), item);
-  return res != items.end() && *res == item ? &queries[res->queryId] : nullptr;
+  auto res = itemsMap.find(value);
+  return res != itemsMap.end() ? &queries[res->second] : nullptr;
 }
 
 void Query::addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count)
@@ -955,7 +954,7 @@ void EntityManager::rebuildIndex(Index &index)
   const bool isValid = index.desc.isValid();
 
   index.queries.clear();
-  index.items.clear();
+  index.itemsMap.clear();
 
   for (auto &type : archetypes)
   {
@@ -973,7 +972,7 @@ void EntityManager::rebuildIndex(Index &index)
       const int componentIdx = type.getComponentIndex(index.componentName);
       ASSERT(componentIdx >= 0);
       const int componentSize = type.storages[componentIdx]->elemSize;
-      ASSERT(componentSize == sizeof(Index::Item::value));
+      ASSERT(componentSize == sizeof(uint32_t));
 
       int lastQueryId = -1;
       int begin = -1;
@@ -990,30 +989,21 @@ void EntityManager::rebuildIndex(Index &index)
 
         if (ok)
         {
-          Index::Item item = { -1, type.storages[componentIdx]->getByIndex<uint32_t>(i) };
-          auto res = eastl::lower_bound(index.items.begin(), index.items.end(), item);
-          if (res == index.items.end())
-          {
-            item.queryId = (int)index.queries.size();
-            query = &index.queries.emplace_back();
-            queryId = item.queryId;
+          const uint32_t key = type.storages[componentIdx]->getByIndex<uint32_t>(i);
 
-            index.items.push_back(eastl::move(item));
-          }
-          else if (*res == item)
+          auto res = index.itemsMap.find(key);
+          if (res == index.itemsMap.end() || res->first != key)
           {
-            ASSERT(res->queryId >= 0 && res->queryId < (int)index.queries.size());
-            item.queryId = res->queryId;
-            query = &index.queries[res->queryId];
-            queryId = item.queryId;
+            queryId = index.queries.size();
+            query = &index.queries.emplace_back();
+
+            index.itemsMap.insert(eastl::pair<uint32_t, int>(key, queryId));
           }
           else
           {
-            item.queryId = (int)index.queries.size();
-            query = &index.queries.emplace_back();
-            queryId = item.queryId;
-
-            index.items.insert(res, eastl::move(item));
+            ASSERT(res->second >= 0 && res->second < (int)index.queries.size());
+            queryId = res->second;
+            query = &index.queries[res->second];
           }
 
           if (lastQueryId >= 0 && lastQueryId != queryId && begin >= 0)

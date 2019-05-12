@@ -191,7 +191,7 @@ TEST_F(QueryTest, Index)
   Index *index = g_mgr->getIndexByName(HASH("test_index"));
   g_mgr->rebuildIndex(*index);
 
-  EXPECT_EQ(index->items.size(), 10ul);
+  EXPECT_EQ(index->itemsMap.size(), 10ul);
   EXPECT_EQ(index->queries.size(), 10ul);
 
   using TestViewBuilder = StructBuilder<
@@ -199,26 +199,22 @@ TEST_F(QueryTest, Index)
     StructField<float, INDEX_OF_COMPONENT(TestIndex, float_comp)>
   >;
 
-  for (int i = 1; i < (int)index->items.size(); ++i)
-    EXPECT_TRUE(index->items[i - 1].value < index->items[i].value);
-
   TestIndexSystem testSystem;
   UpdateStage stage;
-  for (const Index::Item &item : index->items)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[item.queryId]));
+  for (const auto &item : index->itemsMap)
+    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 30);
   EXPECT_EQ(testSystem.entitiesCount, 30);
   EXPECT_EQ(testSystem.errorsCount, 0);
 
-  Index::Item item = { -1, 6 };
-  auto res = eastl::lower_bound(index->items.begin(), index->items.end(), item);
-  EXPECT_TRUE(res != index->items.end() && *res == item);
-  if (res != index->items.end() && *res == item)
+  auto res = index->itemsMap.find(6);
+  EXPECT_TRUE(res != index->itemsMap.end() && res->first == 6);
+  if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
     UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[res->queryId]));
+    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 3);
     EXPECT_EQ(testSystem.entitiesCount, 3);
@@ -234,7 +230,7 @@ TEST_F(QueryTest, Index_Delete)
   g_mgr->deleteEntity(eids[8]);
   g_mgr->tick();
 
-  EXPECT_EQ(index->items.size(), 10ul);
+  EXPECT_EQ(index->itemsMap.size(), 10ul);
   EXPECT_EQ(index->queries.size(), 10ul);
 
   using TestViewBuilder = StructBuilder<
@@ -242,26 +238,22 @@ TEST_F(QueryTest, Index_Delete)
     StructField<float, INDEX_OF_COMPONENT(TestIndex, float_comp)>
   >;
 
-  for (int i = 1; i < (int)index->items.size(); ++i)
-    EXPECT_TRUE(index->items[i - 1].value < index->items[i].value);
-
   TestIndexSystem testSystem;
   UpdateStage stage;
-  for (const Index::Item &item : index->items)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[item.queryId]));
+  for (const auto &item : index->itemsMap)
+    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 29);
   EXPECT_EQ(testSystem.entitiesCount, 29);
   EXPECT_EQ(testSystem.errorsCount, 0);
 
-  Index::Item item = { -1, 6 };
-  auto res = eastl::lower_bound(index->items.begin(), index->items.end(), item);
-  EXPECT_TRUE(res != index->items.end() && *res == item);
-  if (res != index->items.end() && *res == item)
+  auto res = index->itemsMap.find(6);
+  EXPECT_TRUE(res != index->itemsMap.end() && res->first == 6);
+  if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
     UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[res->queryId]));
+    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 2);
     EXPECT_EQ(testSystem.entitiesCount, 2);
@@ -289,7 +281,7 @@ TEST_F(QueryTest, Index_ChangeDetection)
 
   g_mgr->tick();
 
-  EXPECT_EQ(index->items.size(), 10ul);
+  EXPECT_EQ(index->itemsMap.size(), 10ul);
   EXPECT_EQ(index->queries.size(), 10ul);
 
   using TestViewBuilder = StructBuilder<
@@ -297,26 +289,22 @@ TEST_F(QueryTest, Index_ChangeDetection)
     StructField<float, INDEX_OF_COMPONENT(TestIndex, float_comp)>
   >;
 
-  for (int i = 1; i < (int)index->items.size(); ++i)
-    EXPECT_TRUE(index->items[i - 1].value < index->items[i].value);
-
   TestIndexSystem testSystem;
   UpdateStage stage;
-  for (const Index::Item &item : index->items)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[item.queryId]));
+  for (const auto &item : index->itemsMap)
+    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 30);
   EXPECT_EQ(testSystem.entitiesCount, 30);
   EXPECT_EQ(testSystem.errorsCount, 0);
 
-  Index::Item item = { -1, 6 };
-  auto res = eastl::lower_bound(index->items.begin(), index->items.end(), item);
-  EXPECT_TRUE(res != index->items.end() && *res == item);
-  if (res != index->items.end() && *res == item)
+  auto res = index->itemsMap.find(6);
+  EXPECT_TRUE(res != index->itemsMap.end() && res->first == 6);
+  if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
     UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&item.value, QueryIterable<TestView, TestViewBuilder>(index->queries[res->queryId]));
+    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 2);
     EXPECT_EQ(testSystem.entitiesCount, 2);
