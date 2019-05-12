@@ -120,23 +120,25 @@ TEST_F(QueryTest, Select_Not_Have)
   CHECK_QUERY_COUNT(q, 25ul);
 }
 
-TEST_F(QueryTest, Select_Is_True)
-{
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-  desc.isTrueComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
+// TODO: Replace with Filter
+// TEST_F(QueryTest, Select_Is_True)
+// {
+//   QueryDesc desc;
+//   desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
+//   desc.isTrueComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
 
-  CHECK_QUERY_COUNT(q, 4ul);
-}
+//   CHECK_QUERY_COUNT(q, 4ul);
+// }
 
-TEST_F(QueryTest, Select_Is_False)
-{
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-  desc.isFalseComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
+// TODO: Replace with Filter
+// TEST_F(QueryTest, Select_Is_False)
+// {
+//   QueryDesc desc;
+//   desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
+//   desc.isFalseComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
 
-  CHECK_QUERY_COUNT(q, 6ul);
-}
+//   CHECK_QUERY_COUNT(q, 6ul);
+// }
 
 TEST_F(QueryTest, Select_Join)
 {
@@ -178,8 +180,6 @@ static constexpr ConstCompDesc TestIndex_components[] = {
 };
 static constexpr ConstQueryDesc TestIndex_query_desc = {
   make_const_array(TestIndex_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,

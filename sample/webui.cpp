@@ -528,8 +528,6 @@ struct SystemData
   eastl::vector<ComponentData> components;
   eastl::vector<ComponentData> haveComponents;
   eastl::vector<ComponentData> notHaveComponents;
-  eastl::vector<ComponentData> isTrueComponents;
-  eastl::vector<ComponentData> isFalseComponents;
 };
 
 static void gather_script_data(eastl::vector<SystemData> &scriptSystems)
@@ -555,18 +553,6 @@ static void gather_script_data(eastl::vector<SystemData> &scriptSystems)
         c.name = comp.name.str;
       }
       for (const auto &comp : sys.queryDesc.notHaveComponents)
-      {
-        auto &c = s.components.emplace_back();
-        c.type = comp.desc->name;
-        c.name = comp.name.str;
-      }
-      for (const auto &comp : sys.queryDesc.isTrueComponents)
-      {
-        auto &c = s.components.emplace_back();
-        c.type = comp.desc->name;
-        c.name = comp.name.str;
-      }
-      for (const auto &comp : sys.queryDesc.isFalseComponents)
       {
         auto &c = s.components.emplace_back();
         c.type = comp.desc->name;
@@ -613,18 +599,6 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
         });
 
         bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstCompDesc &comp)
-        {
-          bson.add("name", comp.name.str);
-          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
-        });
-
-        bson_array_of_documents(bson, "isTrueComponents", sys.desc->queryDesc.isTrueComponents, [&](int, const ConstCompDesc &comp)
-        {
-          bson.add("name", comp.name.str);
-          bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
-        });
-
-        bson_array_of_documents(bson, "isFalseComponents", sys.desc->queryDesc.isFalseComponents, [&](int, const ConstCompDesc &comp)
         {
           bson.add("name", comp.name.str);
           bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);

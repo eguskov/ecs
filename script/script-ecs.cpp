@@ -172,20 +172,11 @@ namespace script
             JFrameDocument doc;
             doc.Parse(match[1].str().c_str());
 
-            process_metadata(doc, "$is-true", query.desc.isTrueComponents);
-            process_metadata(doc, "$is-false", query.desc.isFalseComponents);
             process_metadata(doc, "$have", query.desc.haveComponents);
             process_metadata(doc, "$not-have", query.desc.notHaveComponents);
-
-            for (const auto &c : query.desc.isTrueComponents)
-              g_mgr->enableChangeDetection(c.name);
-            for (const auto &c : query.desc.isFalseComponents)
-              g_mgr->enableChangeDetection(c.name);
           }
 
           ASSERT(type->GetPropertyCount() != 0 ||
-            !query.desc.isTrueComponents.empty() ||
-            !query.desc.isFalseComponents.empty() ||
             !query.desc.haveComponents.empty() ||
             !query.desc.notHaveComponents.empty());
           ASSERT(type->GetFactoryCount() != 0);
@@ -237,15 +228,8 @@ namespace script
             {
               JFrameDocument doc;
               doc.Parse(match[2].str().c_str());
-              process_metadata(doc, "$is-true", sys.queryDesc.isTrueComponents);
-              process_metadata(doc, "$is-false", sys.queryDesc.isFalseComponents);
               process_metadata(doc, "$have", sys.queryDesc.haveComponents);
               process_metadata(doc, "$not-have", sys.queryDesc.notHaveComponents);
-
-              for (const auto &c : sys.queryDesc.isTrueComponents)
-                g_mgr->enableChangeDetection(c.name);
-              for (const auto &c : sys.queryDesc.isFalseComponents)
-                g_mgr->enableChangeDetection(c.name);
             }
           }
           else if (match[1].str() == "on_load")

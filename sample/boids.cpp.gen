@@ -13,8 +13,6 @@ static constexpr ConstQueryDesc on_mouse_click_handler_boid_query_desc = {
   make_const_array(on_mouse_click_handler_boid_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc on_click_space_handler_boid_have_components[] = {
   {HASH("click_handler_boid"), 0},
@@ -22,8 +20,6 @@ static constexpr ConstCompDesc on_click_space_handler_boid_have_components[] = {
 static constexpr ConstQueryDesc on_click_space_handler_boid_query_desc = {
   empty_desc_array,
   make_const_array(on_click_space_handler_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -35,8 +31,6 @@ static constexpr ConstQueryDesc on_click_left_control_handler_boid_query_desc = 
   make_const_array(on_click_left_control_handler_boid_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc on_change_cohesion_handler_boid_have_components[] = {
   {HASH("click_handler_boid"), 0},
@@ -44,8 +38,6 @@ static constexpr ConstCompDesc on_change_cohesion_handler_boid_have_components[]
 static constexpr ConstQueryDesc on_change_cohesion_handler_boid_query_desc = {
   empty_desc_array,
   make_const_array(on_change_cohesion_handler_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -57,8 +49,6 @@ static constexpr ConstQueryDesc on_change_alignment_handler_boid_query_desc = {
   make_const_array(on_change_alignment_handler_boid_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc on_change_separation_handler_boid_have_components[] = {
   {HASH("click_handler_boid"), 0},
@@ -66,8 +56,6 @@ static constexpr ConstCompDesc on_change_separation_handler_boid_have_components
 static constexpr ConstQueryDesc on_change_separation_handler_boid_query_desc = {
   empty_desc_array,
   make_const_array(on_change_separation_handler_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -79,8 +67,6 @@ static constexpr ConstQueryDesc on_change_wander_handler_boid_query_desc = {
   make_const_array(on_change_wander_handler_boid_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc render_hud_boid_have_components[] = {
   {HASH("click_handler_boid"), 0},
@@ -88,8 +74,6 @@ static constexpr ConstCompDesc render_hud_boid_have_components[] = {
 static constexpr ConstQueryDesc render_hud_boid_query_desc = {
   empty_desc_array,
   make_const_array(render_hud_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -104,8 +88,6 @@ static constexpr ConstCompDesc render_boid_obstacle_have_components[] = {
 static constexpr ConstQueryDesc render_boid_obstacle_query_desc = {
   make_const_array(render_boid_obstacle_components),
   make_const_array(render_boid_obstacle_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -124,8 +106,6 @@ static constexpr ConstCompDesc render_boid_have_components[] = {
 static constexpr ConstQueryDesc render_boid_query_desc = {
   make_const_array(render_boid_components),
   make_const_array(render_boid_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -149,8 +129,6 @@ static constexpr ConstQueryDesc copy_boid_state_query_desc = {
   make_const_array(copy_boid_state_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_position_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -164,8 +142,6 @@ static constexpr ConstQueryDesc update_boid_position_query_desc = {
   make_const_array(update_boid_position_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_rotation_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -177,8 +153,6 @@ static constexpr ConstCompDesc update_boid_rotation_have_components[] = {
 static constexpr ConstQueryDesc update_boid_rotation_query_desc = {
   make_const_array(update_boid_rotation_components),
   make_const_array(update_boid_rotation_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -197,8 +171,6 @@ static constexpr ConstQueryDesc update_boid_avoid_walls_query_desc = {
   make_const_array(update_boid_avoid_walls_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_boid_avoid_obstacle_components[] = {
   {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -210,8 +182,6 @@ static constexpr ConstCompDesc update_boid_avoid_obstacle_have_components[] = {
 static constexpr ConstQueryDesc update_boid_avoid_obstacle_query_desc = {
   make_const_array(update_boid_avoid_obstacle_components),
   make_const_array(update_boid_avoid_obstacle_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -226,8 +196,6 @@ static constexpr ConstCompDesc update_boid_move_to_center_have_components[] = {
 static constexpr ConstQueryDesc update_boid_move_to_center_query_desc = {
   make_const_array(update_boid_move_to_center_components),
   make_const_array(update_boid_move_to_center_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -245,8 +213,6 @@ static constexpr ConstQueryDesc update_boid_wander_query_desc = {
   make_const_array(update_boid_wander_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc control_boid_velocity_components[] = {
   {HASH("max_vel"), Desc<float>::Size, CompDescFlags::kNone},
@@ -258,8 +224,6 @@ static constexpr ConstCompDesc control_boid_velocity_have_components[] = {
 static constexpr ConstQueryDesc control_boid_velocity_query_desc = {
   make_const_array(control_boid_velocity_components),
   make_const_array(control_boid_velocity_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -274,8 +238,6 @@ static constexpr ConstCompDesc apply_boid_force_have_components[] = {
 static constexpr ConstQueryDesc apply_boid_force_query_desc = {
   make_const_array(apply_boid_force_components),
   make_const_array(apply_boid_force_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -293,8 +255,6 @@ static constexpr ConstQueryDesc Boid_query_desc = {
   make_const_array(Boid_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc BoidObstacle_components[] = {
   {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -305,8 +265,6 @@ static constexpr ConstCompDesc BoidObstacle_have_components[] = {
 static constexpr ConstQueryDesc BoidObstacle_query_desc = {
   make_const_array(BoidObstacle_components),
   make_const_array(BoidObstacle_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -325,8 +283,6 @@ static constexpr ConstCompDesc BoidSeparation_have_components[] = {
 static constexpr ConstQueryDesc BoidSeparation_query_desc = {
   make_const_array(BoidSeparation_components),
   make_const_array(BoidSeparation_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };

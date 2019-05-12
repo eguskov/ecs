@@ -19,8 +19,6 @@ static constexpr ConstQueryDesc cef_ready_handler_query_desc = {
   make_const_array(cef_ready_handler_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc cef_after_created_handler_have_components[] = {
   {HASH("webui"), 0},
@@ -28,8 +26,6 @@ static constexpr ConstCompDesc cef_after_created_handler_have_components[] = {
 static constexpr ConstQueryDesc cef_after_created_handler_query_desc = {
   empty_desc_array,
   make_const_array(cef_after_created_handler_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -41,8 +37,6 @@ static constexpr ConstQueryDesc cef_click_outside_handler_query_desc = {
   make_const_array(cef_click_outside_handler_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc cef_toggle_dev_tools_handler_have_components[] = {
   {HASH("webui"), 0},
@@ -52,8 +46,6 @@ static constexpr ConstQueryDesc cef_toggle_dev_tools_handler_query_desc = {
   make_const_array(cef_toggle_dev_tools_handler_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc cef_toggle_webui_handler_have_components[] = {
   {HASH("webui"), 0},
@@ -61,8 +53,6 @@ static constexpr ConstCompDesc cef_toggle_webui_handler_have_components[] = {
 static constexpr ConstQueryDesc cef_toggle_webui_handler_query_desc = {
   empty_desc_array,
   make_const_array(cef_toggle_webui_handler_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };

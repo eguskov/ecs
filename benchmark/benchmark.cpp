@@ -41,8 +41,6 @@ static constexpr ConstQueryDesc update_position_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 
 template <int MEASURE_COUNT>

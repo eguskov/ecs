@@ -54,8 +54,6 @@ struct ConstQueryDesc
   ConstArray<const ConstCompDesc> components;
   ConstArray<const ConstCompDesc> haveComponents;
   ConstArray<const ConstCompDesc> notHaveComponents;
-  ConstArray<const ConstCompDesc> isTrueComponents;
-  ConstArray<const ConstCompDesc> isFalseComponents;
   ConstArray<const ConstCompDesc> trackComponents;
 };
 
@@ -79,8 +77,6 @@ struct index_of_component<N, -1>
 
 constexpr ConstQueryDesc empty_query_desc
 {
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -125,10 +121,6 @@ struct QueryDesc
 
   eastl::vector<CompDesc> haveComponents;
   eastl::vector<CompDesc> notHaveComponents;
-  // TODO: Remove
-  eastl::vector<CompDesc> isTrueComponents;
-  // TODO: Remove
-  eastl::vector<CompDesc> isFalseComponents;
 
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
@@ -148,12 +140,6 @@ struct QueryDesc
     notHaveComponents.resize(desc.notHaveComponents.size());
     for (int i = 0; i < desc.notHaveComponents.size(); ++i)
       notHaveComponents[i] = desc.notHaveComponents.data[i];
-    isTrueComponents.resize(desc.isTrueComponents.size());
-    for (int i = 0; i < desc.isTrueComponents.size(); ++i)
-      isTrueComponents[i] = desc.isTrueComponents.data[i];
-    isFalseComponents.resize(desc.isFalseComponents.size());
-    for (int i = 0; i < desc.isFalseComponents.size(); ++i)
-      isFalseComponents[i] = desc.isFalseComponents.data[i];
     return *this;
   }
 
@@ -206,9 +192,7 @@ struct QueryDesc
     return
       !components.empty() ||
       !haveComponents.empty() ||
-      !notHaveComponents.empty() ||
-      !isTrueComponents.empty() ||
-      !isFalseComponents.empty();
+      !notHaveComponents.empty();
   }
 };
 

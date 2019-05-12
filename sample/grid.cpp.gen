@@ -14,8 +14,6 @@ static constexpr ConstQueryDesc update_grid_cell_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_small_grid_cell_components[] = {
   {HASH("cur_pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -23,8 +21,6 @@ static constexpr ConstCompDesc update_small_grid_cell_components[] = {
 };
 static constexpr ConstQueryDesc update_small_grid_cell_query_desc = {
   make_const_array(update_small_grid_cell_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,

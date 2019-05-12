@@ -25,8 +25,6 @@ static constexpr ConstQueryDesc load_texture_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_position_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -45,8 +43,6 @@ static constexpr ConstQueryDesc update_position_query_desc = {
   make_const_array(update_position_components),
   make_const_array(update_position_have_components),
   make_const_array(update_position_not_have_components),
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(update_position_track_components),
 };
 static constexpr ConstCompDesc update_position_for_active_components[] = {
@@ -65,8 +61,6 @@ static constexpr ConstQueryDesc update_position_for_active_query_desc = {
   make_const_array(update_position_for_active_components),
   make_const_array(update_position_for_active_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(update_position_for_active_track_components),
 };
 static constexpr ConstCompDesc update_anim_frame_components[] = {
@@ -76,8 +70,6 @@ static constexpr ConstCompDesc update_anim_frame_components[] = {
 };
 static constexpr ConstQueryDesc update_anim_frame_query_desc = {
   make_const_array(update_anim_frame_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -97,8 +89,6 @@ static constexpr ConstCompDesc render_walls_track_components[] = {
 static constexpr ConstQueryDesc render_walls_query_desc = {
   make_const_array(render_walls_components),
   make_const_array(render_walls_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(render_walls_track_components),
 };
@@ -121,8 +111,6 @@ static constexpr ConstQueryDesc render_normal_query_desc = {
   make_const_array(render_normal_components),
   make_const_array(render_normal_have_components),
   make_const_array(render_normal_not_have_components),
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(render_normal_track_components),
 };
 static constexpr ConstCompDesc read_controls_components[] = {
@@ -130,8 +118,6 @@ static constexpr ConstCompDesc read_controls_components[] = {
 };
 static constexpr ConstQueryDesc read_controls_query_desc = {
   make_const_array(read_controls_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -148,8 +134,6 @@ static constexpr ConstQueryDesc apply_controls_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc apply_jump_components[] = {
   {HASH("jump"), Desc<Jump>::Size, CompDescFlags::kWrite},
@@ -158,8 +142,6 @@ static constexpr ConstCompDesc apply_jump_components[] = {
 };
 static constexpr ConstQueryDesc apply_jump_query_desc = {
   make_const_array(apply_jump_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -178,8 +160,6 @@ static constexpr ConstQueryDesc apply_gravity_query_desc = {
   make_const_array(apply_gravity_components),
   make_const_array(apply_gravity_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(apply_gravity_track_components),
 };
 static constexpr ConstCompDesc select_current_anim_frame_components[] = {
@@ -197,8 +177,6 @@ static constexpr ConstQueryDesc select_current_anim_frame_query_desc = {
   empty_desc_array,
   make_const_array(select_current_anim_frame_not_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc select_current_anim_frame_for_player_components[] = {
   {HASH("vel"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
@@ -210,8 +188,6 @@ static constexpr ConstCompDesc select_current_anim_frame_for_player_components[]
 };
 static constexpr ConstQueryDesc select_current_anim_frame_for_player_query_desc = {
   make_const_array(select_current_anim_frame_for_player_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -231,8 +207,6 @@ static constexpr ConstQueryDesc remove_death_fx_query_desc = {
   make_const_array(remove_death_fx_components),
   make_const_array(remove_death_fx_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(remove_death_fx_track_components),
 };
 static constexpr ConstCompDesc update_camera_components[] = {
@@ -246,16 +220,12 @@ static constexpr ConstQueryDesc update_camera_query_desc = {
   make_const_array(update_camera_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc process_on_kill_event_components[] = {
   {HASH("hud"), Desc<HUD>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc process_on_kill_event_query_desc = {
   make_const_array(process_on_kill_event_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -277,8 +247,6 @@ static constexpr ConstQueryDesc update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_components),
   make_const_array(update_active_auto_move_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(update_active_auto_move_track_components),
 };
 static constexpr ConstCompDesc update_always_active_auto_move_components[] = {
@@ -299,8 +267,6 @@ static constexpr ConstQueryDesc update_always_active_auto_move_query_desc = {
   make_const_array(update_always_active_auto_move_components),
   make_const_array(update_always_active_auto_move_have_components),
   make_const_array(update_always_active_auto_move_not_have_components),
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(update_always_active_auto_move_track_components),
 };
 static constexpr ConstCompDesc on_enenmy_kill_handler_have_components[] = {
@@ -309,8 +275,6 @@ static constexpr ConstCompDesc on_enenmy_kill_handler_have_components[] = {
 static constexpr ConstQueryDesc on_enenmy_kill_handler_query_desc = {
   empty_desc_array,
   make_const_array(on_enenmy_kill_handler_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -330,8 +294,6 @@ static constexpr ConstCompDesc update_auto_jump_track_components[] = {
 static constexpr ConstQueryDesc update_auto_jump_query_desc = {
   make_const_array(update_auto_jump_components),
   make_const_array(update_auto_jump_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(update_auto_jump_track_components),
 };

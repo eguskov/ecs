@@ -14,16 +14,12 @@ static constexpr ConstQueryDesc reload_script_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc build_script_handler_components[] = {
   {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc build_script_handler_query_desc = {
   make_const_array(build_script_handler_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -36,16 +32,12 @@ static constexpr ConstQueryDesc update_script_query_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_script_components[] = {
   {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc update_script_query_desc = {
   make_const_array(update_script_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -58,16 +50,12 @@ static constexpr ConstQueryDesc dispatch_event_script_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc dispatch_broadcast_event_script_components[] = {
   {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc dispatch_broadcast_event_script_query_desc = {
   make_const_array(dispatch_broadcast_event_script_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,

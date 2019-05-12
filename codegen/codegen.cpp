@@ -195,24 +195,6 @@ int main(int argc, char* argv[])
         }
         out << "};" << std::endl;
       }
-      if (!sys.trackTrue.empty())
-      {
-        out << "static constexpr ConstCompDesc " << sys.name << "_is_true_components[] = {" << std::endl;
-        for (const auto &p : sys.trackTrue)
-        {
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        }
-        out << "};" << std::endl;
-      }
-      if (!sys.trackFalse.empty())
-      {
-        out << "static constexpr ConstCompDesc " << sys.name << "_is_false_components[] = {" << std::endl;
-        for (const auto &p : sys.trackFalse)
-        {
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        }
-        out << "};" << std::endl;
-      }
       if (!sys.track.empty())
       {
         out << "static constexpr ConstCompDesc " << sys.name << "_track_components[] = {" << std::endl;
@@ -228,10 +210,6 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << sys.name << "_have_components)," << std::endl;
       if (sys.notHave.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << sys.name << "_not_have_components)," << std::endl;
-      if (sys.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << sys.name << "_is_true_components)," << std::endl;
-      if (sys.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << sys.name << "_is_false_components)," << std::endl;
       if (sys.track.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << sys.name << "_track_components)," << std::endl;
       out << "};" << std::endl;
@@ -271,20 +249,6 @@ int main(int argc, char* argv[])
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         out << "};" << std::endl;
       }
-      if (!q.trackTrue.empty())
-      {
-        out << "static constexpr ConstCompDesc " << q.name << "_is_true_components[] = {" << std::endl;
-        for (const auto &p : q.trackTrue)
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        out << "};" << std::endl;
-      }
-      if (!q.trackFalse.empty())
-      {
-        out << "static constexpr ConstCompDesc " << q.name << "_is_false_components[] = {" << std::endl;
-        for (const auto &p : q.trackFalse)
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
-        out << "};" << std::endl;
-      }
       if (!q.track.empty())
       {
         out << "static constexpr ConstCompDesc " << q.name << "_track_components[] = {" << std::endl;
@@ -299,10 +263,6 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << q.name << "_have_components)," << std::endl;
       if (q.notHave.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << q.name << "_not_have_components)," << std::endl;
-      if (q.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << q.name << "_is_true_components)," << std::endl;
-      if (q.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << q.name << "_is_false_components)," << std::endl;
       if (q.track.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << q.name << "_track_components)," << std::endl;
       out << "};" << std::endl;
@@ -353,10 +313,6 @@ int main(int argc, char* argv[])
       else out << "  make_const_array(" << i.name << "_have_components)," << std::endl;
       if (i.notHave.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << i.name << "_not_have_components)," << std::endl;
-      if (i.trackTrue.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << i.name << "_is_true_components)," << std::endl;
-      if (i.trackFalse.empty()) out << "  empty_desc_array," << std::endl;
-      else out << "  make_const_array(" << i.name << "_is_false_components)," << std::endl;
       if (i.track.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << i.name << "_track_components)," << std::endl;
       out << "};" << std::endl;

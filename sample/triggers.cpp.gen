@@ -13,8 +13,6 @@ static constexpr ConstQueryDesc update_player_spawner_query_desc = {
   make_const_array(update_player_spawner_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 
 static constexpr ConstCompDesc InactiveLift_components[] = {
@@ -32,8 +30,6 @@ static constexpr ConstQueryDesc InactiveLift_query_desc = {
   make_const_array(InactiveLift_components),
   make_const_array(InactiveLift_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(InactiveLift_track_components),
 };
 static constexpr ConstCompDesc CageBlock_components[] = {
@@ -45,8 +41,6 @@ static constexpr ConstCompDesc CageBlock_have_components[] = {
 static constexpr ConstQueryDesc CageBlock_query_desc = {
   make_const_array(CageBlock_components),
   make_const_array(CageBlock_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -68,8 +62,6 @@ static constexpr ConstQueryDesc NotBindedTrigger_query_desc = {
   make_const_array(NotBindedTrigger_components),
   make_const_array(NotBindedTrigger_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(NotBindedTrigger_track_components),
 };
 static constexpr ConstCompDesc ActiveTrigger_components[] = {
@@ -90,8 +82,6 @@ static constexpr ConstQueryDesc ActiveTrigger_query_desc = {
   make_const_array(ActiveTrigger_components),
   make_const_array(ActiveTrigger_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(ActiveTrigger_track_components),
 };
 static constexpr ConstCompDesc InactiveSwitchTrigger_components[] = {
@@ -109,8 +99,6 @@ static constexpr ConstCompDesc InactiveSwitchTrigger_track_components[] = {
 static constexpr ConstQueryDesc InactiveSwitchTrigger_query_desc = {
   make_const_array(InactiveSwitchTrigger_components),
   make_const_array(InactiveSwitchTrigger_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(InactiveSwitchTrigger_track_components),
 };
@@ -131,8 +119,6 @@ static constexpr ConstQueryDesc InactiveZoneTrigger_query_desc = {
   make_const_array(InactiveZoneTrigger_components),
   make_const_array(InactiveZoneTrigger_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(InactiveZoneTrigger_track_components),
 };
 static constexpr ConstCompDesc Action_components[] = {
@@ -145,8 +131,6 @@ static constexpr ConstCompDesc Action_have_components[] = {
 static constexpr ConstQueryDesc Action_query_desc = {
   make_const_array(Action_components),
   make_const_array(Action_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -167,8 +151,6 @@ static constexpr ConstQueryDesc InactiveEnableLiftAction_query_desc = {
   make_const_array(InactiveEnableLiftAction_components),
   make_const_array(InactiveEnableLiftAction_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(InactiveEnableLiftAction_track_components),
 };
 static constexpr ConstCompDesc InactiveOpenCageAction_components[] = {
@@ -186,8 +168,6 @@ static constexpr ConstCompDesc InactiveOpenCageAction_track_components[] = {
 static constexpr ConstQueryDesc InactiveOpenCageAction_query_desc = {
   make_const_array(InactiveOpenCageAction_components),
   make_const_array(InactiveOpenCageAction_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(InactiveOpenCageAction_track_components),
 };
@@ -207,8 +187,6 @@ static constexpr ConstQueryDesc InactiveKillPlayerAction_query_desc = {
   make_const_array(InactiveKillPlayerAction_components),
   make_const_array(InactiveKillPlayerAction_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(InactiveKillPlayerAction_track_components),
 };
 static constexpr ConstCompDesc AlivePlayer_components[] = {
@@ -226,8 +204,6 @@ static constexpr ConstQueryDesc AlivePlayer_query_desc = {
   make_const_array(AlivePlayer_components),
   make_const_array(AlivePlayer_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(AlivePlayer_track_components),
 };
 static constexpr ConstCompDesc PlayerSpawnZone_components[] = {
@@ -239,8 +215,6 @@ static constexpr ConstCompDesc PlayerSpawnZone_have_components[] = {
 static constexpr ConstQueryDesc PlayerSpawnZone_query_desc = {
   make_const_array(PlayerSpawnZone_components),
   make_const_array(PlayerSpawnZone_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -315,8 +289,6 @@ static constexpr ConstQueryDesc index_by_NotBindedTrigger_action_key_query_desc 
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc index_by_ActiveTrigger_action_eid_components[] = {
   {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
@@ -327,8 +299,6 @@ static constexpr ConstCompDesc index_by_ActiveTrigger_action_eid_components[] = 
 };
 static constexpr ConstQueryDesc index_by_ActiveTrigger_action_eid_query_desc = {
   make_const_array(index_by_ActiveTrigger_action_eid_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,

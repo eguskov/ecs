@@ -332,24 +332,6 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
             p.name = name.substr(::strlen("@not-have: "));
           }
         }
-        else if (utils::startsWith(name, "@is-true: "))
-        {
-          auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
-          if (it != state.queries.end())
-          {
-            auto &p = it->trackTrue.emplace_back();
-            p.name = name.substr(::strlen("@is-true: "));
-          }
-        }
-        else if (utils::startsWith(name, "@is-false: "))
-        {
-          auto it = eastl::find_if(state.queries.begin(), state.queries.end(), [&](const VisitorState::Query &f) { return f.name == structName; });
-          if (it != state.queries.end())
-          {
-            auto &p = it->trackFalse.emplace_back();
-            p.name = name.substr(::strlen("@is-false: "));
-          }
-        }
       }
 
       return CXChildVisit_Continue;
@@ -635,24 +617,6 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
           {
             auto &p = it->notHave.emplace_back();
             p.name = name.substr(::strlen("@not-have: "));
-          }
-        }
-        else if (utils::startsWith(name, "@is-true: "))
-        {
-          auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
-          if (it != state.systems.end())
-          {
-            auto &p = it->trackTrue.emplace_back();
-            p.name = name.substr(::strlen("@is-true: "));
-          }
-        }
-        else if (utils::startsWith(name, "@is-false: "))
-        {
-          auto it = eastl::find_if(state.systems.begin(), state.systems.end(), [&](const VisitorState::System &f) { return f.name == funcName; });
-          if (it != state.systems.end())
-          {
-            auto &p = it->trackFalse.emplace_back();
-            p.name = name.substr(::strlen("@is-false: "));
           }
         }
       }

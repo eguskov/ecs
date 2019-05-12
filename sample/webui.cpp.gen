@@ -13,8 +13,6 @@ static constexpr ConstQueryDesc Script_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 using ScriptBuilder = StructBuilder<
   StructField<script::ScriptComponent, INDEX_OF_COMPONENT(Script, script)>

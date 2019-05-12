@@ -24,8 +24,6 @@ static constexpr ConstQueryDesc init_physics_collision_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc init_physics_body_handler_components[] = {
   {HASH("phys_body"), Desc<PhysicsBody>::Size, CompDescFlags::kWrite},
@@ -33,8 +31,6 @@ static constexpr ConstCompDesc init_physics_body_handler_components[] = {
 };
 static constexpr ConstQueryDesc init_physics_body_handler_query_desc = {
   make_const_array(init_physics_body_handler_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -47,16 +43,12 @@ static constexpr ConstQueryDesc init_physics_world_handler_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_physics_components[] = {
   {HASH("phys_world"), Desc<PhysicsWorld>::Size, CompDescFlags::kWrite},
 };
 static constexpr ConstQueryDesc update_physics_query_desc = {
   make_const_array(update_physics_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -69,8 +61,6 @@ static constexpr ConstQueryDesc render_debug_physics_query_desc = {
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc update_kinematic_physics_body_components[] = {
   {HASH("phys_body"), Desc<PhysicsBody>::Size, CompDescFlags::kWrite},
@@ -79,8 +69,6 @@ static constexpr ConstCompDesc update_kinematic_physics_body_components[] = {
 };
 static constexpr ConstQueryDesc update_kinematic_physics_body_query_desc = {
   make_const_array(update_kinematic_physics_body_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
@@ -100,8 +88,6 @@ static constexpr ConstQueryDesc render_debug_player_grid_cell_query_desc = {
   make_const_array(render_debug_player_grid_cell_components),
   make_const_array(render_debug_player_grid_cell_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(render_debug_player_grid_cell_track_components),
 };
 
@@ -117,8 +103,6 @@ static constexpr ConstQueryDesc Brick_query_desc = {
   make_const_array(Brick_have_components),
   empty_desc_array,
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
 };
 static constexpr ConstCompDesc MovingBrick_components[] = {
   {HASH("collision_shape"), Desc<CollisionShape>::Size, CompDescFlags::kNone},
@@ -132,8 +116,6 @@ static constexpr ConstCompDesc MovingBrick_have_components[] = {
 static constexpr ConstQueryDesc MovingBrick_query_desc = {
   make_const_array(MovingBrick_components),
   make_const_array(MovingBrick_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
@@ -154,8 +136,6 @@ static constexpr ConstCompDesc AliveEnemy_track_components[] = {
 static constexpr ConstQueryDesc AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_components),
   make_const_array(AliveEnemy_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(AliveEnemy_track_components),
 };
@@ -180,8 +160,6 @@ static constexpr ConstQueryDesc PlayerCollision_query_desc = {
   make_const_array(PlayerCollision_components),
   make_const_array(PlayerCollision_have_components),
   empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
   make_const_array(PlayerCollision_track_components),
 };
 static constexpr ConstCompDesc EnemyCollision_components[] = {
@@ -204,8 +182,6 @@ static constexpr ConstCompDesc EnemyCollision_track_components[] = {
 static constexpr ConstQueryDesc EnemyCollision_query_desc = {
   make_const_array(EnemyCollision_components),
   make_const_array(EnemyCollision_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   make_const_array(EnemyCollision_track_components),
 };
@@ -254,8 +230,6 @@ static constexpr ConstCompDesc index_by_Brick_grid_cell_have_components[] = {
 static constexpr ConstQueryDesc index_by_Brick_grid_cell_query_desc = {
   make_const_array(index_by_Brick_grid_cell_components),
   make_const_array(index_by_Brick_grid_cell_have_components),
-  empty_desc_array,
-  empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };

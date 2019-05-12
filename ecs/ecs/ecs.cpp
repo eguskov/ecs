@@ -275,9 +275,7 @@ void EntityManager::init()
       const auto &type = archetypes[archetypeId];
       if (not_have_components(type, q.desc.notHaveComponents) &&
           has_components(type, q.desc.components) &&
-          has_components(type, q.desc.haveComponents) &&
-          has_components(type, q.desc.isTrueComponents) &&
-          has_components(type, q.desc.isFalseComponents))
+          has_components(type, q.desc.haveComponents))
       {
         q.desc.archetypes.push_back(archetypeId);
       }
@@ -347,10 +345,6 @@ void EntityManager::init()
 
   for (const auto &sys : systems)
   {
-    for (const auto &c : sys.desc->queryDesc.isTrueComponents)
-      enableChangeDetection(c.name);
-    for (const auto &c : sys.desc->queryDesc.isFalseComponents)
-      enableChangeDetection(c.name);
     for (const auto &c : sys.desc->queryDesc.trackComponents)
       enableChangeDetection(c.name);
   }
@@ -924,9 +918,7 @@ void EntityManager::performQuery(Query &query)
       isValid &&
       not_have_components(type, query.desc.notHaveComponents) &&
       has_components(type, query.desc.components) &&
-      has_components(type, query.desc.haveComponents) &&
-      has_components(type, query.desc.isTrueComponents) &&
-      has_components(type, query.desc.isFalseComponents);
+      has_components(type, query.desc.haveComponents);
 
     if (ok)
     {
@@ -938,8 +930,6 @@ void EntityManager::performQuery(Query &query)
         // TODO: Find a better solution
         ok = !type.storages[0]->freeMask[i];
 
-        ok = ok && is_components_values_equal_to(true, i, type, query.desc.isTrueComponents);
-        ok = ok && is_components_values_equal_to(false, i, type, query.desc.isFalseComponents);
         ok = ok && (!query.desc.filter || query.desc.filter(type, i));
 
         if (ok && begin < 0)
@@ -969,9 +959,7 @@ void EntityManager::rebuildIndex(Index &index)
       isValid &&
       not_have_components(type, index.desc.notHaveComponents) &&
       has_components(type, index.desc.components) &&
-      has_components(type, index.desc.haveComponents) &&
-      has_components(type, index.desc.isTrueComponents) &&
-      has_components(type, index.desc.isFalseComponents);
+      has_components(type, index.desc.haveComponents);
 
     if (ok)
     {
