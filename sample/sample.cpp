@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  EntityManager::create();
+  ecs::init();
 
   if (g_enable_cef)
     cef::init();
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 
   webui::release();
 
-  EntityManager::release();
+  ecs::release();
   script::release();
 
   extern void clear_textures();

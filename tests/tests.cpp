@@ -9,12 +9,12 @@ int main(int argc, char **argv)
 {
   stacktrace::init();
 
-  EntityManager::create();
+  ecs::init();
 
   testing::InitGoogleTest(&argc, argv);
   int res = RUN_ALL_TESTS();
 
-  EntityManager::release();
+  ecs::release();
 
   stacktrace::release();
 

@@ -285,6 +285,9 @@ extern EntityManager *g_mgr;
 
 namespace ecs
 {
+  inline void init() { EntityManager::create(); }
+  inline void release() { EntityManager::release(); }
+
   inline void create_entity(const char *templ_name, const JValue &comps) { g_mgr->createEntity(templ_name, comps); }
   inline void create_entity(const char *templ_name, const JFrameValue &comps) { g_mgr->createEntity(templ_name, comps); }
   inline EntityId create_entity_sync(const char *templ_name, const JValue &comps) { return g_mgr->createEntitySync(templ_name, comps); }

@@ -169,7 +169,7 @@ int main()
 {
   using namespace std::chrono_literals;
 
-  EntityManager::create();
+  ecs::init();
 
   plot();
   return 0;
