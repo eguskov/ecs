@@ -12,7 +12,7 @@
 
 #include <angelscript.h>
 
-struct RegComp;
+struct ComponentDescription;
 class CScriptBuilder;
 
 namespace script

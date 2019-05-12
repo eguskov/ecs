@@ -5,14 +5,14 @@
 
 #include "cef.h"
 
-static RegCompSpec<cef::CmdToggleDevTools> _reg_event_cef_CmdToggleDevTools;
-int RegCompSpec<cef::CmdToggleDevTools>::ID = -1;
+static ComponentDescriptionDetails<cef::CmdToggleDevTools> _reg_event_cef_CmdToggleDevTools;
+int ComponentDescriptionDetails<cef::CmdToggleDevTools>::ID = -1;
 
-static RegCompSpec<cef::CmdToggleWebUI> _reg_event_cef_CmdToggleWebUI;
-int RegCompSpec<cef::CmdToggleWebUI>::ID = -1;
+static ComponentDescriptionDetails<cef::CmdToggleWebUI> _reg_event_cef_CmdToggleWebUI;
+int ComponentDescriptionDetails<cef::CmdToggleWebUI>::ID = -1;
 
-static RegCompSpec<cef::EventOnClickOutside> _reg_event_cef_EventOnClickOutside;
-int RegCompSpec<cef::EventOnClickOutside>::ID = -1;
+static ComponentDescriptionDetails<cef::EventOnClickOutside> _reg_event_cef_EventOnClickOutside;
+int ComponentDescriptionDetails<cef::EventOnClickOutside>::ID = -1;
 
 
 

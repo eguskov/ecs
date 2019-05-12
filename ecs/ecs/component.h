@@ -25,15 +25,15 @@
   template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #n; }; \
 
 #define REG_COMP_ARR(type, n, sz) \
-  template <> struct Desc<ArrayComp<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
+  template <> struct Desc<ArrayComponent<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
 
 #define REG_COMP_INIT(type, n) \
-  static RegCompSpec<type> _##n(#n); \
-  template <> int RegCompSpec<type>::ID = -1; \
+  static ComponentDescriptionDetails<type> _##n(#n); \
+  template <> int ComponentDescriptionDetails<type>::ID = -1; \
 
 #define REG_COMP_ARR_INIT(type, n, sz) \
-  static RegCompSpec<ArrayComp<type, sz>> _array_##n(__C4(n, [, sz, ])); \
-  template <> int RegCompSpec<ArrayComp<type, sz>>::ID = -1; \
+  static ComponentDescriptionDetails<ArrayComponent<type, sz>> _array_##n(__C4(n, [, sz, ])); \
+  template <> int ComponentDescriptionDetails<ArrayComponent<type, sz>>::ID = -1; \
 
 #define REG_COMP_AND_INIT(type, n) \
   REG_COMP(type, n); \
@@ -42,7 +42,7 @@
 template <typename T>
 struct Desc;
 
-struct RegComp
+struct ComponentDescription
 {
   char *name = nullptr;
 
@@ -51,10 +51,10 @@ struct RegComp
 
   bool hasEqual = false;
 
-  const RegComp *next = nullptr;
+  const ComponentDescription *next = nullptr;
 
-  RegComp(const char *_name, int _size);
-  virtual ~RegComp();
+  ComponentDescription(const char *_name, int _size);
+  virtual ~ComponentDescription();
 
   virtual bool init(uint8_t *mem, const JFrameValue &value) const = 0;
   virtual bool equal(uint8_t *lhs, uint8_t *rhs) const = 0;
@@ -73,10 +73,10 @@ struct HasSetMethod
 };
 
 template <typename T, bool HasSet = HasSetMethod<T>::value>
-struct CompSetter;
+struct ComponentSetter;
 
 template <typename T>
-struct CompSetter<T, true>
+struct ComponentSetter<T, true>
 {
   static inline bool set(T *comp, const JFrameValue &value)
   {
@@ -88,7 +88,7 @@ template <typename T>
 struct Setter;
 
 template <typename T>
-struct CompSetter<T, false>
+struct ComponentSetter<T, false>
 {
   static inline bool set(T *comp, const JFrameValue &value)
   {
@@ -97,15 +97,15 @@ struct CompSetter<T, false>
 };
 
 template <typename T, size_t Size>
-struct ArrayComp
+struct ArrayComponent
 {
-  using ArrayDesc = Desc<ArrayComp<T, Size>>;
+  using ArrayDesc = Desc<ArrayComponent<T, Size>>;
   using ItemType = T;
   using ItemDesc = Desc<T>;
 
   eastl::array<ItemType, Size> items;
 
-  ArrayComp()
+  ArrayComponent()
   {
   }
 
@@ -113,7 +113,7 @@ struct ArrayComp
   {
     ASSERT(value.IsArray());
     for (int i = 0; i < Size; ++i)
-      if (!CompSetter<ItemType>::set(&items[i], value[i]))
+      if (!ComponentSetter<ItemType>::set(&items[i], value[i]))
         return false;
     return true;
   }
@@ -130,7 +130,7 @@ struct ArrayComp
 };
 
 template<class T, class EqualTo>
-struct HasOperatorRqualImpl
+struct HasOperatorEqualImpl
 {
     template<class U, class V>
     static auto test(U*) -> decltype(eastl::declval<U>() == eastl::declval<V>());
@@ -141,13 +141,13 @@ struct HasOperatorRqualImpl
 };
 
 template<class T, class EqualTo = T>
-struct HasOperatorEqual : HasOperatorRqualImpl<T, EqualTo>::type {};
+struct HasOperatorEqual : HasOperatorEqualImpl<T, EqualTo>::type {};
 
 template <typename T, bool HasEqual>
-struct CompComparator;
+struct ComponentComparator;
 
 template <typename T>
-struct CompComparator<T, true>
+struct ComponentComparator<T, true>
 {
   static bool equal(const T &lhs, const T &rhs)
   {
@@ -156,7 +156,7 @@ struct CompComparator<T, true>
 };
 
 template <typename T>
-struct CompComparator<T, false>
+struct ComponentComparator<T, false>
 {
   static bool equal(const T &lhs, const T &rhs)
   {
@@ -165,7 +165,7 @@ struct CompComparator<T, false>
 };
 
 template <typename T>
-struct RegCompSpec : RegComp
+struct ComponentDescriptionDetails : ComponentDescription
 {
   using CompType = T;
   using CompDesc = Desc<T>;
@@ -174,12 +174,12 @@ struct RegCompSpec : RegComp
 
   bool init(uint8_t *mem, const JFrameValue &value) const override final
   {
-    return CompSetter<CompType>::set((CompType*)mem, value["$value"]);
+    return ComponentSetter<CompType>::set((CompType*)mem, value["$value"]);
   }
 
   bool equal(uint8_t *lhs, uint8_t *rhs) const override final
   {
-    return CompComparator<T, HasOperatorEqual<T>::value>::equal(*(T*)lhs, *(T*)rhs);
+    return ComponentComparator<T, HasOperatorEqual<T>::value>::equal(*(T*)lhs, *(T*)rhs);
   }
 
   Storage* createStorage() const override final
@@ -187,11 +187,11 @@ struct RegCompSpec : RegComp
     return new StorageSpec<CompType>;
   }
 
-  RegCompSpec(const char *name) : RegComp(name, CompDesc::Size)
+  ComponentDescriptionDetails(const char *name) : ComponentDescription(name, CompDesc::Size)
   {
     ID = id;
     hasEqual = HasOperatorEqual<T>::value;
   }
 };
 
-const RegComp *find_comp(const char *name);
+const ComponentDescription *find_component(const char *name);

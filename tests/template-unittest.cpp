@@ -6,7 +6,7 @@
 
 static const size_t TEMPLATES_COUNT = 8;
 
-const CompDesc* find_component(const char *name, const EntityTemplate &templ)
+const Component* find_component(const char *name, const EntityTemplate &templ)
 {
   for (const auto &c : templ.components)
     if (c.name == name)

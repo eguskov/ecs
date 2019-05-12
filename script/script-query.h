@@ -8,7 +8,7 @@ class asITypeInfo;
 class asIScriptObject;
 struct EntityId;
 struct Query;
-struct CompDesc;
+struct Component;
 
 namespace script
 {
@@ -35,6 +35,6 @@ namespace script
     Iterator perform();
   };
 
-  asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type);
+  asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<Component> &components, asITypeInfo *type);
 
 }

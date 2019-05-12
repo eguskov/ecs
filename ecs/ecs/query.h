@@ -34,33 +34,33 @@ static constexpr ConstArray<T> make_empty_array()
   return ConstArray<T>(nullptr, 0);
 }
 
-enum CompDescFlags
+enum ComponentDescriptionFlags
 {
   kNone = 0,
   kWrite = 1 << 0,
 };
 
-struct ConstCompDesc
+struct ConstComponentDescription
 {
   ConstHashedString name;
   int size;
-  uint32_t flags = CompDescFlags::kNone;
+  uint32_t flags = ComponentDescriptionFlags::kNone;
 };
 
-constexpr ConstArray<const ConstCompDesc> empty_desc_array = make_empty_array<const ConstCompDesc>();
+constexpr ConstArray<const ConstComponentDescription> empty_desc_array = make_empty_array<const ConstComponentDescription>();
 
-struct ConstQueryDesc
+struct ConstQueryDescription
 {
-  ConstArray<const ConstCompDesc> components;
-  ConstArray<const ConstCompDesc> haveComponents;
-  ConstArray<const ConstCompDesc> notHaveComponents;
-  ConstArray<const ConstCompDesc> trackComponents;
+  ConstArray<const ConstComponentDescription> components;
+  ConstArray<const ConstComponentDescription> haveComponents;
+  ConstArray<const ConstComponentDescription> notHaveComponents;
+  ConstArray<const ConstComponentDescription> trackComponents;
 };
 
 template <int N, int I = N - 1>
 struct index_of_component
 {
-  static constexpr int get(const ConstHashedString &name, const ConstCompDesc (&components)[N])
+  static constexpr int get(const ConstHashedString &name, const ConstComponentDescription (&components)[N])
   {
     return components[I].name.hash == name.hash ? I : index_of_component<N, I - 1>::get(name, components);
   }
@@ -69,13 +69,13 @@ struct index_of_component
 template <int N>
 struct index_of_component<N, -1>
 {
-  static constexpr int get(const ConstHashedString &name, const ConstCompDesc (&components)[N])
+  static constexpr int get(const ConstHashedString &name, const ConstComponentDescription (&components)[N])
   {
     return -1;
   }
 };
 
-constexpr ConstQueryDesc empty_query_desc
+constexpr ConstQueryDescription empty_query_desc
 {
   empty_desc_array,
   empty_desc_array,
@@ -83,14 +83,14 @@ constexpr ConstQueryDesc empty_query_desc
   empty_desc_array
 };
 
-struct CompDesc
+struct Component
 {
   int id;
   HashedString name;
   int size;
-  const RegComp* desc;
+  const ComponentDescription* desc;
 
-  CompDesc& operator=(const ConstCompDesc &d)
+  Component& operator=(const ConstComponentDescription &d)
   {
     id = -1;
     desc = nullptr;
@@ -102,25 +102,25 @@ struct CompDesc
 
 using filter_t = eastl::function<bool(const Archetype&, int)>;
 
-struct RegQuery
+struct PersistentQueryDescription
 {
   ConstHashedString name;
-  ConstQueryDesc desc;
+  ConstQueryDescription desc;
 
   filter_t filter;
 
-  const RegQuery *next = nullptr;
+  const PersistentQueryDescription *next = nullptr;
 
-  RegQuery(const ConstHashedString &name, const ConstQueryDesc &desc, filter_t &&f = nullptr);
+  PersistentQueryDescription(const ConstHashedString &name, const ConstQueryDescription &desc, filter_t &&f = nullptr);
 };
 
 // TODO: Use constexpr QueryDescs in codegen
-struct QueryDesc
+struct QueryDescription
 {
-  eastl::vector<CompDesc> components;
+  eastl::vector<Component> components;
 
-  eastl::vector<CompDesc> haveComponents;
-  eastl::vector<CompDesc> notHaveComponents;
+  eastl::vector<Component> haveComponents;
+  eastl::vector<Component> notHaveComponents;
 
   eastl::vector<int> roComponents;
   eastl::vector<int> rwComponents;
@@ -129,7 +129,7 @@ struct QueryDesc
 
   filter_t filter;
 
-  QueryDesc& operator=(const ConstQueryDesc &desc)
+  QueryDescription& operator=(const ConstQueryDescription &desc)
   {
     components.resize(desc.components.size());
     for (int i = 0; i < desc.components.size(); ++i)
@@ -552,7 +552,7 @@ struct Query
     return iter;
   }
 
-  void addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count);
+  void addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count);
 
   bool dirty = false;
 
@@ -561,7 +561,7 @@ struct Query
 
   HashedString name;
   // TODO: Do not add eid
-  QueryDesc desc;
+  QueryDescription desc;
 
   int componentsCount = 0;
   int chunksCount = 0;
@@ -627,14 +627,14 @@ struct QueryIterable
     return QueryIterable(last, last);
   }
 
-  static inline T deref(const Query::AllIterator &it)
+  static inline T get(const Query::AllIterator &it)
   {
     return typename Builder::template build<T>(it);
   }
 
   inline T operator*()
   {
-    return deref(first);
+    return get(first);
   }
 
   inline void operator++()

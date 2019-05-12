@@ -5,214 +5,214 @@
 
 #include "triggers.cpp"
 
-static constexpr ConstCompDesc update_player_spawner_have_components[] = {
+static constexpr ConstComponentDescription update_player_spawner_have_components[] = {
   {HASH("player_spawner"), 0},
 };
-static constexpr ConstQueryDesc update_player_spawner_query_desc = {
+static constexpr ConstQueryDescription update_player_spawner_query_desc = {
   empty_desc_array,
   make_const_array(update_player_spawner_have_components),
   empty_desc_array,
   empty_desc_array,
 };
 
-static constexpr ConstCompDesc InactiveLift_components[] = {
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveLift_components[] = {
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveLift_have_components[] = {
+static constexpr ConstComponentDescription InactiveLift_have_components[] = {
   {HASH("lift"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveLift_track_components[] = {
+static constexpr ConstComponentDescription InactiveLift_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveLift_query_desc = {
+static constexpr ConstQueryDescription InactiveLift_query_desc = {
   make_const_array(InactiveLift_components),
   make_const_array(InactiveLift_have_components),
   empty_desc_array,
   make_const_array(InactiveLift_track_components),
 };
-static constexpr ConstCompDesc CageBlock_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
+static constexpr ConstComponentDescription CageBlock_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
 };
-static constexpr ConstCompDesc CageBlock_have_components[] = {
+static constexpr ConstComponentDescription CageBlock_have_components[] = {
   {HASH("cage"), 0},
 };
-static constexpr ConstQueryDesc CageBlock_query_desc = {
+static constexpr ConstQueryDescription CageBlock_query_desc = {
   make_const_array(CageBlock_components),
   make_const_array(CageBlock_have_components),
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc NotBindedTrigger_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("action_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kWrite},
-  {HASH("is_binded"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription NotBindedTrigger_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_binded"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc NotBindedTrigger_have_components[] = {
+static constexpr ConstComponentDescription NotBindedTrigger_have_components[] = {
   {HASH("trigger"), 0},
   {HASH("is_binded"), 0},
 };
-static constexpr ConstCompDesc NotBindedTrigger_track_components[] = {
+static constexpr ConstComponentDescription NotBindedTrigger_track_components[] = {
   {HASH("is_binded"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc NotBindedTrigger_query_desc = {
+static constexpr ConstQueryDescription NotBindedTrigger_query_desc = {
   make_const_array(NotBindedTrigger_components),
   make_const_array(NotBindedTrigger_have_components),
   empty_desc_array,
   make_const_array(NotBindedTrigger_track_components),
 };
-static constexpr ConstCompDesc ActiveTrigger_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription ActiveTrigger_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc ActiveTrigger_have_components[] = {
+static constexpr ConstComponentDescription ActiveTrigger_have_components[] = {
   {HASH("trigger"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc ActiveTrigger_track_components[] = {
+static constexpr ConstComponentDescription ActiveTrigger_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc ActiveTrigger_query_desc = {
+static constexpr ConstQueryDescription ActiveTrigger_query_desc = {
   make_const_array(ActiveTrigger_components),
   make_const_array(ActiveTrigger_have_components),
   empty_desc_array,
   make_const_array(ActiveTrigger_track_components),
 };
-static constexpr ConstCompDesc InactiveSwitchTrigger_components[] = {
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveSwitchTrigger_components[] = {
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveSwitchTrigger_have_components[] = {
+static constexpr ConstComponentDescription InactiveSwitchTrigger_have_components[] = {
   {HASH("switch_trigger"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveSwitchTrigger_track_components[] = {
+static constexpr ConstComponentDescription InactiveSwitchTrigger_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveSwitchTrigger_query_desc = {
+static constexpr ConstQueryDescription InactiveSwitchTrigger_query_desc = {
   make_const_array(InactiveSwitchTrigger_components),
   make_const_array(InactiveSwitchTrigger_have_components),
   empty_desc_array,
   make_const_array(InactiveSwitchTrigger_track_components),
 };
-static constexpr ConstCompDesc InactiveZoneTrigger_components[] = {
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
-  {HASH("collision_rect"), Desc<glm::vec4>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveZoneTrigger_components[] = {
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_rect"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveZoneTrigger_have_components[] = {
+static constexpr ConstComponentDescription InactiveZoneTrigger_have_components[] = {
   {HASH("zone_trigger"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveZoneTrigger_track_components[] = {
+static constexpr ConstComponentDescription InactiveZoneTrigger_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveZoneTrigger_query_desc = {
+static constexpr ConstQueryDescription InactiveZoneTrigger_query_desc = {
   make_const_array(InactiveZoneTrigger_components),
   make_const_array(InactiveZoneTrigger_have_components),
   empty_desc_array,
   make_const_array(InactiveZoneTrigger_track_components),
 };
-static constexpr ConstCompDesc Action_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
+static constexpr ConstComponentDescription Action_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
 };
-static constexpr ConstCompDesc Action_have_components[] = {
+static constexpr ConstComponentDescription Action_have_components[] = {
   {HASH("action"), 0},
 };
-static constexpr ConstQueryDesc Action_query_desc = {
+static constexpr ConstQueryDescription Action_query_desc = {
   make_const_array(Action_components),
   make_const_array(Action_have_components),
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc InactiveEnableLiftAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("lift_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveEnableLiftAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("lift_key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveEnableLiftAction_have_components[] = {
+static constexpr ConstComponentDescription InactiveEnableLiftAction_have_components[] = {
   {HASH("enable_lift_action"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveEnableLiftAction_track_components[] = {
+static constexpr ConstComponentDescription InactiveEnableLiftAction_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveEnableLiftAction_query_desc = {
+static constexpr ConstQueryDescription InactiveEnableLiftAction_query_desc = {
   make_const_array(InactiveEnableLiftAction_components),
   make_const_array(InactiveEnableLiftAction_have_components),
   empty_desc_array,
   make_const_array(InactiveEnableLiftAction_track_components),
 };
-static constexpr ConstCompDesc InactiveOpenCageAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveOpenCageAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveOpenCageAction_have_components[] = {
+static constexpr ConstComponentDescription InactiveOpenCageAction_have_components[] = {
   {HASH("open_cage_action"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveOpenCageAction_track_components[] = {
+static constexpr ConstComponentDescription InactiveOpenCageAction_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveOpenCageAction_query_desc = {
+static constexpr ConstQueryDescription InactiveOpenCageAction_query_desc = {
   make_const_array(InactiveOpenCageAction_components),
   make_const_array(InactiveOpenCageAction_have_components),
   empty_desc_array,
   make_const_array(InactiveOpenCageAction_track_components),
 };
-static constexpr ConstCompDesc InactiveKillPlayerAction_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription InactiveKillPlayerAction_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstCompDesc InactiveKillPlayerAction_have_components[] = {
+static constexpr ConstComponentDescription InactiveKillPlayerAction_have_components[] = {
   {HASH("kill_player_action"), 0},
   {HASH("is_active"), 0},
 };
-static constexpr ConstCompDesc InactiveKillPlayerAction_track_components[] = {
+static constexpr ConstComponentDescription InactiveKillPlayerAction_track_components[] = {
   {HASH("is_active"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc InactiveKillPlayerAction_query_desc = {
+static constexpr ConstQueryDescription InactiveKillPlayerAction_query_desc = {
   make_const_array(InactiveKillPlayerAction_components),
   make_const_array(InactiveKillPlayerAction_have_components),
   empty_desc_array,
   make_const_array(InactiveKillPlayerAction_track_components),
 };
-static constexpr ConstCompDesc AlivePlayer_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+static constexpr ConstComponentDescription AlivePlayer_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
-static constexpr ConstCompDesc AlivePlayer_have_components[] = {
+static constexpr ConstComponentDescription AlivePlayer_have_components[] = {
   {HASH("user_input"), 0},
   {HASH("is_alive"), 0},
 };
-static constexpr ConstCompDesc AlivePlayer_track_components[] = {
+static constexpr ConstComponentDescription AlivePlayer_track_components[] = {
   {HASH("is_alive"), Desc<bool>::Size},
 };
-static constexpr ConstQueryDesc AlivePlayer_query_desc = {
+static constexpr ConstQueryDescription AlivePlayer_query_desc = {
   make_const_array(AlivePlayer_components),
   make_const_array(AlivePlayer_have_components),
   empty_desc_array,
   make_const_array(AlivePlayer_track_components),
 };
-static constexpr ConstCompDesc PlayerSpawnZone_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
+static constexpr ConstComponentDescription PlayerSpawnZone_components[] = {
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
-static constexpr ConstCompDesc PlayerSpawnZone_have_components[] = {
+static constexpr ConstComponentDescription PlayerSpawnZone_have_components[] = {
   {HASH("player_spawn_zone"), 0},
 };
-static constexpr ConstQueryDesc PlayerSpawnZone_query_desc = {
+static constexpr ConstQueryDescription PlayerSpawnZone_query_desc = {
   make_const_array(PlayerSpawnZone_components),
   make_const_array(PlayerSpawnZone_have_components),
   empty_desc_array,
@@ -277,98 +277,98 @@ using AlivePlayerBuilder = StructBuilder<
 using PlayerSpawnZoneBuilder = StructBuilder<
   StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerSpawnZone, pos)>
 >;
-static constexpr ConstCompDesc index_by_NotBindedTrigger_action_key_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("action_key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kWrite},
-  {HASH("is_binded"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription index_by_NotBindedTrigger_action_key_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_binded"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc index_by_NotBindedTrigger_action_key_query_desc = {
+static constexpr ConstQueryDescription index_by_NotBindedTrigger_action_key_query_desc = {
   make_const_array(index_by_NotBindedTrigger_action_key_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc index_by_ActiveTrigger_action_eid_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("action_eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("key"), Desc<StringHash>::Size, CompDescFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, CompDescFlags::kNone},
-  {HASH("is_active"), Desc<bool>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription index_by_ActiveTrigger_action_eid_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), Desc<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc index_by_ActiveTrigger_action_eid_query_desc = {
+static constexpr ConstQueryDescription index_by_ActiveTrigger_action_eid_query_desc = {
   make_const_array(index_by_ActiveTrigger_action_eid_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
 
-static RegQuery _reg_query_InactiveLift(HASH("triggers.cpp_InactiveLift"), InactiveLift_query_desc, 
+static PersistentQueryDescription _reg_query_InactiveLift(HASH("triggers.cpp_InactiveLift"), InactiveLift_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_CageBlock(HASH("triggers.cpp_CageBlock"), CageBlock_query_desc, nullptr);
-static RegQuery _reg_query_NotBindedTrigger(HASH("triggers.cpp_NotBindedTrigger"), NotBindedTrigger_query_desc, 
+static PersistentQueryDescription _reg_query_CageBlock(HASH("triggers.cpp_CageBlock"), CageBlock_query_desc, nullptr);
+static PersistentQueryDescription _reg_query_NotBindedTrigger(HASH("triggers.cpp_NotBindedTrigger"), NotBindedTrigger_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_binded, bool);
   return is_binded == false;
 });
-static RegQuery _reg_query_ActiveTrigger(HASH("triggers.cpp_ActiveTrigger"), ActiveTrigger_query_desc, 
+static PersistentQueryDescription _reg_query_ActiveTrigger(HASH("triggers.cpp_ActiveTrigger"), ActiveTrigger_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == true;
 });
-static RegQuery _reg_query_InactiveSwitchTrigger(HASH("triggers.cpp_InactiveSwitchTrigger"), InactiveSwitchTrigger_query_desc, 
+static PersistentQueryDescription _reg_query_InactiveSwitchTrigger(HASH("triggers.cpp_InactiveSwitchTrigger"), InactiveSwitchTrigger_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_InactiveZoneTrigger(HASH("triggers.cpp_InactiveZoneTrigger"), InactiveZoneTrigger_query_desc, 
+static PersistentQueryDescription _reg_query_InactiveZoneTrigger(HASH("triggers.cpp_InactiveZoneTrigger"), InactiveZoneTrigger_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_Action(HASH("triggers.cpp_Action"), Action_query_desc, nullptr);
-static RegQuery _reg_query_InactiveEnableLiftAction(HASH("triggers.cpp_InactiveEnableLiftAction"), InactiveEnableLiftAction_query_desc, 
+static PersistentQueryDescription _reg_query_Action(HASH("triggers.cpp_Action"), Action_query_desc, nullptr);
+static PersistentQueryDescription _reg_query_InactiveEnableLiftAction(HASH("triggers.cpp_InactiveEnableLiftAction"), InactiveEnableLiftAction_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_InactiveOpenCageAction(HASH("triggers.cpp_InactiveOpenCageAction"), InactiveOpenCageAction_query_desc, 
+static PersistentQueryDescription _reg_query_InactiveOpenCageAction(HASH("triggers.cpp_InactiveOpenCageAction"), InactiveOpenCageAction_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_InactiveKillPlayerAction(HASH("triggers.cpp_InactiveKillPlayerAction"), InactiveKillPlayerAction_query_desc, 
+static PersistentQueryDescription _reg_query_InactiveKillPlayerAction(HASH("triggers.cpp_InactiveKillPlayerAction"), InactiveKillPlayerAction_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
   return is_active == false;
 });
-static RegQuery _reg_query_AlivePlayer(HASH("triggers.cpp_AlivePlayer"), AlivePlayer_query_desc, 
+static PersistentQueryDescription _reg_query_AlivePlayer(HASH("triggers.cpp_AlivePlayer"), AlivePlayer_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
   return is_alive == true;
 });
-static RegQuery _reg_query_PlayerSpawnZone(HASH("triggers.cpp_PlayerSpawnZone"), PlayerSpawnZone_query_desc, nullptr);
+static PersistentQueryDescription _reg_query_PlayerSpawnZone(HASH("triggers.cpp_PlayerSpawnZone"), PlayerSpawnZone_query_desc, nullptr);
 
-static RegIndex _reg_index_index_by_NotBindedTrigger_action_key(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"), HASH("action_key"), index_by_NotBindedTrigger_action_key_query_desc, 
+static IndexDescription _reg_index_index_by_NotBindedTrigger_action_key(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"), HASH("action_key"), index_by_NotBindedTrigger_action_key_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_binded, bool);
   return is_binded == false;
 });
-static RegIndex _reg_index_index_by_ActiveTrigger_action_eid(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"), HASH("action_eid"), index_by_ActiveTrigger_action_eid_query_desc, 
+static IndexDescription _reg_index_index_by_ActiveTrigger_action_eid(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"), HASH("action_eid"), index_by_ActiveTrigger_action_eid_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_active, bool);
@@ -739,7 +739,7 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
     }
   }
 }
-static RegSys _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, "UpdateStage");
+static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, "UpdateStage");
 
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -773,7 +773,7 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static RegSys _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, "UpdateStage");
 
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -806,7 +806,7 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
     }
   }
 }
-static RegSys _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, "UpdateStage");
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -839,7 +839,7 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
     }
   }
 }
-static RegSys _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, "UpdateStage");
 
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -865,7 +865,7 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
     }
   }
 }
-static RegSys _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, "UpdateStage");
 
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -892,7 +892,7 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static RegSys _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, "UpdateStage");
 
 static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
@@ -900,6 +900,6 @@ static void update_player_spawner_run(const RawArg &stage_or_event, Query &query
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }
-static RegSys _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);
+static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);
 
 #endif // __CODEGEN__

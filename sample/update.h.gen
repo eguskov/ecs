@@ -5,29 +5,29 @@
 
 #include "update.h"
 
-static RegCompSpec<TimerComponent> _reg_comp_timer("timer");
-template <> int RegCompSpec<TimerComponent>::ID = -1;
+static ComponentDescriptionDetails<TimerComponent> _reg_comp_timer("timer");
+template <> int ComponentDescriptionDetails<TimerComponent>::ID = -1;
 
-static RegCompSpec<NoHitTimerComponent> _reg_comp_no_hit_timer("no_hit_timer");
-template <> int RegCompSpec<NoHitTimerComponent>::ID = -1;
+static ComponentDescriptionDetails<NoHitTimerComponent> _reg_comp_no_hit_timer("no_hit_timer");
+template <> int ComponentDescriptionDetails<NoHitTimerComponent>::ID = -1;
 
-static RegCompSpec<ColorComponent> _reg_comp_color("color");
-template <> int RegCompSpec<ColorComponent>::ID = -1;
+static ComponentDescriptionDetails<ColorComponent> _reg_comp_color("color");
+template <> int ComponentDescriptionDetails<ColorComponent>::ID = -1;
 
-static RegCompSpec<AutoMove> _reg_comp_auto_move("auto_move");
-template <> int RegCompSpec<AutoMove>::ID = -1;
+static ComponentDescriptionDetails<AutoMove> _reg_comp_auto_move("auto_move");
+template <> int ComponentDescriptionDetails<AutoMove>::ID = -1;
 
-static RegCompSpec<Jump> _reg_comp_jump("jump");
-template <> int RegCompSpec<Jump>::ID = -1;
+static ComponentDescriptionDetails<Jump> _reg_comp_jump("jump");
+template <> int ComponentDescriptionDetails<Jump>::ID = -1;
 
-static RegCompSpec<Gravity> _reg_comp_gravity("gravity");
-template <> int RegCompSpec<Gravity>::ID = -1;
+static ComponentDescriptionDetails<Gravity> _reg_comp_gravity("gravity");
+template <> int ComponentDescriptionDetails<Gravity>::ID = -1;
 
-static RegCompSpec<TextureAtlas> _reg_comp_texture("texture");
-template <> int RegCompSpec<TextureAtlas>::ID = -1;
+static ComponentDescriptionDetails<TextureAtlas> _reg_comp_texture("texture");
+template <> int ComponentDescriptionDetails<TextureAtlas>::ID = -1;
 
-static RegCompSpec<EventOnKillEnemy> _reg_event_EventOnKillEnemy;
-int RegCompSpec<EventOnKillEnemy>::ID = -1;
+static ComponentDescriptionDetails<EventOnKillEnemy> _reg_event_EventOnKillEnemy;
+int ComponentDescriptionDetails<EventOnKillEnemy>::ID = -1;
 
 
 

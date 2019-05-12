@@ -16,7 +16,7 @@ namespace script
     int stageId = -1;
     int eventId = -1;
 
-    QueryDesc queryDesc;
+    QueryDescription queryDesc;
 
     ParamDescVector params;
 
@@ -64,7 +64,7 @@ namespace script
       RawArgSpec<sizeof(S)> arg0;
       new (arg0.mem) S(stage);
 
-      tickStage(RegCompSpec<S>::ID, arg0);
+      tickStage(ComponentDescriptionDetails<S>::ID, arg0);
     }
   };
 

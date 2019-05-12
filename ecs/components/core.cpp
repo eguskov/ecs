@@ -1,7 +1,7 @@
 #include "core.h"
 
-// static RegCompSpec<EntityId> _eid;
-// int RegCompSpec<EntityId>::ID = -1;
+// static ComponentDescriptionDetails<EntityId> _eid;
+// int ComponentDescriptionDetails<EntityId>::ID = -1;
 
 REG_COMP_INIT(EntityId, eid);
 REG_COMP_INIT(bool, bool);

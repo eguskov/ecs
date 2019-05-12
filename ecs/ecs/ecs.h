@@ -20,13 +20,13 @@
 
 #include "jobmanager.h"
 
-#define ECS_PULL(type) static int pull_##type = RegCompSpec<type>::ID;
+#define ECS_PULL(type) static int pull_##type = ComponentDescriptionDetails<type>::ID;
 #define PULL_ESC_CORE ECS_PULL(bool);
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
-struct RegComp;
-extern RegComp *reg_comp_head;
+struct ComponentDescription;
+extern ComponentDescription *reg_comp_head;
 extern int reg_comp_count;
 
 struct EventOnEntityCreate : Event
@@ -51,7 +51,7 @@ struct EntityTemplate
   int archetypeId = -1;
 
   eastl::string name;
-  eastl::vector<CompDesc> components;
+  eastl::vector<Component> components;
   eastl::vector<int> extends;
 };
 
@@ -76,7 +76,7 @@ struct Entity
 struct System
 {
   int weight;
-  const RegSys *desc;
+  const SystemDescription *desc;
 };
 
 struct EventStream
@@ -159,7 +159,7 @@ struct Archetype
 struct EntityManager
 {
   int eidCompId = -1;
-  const RegComp *eidComp = nullptr;
+  const ComponentDescription *eidComp = nullptr;
 
   JDocument templatesDoc;
 
@@ -168,9 +168,9 @@ struct EntityManager
   eastl::vector<Archetype> archetypes;
   int entitiesCount = 0;
   eastl::vector<Entity> entities;
-  eastl::hash_map<HashedString, const RegComp*> componentDescByNames;
+  eastl::hash_map<HashedString, const ComponentDescription*> componentDescByNames;
   eastl::vector<System> systems;
-  eastl::vector<const RegSys*> systemDescs;
+  eastl::vector<const SystemDescription*> systemDescs;
   eastl::vector<eastl::vector<int>> systemDependencies;
   eastl::vector<jobmanager::JobId> systemJobs;
   eastl::vector<AsyncValue> asyncValues;
@@ -200,9 +200,9 @@ struct EntityManager
   void waitSystemDependencies(int id) const;
 
   int getSystemWeight(const ConstHashedString &name) const;
-  const RegComp* getComponentDescByName(const char *name) const;
-  const RegComp* getComponentDescByName(const HashedString &name) const;
-  const RegComp* getComponentDescByName(const ConstHashedString &name) const;
+  const ComponentDescription* getComponentDescByName(const char *name) const;
+  const ComponentDescription* getComponentDescByName(const HashedString &name) const;
+  const ComponentDescription* getComponentDescByName(const ConstHashedString &name) const;
 
   Query* getQueryByName(const ConstHashedString &name);
   Index* getIndexByName(const ConstHashedString &name);
@@ -243,7 +243,7 @@ struct EntityManager
     RawArgSpec<sizeof(S)> arg0;
     new (arg0.mem) S(stage);
 
-    tickStage(RegCompSpec<S>::ID, arg0);
+    tickStage(ComponentDescriptionDetails<S>::ID, arg0);
   }
 
   template <typename E>
@@ -252,7 +252,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEvent(eid, RegCompSpec<E>::ID, arg0);
+    sendEvent(eid, ComponentDescriptionDetails<E>::ID, arg0);
   }
 
   template <typename E>
@@ -261,7 +261,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventSync(eid, RegCompSpec<E>::ID, arg0);
+    sendEventSync(eid, ComponentDescriptionDetails<E>::ID, arg0);
   }
 
   template <typename E>
@@ -270,7 +270,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventBroadcast(RegCompSpec<E>::ID, arg0);
+    sendEventBroadcast(ComponentDescriptionDetails<E>::ID, arg0);
   }
 
   template <typename E>
@@ -279,7 +279,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventBroadcastSync(RegCompSpec<E>::ID, arg0);
+    sendEventBroadcastSync(ComponentDescriptionDetails<E>::ID, arg0);
   }
 };
 

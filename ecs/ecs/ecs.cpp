@@ -10,19 +10,19 @@ REG_EVENT_INIT(EventOnChangeDetected);
 
 EntityManager *g_mgr = nullptr;
 
-RegSys *reg_sys_head = nullptr;
+SystemDescription *reg_sys_head = nullptr;
 int reg_sys_count = 0;
 
-RegComp *reg_comp_head = nullptr;
+ComponentDescription *reg_comp_head = nullptr;
 int reg_comp_count = 0;
 
-RegQuery *reg_query_head = nullptr;
+PersistentQueryDescription *reg_query_head = nullptr;
 int reg_query_count = 0;
 
-RegIndex *reg_index_head = nullptr;
+IndexDescription *reg_index_head = nullptr;
 int reg_index_count = 0;
 
-inline static bool has_components(const Archetype &type, const eastl::vector<CompDesc> &components)
+inline static bool has_components(const Archetype &type, const eastl::vector<Component> &components)
 {
   for (const auto &c : components)
     if (!type.hasCompontent(c.name))
@@ -30,7 +30,7 @@ inline static bool has_components(const Archetype &type, const eastl::vector<Com
   return true;
 }
 
-inline static bool not_have_components(const Archetype &type, const eastl::vector<CompDesc> &components)
+inline static bool not_have_components(const Archetype &type, const eastl::vector<Component> &components)
 {
   for (const auto &c : components)
     if (type.hasCompontent(c.name))
@@ -38,15 +38,15 @@ inline static bool not_have_components(const Archetype &type, const eastl::vecto
   return true;
 }
 
-RegSys::~RegSys()
+SystemDescription::~SystemDescription()
 {
   if (stageName)
     ::free(stageName);
 }
 
-const RegSys *find_sys(const ConstHashedString &name)
+const SystemDescription *find_system(const ConstHashedString &name)
 {
-  const RegSys *head = reg_sys_head;
+  const SystemDescription *head = reg_sys_head;
   while (head)
   {
     if (head->name == name)
@@ -56,7 +56,7 @@ const RegSys *find_sys(const ConstHashedString &name)
   return nullptr;
 }
 
-RegComp::RegComp(const char *_name, int _size) : id(reg_comp_count), size(_size)
+ComponentDescription::ComponentDescription(const char *_name, int _size) : id(reg_comp_count), size(_size)
 {
   name = ::_strdup(_name);
   next = reg_comp_head;
@@ -64,14 +64,14 @@ RegComp::RegComp(const char *_name, int _size) : id(reg_comp_count), size(_size)
   ++reg_comp_count;
 }
 
-RegComp::~RegComp()
+ComponentDescription::~ComponentDescription()
 {
   ::free(name);
 }
 
-const RegComp *find_comp(const char *name)
+const ComponentDescription *find_component(const char *name)
 {
-  const RegComp *head = reg_comp_head;
+  const ComponentDescription *head = reg_comp_head;
   while (head)
   {
     if (::strcmp(head->name, name) == 0)
@@ -81,14 +81,14 @@ const RegComp *find_comp(const char *name)
   return nullptr;
 }
 
-RegQuery::RegQuery(const ConstHashedString &_name, const ConstQueryDesc &_desc, filter_t &&f) : name(_name), desc(_desc), filter(eastl::move(f))
+PersistentQueryDescription::PersistentQueryDescription(const ConstHashedString &_name, const ConstQueryDescription &_desc, filter_t &&f) : name(_name), desc(_desc), filter(eastl::move(f))
 {
   next = reg_query_head;
   reg_query_head = this;
   ++reg_query_count;
 }
 
-RegIndex::RegIndex(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDesc &_desc, filter_t &&f) : name(_name), componentName(component_name), desc(_desc), filter(eastl::move(f))
+IndexDescription::IndexDescription(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDescription &_desc, filter_t &&f) : name(_name), componentName(component_name), desc(_desc), filter(eastl::move(f))
 {
   next = reg_index_head;
   reg_index_head = this;
@@ -176,7 +176,7 @@ void EntityManager::init()
 {
   jobmanager::init();
 
-  eidComp = find_comp("eid");
+  eidComp = find_component("eid");
   eidCompId = eidComp->id;
 
   componentDescByNames[hash::cstr("eid")] = eidComp;
@@ -245,11 +245,11 @@ void EntityManager::init()
 
   systemDescs.resize(reg_sys_count);
 
-  for (const RegSys *sys = reg_sys_head; sys; sys = sys->next)
+  for (const SystemDescription *sys = reg_sys_head; sys; sys = sys->next)
   {
     ASSERT(sys->sys != nullptr);
-    ASSERT(find_comp(sys->stageName) != nullptr);
-    const_cast<RegSys*>(sys)->stageId = find_comp(sys->stageName)->id;
+    ASSERT(find_component(sys->stageName) != nullptr);
+    const_cast<SystemDescription*>(sys)->stageId = find_component(sys->stageName)->id;
     ASSERT(sys->stageId >= 0);
 
     systemDescs[sys->id] = sys;
@@ -268,7 +268,7 @@ void EntityManager::init()
     q.desc = sys.desc->queryDesc;
     q.desc.filter = sys.desc->filter;
     q.name = sys.desc->name;
-    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
+    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
 
     for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
     {
@@ -312,7 +312,7 @@ void EntityManager::init()
       found = false;
       for (const auto &compI : compsI)
         for (const auto &compJ : systems[j].desc->queryDesc.components)
-          if (!found && compI.name == compJ.name && ((compJ.flags & CompDescFlags::kWrite) || (compI.flags & CompDescFlags::kWrite)))
+          if (!found && compI.name == compJ.name && ((compJ.flags & ComponentDescriptionFlags::kWrite) || (compI.flags & ComponentDescriptionFlags::kWrite)))
           {
             // TODO: Check query intersection!!!
             found = true;
@@ -339,7 +339,7 @@ void EntityManager::init()
   for (auto &sys : systems)
   {
     auto &q = queries[sys.desc->id];
-    if (sys.desc->mode == RegSys::Mode::FROM_EXTERNAL_QUERY)
+    if (sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
       q.desc = empty_query_desc;
   }
 
@@ -351,7 +351,7 @@ void EntityManager::init()
 
   namedQueries.resize(reg_query_count);
   int queryIdx = 0;
-  for (const RegQuery *query = reg_query_head; query; query = query->next, ++queryIdx)
+  for (const PersistentQueryDescription *query = reg_query_head; query; query = query->next, ++queryIdx)
   {
     ASSERT(getQueryByName(query->name) == nullptr);
     namedQueries[queryIdx].name = query->name;
@@ -363,7 +363,7 @@ void EntityManager::init()
 
   namedIndices.resize(reg_index_count);
   int indexIdx = 0;
-  for (const RegIndex *index = reg_index_head; index; index = index->next, ++indexIdx)
+  for (const IndexDescription *index = reg_index_head; index; index = index->next, ++indexIdx)
   {
     ASSERT(getIndexByName(index->name) == nullptr);
     namedIndices[indexIdx].name = index->name;
@@ -405,7 +405,7 @@ int EntityManager::getSystemWeight(const ConstHashedString &name) const
   return (int)(res - order.begin());
 }
 
-const RegComp* EntityManager::getComponentDescByName(const char *name) const
+const ComponentDescription* EntityManager::getComponentDescByName(const char *name) const
 {
   auto res = componentDescByNames.find(hash_str(name));
   if (res == componentDescByNames.end())
@@ -413,7 +413,7 @@ const RegComp* EntityManager::getComponentDescByName(const char *name) const
   return res->second;
 }
 
-const RegComp* EntityManager::getComponentDescByName(const HashedString &name) const
+const ComponentDescription* EntityManager::getComponentDescByName(const HashedString &name) const
 {
   auto res = componentDescByNames.find(name);
   if (res == componentDescByNames.end())
@@ -421,7 +421,7 @@ const RegComp* EntityManager::getComponentDescByName(const HashedString &name) c
   return res->second;
 }
 
-const RegComp* EntityManager::getComponentDescByName(const ConstHashedString &name) const
+const ComponentDescription* EntityManager::getComponentDescByName(const ConstHashedString &name) const
 {
   auto res = componentDescByNames.find(name);
   if (res == componentDescByNames.end())
@@ -447,15 +447,15 @@ Index* EntityManager::getIndexByName(const ConstHashedString &name)
 
 static void add_component_to_template(const char *comp_type, const HashedString &comp_name,
   EntityTemplate &templ,
-  eastl::hash_map<HashedString, const RegComp*> &component_desc_by_names)
+  eastl::hash_map<HashedString, const ComponentDescription*> &component_desc_by_names)
 {
-  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const CompDesc &c) { return c.name == comp_name; });
+  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const Component &c) { return c.name == comp_name; });
   if (res != templ.components.end())
     return;
 
-  templ.components.push_back({ 0, comp_name, find_comp(comp_type)->size, find_comp(comp_type) });
+  templ.components.push_back({ 0, comp_name, find_component(comp_type)->size, find_component(comp_type) });
 
-  const RegComp *desc = templ.components.back().desc;
+  const ComponentDescription *desc = templ.components.back().desc;
   ASSERT(desc != nullptr);
   ASSERT(component_desc_by_names.find(comp_name) == component_desc_by_names.end() || component_desc_by_names[comp_name] == desc);
   component_desc_by_names[comp_name] = desc;
@@ -464,7 +464,7 @@ static void add_component_to_template(const char *comp_type, const HashedString 
 static void process_extends(EntityManager *mgr,
   EntityTemplate &templ,
   const eastl::vector<const char*> &extends,
-  eastl::hash_map<HashedString, const RegComp*> &component_desc_by_names)
+  eastl::hash_map<HashedString, const ComponentDescription*> &component_desc_by_names)
 {
   for (const auto &e : extends)
   {
@@ -488,7 +488,7 @@ void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl:
     add_component_to_template(name.first, name.second, templ, componentDescByNames);
 
   eastl::sort(templ.components.begin(), templ.components.end(),
-    [](const CompDesc &lhs, const CompDesc &rhs)
+    [](const Component &lhs, const Component &rhs)
     {
       if (lhs.desc->id == rhs.desc->id)
         return lhs.name < rhs.name;
@@ -850,7 +850,7 @@ int Archetype::getComponentIndex(const ConstHashedString &name) const
 }
 
 template <typename T>
-inline static bool is_components_values_equal_to(const T &value, int entity_idx, const Archetype &type, const eastl::vector<CompDesc> &components)
+inline static bool is_components_values_equal_to(const T &value, int entity_idx, const Archetype &type, const eastl::vector<Component> &components)
 {
   for (const auto &c : components)
   {
@@ -868,7 +868,7 @@ Query* Index::find(uint32_t value)
   return res != items.end() && *res == item ? &queries[res->queryId] : nullptr;
 }
 
-void Query::addChunks(const QueryDesc &in_desc, Archetype &type, int begin, int entities_count)
+void Query::addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count)
 {
   ++chunksCount;
 

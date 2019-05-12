@@ -117,11 +117,11 @@ int main(int argc, char* argv[])
 
     for (const auto &comp : state.components)
     {
-      out << fmt::format("static RegCompSpec<{type}> _reg_comp_{name}(\"{name}\");\n",
+      out << fmt::format("static ComponentDescriptionDetails<{type}> _reg_comp_{name}(\"{name}\");\n",
         fmt::arg("type", comp.type),
         fmt::arg("name", comp.name));
 
-      out << fmt::format("template <> int RegCompSpec<{type}>::ID = -1;\n",
+      out << fmt::format("template <> int ComponentDescriptionDetails<{type}>::ID = -1;\n",
         fmt::arg("type", comp.type));
 
       out << "\n";
@@ -129,11 +129,11 @@ int main(int argc, char* argv[])
 
     for (const auto &ev : state.events)
     {
-      out << fmt::format("static RegCompSpec<{type}> _reg_event_{name};\n",
+      out << fmt::format("static ComponentDescriptionDetails<{type}> _reg_event_{name};\n",
         fmt::arg("type", ev.type),
         fmt::arg("name", escape_name(ev.name)));
 
-      out << fmt::format("int RegCompSpec<{type}>::ID = -1;\n",
+      out << fmt::format("int ComponentDescriptionDetails<{type}>::ID = -1;\n",
         fmt::arg("type", ev.type));
 
       out << "\n";
@@ -168,18 +168,18 @@ int main(int argc, char* argv[])
 
       if (sys.parameters.size() > 1)
       {
-        out << "static constexpr ConstCompDesc " << sys.name << "_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << sys.name << "_components[] = {" << std::endl;
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
         }
         out << "};" << std::endl;
       }
 
       if (!sys.have.empty())
       {
-        out << "static constexpr ConstCompDesc " << sys.name << "_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << sys.name << "_have_components[] = {" << std::endl;
         for (const auto &p : sys.have)
         {
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
       }
       if (!sys.notHave.empty())
       {
-        out << "static constexpr ConstCompDesc " << sys.name << "_not_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << sys.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : sys.notHave)
         {
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
@@ -197,13 +197,13 @@ int main(int argc, char* argv[])
       }
       if (!sys.track.empty())
       {
-        out << "static constexpr ConstCompDesc " << sys.name << "_track_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << sys.name << "_track_components[] = {" << std::endl;
         for (const auto &p : sys.track)
           out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         out << "};" << std::endl;
       }
 
-      out << "static constexpr ConstQueryDesc " << sys.name << "_query_desc = {" << std::endl;
+      out << "static constexpr ConstQueryDescription " << sys.name << "_query_desc = {" << std::endl;
       if (sys.parameters.size() <= 1) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << sys.name << "_components)," << std::endl;
       if (sys.have.empty()) out << "  empty_desc_array," << std::endl;
@@ -230,34 +230,34 @@ int main(int argc, char* argv[])
 
     for (const auto &q : state.queries)
     {
-      out << "static constexpr ConstCompDesc " << q.name << "_components[] = {" << std::endl;
+      out << "static constexpr ConstComponentDescription " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!q.have.empty())
       {
-        out << "static constexpr ConstCompDesc " << q.name << "_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << q.name << "_have_components[] = {" << std::endl;
         for (const auto &p : q.have)
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         out << "};" << std::endl;
       }
       if (!q.notHave.empty())
       {
-        out << "static constexpr ConstCompDesc " << q.name << "_not_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << q.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : q.notHave)
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         out << "};" << std::endl;
       }
       if (!q.track.empty())
       {
-        out << "static constexpr ConstCompDesc " << q.name << "_track_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << q.name << "_track_components[] = {" << std::endl;
         for (const auto &p : q.track)
           out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
         out << "};" << std::endl;
       }
 
-      out << "static constexpr ConstQueryDesc " << q.name << "_query_desc = {" << std::endl;
+      out << "static constexpr ConstQueryDescription " << q.name << "_query_desc = {" << std::endl;
       out << "  make_const_array(" << q.name << "_components)," << std::endl;
       if (q.have.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << q.name << "_have_components)," << std::endl;
@@ -287,27 +287,27 @@ int main(int argc, char* argv[])
 
     for (const auto &i : state.indices)
     {
-      out << "static constexpr ConstCompDesc " << i.name << "_components[] = {" << std::endl;
+      out << "static constexpr ConstComponentDescription " << i.name << "_components[] = {" << std::endl;
       for (const auto &p : i.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "CompDescFlags::kWrite" : "CompDescFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!i.have.empty())
       {
-        out << "static constexpr ConstCompDesc " << i.name << "_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << i.name << "_have_components[] = {" << std::endl;
         for (const auto &p : i.have)
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         out << "};" << std::endl;
       }
       if (!i.notHave.empty())
       {
-        out << "static constexpr ConstCompDesc " << i.name << "_not_have_components[] = {" << std::endl;
+        out << "static constexpr ConstComponentDescription " << i.name << "_not_have_components[] = {" << std::endl;
         for (const auto &p : i.notHave)
           out << "  {HASH(\"" << p.name << "\"), 0}," << std::endl;
         out << "};" << std::endl;
       }
 
-      out << "static constexpr ConstQueryDesc " << i.name << "_query_desc = {" << std::endl;
+      out << "static constexpr ConstQueryDescription " << i.name << "_query_desc = {" << std::endl;
       out << "  make_const_array(" << i.name << "_components)," << std::endl;
       if (i.have.empty()) out << "  empty_desc_array," << std::endl;
       else out << "  make_const_array(" << i.name << "_have_components)," << std::endl;
@@ -321,12 +321,12 @@ int main(int argc, char* argv[])
     out << std::endl;
 
     for (const auto &q : state.queries)
-      out << "static RegQuery _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
+      out << "static PersistentQueryDescription _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
 
     out << std::endl;
 
     for (const auto &i : state.indices)
-      out << "static RegIndex _reg_index_" << i.name << "(HASH(\"" << basename << "_" << i.name << "\"), " << "HASH(\"" << i.componentName << "\"), " << i.name << "_query_desc, " << (i.filter.empty() ? "nullptr" : i.filter) << ");" << std::endl;
+      out << "static IndexDescription _reg_index_" << i.name << "(HASH(\"" << basename << "_" << i.name << "\"), " << "HASH(\"" << i.componentName << "\"), " << i.name << "_query_desc, " << (i.filter.empty() ? "nullptr" : i.filter) << ");" << std::endl;
 
     out << std::endl;
 
@@ -440,7 +440,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {query}_query_desc, RegSys::Mode::FROM_EXTERNAL_QUERY);\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {query}_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("query", query.name),
         fmt::arg("stage", sys.parameters[0].pureType));
@@ -471,7 +471,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -554,7 +554,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -619,7 +619,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -650,7 +650,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -670,7 +670,7 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
@@ -697,7 +697,7 @@ int main(int argc, char* argv[])
       out << "  jobmanager::wait(job);\n";
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
@@ -726,7 +726,7 @@ int main(int argc, char* argv[])
       out << "  jobmanager::start_jobs();\n";
       out << "}\n";
 
-      out << fmt::format("static RegSys _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, \"{stage}\", {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));

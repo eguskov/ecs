@@ -490,7 +490,7 @@ struct update_boid_rules
       int i = from;
       for (auto q = boidsBegin + from, e = q + count; q != e; ++q, ++i)
       {
-        BoidSeparation boid(Iter::deref(q));
+        BoidSeparation boid(Iter::get(q));
         const uint32_t gridCell = MAKE_GRID_CELL_FROM_POS(boid.pos + glm::vec2(0.f, float(GRID_SIZE)), GRID_SIZE);
         addBoidToMap(gridCell, i);
       }
@@ -500,14 +500,14 @@ struct update_boid_rules
     {
       int i = from;
       for (auto q = boidsBegin + from, e = q + count; q != e; ++q, ++i)
-        (*cellSeparation)[i] = Iter::deref(q).pos;
+        (*cellSeparation)[i] = Iter::get(q).pos;
     });
 
     auto initCellAlignmentJob = jobmanager::add_job(deps, boids.count(), 256, [boidsBegin, cellAlignment](int from, int count)
     {
       int i = from;
       for (auto q = boidsBegin + from, e = q + count; q != e; ++q, ++i)
-        (*cellAlignment)[i] = Iter::deref(q).vel;
+        (*cellAlignment)[i] = Iter::get(q).vel;
     });
 
     auto initBarrier = jobmanager::add_job({ addBoidsToMapJob, initCellSeparationJob, initCellAlignmentJob });
@@ -546,7 +546,7 @@ struct update_boid_rules
       int i = from;
       for (auto q = boidsBegin + from, e = q + count; q != e; ++q, ++i)
       {
-        BoidSeparation boid(Iter::deref(q));
+        BoidSeparation boid(Iter::get(q));
 
         glm::vec2 box(SEPARATION_RADIUS, SEPARATION_RADIUS);
 
@@ -657,7 +657,7 @@ struct update_boid_rules
       int i = from;
       for (auto q = boidsBegin + from, e = q + count; q != e; ++q, ++i)
       {
-        BoidSeparation boid(Iter::deref(q));
+        BoidSeparation boid(Iter::get(q));
         (*boidsData)[i].pos = boid.pos;
         (*boidsData)[i].vel = boid.vel;
         (*boidsData)[i].index = i;
@@ -812,7 +812,7 @@ struct update_boid_rules
       {
         const int index = (*boidsData)[i].index;
 
-        BoidSeparation boid(Iter::deref(boidsBegin + index));
+        BoidSeparation boid(Iter::get(boidsBegin + index));
 
         boid.separation_center = (*boidsSeparation)[i];
         boid.cohesion_center = (*boidsCohesion)[i];

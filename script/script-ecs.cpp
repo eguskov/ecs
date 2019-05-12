@@ -24,7 +24,7 @@ namespace script
 
   void ScriptSys::init(const EntityManager *mgr, const ScriptECS *script_ecs)
   {
-    const RegComp *comp = find_comp(params[0].type.c_str());
+    const ComponentDescription *comp = find_component(params[0].type.c_str());
     ASSERT(comp != nullptr);
 
     eventId = -1;
@@ -38,7 +38,7 @@ namespace script
       componentTypeNames.emplace_back() = param.getTypeName();
       componentTypeIds.emplace_back() = param.typeId.id;
 
-      const RegComp *desc = find_comp(componentTypeNames.back().c_str());
+      const ComponentDescription *desc = find_component(componentTypeNames.back().c_str());
       if (!desc)
         desc = mgr->getComponentDescByName(param.name.c_str());
       ASSERT(desc != nullptr);
@@ -110,7 +110,7 @@ namespace script
     return *this;
   }
 
-  static void process_metadata(const JFrameDocument &doc, const char *key, eastl::vector<CompDesc> &out_components)
+  static void process_metadata(const JFrameDocument &doc, const char *key, eastl::vector<Component> &out_components)
   {
     if (!doc.HasMember(key))
       return;
@@ -194,7 +194,7 @@ namespace script
             else if (typeId == asTYPEID_BOOL) typeName = "bool";
             else typeName = internal::get_engine()->GetTypeInfoById(typeId)->GetName();
 
-            const RegComp *desc = find_comp(typeName);
+            const ComponentDescription *desc = find_component(typeName);
             if (!desc)
               desc = g_mgr->getComponentDescByName(name);
             ASSERT(desc != nullptr);

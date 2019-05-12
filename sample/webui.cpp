@@ -575,7 +575,7 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
       {
         bson.add("name", templ.name);
 
-        bson_array_of_documents(bson, "components", templ.components, [&](int, const CompDesc &comp)
+        bson_array_of_documents(bson, "components", templ.components, [&](int, const Component &comp)
         {
           bson.add("type", comp.desc->name);
           bson.add("name", comp.name.str);
@@ -586,19 +586,19 @@ static void ws_get_ecs_data(struct mg_connection *conn, const JDocument &doc)
       {
         bson.add("name", sys.desc->name.str);
 
-        bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstCompDesc &comp)
+        bson_array_of_documents(bson, "components", sys.desc->queryDesc.components, [&](int, const ConstComponentDescription &comp)
         {
           bson.add("name", comp.name.str);
           bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
         });
 
-        bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const ConstCompDesc &comp)
+        bson_array_of_documents(bson, "haveComponents", sys.desc->queryDesc.haveComponents, [&](int, const ConstComponentDescription &comp)
         {
           bson.add("name", comp.name.str);
           bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);
         });
 
-        bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstCompDesc &comp)
+        bson_array_of_documents(bson, "notHaveComponents", sys.desc->queryDesc.notHaveComponents, [&](int, const ConstComponentDescription &comp)
         {
           bson.add("name", comp.name.str);
           bson.add("type", g_mgr->getComponentDescByName(comp.name)->name);

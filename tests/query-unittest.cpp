@@ -87,35 +87,35 @@ struct QueryTest : public testing::Test
 
 TEST_F(QueryTest, Select_All)
 {
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
+  QueryDescription desc;
+  desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
 
   CHECK_QUERY_COUNT(q, 30ul);
 }
 
 TEST_F(QueryTest, Select_Have)
 {
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-  desc.haveComponents.push_back({-1, hash::cstr("vel"), find_comp("vec3")->size, find_comp("vec3")});
+  QueryDescription desc;
+  desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
+  desc.haveComponents.push_back({-1, hash::cstr("vel"), find_component("vec3")->size, find_component("vec3")});
 
   CHECK_QUERY_COUNT(q, 5ul);
 }
 
 TEST_F(QueryTest, Select_Have_Tag)
 {
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-  desc.haveComponents.push_back({-1, hash::cstr("tag-test"), find_comp("tag")->size, find_comp("tag")});
+  QueryDescription desc;
+  desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
+  desc.haveComponents.push_back({-1, hash::cstr("tag-test"), find_component("tag")->size, find_component("tag")});
 
   CHECK_QUERY_COUNT(q, 15ul);
 }
 
 TEST_F(QueryTest, Select_Not_Have)
 {
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-  desc.notHaveComponents.push_back({-1, hash::cstr("vel"), find_comp("vec3")->size, find_comp("vec3")});
+  QueryDescription desc;
+  desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
+  desc.notHaveComponents.push_back({-1, hash::cstr("vel"), find_component("vec3")->size, find_component("vec3")});
 
   CHECK_QUERY_COUNT(q, 25ul);
 }
@@ -123,9 +123,9 @@ TEST_F(QueryTest, Select_Not_Have)
 // TODO: Replace with Filter
 // TEST_F(QueryTest, Select_Is_True)
 // {
-//   QueryDesc desc;
-//   desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-//   desc.isTrueComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
+//   QueryDescription desc;
+//   desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
+//   desc.isTrueComponents.push_back({-1, hash::cstr("flag"), find_component("bool")->size, find_component("bool")});
 
 //   CHECK_QUERY_COUNT(q, 4ul);
 // }
@@ -133,17 +133,17 @@ TEST_F(QueryTest, Select_Not_Have)
 // TODO: Replace with Filter
 // TEST_F(QueryTest, Select_Is_False)
 // {
-//   QueryDesc desc;
-//   desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
-//   desc.isFalseComponents.push_back({-1, hash::cstr("flag"), find_comp("bool")->size, find_comp("bool")});
+//   QueryDescription desc;
+//   desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
+//   desc.isFalseComponents.push_back({-1, hash::cstr("flag"), find_component("bool")->size, find_component("bool")});
 
 //   CHECK_QUERY_COUNT(q, 6ul);
 // }
 
 TEST_F(QueryTest, Select_Join)
 {
-  QueryDesc desc;
-  desc.components.push_back({-1, hash::cstr("eid"), find_comp("eid")->size, find_comp("eid")});
+  QueryDescription desc;
+  desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
 
   CHECK_QUERY_COUNT(q, 30ul);
 }
@@ -174,17 +174,17 @@ struct TestIndexSystem
   }
 };
 
-static constexpr ConstCompDesc TestIndex_components[] = {
+static constexpr ConstComponentDescription TestIndex_components[] = {
   {HASH("grid_cell"), Desc<int>::Size},
   {HASH("float_comp"), Desc<float>::Size},
 };
-static constexpr ConstQueryDesc TestIndex_query_desc = {
+static constexpr ConstQueryDescription TestIndex_query_desc = {
   make_const_array(TestIndex_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-RegIndex _reg_index_test(HASH("test_index"), HASH("grid_cell"), TestIndex_query_desc);
+IndexDescription _reg_index_test(HASH("test_index"), HASH("grid_cell"), TestIndex_query_desc);
 
 TEST_F(QueryTest, Index)
 {

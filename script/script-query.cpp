@@ -60,7 +60,7 @@ ScriptQuery::Iterator ScriptQuery::perform()
   return it;
 }
 
-asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<CompDesc> &components, asITypeInfo *type)
+asIScriptObject* inject_components_into_struct(const EntityId &eid, const eastl::vector<Component> &components, asITypeInfo *type)
 {
   // TODO: Reuse asIScriptObject *object;
   // TODO: Inject as SoA. Query result can be stored as Struct of Array in the script.

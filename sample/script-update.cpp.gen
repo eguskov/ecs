@@ -5,56 +5,56 @@
 
 #include "script-update.cpp"
 
-static constexpr ConstCompDesc reload_script_handler_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, CompDescFlags::kNone},
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription reload_script_handler_components[] = {
+  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc reload_script_handler_query_desc = {
+static constexpr ConstQueryDescription reload_script_handler_query_desc = {
   make_const_array(reload_script_handler_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc build_script_handler_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription build_script_handler_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc build_script_handler_query_desc = {
+static constexpr ConstQueryDescription build_script_handler_query_desc = {
   make_const_array(build_script_handler_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc update_script_query_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription update_script_query_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc update_script_query_query_desc = {
+static constexpr ConstQueryDescription update_script_query_query_desc = {
   make_const_array(update_script_query_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc update_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription update_script_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc update_script_query_desc = {
+static constexpr ConstQueryDescription update_script_query_desc = {
   make_const_array(update_script_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc dispatch_event_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription dispatch_event_script_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc dispatch_event_script_query_desc = {
+static constexpr ConstQueryDescription dispatch_event_script_query_desc = {
   make_const_array(dispatch_event_script_components),
   empty_desc_array,
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstCompDesc dispatch_broadcast_event_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kWrite},
+static constexpr ConstComponentDescription dispatch_broadcast_event_script_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
-static constexpr ConstQueryDesc dispatch_broadcast_event_script_query_desc = {
+static constexpr ConstQueryDescription dispatch_broadcast_event_script_query_desc = {
   make_const_array(dispatch_broadcast_event_script_components),
   empty_desc_array,
   empty_desc_array,
@@ -72,7 +72,7 @@ static void reload_script_handler_run(const RawArg &stage_or_event, Query &query
       GET_COMPONENT(reload_script_handler, q, EntityId, eid),
       GET_COMPONENT(reload_script_handler, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_reload_script_handler(HASH("reload_script_handler"), &reload_script_handler_run, "CmdReloadScript", reload_script_handler_query_desc, nullptr);
+static SystemDescription _reg_sys_reload_script_handler(HASH("reload_script_handler"), &reload_script_handler_run, "CmdReloadScript", reload_script_handler_query_desc, nullptr);
 
 static void build_script_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -81,7 +81,7 @@ static void build_script_handler_run(const RawArg &stage_or_event, Query &query)
     build_script_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(build_script_handler, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_build_script_handler(HASH("build_script_handler"), &build_script_handler_run, "EventOnEntityCreate", build_script_handler_query_desc, nullptr);
+static SystemDescription _reg_sys_build_script_handler(HASH("build_script_handler"), &build_script_handler_run, "EventOnEntityCreate", build_script_handler_query_desc, nullptr);
 
 static void update_script_query_run(const RawArg &stage_or_event, Query &query)
 {
@@ -90,7 +90,7 @@ static void update_script_query_run(const RawArg &stage_or_event, Query &query)
     update_script_query::run(*(EventOnChangeDetected*)stage_or_event.mem,
       GET_COMPONENT(update_script_query, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_update_script_query(HASH("update_script_query"), &update_script_query_run, "EventOnChangeDetected", update_script_query_query_desc, nullptr);
+static SystemDescription _reg_sys_update_script_query(HASH("update_script_query"), &update_script_query_run, "EventOnChangeDetected", update_script_query_query_desc, nullptr);
 
 static void update_script_run(const RawArg &stage_or_event, Query &query)
 {
@@ -99,7 +99,7 @@ static void update_script_run(const RawArg &stage_or_event, Query &query)
     update_script::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_script, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_update_script(HASH("update_script"), &update_script_run, "UpdateStage", update_script_query_desc, nullptr);
+static SystemDescription _reg_sys_update_script(HASH("update_script"), &update_script_run, "UpdateStage", update_script_query_desc, nullptr);
 
 static void dispatch_event_script_run(const RawArg &stage_or_event, Query &query)
 {
@@ -108,7 +108,7 @@ static void dispatch_event_script_run(const RawArg &stage_or_event, Query &query
     dispatch_event_script::run(*(DispatchEventStage*)stage_or_event.mem,
       GET_COMPONENT(dispatch_event_script, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_dispatch_event_script(HASH("dispatch_event_script"), &dispatch_event_script_run, "DispatchEventStage", dispatch_event_script_query_desc, nullptr);
+static SystemDescription _reg_sys_dispatch_event_script(HASH("dispatch_event_script"), &dispatch_event_script_run, "DispatchEventStage", dispatch_event_script_query_desc, nullptr);
 
 static void dispatch_broadcast_event_script_run(const RawArg &stage_or_event, Query &query)
 {
@@ -117,6 +117,6 @@ static void dispatch_broadcast_event_script_run(const RawArg &stage_or_event, Qu
     dispatch_broadcast_event_script::run(*(DispatchBroadcastEventStage*)stage_or_event.mem,
       GET_COMPONENT(dispatch_broadcast_event_script, q, script::ScriptComponent, script));
 }
-static RegSys _reg_sys_dispatch_broadcast_event_script(HASH("dispatch_broadcast_event_script"), &dispatch_broadcast_event_script_run, "DispatchBroadcastEventStage", dispatch_broadcast_event_script_query_desc, nullptr);
+static SystemDescription _reg_sys_dispatch_broadcast_event_script(HASH("dispatch_broadcast_event_script"), &dispatch_broadcast_event_script_run, "DispatchBroadcastEventStage", dispatch_broadcast_event_script_query_desc, nullptr);
 
 #endif // __CODEGEN__

@@ -402,7 +402,7 @@ eastl::string parse_where_query(const eastl::string &where, QueryComponents &out
     {
       // TODO: Generate compare
       assert(false);
-      oss << "  static const auto *" << c.name.c_str() << "Desc = find_comp(\"" << c.name.c_str() << "\");";
+      oss << "  static const auto *" << c.name.c_str() << "Desc = find_component(\"" << c.name.c_str() << "\");";
       oss << "\n";
     }
 

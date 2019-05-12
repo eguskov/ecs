@@ -5,10 +5,10 @@
 
 #include "webui.cpp"
 
-static constexpr ConstCompDesc Script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, CompDescFlags::kNone},
+static constexpr ConstComponentDescription Script_components[] = {
+  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kNone},
 };
-static constexpr ConstQueryDesc Script_query_desc = {
+static constexpr ConstQueryDescription Script_query_desc = {
   make_const_array(Script_components),
   empty_desc_array,
   empty_desc_array,
@@ -18,7 +18,7 @@ using ScriptBuilder = StructBuilder<
   StructField<script::ScriptComponent, INDEX_OF_COMPONENT(Script, script)>
 >;
 
-static RegQuery _reg_query_Script(HASH("webui.cpp_Script"), Script_query_desc, nullptr);
+static PersistentQueryDescription _reg_query_Script(HASH("webui.cpp_Script"), Script_query_desc, nullptr);
 
 
 int Script::count()

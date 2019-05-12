@@ -99,8 +99,8 @@ struct EntityManager;
 #define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components)
 #define GET_COMPONENT(q, i, t, c) i.get<t>(INDEX_OF_COMPONENT(q, c))
 
-struct RegSys;
-extern RegSys *reg_sys_head;
+struct SystemDescription;
+extern SystemDescription *reg_sys_head;
 extern int reg_sys_count;
 
 struct RawArg
@@ -117,7 +117,7 @@ struct RawArgSpec : RawArg
   RawArgSpec() : RawArg(Size, &buffer[0]) {}
 };
 
-struct RegSys
+struct SystemDescription
 {
   enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
   using SystemCallback = void (*)(const RawArg &stage_or_event, Query&);
@@ -132,12 +132,12 @@ struct RegSys
 
   filter_t filter;
 
-  const RegSys *next = nullptr;
+  const SystemDescription *next = nullptr;
 
-  ConstQueryDesc queryDesc;
+  ConstQueryDescription queryDesc;
   SystemCallback sys = nullptr;
 
-  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, filter_t &&f = nullptr) : name(_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDescription &query_desc, filter_t &&f = nullptr) : name(_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
   {
     next = reg_sys_head;
     reg_sys_head = this;
@@ -147,17 +147,17 @@ struct RegSys
       stageName = ::_strdup(stage_name);
   }
 
-  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name) : RegSys(_name, _sys, stage_name, empty_query_desc)
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name) : SystemDescription(_name, _sys, stage_name, empty_query_desc)
   {
     mode = Mode::FROM_EXTERNAL_QUERY;
   }
 
-  RegSys(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDesc &query_desc, Mode _mode) : RegSys(_name, _sys, stage_name, query_desc)
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDescription &query_desc, Mode _mode) : SystemDescription(_name, _sys, stage_name, query_desc)
   {
     mode = _mode;
   }
 
-  virtual ~RegSys();
+  virtual ~SystemDescription();
 
   bool hasCompontent(int id, const char *name) const;
 };
@@ -170,4 +170,4 @@ enum class ValueType
   kComponent
 };
 
-const RegSys *find_sys(const ConstHashedString &name);
+const SystemDescription *find_system(const ConstHashedString &name);

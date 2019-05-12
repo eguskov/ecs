@@ -2,7 +2,7 @@
 
 #include "query.h"
 
-struct RegComp;
+struct ComponentDescription;
 
 struct Index
 {
@@ -20,7 +20,7 @@ struct Index
   HashedString name;
   HashedString componentName;
 
-  QueryDesc desc;
+  QueryDescription desc;
 
   eastl::vector<Item> items;
   eastl::vector<Query> queries;
@@ -28,15 +28,15 @@ struct Index
   Query *find(uint32_t value);
 };
 
-struct RegIndex
+struct IndexDescription
 {
   ConstHashedString name;
   ConstHashedString componentName;
-  ConstQueryDesc desc;
+  ConstQueryDescription desc;
 
   filter_t filter;
 
-  const RegIndex *next = nullptr;
+  const IndexDescription *next = nullptr;
 
-  RegIndex(const ConstHashedString &name, const ConstHashedString &component_name, const ConstQueryDesc &desc, filter_t &&f = nullptr);
+  IndexDescription(const ConstHashedString &name, const ConstHashedString &component_name, const ConstQueryDescription &desc, filter_t &&f = nullptr);
 };
