@@ -162,12 +162,4 @@ struct SystemDescription
   bool hasCompontent(int id, const char *name) const;
 };
 
-enum class ValueType
-{
-  kEid,
-  kStage,
-  kEvent,
-  kComponent
-};
-
 const SystemDescription *find_system(const ConstHashedString &name);
