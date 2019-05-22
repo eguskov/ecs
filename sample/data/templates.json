@@ -102,13 +102,13 @@
           28
         ],
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "death"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "death": {
@@ -185,7 +185,7 @@
       "$name": "PhysicsWorld",
       "$components": {
         "phys_world": {
-          "$type": "phys_world",
+          "$type": "PhysicsWorld",
           "$value": {}
         }
       }
@@ -209,14 +209,14 @@
           "$value": true
         },
         "alive_timer": {
-          "$type": "timer",
+          "$type": "Timer",
           "$value": {
             "time": 5.0,
             "period": 5.0
           }
         },
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas.png"
           }
@@ -231,13 +231,13 @@
           ]
         },
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "death"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "death": {
@@ -295,7 +295,7 @@
           "$value": {}
         },
         "spawn_timer": {
-          "$type": "timer",
+          "$type": "Timer",
           "$value": {
             "time": 5.0,
             "period": 5.0
@@ -374,7 +374,7 @@
       ],
       "$components": {
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas.png"
           }
@@ -389,13 +389,13 @@
           ]
         },
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "run"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "run": {
@@ -444,7 +444,7 @@
           }
         },
         "auto_move": {
-          "$type": "auto_move",
+          "$type": "AutoMove",
           "$value": {
             "duration": 2.0,
             "length": 64.0,
@@ -452,7 +452,7 @@
           }
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -473,7 +473,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "kinematic"
           }
@@ -491,7 +491,7 @@
       ],
       "$components": {
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas.png"
           }
@@ -506,13 +506,13 @@
           ]
         },
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "run"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "run": {
@@ -549,7 +549,7 @@
           }
         },
         "auto_move": {
-          "$type": "auto_move",
+          "$type": "AutoMove",
           "$value": {
             "duration": 2.0,
             "length": 64,
@@ -557,7 +557,7 @@
           }
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -578,7 +578,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "kinematic"
           }
@@ -596,7 +596,7 @@
           "$value": {}
         },
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas.png"
           }
@@ -611,13 +611,13 @@
           ]
         },
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "idle"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "idle": {
@@ -686,20 +686,20 @@
           "$value": true
         },
         "jump": {
-          "$type": "jump",
+          "$type": "Jump",
           "$value": {
             "height": 15.0,
             "duration": 0.1
           }
         },
         "gravity": {
-          "$type": "gravity",
+          "$type": "Gravity",
           "$value": {
             "mass": 25.0
           }
         },
         "auto_move": {
-          "$type": "auto_move",
+          "$type": "AutoMove",
           "$value": {
             "duration": 2.0,
             "length": 64,
@@ -707,7 +707,7 @@
           }
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -728,7 +728,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "kinematic"
           }
@@ -743,7 +743,7 @@
           "$value": -1
         },
         "hud": {
-          "$type": "hud",
+          "$type": "HUD",
           "$value": {}
         },
         "enemy_eid": {
@@ -751,17 +751,17 @@
           "$value": 0
         },
         "user_input": {
-          "$type": "user_input",
+          "$type": "UserInput",
           "$value": {}
         },
         "gravity": {
-          "$type": "gravity",
+          "$type": "Gravity",
           "$value": {
             "mass": 25.0
           }
         },
         "jump": {
-          "$type": "jump",
+          "$type": "Jump",
           "$value": {
             "height": 25.0,
             "duration": 0.1
@@ -782,7 +782,7 @@
           ]
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -803,7 +803,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "dynamic"
           }
@@ -830,19 +830,19 @@
           ]
         },
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas.png"
           }
         },
         "anim_state": {
-          "$type": "anim_state",
+          "$type": "AnimState",
           "$value": {
             "node": "idle"
           }
         },
         "anim_graph": {
-          "$type": "anim_graph",
+          "$type": "AnimGraph",
           "$value": {
             "nodes": {
               "idle": {
@@ -965,7 +965,7 @@
           ]
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -986,7 +986,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "static"
           }
@@ -1017,7 +1017,7 @@
       ],
       "$components": {
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/atlas/atlas-props.png"
           }
@@ -1067,7 +1067,7 @@
           "$value": ""
         },
         "auto_move": {
-          "$type": "auto_move",
+          "$type": "AutoMove",
           "$value": {
             "duration": 2.0,
             "length": 64,
@@ -1075,7 +1075,7 @@
           }
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -1113,7 +1113,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "kinematic"
           }
@@ -1139,7 +1139,7 @@
       ],
       "$components": {
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -1177,13 +1177,13 @@
       ],
       "$components": {
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/environment/tileset.png"
           }
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -1258,7 +1258,7 @@
           "$value": [0, 0]
         },
         "collision_shape": {
-          "$type": "collision_shape",
+          "$type": "CollisionShape",
           "$value": [
             {
               "type": "box",
@@ -1280,7 +1280,7 @@
           ]
         },
         "phys_body": {
-          "$type": "phys_body",
+          "$type": "PhysicsBody",
           "$value": {
             "type": "static"
           }
@@ -1458,7 +1458,7 @@
           "$value": [0, 0]
         },
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/boid.png"
           }
@@ -1486,7 +1486,7 @@
           "$value": [0, 0]
         },
         "texture": {
-          "$type": "texture",
+          "$type": "TextureAtlas",
           "$value": {
             "path": "../assets/boid.png"
           }

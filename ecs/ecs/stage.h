@@ -1,12 +1,12 @@
 #pragma once
 
 #define REG_STAGE(type) \
-  template <> struct Desc<type> { constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
+  template <> struct ComponentType<type> { constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
   template <> \
   struct ComponentDescriptionDetails<type> : ComponentDescription \
   { \
     using CompType = type; \
-    using CompDesc = Desc<type>; \
+    using CompDesc = ComponentType<type>; \
     static int ID; \
     bool init(uint8_t *, const JFrameValue &) const override final { return true; } \
     bool equal(uint8_t *, uint8_t *) const override final { return false; } \

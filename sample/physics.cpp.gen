@@ -5,19 +5,19 @@
 
 #include "physics.cpp"
 
-static ComponentDescriptionDetails<PhysicsWorld> _reg_comp_phys_world("phys_world");
+static ComponentDescriptionDetails<PhysicsWorld> _reg_comp_PhysicsWorld("PhysicsWorld");
 template <> int ComponentDescriptionDetails<PhysicsWorld>::ID = -1;
 
-static ComponentDescriptionDetails<CollisionShape> _reg_comp_collision_shape("collision_shape");
+static ComponentDescriptionDetails<CollisionShape> _reg_comp_CollisionShape("CollisionShape");
 template <> int ComponentDescriptionDetails<CollisionShape>::ID = -1;
 
-static ComponentDescriptionDetails<PhysicsBody> _reg_comp_phys_body("phys_body");
+static ComponentDescriptionDetails<PhysicsBody> _reg_comp_PhysicsBody("PhysicsBody");
 template <> int ComponentDescriptionDetails<PhysicsBody>::ID = -1;
 
 static constexpr ConstComponentDescription init_physics_collision_handler_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("phys_body"), Desc<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("phys_body"), ComponentType<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription init_physics_collision_handler_query_desc = {
   make_const_array(init_physics_collision_handler_components),
@@ -26,8 +26,8 @@ static constexpr ConstQueryDescription init_physics_collision_handler_query_desc
   empty_desc_array,
 };
 static constexpr ConstComponentDescription init_physics_body_handler_components[] = {
-  {HASH("phys_body"), Desc<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("phys_body"), ComponentType<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstQueryDescription init_physics_body_handler_query_desc = {
   make_const_array(init_physics_body_handler_components),
@@ -36,7 +36,7 @@ static constexpr ConstQueryDescription init_physics_body_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription init_physics_world_handler_components[] = {
-  {HASH("phys_world"), Desc<PhysicsWorld>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("phys_world"), ComponentType<PhysicsWorld>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription init_physics_world_handler_query_desc = {
   make_const_array(init_physics_world_handler_components),
@@ -45,7 +45,7 @@ static constexpr ConstQueryDescription init_physics_world_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_physics_components[] = {
-  {HASH("phys_world"), Desc<PhysicsWorld>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("phys_world"), ComponentType<PhysicsWorld>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_physics_query_desc = {
   make_const_array(update_physics_components),
@@ -54,7 +54,7 @@ static constexpr ConstQueryDescription update_physics_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_debug_physics_components[] = {
-  {HASH("phys_world"), Desc<PhysicsWorld>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("phys_world"), ComponentType<PhysicsWorld>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstQueryDescription render_debug_physics_query_desc = {
   make_const_array(render_debug_physics_components),
@@ -63,9 +63,9 @@ static constexpr ConstQueryDescription render_debug_physics_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_kinematic_physics_body_components[] = {
-  {HASH("phys_body"), Desc<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("phys_body"), ComponentType<PhysicsBody>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstQueryDescription update_kinematic_physics_body_query_desc = {
   make_const_array(update_kinematic_physics_body_components),
@@ -74,15 +74,15 @@ static constexpr ConstQueryDescription update_kinematic_physics_body_query_desc 
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_debug_player_grid_cell_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("grid_cell"), Desc<int>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("grid_cell"), ComponentType<int>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription render_debug_player_grid_cell_have_components[] = {
   {HASH("user_input"), 0},
   {HASH("grid_cell"), 0},
 };
 static constexpr ConstComponentDescription render_debug_player_grid_cell_track_components[] = {
-  {HASH("grid_cell"), Desc<bool>::Size},
+  {HASH("grid_cell"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription render_debug_player_grid_cell_query_desc = {
   make_const_array(render_debug_player_grid_cell_components),
@@ -92,8 +92,8 @@ static constexpr ConstQueryDescription render_debug_player_grid_cell_query_desc 
 };
 
 static constexpr ConstComponentDescription Brick_components[] = {
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription Brick_have_components[] = {
   {HASH("wall"), 0},
@@ -105,9 +105,9 @@ static constexpr ConstQueryDescription Brick_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription MovingBrick_components[] = {
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription MovingBrick_have_components[] = {
   {HASH("wall"), 0},
@@ -120,18 +120,18 @@ static constexpr ConstQueryDescription MovingBrick_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription AliveEnemy_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_alive"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_alive"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription AliveEnemy_have_components[] = {
   {HASH("enemy"), 0},
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription AliveEnemy_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_components),
@@ -140,21 +140,21 @@ static constexpr ConstQueryDescription AliveEnemy_query_desc = {
   make_const_array(AliveEnemy_track_components),
 };
 static constexpr ConstComponentDescription PlayerCollision_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("gravity"), Desc<Gravity>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("grid_cell"), Desc<int>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), Desc<Jump>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("gravity"), ComponentType<Gravity>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("grid_cell"), ComponentType<int>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("jump"), ComponentType<Jump>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription PlayerCollision_have_components[] = {
   {HASH("user_input"), 0},
   {HASH("grid_cell"), 0},
 };
 static constexpr ConstComponentDescription PlayerCollision_track_components[] = {
-  {HASH("grid_cell"), Desc<bool>::Size},
+  {HASH("grid_cell"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription PlayerCollision_query_desc = {
   make_const_array(PlayerCollision_components),
@@ -163,12 +163,12 @@ static constexpr ConstQueryDescription PlayerCollision_query_desc = {
   make_const_array(PlayerCollision_track_components),
 };
 static constexpr ConstComponentDescription EnemyCollision_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription EnemyCollision_have_components[] = {
   {HASH("enemy"), 0},
@@ -177,7 +177,7 @@ static constexpr ConstComponentDescription EnemyCollision_have_components[] = {
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription EnemyCollision_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription EnemyCollision_query_desc = {
   make_const_array(EnemyCollision_components),
@@ -220,8 +220,8 @@ using EnemyCollisionBuilder = StructBuilder<
   StructField<bool, INDEX_OF_COMPONENT(EnemyCollision, is_on_ground)>
 >;
 static constexpr ConstComponentDescription index_by_Brick_grid_cell_components[] = {
-  {HASH("collision_shape"), Desc<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_shape"), ComponentType<CollisionShape>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription index_by_Brick_grid_cell_have_components[] = {
   {HASH("wall"), 0},

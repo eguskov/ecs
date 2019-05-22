@@ -337,6 +337,27 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       return CXChildVisit_Continue;
     };
 
+    {
+      auto structName = to_string(clang_getCursorSpelling(cursor));
+      if (utils::startsWith(structName, "ecs_component_"))
+      {
+        CXFile file;
+        unsigned line;
+        unsigned column;
+        unsigned offset;
+        clang_getFileLocation(clang_getCursorLocation(cursor), &file, &line, &column, &offset);
+        if (state.filename == to_string(clang_getFileName(file)))
+        {
+          eastl::vector<VisitorState::Parameter> fields;
+          read_struct_fields(cursor, fields);
+
+          auto &comp = state.components.push_back();
+          comp.type = std::regex_replace(structName.c_str(), std::regex("ecs_component_"), "").c_str();
+          comp.name = fields[0].value;
+        }
+      }
+    }
+
     bool isQuery = false;
     bool isSystem = false;
     bool isSystemInJobs = false;

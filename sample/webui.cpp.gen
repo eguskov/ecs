@@ -6,7 +6,7 @@
 #include "webui.cpp"
 
 static constexpr ConstComponentDescription Script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstQueryDescription Script_query_desc = {
   make_const_array(Script_components),

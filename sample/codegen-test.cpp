@@ -23,8 +23,9 @@ struct TestComp
   int killCount = 0;
 
   DEF_SET;
-}
-DEF_COMP(TestComp, test_comp);
+};
+
+ECS_COMPONENT_TYPE(TestComp);
 
 struct EventOnTest : Event
 {

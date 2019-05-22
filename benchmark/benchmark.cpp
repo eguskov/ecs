@@ -33,8 +33,8 @@ struct update_position
 };
 
 static constexpr ConstComponentDescription update_position_components[] = {
-  {hash::cstr("vel"), Desc<glm::vec3>::Size},
-  {hash::cstr("pos"), Desc<glm::vec3>::Size},
+  {hash::cstr("vel"), ComponentType<glm::vec3>::Size},
+  {hash::cstr("pos"), ComponentType<glm::vec3>::Size},
 };
 static constexpr ConstQueryDescription update_position_query_desc = {
   make_const_array(update_position_components),

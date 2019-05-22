@@ -90,8 +90,9 @@ struct PhysicsWorld
     delete g_world;
     g_world = nullptr;
   }
-}
-DEF_COMP(PhysicsWorld, phys_world);
+};
+
+ECS_COMPONENT_TYPE(PhysicsWorld);
 
 struct CollisionShape
 {
@@ -142,8 +143,9 @@ struct CollisionShape
     }
     return true;
   }
-}
-DEF_COMP(CollisionShape, collision_shape);
+};
+
+ECS_COMPONENT_TYPE(CollisionShape);
 
 struct PhysicsBody
 {
@@ -192,8 +194,9 @@ struct PhysicsBody
 
     return true;
   }
-}
-DEF_COMP(PhysicsBody, phys_body);
+};
+
+ECS_COMPONENT_TYPE(PhysicsBody);
 
 struct Brick
 {

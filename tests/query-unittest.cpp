@@ -175,8 +175,8 @@ struct TestIndexSystem
 };
 
 static constexpr ConstComponentDescription TestIndex_components[] = {
-  {HASH("grid_cell"), Desc<int>::Size},
-  {HASH("float_comp"), Desc<float>::Size},
+  {HASH("grid_cell"), ComponentType<int>::Size},
+  {HASH("float_comp"), ComponentType<float>::Size},
 };
 static constexpr ConstQueryDescription TestIndex_query_desc = {
   make_const_array(TestIndex_components),

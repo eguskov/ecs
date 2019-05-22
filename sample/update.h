@@ -13,7 +13,7 @@ struct EventOnKillEnemy : Event
 }
 DEF_EVENT(EventOnKillEnemy);
 
-struct TimerComponent
+struct Timer
 {
   float time = 0.f;
   float period = 5.f;
@@ -26,10 +26,11 @@ struct TimerComponent
     period = value["period"].GetFloat();
     return true;
   }
-}
-DEF_COMP(TimerComponent, timer);
+};
 
-struct NoHitTimerComponent
+ECS_COMPONENT_TYPE(Timer);
+
+struct NoHitTimer
 {
   float time = 0.f;
 
@@ -39,8 +40,9 @@ struct NoHitTimerComponent
     time = value["time"].GetFloat();
     return true;
   }
-}
-DEF_COMP(NoHitTimerComponent, no_hit_timer);
+};
+
+ECS_COMPONENT_TYPE(NoHitTimer);
 
 struct ColorComponent
 {
@@ -58,8 +60,9 @@ struct ColorComponent
     b = (uint8_t)value["b"].GetInt();
     return true;
   }
-}
-DEF_COMP(ColorComponent, color);
+};
+
+ECS_COMPONENT_TYPE_ALIAS(ColorComponent, color);
 
 struct AutoMove
 {
@@ -77,8 +80,9 @@ struct AutoMove
     time = duration;
     return true;
   }
-}
-DEF_COMP(AutoMove, auto_move);
+};
+
+ECS_COMPONENT_TYPE(AutoMove);
 
 struct Jump
 {
@@ -94,8 +98,9 @@ struct Jump
     duration = value["duration"].GetFloat();
     return true;
   };
-}
-DEF_COMP(Jump, jump);
+};
+
+ECS_COMPONENT_TYPE(Jump);
 
 struct Gravity
 {
@@ -106,8 +111,9 @@ struct Gravity
     mass = value["mass"].GetFloat();
     return true;
   };
-}
-DEF_COMP(Gravity, gravity);
+};
+
+ECS_COMPONENT_TYPE(Gravity);
 
 struct TextureAtlas
 {
@@ -128,5 +134,6 @@ struct TextureAtlas
     path = value["path"].GetString();
     return true;
   };
-}
-DEF_COMP(TextureAtlas, texture);
+};
+
+ECS_COMPONENT_TYPE(TextureAtlas);

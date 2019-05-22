@@ -5,25 +5,25 @@
 
 #include "update.h"
 
-static ComponentDescriptionDetails<TimerComponent> _reg_comp_timer("timer");
-template <> int ComponentDescriptionDetails<TimerComponent>::ID = -1;
+static ComponentDescriptionDetails<Timer> _reg_comp_Timer("Timer");
+template <> int ComponentDescriptionDetails<Timer>::ID = -1;
 
-static ComponentDescriptionDetails<NoHitTimerComponent> _reg_comp_no_hit_timer("no_hit_timer");
-template <> int ComponentDescriptionDetails<NoHitTimerComponent>::ID = -1;
+static ComponentDescriptionDetails<NoHitTimer> _reg_comp_NoHitTimer("NoHitTimer");
+template <> int ComponentDescriptionDetails<NoHitTimer>::ID = -1;
 
 static ComponentDescriptionDetails<ColorComponent> _reg_comp_color("color");
 template <> int ComponentDescriptionDetails<ColorComponent>::ID = -1;
 
-static ComponentDescriptionDetails<AutoMove> _reg_comp_auto_move("auto_move");
+static ComponentDescriptionDetails<AutoMove> _reg_comp_AutoMove("AutoMove");
 template <> int ComponentDescriptionDetails<AutoMove>::ID = -1;
 
-static ComponentDescriptionDetails<Jump> _reg_comp_jump("jump");
+static ComponentDescriptionDetails<Jump> _reg_comp_Jump("Jump");
 template <> int ComponentDescriptionDetails<Jump>::ID = -1;
 
-static ComponentDescriptionDetails<Gravity> _reg_comp_gravity("gravity");
+static ComponentDescriptionDetails<Gravity> _reg_comp_Gravity("Gravity");
 template <> int ComponentDescriptionDetails<Gravity>::ID = -1;
 
-static ComponentDescriptionDetails<TextureAtlas> _reg_comp_texture("texture");
+static ComponentDescriptionDetails<TextureAtlas> _reg_comp_TextureAtlas("TextureAtlas");
 template <> int ComponentDescriptionDetails<TextureAtlas>::ID = -1;
 
 static ComponentDescriptionDetails<EventOnKillEnemy> _reg_event_EventOnKillEnemy;

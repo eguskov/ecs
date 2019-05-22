@@ -78,9 +78,9 @@ static constexpr ConstQueryDescription render_hud_boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_boid_obstacle_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("frame"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("frame"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription render_boid_obstacle_have_components[] = {
   {HASH("boid_obstacle"), 0},
@@ -92,13 +92,13 @@ static constexpr ConstQueryDescription render_boid_obstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_boid_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("frame"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cur_pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cur_separation_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cur_cohesion_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("mass"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cur_rotation"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("frame"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cur_pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cur_separation_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cur_cohesion_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("mass"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cur_rotation"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription render_boid_have_components[] = {
   {HASH("boid"), 0},
@@ -110,16 +110,16 @@ static constexpr ConstQueryDescription render_boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription copy_boid_state_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("separation_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cohesion_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("alignment_dir"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("rotation"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("cur_pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("cur_rotation"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("cur_separation_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("cur_cohesion_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("cur_alignment_dir"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("separation_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cohesion_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("alignment_dir"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("rotation"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("cur_pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("cur_rotation"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("cur_separation_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("cur_cohesion_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("cur_alignment_dir"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription copy_boid_state_have_components[] = {
   {HASH("boid"), 0},
@@ -131,8 +131,8 @@ static constexpr ConstQueryDescription copy_boid_state_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_position_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_position_have_components[] = {
   {HASH("boid"), 0},
@@ -144,8 +144,8 @@ static constexpr ConstQueryDescription update_boid_position_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_rotation_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("rotation"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("rotation"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_rotation_have_components[] = {
   {HASH("boid"), 0},
@@ -157,11 +157,11 @@ static constexpr ConstQueryDescription update_boid_rotation_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_avoid_walls_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("mass"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("move_to_center_timer"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("mass"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("move_to_center_timer"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_avoid_walls_have_components[] = {
   {HASH("boid"), 0},
@@ -173,8 +173,8 @@ static constexpr ConstQueryDescription update_boid_avoid_walls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_avoid_obstacle_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_avoid_obstacle_have_components[] = {
   {HASH("boid"), 0},
@@ -186,9 +186,9 @@ static constexpr ConstQueryDescription update_boid_avoid_obstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_move_to_center_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("move_to_center_timer"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("move_to_center_timer"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_move_to_center_have_components[] = {
   {HASH("boid"), 0},
@@ -200,10 +200,10 @@ static constexpr ConstQueryDescription update_boid_move_to_center_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_boid_wander_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("wander_vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("wander_timer"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("wander_vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("wander_timer"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_boid_wander_have_components[] = {
   {HASH("boid"), 0},
@@ -215,8 +215,8 @@ static constexpr ConstQueryDescription update_boid_wander_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription control_boid_velocity_components[] = {
-  {HASH("max_vel"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("max_vel"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription control_boid_velocity_have_components[] = {
   {HASH("boid"), 0},
@@ -228,9 +228,9 @@ static constexpr ConstQueryDescription control_boid_velocity_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription apply_boid_force_components[] = {
-  {HASH("mass"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("mass"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription apply_boid_force_have_components[] = {
   {HASH("boid"), 0},
@@ -243,9 +243,9 @@ static constexpr ConstQueryDescription apply_boid_force_query_desc = {
 };
 
 static constexpr ConstComponentDescription Boid_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("mass"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("mass"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription Boid_have_components[] = {
   {HASH("boid"), 0},
@@ -257,7 +257,7 @@ static constexpr ConstQueryDescription Boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription BoidObstacle_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription BoidObstacle_have_components[] = {
   {HASH("boid_obstacle"), 0},
@@ -269,13 +269,13 @@ static constexpr ConstQueryDescription BoidObstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription BoidSeparation_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("force"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("separation_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("cohesion_center"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("alignment_dir"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("force"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("separation_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("cohesion_center"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("alignment_dir"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription BoidSeparation_have_components[] = {
   {HASH("boid"), 0},

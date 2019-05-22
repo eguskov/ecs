@@ -6,8 +6,8 @@
 #include "grid.cpp"
 
 static constexpr ConstComponentDescription update_grid_cell_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("grid_cell"), Desc<int>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("grid_cell"), ComponentType<int>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_grid_cell_query_desc = {
   make_const_array(update_grid_cell_components),

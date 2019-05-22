@@ -43,7 +43,7 @@ enum ComponentDescriptionFlags
 struct ConstComponentDescription
 {
   ConstHashedString name;
-  int size;
+  uint32_t size;
   uint32_t flags = ComponentDescriptionFlags::kNone;
 };
 
@@ -87,7 +87,7 @@ struct Component
 {
   int id;
   HashedString name;
-  int size;
+  uint32_t size;
   const ComponentDescription* desc;
 
   Component& operator=(const ConstComponentDescription &d)

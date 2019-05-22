@@ -56,7 +56,7 @@ const SystemDescription *find_system(const ConstHashedString &name)
   return nullptr;
 }
 
-ComponentDescription::ComponentDescription(const char *_name, int _size) : id(reg_comp_count), size(_size)
+ComponentDescription::ComponentDescription(const char *_name, uint32_t _size) : id(reg_comp_count), size(_size)
 {
   name = ::_strdup(_name);
   next = reg_comp_head;
@@ -453,6 +453,7 @@ static void add_component_to_template(const char *comp_type, const HashedString 
   if (res != templ.components.end())
     return;
 
+  ASSERT_FMT(find_component(comp_type) != nullptr, "Type '%s' for component '%s' not found!", comp_type, comp_name.str);
   templ.components.push_back({ 0, comp_name, find_component(comp_type)->size, find_component(comp_type) });
 
   const ComponentDescription *desc = templ.components.back().desc;

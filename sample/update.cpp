@@ -22,10 +22,9 @@ extern int screen_height;
 struct HUD
 {
   int killCount = 0;
+};
 
-  DEF_SET;
-}
-DEF_COMP(HUD, hud);
+ECS_COMPONENT_TYPE(HUD);
 
 struct UserInput
 {
@@ -34,8 +33,9 @@ struct UserInput
   bool jump = false;
 
   bool set(const JFrameValue&) { return true; };
-}
-DEF_COMP(UserInput, user_input);
+};
+
+ECS_COMPONENT_TYPE(UserInput);
 
 struct AnimGraph
 {
@@ -70,8 +70,9 @@ struct AnimGraph
     }
     return true;
   }
-}
-DEF_COMP(AnimGraph, anim_graph);
+};
+
+ECS_COMPONENT_TYPE(AnimGraph);
 
 struct AnimState
 {
@@ -87,8 +88,9 @@ struct AnimState
     currentNode = value["node"].GetString();
     return true;
   }
-}
-DEF_COMP(AnimState, anim_state);
+};
+
+ECS_COMPONENT_TYPE(AnimState);
 
 TextureAtlas::TextureAtlas(TextureAtlas &&assign)
 {

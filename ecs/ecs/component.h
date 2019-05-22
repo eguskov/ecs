@@ -12,20 +12,22 @@
 #define __C4(a, b, c, d) __C3(a, b, c) __S(d)
 
 #ifdef __CODEGEN__
-#define DEF_COMP(type, name) __attribute__((annotate("@component: " #name)))
-#define DEF_EMPTY_COMP(type, name) { bool set(const JFrameValue&) { return true; }; } __attribute__((annotate("@component: " #name)));
+
+#define ECS_COMPONENT_TYPE(type) struct ecs_component_##type { static constexpr char const *name = #type; };
+#define ECS_COMPONENT_TYPE_ALIAS(type, alias) struct ecs_component_##type { static constexpr char const *name = #alias; };
+
 #else
-#define DEF_COMP(type, name) ;REG_COMP(type, name);
-#define DEF_EMPTY_COMP(type, name) { bool set(const JFrameValue&) { return true; }; };REG_COMP(type, name);
+
+#define ECS_COMPONENT_TYPE(type) \
+  template <> struct ComponentType<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
+
+#define ECS_COMPONENT_TYPE_ALIAS(type, alias) \
+  template <> struct ComponentType<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #alias; }; \
+
 #endif
 
-#define DEF_SET bool set(const JFrameValue&) { return true; }
-
-#define REG_COMP(type, n) \
-  template <> struct Desc<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #n; }; \
-
 #define REG_COMP_ARR(type, n, sz) \
-  template <> struct Desc<ArrayComponent<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
+  template <> struct ComponentType<ArrayComponent<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
 
 #define REG_COMP_INIT(type, n) \
   static ComponentDescriptionDetails<type> _##n(#n); \
@@ -35,25 +37,21 @@
   static ComponentDescriptionDetails<ArrayComponent<type, sz>> _array_##n(__C4(n, [, sz, ])); \
   template <> int ComponentDescriptionDetails<ArrayComponent<type, sz>>::ID = -1; \
 
-#define REG_COMP_AND_INIT(type, n) \
-  REG_COMP(type, n); \
-  REG_COMP_INIT(type, n); \
-
 template <typename T>
-struct Desc;
+struct ComponentType;
 
 struct ComponentDescription
 {
   char *name = nullptr;
 
   int id = -1;
-  int size = 0;
+  uint32_t size = 0;
 
   bool hasEqual = false;
 
   const ComponentDescription *next = nullptr;
 
-  ComponentDescription(const char *_name, int _size);
+  ComponentDescription(const char *_name, uint32_t _size);
   virtual ~ComponentDescription();
 
   virtual bool init(uint8_t *mem, const JFrameValue &value) const = 0;
@@ -72,36 +70,34 @@ struct HasSetMethod
   static constexpr bool value = sizeof(test<T>(0)) == sizeof(has);
 };
 
-template <typename T, bool HasSet = HasSetMethod<T>::value>
+template <typename T>
+struct Setter;
+
+template <typename T, bool = HasSetMethod<T>::value>
 struct ComponentSetter;
 
 template <typename T>
 struct ComponentSetter<T, true>
 {
-  static inline bool set(T *comp, const JFrameValue &value)
-  {
-    return comp->set(value);
-  }
+  static inline bool set(T *comp, const JFrameValue &value) { return comp->set(value); }
 };
-
-template <typename T>
-struct Setter;
 
 template <typename T>
 struct ComponentSetter<T, false>
 {
-  static inline bool set(T *comp, const JFrameValue &value)
-  {
-    return Setter<T>::set(*comp, value);
-  }
+  template <typename U = T>
+  static inline typename  eastl::enable_if_t<HasSetMethod<Setter<U>>::value, bool> set(U *comp, const JFrameValue &value) { return Setter<U>::set(*comp, value); }
+
+  template <typename U = T>
+  static inline typename eastl::disable_if_t<HasSetMethod<Setter<U>>::value, bool> set(U *, const JFrameValue &) { return true; }
 };
 
 template <typename T, size_t Size>
 struct ArrayComponent
 {
-  using ArrayDesc = Desc<ArrayComponent<T, Size>>;
+  using ArrayDesc = ComponentType<ArrayComponent<T, Size>>;
   using ItemType = T;
-  using ItemDesc = Desc<T>;
+  using ItemDesc = ComponentType<T>;
 
   eastl::array<ItemType, Size> items;
 
@@ -168,7 +164,7 @@ template <typename T>
 struct ComponentDescriptionDetails : ComponentDescription
 {
   using CompType = T;
-  using CompDesc = Desc<T>;
+  using CompDesc = ComponentType<T>;
 
   static int ID;
 

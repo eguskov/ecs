@@ -5,20 +5,20 @@
 
 #include "update.cpp"
 
-static ComponentDescriptionDetails<HUD> _reg_comp_hud("hud");
+static ComponentDescriptionDetails<HUD> _reg_comp_HUD("HUD");
 template <> int ComponentDescriptionDetails<HUD>::ID = -1;
 
-static ComponentDescriptionDetails<UserInput> _reg_comp_user_input("user_input");
+static ComponentDescriptionDetails<UserInput> _reg_comp_UserInput("UserInput");
 template <> int ComponentDescriptionDetails<UserInput>::ID = -1;
 
-static ComponentDescriptionDetails<AnimGraph> _reg_comp_anim_graph("anim_graph");
+static ComponentDescriptionDetails<AnimGraph> _reg_comp_AnimGraph("AnimGraph");
 template <> int ComponentDescriptionDetails<AnimGraph>::ID = -1;
 
-static ComponentDescriptionDetails<AnimState> _reg_comp_anim_state("anim_state");
+static ComponentDescriptionDetails<AnimState> _reg_comp_AnimState("AnimState");
 template <> int ComponentDescriptionDetails<AnimState>::ID = -1;
 
 static constexpr ConstComponentDescription load_texture_handler_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription load_texture_handler_query_desc = {
   make_const_array(load_texture_handler_components),
@@ -27,8 +27,8 @@ static constexpr ConstQueryDescription load_texture_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_position_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_position_have_components[] = {
   {HASH("is_alive"), 0},
@@ -37,7 +37,7 @@ static constexpr ConstComponentDescription update_position_not_have_components[]
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription update_position_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription update_position_query_desc = {
   make_const_array(update_position_components),
@@ -46,16 +46,16 @@ static constexpr ConstQueryDescription update_position_query_desc = {
   make_const_array(update_position_track_components),
 };
 static constexpr ConstComponentDescription update_position_for_active_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_position_for_active_have_components[] = {
   {HASH("is_alive"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription update_position_for_active_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription update_position_for_active_query_desc = {
   make_const_array(update_position_for_active_components),
@@ -64,9 +64,9 @@ static constexpr ConstQueryDescription update_position_for_active_query_desc = {
   make_const_array(update_position_for_active_track_components),
 };
 static constexpr ConstComponentDescription update_anim_frame_components[] = {
-  {HASH("anim_graph"), Desc<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("anim_state"), Desc<AnimState>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("frame"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("anim_graph"), ComponentType<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("anim_state"), ComponentType<AnimState>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("frame"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_anim_frame_query_desc = {
   make_const_array(update_anim_frame_components),
@@ -75,16 +75,16 @@ static constexpr ConstQueryDescription update_anim_frame_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_walls_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("frame"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("frame"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription render_walls_have_components[] = {
   {HASH("wall"), 0},
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription render_walls_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription render_walls_query_desc = {
   make_const_array(render_walls_components),
@@ -93,10 +93,10 @@ static constexpr ConstQueryDescription render_walls_query_desc = {
   make_const_array(render_walls_track_components),
 };
 static constexpr ConstComponentDescription render_normal_components[] = {
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("frame"), Desc<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("frame"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription render_normal_have_components[] = {
   {HASH("is_alive"), 0},
@@ -105,7 +105,7 @@ static constexpr ConstComponentDescription render_normal_not_have_components[] =
   {HASH("wall"), 0},
 };
 static constexpr ConstComponentDescription render_normal_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription render_normal_query_desc = {
   make_const_array(render_normal_components),
@@ -114,7 +114,7 @@ static constexpr ConstQueryDescription render_normal_query_desc = {
   make_const_array(render_normal_track_components),
 };
 static constexpr ConstComponentDescription read_controls_components[] = {
-  {HASH("user_input"), Desc<UserInput>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("user_input"), ComponentType<UserInput>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription read_controls_query_desc = {
   make_const_array(read_controls_components),
@@ -123,11 +123,11 @@ static constexpr ConstQueryDescription read_controls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription apply_controls_components[] = {
-  {HASH("user_input"), Desc<UserInput>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), Desc<Jump>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("user_input"), ComponentType<UserInput>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("jump"), ComponentType<Jump>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription apply_controls_query_desc = {
   make_const_array(apply_controls_components),
@@ -136,9 +136,9 @@ static constexpr ConstQueryDescription apply_controls_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription apply_jump_components[] = {
-  {HASH("jump"), Desc<Jump>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("jump"), ComponentType<Jump>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription apply_jump_query_desc = {
   make_const_array(apply_jump_components),
@@ -147,14 +147,14 @@ static constexpr ConstQueryDescription apply_jump_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription apply_gravity_components[] = {
-  {HASH("gravity"), Desc<Gravity>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("gravity"), ComponentType<Gravity>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription apply_gravity_have_components[] = {
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription apply_gravity_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription apply_gravity_query_desc = {
   make_const_array(apply_gravity_components),
@@ -163,11 +163,11 @@ static constexpr ConstQueryDescription apply_gravity_query_desc = {
   make_const_array(apply_gravity_track_components),
 };
 static constexpr ConstComponentDescription select_current_anim_frame_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("anim_graph"), Desc<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("anim_state"), Desc<AnimState>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("anim_graph"), ComponentType<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("anim_state"), ComponentType<AnimState>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription select_current_anim_frame_not_have_components[] = {
   {HASH("user_input"), 0},
@@ -179,12 +179,12 @@ static constexpr ConstQueryDescription select_current_anim_frame_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription select_current_anim_frame_for_player_components[] = {
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("anim_graph"), Desc<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("user_input"), Desc<UserInput>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_on_ground"), Desc<bool>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("texture"), Desc<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("anim_state"), Desc<AnimState>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("anim_graph"), ComponentType<AnimGraph>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("user_input"), ComponentType<UserInput>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_on_ground"), ComponentType<bool>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("texture"), ComponentType<TextureAtlas>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("anim_state"), ComponentType<AnimState>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription select_current_anim_frame_for_player_query_desc = {
   make_const_array(select_current_anim_frame_for_player_components),
@@ -193,15 +193,15 @@ static constexpr ConstQueryDescription select_current_anim_frame_for_player_quer
   empty_desc_array,
 };
 static constexpr ConstComponentDescription remove_death_fx_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("anim_state"), Desc<AnimState>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_alive"), Desc<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("anim_state"), ComponentType<AnimState>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("is_alive"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription remove_death_fx_have_components[] = {
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription remove_death_fx_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription remove_death_fx_query_desc = {
   make_const_array(remove_death_fx_components),
@@ -210,7 +210,7 @@ static constexpr ConstQueryDescription remove_death_fx_query_desc = {
   make_const_array(remove_death_fx_track_components),
 };
 static constexpr ConstComponentDescription update_camera_components[] = {
-  {HASH("pos"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription update_camera_have_components[] = {
   {HASH("user_input"), 0},
@@ -222,7 +222,7 @@ static constexpr ConstQueryDescription update_camera_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription process_on_kill_event_components[] = {
-  {HASH("hud"), Desc<HUD>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("hud"), ComponentType<HUD>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription process_on_kill_event_query_desc = {
   make_const_array(process_on_kill_event_components),
@@ -231,17 +231,17 @@ static constexpr ConstQueryDescription process_on_kill_event_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_active_auto_move_components[] = {
-  {HASH("auto_move"), Desc<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move"), ComponentType<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_active_auto_move_have_components[] = {
   {HASH("is_alive"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription update_active_auto_move_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
-  {HASH("is_active"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_components),
@@ -250,9 +250,9 @@ static constexpr ConstQueryDescription update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_track_components),
 };
 static constexpr ConstComponentDescription update_always_active_auto_move_components[] = {
-  {HASH("auto_move"), Desc<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move"), ComponentType<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_always_active_auto_move_have_components[] = {
   {HASH("is_alive"), 0},
@@ -261,7 +261,7 @@ static constexpr ConstComponentDescription update_always_active_auto_move_not_ha
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription update_always_active_auto_move_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription update_always_active_auto_move_query_desc = {
   make_const_array(update_always_active_auto_move_components),
@@ -279,17 +279,17 @@ static constexpr ConstQueryDescription on_enenmy_kill_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_auto_jump_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), Desc<Jump>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("auto_move"), Desc<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), Desc<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), Desc<float>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_alive"), ComponentType<bool>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("jump"), ComponentType<Jump>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move"), ComponentType<AutoMove>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("dir"), ComponentType<float>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription update_auto_jump_have_components[] = {
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription update_auto_jump_track_components[] = {
-  {HASH("is_alive"), Desc<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::Size},
 };
 static constexpr ConstQueryDescription update_auto_jump_query_desc = {
   make_const_array(update_auto_jump_components),

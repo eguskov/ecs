@@ -6,8 +6,8 @@
 #include "script-update.cpp"
 
 static constexpr ConstComponentDescription reload_script_handler_components[] = {
-  {HASH("eid"), Desc<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription reload_script_handler_query_desc = {
   make_const_array(reload_script_handler_components),
@@ -16,7 +16,7 @@ static constexpr ConstQueryDescription reload_script_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription build_script_handler_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription build_script_handler_query_desc = {
   make_const_array(build_script_handler_components),
@@ -25,7 +25,7 @@ static constexpr ConstQueryDescription build_script_handler_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_script_query_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_script_query_query_desc = {
   make_const_array(update_script_query_components),
@@ -34,7 +34,7 @@ static constexpr ConstQueryDescription update_script_query_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_script_query_desc = {
   make_const_array(update_script_components),
@@ -43,7 +43,7 @@ static constexpr ConstQueryDescription update_script_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription dispatch_event_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription dispatch_event_script_query_desc = {
   make_const_array(dispatch_event_script_components),
@@ -52,7 +52,7 @@ static constexpr ConstQueryDescription dispatch_event_script_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription dispatch_broadcast_event_script_components[] = {
-  {HASH("script"), Desc<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("script"), ComponentType<script::ScriptComponent>::Size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription dispatch_broadcast_event_script_query_desc = {
   make_const_array(dispatch_broadcast_event_script_components),

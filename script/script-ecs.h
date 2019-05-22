@@ -91,6 +91,6 @@ namespace script
       return true;
     }
   };
-}
+};
 
-REG_COMP(script::ScriptComponent, script);
+ECS_COMPONENT_TYPE_ALIAS(script::ScriptComponent, script);

@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
       {
         out << "static constexpr ConstComponentDescription " << sys.name << "_track_components[] = {" << std::endl;
         for (const auto &p : sys.track)
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::Size}," << std::endl;
         out << "};" << std::endl;
       }
 
@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstComponentDescription " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!q.have.empty())
@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
       {
         out << "static constexpr ConstComponentDescription " << q.name << "_track_components[] = {" << std::endl;
         for (const auto &p : q.track)
-          out << "  {HASH(\"" << p.name << "\"), Desc<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::Size}," << std::endl;
         out << "};" << std::endl;
       }
 
@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstComponentDescription " << i.name << "_components[] = {" << std::endl;
       for (const auto &p : i.parameters)
-        out << "  {HASH(\"" << p.name << "\"), Desc<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!i.have.empty())

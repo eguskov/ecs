@@ -109,17 +109,18 @@ struct Setter<StringHash>
   }
 };
 
-struct Tag DEF_EMPTY_COMP(Tag, tag);
+struct Tag {};
+ECS_COMPONENT_TYPE_ALIAS(Tag, tag);
 
-REG_COMP(EntityId, eid);
-REG_COMP(bool, bool);
-REG_COMP(int, int);
-REG_COMP(float, float);
-REG_COMP(glm::vec2, vec2);
-REG_COMP(glm::vec3, vec3);
-REG_COMP(glm::vec4, vec4);
-REG_COMP(eastl::string, string);
-REG_COMP(StringHash, hash_string);
+ECS_COMPONENT_TYPE_ALIAS(EntityId, eid);
+ECS_COMPONENT_TYPE(bool);
+ECS_COMPONENT_TYPE(int);
+ECS_COMPONENT_TYPE(float);
+ECS_COMPONENT_TYPE_ALIAS(glm::vec2, vec2);
+ECS_COMPONENT_TYPE_ALIAS(glm::vec3, vec3);
+ECS_COMPONENT_TYPE_ALIAS(glm::vec4, vec4);
+ECS_COMPONENT_TYPE_ALIAS(eastl::string, string);
+ECS_COMPONENT_TYPE_ALIAS(StringHash, hash_string);
 
 // TODO: Remove?
 // REG_COMP_ARR(glm::vec2, vec2, 2);

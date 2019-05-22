@@ -21,7 +21,7 @@ const Component* find_component(const char *name, const EntityTemplate &templ)
     auto c = find_component(n, t); \
     ASSERT_TRUE(c != nullptr); \
     ASSERT_TRUE(c->desc != nullptr); \
-    EXPECT_STREQ(c->desc->name, Desc<type>::name); \
+    EXPECT_STREQ(c->desc->name, ComponentType<type>::name); \
     EXPECT_STREQ(c->name.str, n); \
     EXPECT_EQ(c->name.hash, hash::cstr(n).hash); \
   } \
