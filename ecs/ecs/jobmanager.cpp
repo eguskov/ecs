@@ -456,6 +456,10 @@ struct JobManager
 
   JobManager()
   {
+    jobs.resize(1);
+    jobGenerations.resize(1);
+    jobDependencies.resize(1);
+
     mainThreadId = std::this_thread::get_id();
     mainCpuNo = ::GetCurrentProcessorNumber();
 
@@ -564,6 +568,8 @@ struct JobManager
       jobDependencies.push_back({});
     }
 
+    ASSERT(freeIndex > 0);
+
     ++jobsCount;
 
     Job &j = jobs[freeIndex];
@@ -596,7 +602,7 @@ struct JobManager
 
   inline bool isDone(const JobId &jid) const
   {
-    return jid.handle == 0xFFFFFFFF || jobGenerations[jid.index] != jid.generation;
+    return !jid || jobGenerations[jid.index] != jid.generation;
   }
 
   void startJobs()

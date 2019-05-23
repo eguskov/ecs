@@ -60,13 +60,13 @@ namespace jobmanager
         uint32_t index : 24;
         uint32_t generation : 8;
       };
-      uint32_t handle = 0xFFFFFFFF;
+      uint32_t handle = 0;
     };
 
-    JobId(uint32_t h = 0xFFFFFFFF) : handle(h) {}
+    JobId(uint32_t h = 0) : handle(h) {}
     bool operator==(const JobId &rhs) const { return handle == rhs.handle; }
     bool operator!=(const JobId &rhs) const { return handle != rhs.handle; }
-    operator bool() const { return handle != 0xFFFFFFFF; }
+    operator bool() const { return handle != 0; }
   };
 
   using DependencyList = eastl::fixed_vector<JobId, 16, true>;
