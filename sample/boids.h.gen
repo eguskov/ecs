@@ -5,27 +5,6 @@
 
 #include "boids.h"
 
-static ComponentDescriptionDetails<EventOnClickMouseLeftButton> _reg_event_EventOnClickMouseLeftButton;
-int ComponentDescriptionDetails<EventOnClickMouseLeftButton>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnClickSpace> _reg_event_EventOnClickSpace;
-int ComponentDescriptionDetails<EventOnClickSpace>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnClickLeftControl> _reg_event_EventOnClickLeftControl;
-int ComponentDescriptionDetails<EventOnClickLeftControl>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnChangeCohesion> _reg_event_EventOnChangeCohesion;
-int ComponentDescriptionDetails<EventOnChangeCohesion>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnChangeAlignment> _reg_event_EventOnChangeAlignment;
-int ComponentDescriptionDetails<EventOnChangeAlignment>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnChangeSeparation> _reg_event_EventOnChangeSeparation;
-int ComponentDescriptionDetails<EventOnChangeSeparation>::ID = -1;
-
-static ComponentDescriptionDetails<EventOnChangeWander> _reg_event_EventOnChangeWander;
-int ComponentDescriptionDetails<EventOnChangeWander>::ID = -1;
-
 
 
 

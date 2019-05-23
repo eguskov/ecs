@@ -13,8 +13,7 @@ namespace script
     asIScriptFunction *fn = nullptr;
 
     int id = -1;
-    int stageId = -1;
-    int eventId = -1;
+    HashedString stageName;
 
     QueryDescription queryDesc;
 
@@ -54,9 +53,9 @@ namespace script
 
     void invalidateQueries();
 
-    void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
-    void sendBroadcastEventSync(int event_id, const RawArg &ev);
-    void tickStage(int stage_id, const RawArg &stage);
+    void sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev);
+    void sendBroadcastEventSync(uint32_t event_id, const RawArg &ev);
+    void tickStage(uint32_t stage_id, const RawArg &stage);
 
     template <typename S>
     void tick(const S &stage)
@@ -64,7 +63,7 @@ namespace script
       RawArgSpec<sizeof(S)> arg0;
       new (arg0.mem) S(stage);
 
-      tickStage(ComponentDescriptionDetails<S>::ID, arg0);
+      tickStage(StageType<S>::id, arg0);
     }
   };
 

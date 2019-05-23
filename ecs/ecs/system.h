@@ -123,10 +123,9 @@ struct SystemDescription
   using SystemCallback = void (*)(const RawArg &stage_or_event, Query&);
 
   ConstHashedString name;
-  char *stageName = nullptr;
+  ConstHashedString stageName;
 
   int id = -1;
-  int stageId = -1;
 
   Mode mode = Mode::FROM_INTERNAL_QUERY;
 
@@ -137,22 +136,19 @@ struct SystemDescription
   ConstQueryDescription queryDesc;
   SystemCallback sys = nullptr;
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDescription &query_desc, filter_t &&f = nullptr) : name(_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, filter_t &&f = nullptr) : name(_name), stageName(stage_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
   {
     next = reg_sys_head;
     reg_sys_head = this;
     ++reg_sys_count;
-
-    if (stage_name)
-      stageName = ::_strdup(stage_name);
   }
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name) : SystemDescription(_name, _sys, stage_name, empty_query_desc)
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name) : SystemDescription(_name, _sys, stage_name, empty_query_desc)
   {
     mode = Mode::FROM_EXTERNAL_QUERY;
   }
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const char *stage_name, const ConstQueryDescription &query_desc, Mode _mode) : SystemDescription(_name, _sys, stage_name, query_desc)
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, Mode _mode) : SystemDescription(_name, _sys, stage_name, query_desc)
   {
     mode = _mode;
   }

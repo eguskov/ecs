@@ -59,11 +59,10 @@
       "program": "${workspaceFolder}\\Release\\sample.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}\\sample",
       "environment": [],
       "externalConsole": true,
-      "preLaunchTask": "build release",
-      "visualizerFile": "${workspaceFolder}\\EASTL\\doc\\EASTL.natvis"
+      "preLaunchTask": "build release"
     },
     {
       "name": "(Debug) Benchmark",

@@ -27,6 +27,6 @@ static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(update_grid_cell, q, glm::vec2, pos),
       GET_COMPONENT(update_grid_cell, q, int, grid_cell));
 }
-static SystemDescription _reg_sys_update_grid_cell(HASH("update_grid_cell"), &update_grid_cell_run, "UpdateStage", update_grid_cell_query_desc, nullptr);
+static SystemDescription _reg_sys_update_grid_cell(HASH("update_grid_cell"), &update_grid_cell_run, HASH("UpdateStage"), update_grid_cell_query_desc, nullptr);
 
 #endif // __CODEGEN__

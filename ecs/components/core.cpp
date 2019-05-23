@@ -1,17 +1,14 @@
 #include "core.h"
 
-// static ComponentDescriptionDetails<EntityId> _eid;
-// int ComponentDescriptionDetails<EntityId>::ID = -1;
+uint32_t ecs_core_pull = HASH("core").hash;
 
-REG_COMP_INIT(EntityId, eid);
-REG_COMP_INIT(bool, bool);
-REG_COMP_INIT(int, int);
-REG_COMP_INIT(float, float);
-REG_COMP_INIT(glm::vec2, vec2);
-REG_COMP_INIT(glm::vec3, vec3);
-REG_COMP_INIT(glm::vec4, vec4);
-REG_COMP_INIT(eastl::string, string);
-REG_COMP_INIT(StringHash, hash_string);
-REG_COMP_INIT(Tag, tag);
-
-// REG_COMP_ARR_INIT(glm::vec2, vec2, 2);
+ECS_COMPONENT_TYPE_DETAILS(EntityId);
+ECS_COMPONENT_TYPE_DETAILS(bool);
+ECS_COMPONENT_TYPE_DETAILS(int);
+ECS_COMPONENT_TYPE_DETAILS(float);
+ECS_COMPONENT_TYPE_DETAILS_ALIAS(glm::vec2, vec2);
+ECS_COMPONENT_TYPE_DETAILS_ALIAS(glm::vec3, vec3);
+ECS_COMPONENT_TYPE_DETAILS_ALIAS(glm::vec4, vec4);
+ECS_COMPONENT_TYPE_DETAILS_ALIAS(eastl::string, string);
+ECS_COMPONENT_TYPE_DETAILS(StringHash);
+ECS_COMPONENT_TYPE_DETAILS(Tag);

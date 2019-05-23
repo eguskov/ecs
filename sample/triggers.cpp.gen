@@ -739,7 +739,7 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
     }
   }
 }
-static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, "UpdateStage");
+static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, HASH("UpdateStage"));
 
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -773,7 +773,7 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, HASH("UpdateStage"));
 
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -806,7 +806,7 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
     }
   }
 }
-static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, HASH("UpdateStage"));
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -839,7 +839,7 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
     }
   }
 }
-static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, HASH("UpdateStage"));
 
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -865,7 +865,7 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, HASH("UpdateStage"));
 
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -892,7 +892,7 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, "UpdateStage");
+static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, HASH("UpdateStage"));
 
 static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
@@ -900,6 +900,6 @@ static void update_player_spawner_run(const RawArg &stage_or_event, Query &query
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, "UpdateStage", update_player_spawner_query_desc, nullptr);
+static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("UpdateStage"), update_player_spawner_query_desc, nullptr);
 
 #endif // __CODEGEN__

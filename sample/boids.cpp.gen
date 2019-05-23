@@ -404,7 +404,7 @@ static void update_boid_rules_run(const RawArg &stage_or_event, Query&)
     return;
   update_boid_rules::run(*(UpdateStage*)stage_or_event.mem, QueryIterable<BoidSeparation, BoidSeparationBuilder>(query));
 }
-static SystemDescription _reg_sys_update_boid_rules(HASH("update_boid_rules"), &update_boid_rules_run, "UpdateStage", BoidSeparation_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);
+static SystemDescription _reg_sys_update_boid_rules(HASH("update_boid_rules"), &update_boid_rules_run, HASH("UpdateStage"), BoidSeparation_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);
 
 static void on_mouse_click_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -412,7 +412,7 @@ static void on_mouse_click_handler_boid_run(const RawArg &stage_or_event, Query 
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_mouse_click_handler_boid::run(*(EventOnClickMouseLeftButton*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_mouse_click_handler_boid(HASH("on_mouse_click_handler_boid"), &on_mouse_click_handler_boid_run, "EventOnClickMouseLeftButton", on_mouse_click_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_mouse_click_handler_boid(HASH("on_mouse_click_handler_boid"), &on_mouse_click_handler_boid_run, HASH("EventOnClickMouseLeftButton"), on_mouse_click_handler_boid_query_desc, nullptr);
 
 static void on_click_space_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -420,7 +420,7 @@ static void on_click_space_handler_boid_run(const RawArg &stage_or_event, Query 
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_click_space_handler_boid::run(*(EventOnClickSpace*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_click_space_handler_boid(HASH("on_click_space_handler_boid"), &on_click_space_handler_boid_run, "EventOnClickSpace", on_click_space_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_click_space_handler_boid(HASH("on_click_space_handler_boid"), &on_click_space_handler_boid_run, HASH("EventOnClickSpace"), on_click_space_handler_boid_query_desc, nullptr);
 
 static void on_click_left_control_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -428,7 +428,7 @@ static void on_click_left_control_handler_boid_run(const RawArg &stage_or_event,
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_click_left_control_handler_boid::run(*(EventOnClickLeftControl*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_click_left_control_handler_boid(HASH("on_click_left_control_handler_boid"), &on_click_left_control_handler_boid_run, "EventOnClickLeftControl", on_click_left_control_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_click_left_control_handler_boid(HASH("on_click_left_control_handler_boid"), &on_click_left_control_handler_boid_run, HASH("EventOnClickLeftControl"), on_click_left_control_handler_boid_query_desc, nullptr);
 
 static void on_change_cohesion_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -436,7 +436,7 @@ static void on_change_cohesion_handler_boid_run(const RawArg &stage_or_event, Qu
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_cohesion_handler_boid::run(*(EventOnChangeCohesion*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_change_cohesion_handler_boid(HASH("on_change_cohesion_handler_boid"), &on_change_cohesion_handler_boid_run, "EventOnChangeCohesion", on_change_cohesion_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_change_cohesion_handler_boid(HASH("on_change_cohesion_handler_boid"), &on_change_cohesion_handler_boid_run, HASH("EventOnChangeCohesion"), on_change_cohesion_handler_boid_query_desc, nullptr);
 
 static void on_change_alignment_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -444,7 +444,7 @@ static void on_change_alignment_handler_boid_run(const RawArg &stage_or_event, Q
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_alignment_handler_boid::run(*(EventOnChangeAlignment*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_change_alignment_handler_boid(HASH("on_change_alignment_handler_boid"), &on_change_alignment_handler_boid_run, "EventOnChangeAlignment", on_change_alignment_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_change_alignment_handler_boid(HASH("on_change_alignment_handler_boid"), &on_change_alignment_handler_boid_run, HASH("EventOnChangeAlignment"), on_change_alignment_handler_boid_query_desc, nullptr);
 
 static void on_change_separation_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -452,7 +452,7 @@ static void on_change_separation_handler_boid_run(const RawArg &stage_or_event, 
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_separation_handler_boid::run(*(EventOnChangeSeparation*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_change_separation_handler_boid(HASH("on_change_separation_handler_boid"), &on_change_separation_handler_boid_run, "EventOnChangeSeparation", on_change_separation_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_change_separation_handler_boid(HASH("on_change_separation_handler_boid"), &on_change_separation_handler_boid_run, HASH("EventOnChangeSeparation"), on_change_separation_handler_boid_query_desc, nullptr);
 
 static void on_change_wander_handler_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -460,7 +460,7 @@ static void on_change_wander_handler_boid_run(const RawArg &stage_or_event, Quer
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     on_change_wander_handler_boid::run(*(EventOnChangeWander*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_on_change_wander_handler_boid(HASH("on_change_wander_handler_boid"), &on_change_wander_handler_boid_run, "EventOnChangeWander", on_change_wander_handler_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_on_change_wander_handler_boid(HASH("on_change_wander_handler_boid"), &on_change_wander_handler_boid_run, HASH("EventOnChangeWander"), on_change_wander_handler_boid_query_desc, nullptr);
 
 static void render_hud_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -468,7 +468,7 @@ static void render_hud_boid_run(const RawArg &stage_or_event, Query &query)
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_hud_boid::run(*(RenderHUDStage*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_render_hud_boid(HASH("render_hud_boid"), &render_hud_boid_run, "RenderHUDStage", render_hud_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_render_hud_boid(HASH("render_hud_boid"), &render_hud_boid_run, HASH("RenderHUDStage"), render_hud_boid_query_desc, nullptr);
 
 static void render_boid_obstacle_run(const RawArg &stage_or_event, Query &query)
 {
@@ -479,7 +479,7 @@ static void render_boid_obstacle_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(render_boid_obstacle, q, glm::vec4, frame),
       GET_COMPONENT(render_boid_obstacle, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_render_boid_obstacle(HASH("render_boid_obstacle"), &render_boid_obstacle_run, "RenderStage", render_boid_obstacle_query_desc, nullptr);
+static SystemDescription _reg_sys_render_boid_obstacle(HASH("render_boid_obstacle"), &render_boid_obstacle_run, HASH("RenderStage"), render_boid_obstacle_query_desc, nullptr);
 
 static void render_boid_run(const RawArg &stage_or_event, Query &query)
 {
@@ -494,7 +494,7 @@ static void render_boid_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(render_boid, q, float, mass),
       GET_COMPONENT(render_boid, q, float, cur_rotation));
 }
-static SystemDescription _reg_sys_render_boid(HASH("render_boid"), &render_boid_run, "RenderStage", render_boid_query_desc, nullptr);
+static SystemDescription _reg_sys_render_boid(HASH("render_boid"), &render_boid_run, HASH("RenderStage"), render_boid_query_desc, nullptr);
 
 static void copy_boid_state_run(const RawArg &stage_or_event, Query &query)
 {
@@ -512,7 +512,7 @@ static void copy_boid_state_run(const RawArg &stage_or_event, Query &query)
       GET_COMPONENT(copy_boid_state, q, glm::vec2, cur_cohesion_center),
       GET_COMPONENT(copy_boid_state, q, glm::vec2, cur_alignment_dir));
 }
-static SystemDescription _reg_sys_copy_boid_state(HASH("copy_boid_state"), &copy_boid_state_run, "UpdateStage", copy_boid_state_query_desc, nullptr);
+static SystemDescription _reg_sys_copy_boid_state(HASH("copy_boid_state"), &copy_boid_state_run, HASH("UpdateStage"), copy_boid_state_query_desc, nullptr);
 
 static void update_boid_position_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -530,7 +530,7 @@ static void update_boid_position_add_jobs(const RawArg &stage_or_event, Query &q
   g_mgr->systemJobs[systemId] = update_boid_position::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_position(HASH("update_boid_position"), &update_boid_position_add_jobs, "UpdateStage", update_boid_position_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_position(HASH("update_boid_position"), &update_boid_position_add_jobs, HASH("UpdateStage"), update_boid_position_query_desc, nullptr);
 
 static void update_boid_rotation_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -548,7 +548,7 @@ static void update_boid_rotation_add_jobs(const RawArg &stage_or_event, Query &q
   g_mgr->systemJobs[systemId] = update_boid_rotation::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_rotation(HASH("update_boid_rotation"), &update_boid_rotation_add_jobs, "UpdateStage", update_boid_rotation_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_rotation(HASH("update_boid_rotation"), &update_boid_rotation_add_jobs, HASH("UpdateStage"), update_boid_rotation_query_desc, nullptr);
 
 static void update_boid_avoid_walls_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -569,7 +569,7 @@ static void update_boid_avoid_walls_add_jobs(const RawArg &stage_or_event, Query
   g_mgr->systemJobs[systemId] = update_boid_avoid_walls::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_avoid_walls(HASH("update_boid_avoid_walls"), &update_boid_avoid_walls_add_jobs, "UpdateStage", update_boid_avoid_walls_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_avoid_walls(HASH("update_boid_avoid_walls"), &update_boid_avoid_walls_add_jobs, HASH("UpdateStage"), update_boid_avoid_walls_query_desc, nullptr);
 
 static void update_boid_avoid_obstacle_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -587,7 +587,7 @@ static void update_boid_avoid_obstacle_add_jobs(const RawArg &stage_or_event, Qu
   g_mgr->systemJobs[systemId] = update_boid_avoid_obstacle::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_avoid_obstacle(HASH("update_boid_avoid_obstacle"), &update_boid_avoid_obstacle_add_jobs, "UpdateStage", update_boid_avoid_obstacle_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_avoid_obstacle(HASH("update_boid_avoid_obstacle"), &update_boid_avoid_obstacle_add_jobs, HASH("UpdateStage"), update_boid_avoid_obstacle_query_desc, nullptr);
 
 static void update_boid_move_to_center_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -606,7 +606,7 @@ static void update_boid_move_to_center_add_jobs(const RawArg &stage_or_event, Qu
   g_mgr->systemJobs[systemId] = update_boid_move_to_center::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_move_to_center(HASH("update_boid_move_to_center"), &update_boid_move_to_center_add_jobs, "UpdateStage", update_boid_move_to_center_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_move_to_center(HASH("update_boid_move_to_center"), &update_boid_move_to_center_add_jobs, HASH("UpdateStage"), update_boid_move_to_center_query_desc, nullptr);
 
 static void update_boid_wander_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -626,7 +626,7 @@ static void update_boid_wander_add_jobs(const RawArg &stage_or_event, Query &que
   g_mgr->systemJobs[systemId] = update_boid_wander::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_update_boid_wander(HASH("update_boid_wander"), &update_boid_wander_add_jobs, "UpdateStage", update_boid_wander_query_desc, nullptr);
+static SystemDescription _reg_sys_update_boid_wander(HASH("update_boid_wander"), &update_boid_wander_add_jobs, HASH("UpdateStage"), update_boid_wander_query_desc, nullptr);
 
 static void control_boid_velocity_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -644,7 +644,7 @@ static void control_boid_velocity_add_jobs(const RawArg &stage_or_event, Query &
   g_mgr->systemJobs[systemId] = control_boid_velocity::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_control_boid_velocity(HASH("control_boid_velocity"), &control_boid_velocity_add_jobs, "UpdateStage", control_boid_velocity_query_desc, nullptr);
+static SystemDescription _reg_sys_control_boid_velocity(HASH("control_boid_velocity"), &control_boid_velocity_add_jobs, HASH("UpdateStage"), control_boid_velocity_query_desc, nullptr);
 
 static void apply_boid_force_add_jobs(const RawArg &stage_or_event, Query &query)
 {
@@ -663,6 +663,6 @@ static void apply_boid_force_add_jobs(const RawArg &stage_or_event, Query &query
   g_mgr->systemJobs[systemId] = apply_boid_force::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);
   jobmanager::start_jobs();
 }
-static SystemDescription _reg_sys_apply_boid_force(HASH("apply_boid_force"), &apply_boid_force_add_jobs, "UpdateStage", apply_boid_force_query_desc, nullptr);
+static SystemDescription _reg_sys_apply_boid_force(HASH("apply_boid_force"), &apply_boid_force_add_jobs, HASH("UpdateStage"), apply_boid_force_query_desc, nullptr);
 
 #endif // __CODEGEN__

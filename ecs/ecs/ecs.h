@@ -21,7 +21,9 @@
 #include "jobmanager.h"
 
 #define ECS_PULL(type) static int pull_##type = ComponentDescriptionDetails<type>::ID;
-#define PULL_ESC_CORE ECS_PULL(bool);
+#define PULL_ESC_CORE \
+  extern uint32_t ecs_core_pull; \
+  static int pull_ecs = ecs_core_pull;
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
@@ -29,20 +31,23 @@ struct ComponentDescription;
 extern ComponentDescription *reg_comp_head;
 extern int reg_comp_count;
 
-struct EventOnEntityCreate : Event
+struct EventOnEntityCreate
 {
 };
-REG_EVENT(EventOnEntityCreate);
 
-struct EventOnEntityReady : Event
-{
-};
-REG_EVENT(EventOnEntityReady);
+ECS_EVENT(EventOnEntityCreate);
 
-struct EventOnChangeDetected : Event
+struct EventOnEntityReady
 {
 };
-REG_EVENT(EventOnChangeDetected);
+
+ECS_EVENT(EventOnEntityReady);
+
+struct EventOnChangeDetected
+{
+};
+
+ECS_EVENT(EventOnChangeDetected);
 
 struct EntityTemplate
 {
@@ -228,12 +233,12 @@ struct EntityManager
   void checkFrameSnapshot(const FrameSnapshot &snapshot);
 
   void tick();
-  void tickStage(int stage_id, const RawArg &stage);
-  void sendEvent(EntityId eid, int event_id, const RawArg &ev);
-  void sendEventSync(EntityId eid, int event_id, const RawArg &ev);
+  void tickStage(uint32_t stage_id, const RawArg &stage);
+  void sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev);
+  void sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev);
 
-  void sendEventBroadcast(int event_id, const RawArg &ev);
-  void sendEventBroadcastSync(int event_id, const RawArg &ev);
+  void sendEventBroadcast(uint32_t event_id, const RawArg &ev);
+  void sendEventBroadcastSync(uint32_t event_id, const RawArg &ev);
 
   template <typename S>
   void tick(const S &stage)
@@ -241,7 +246,7 @@ struct EntityManager
     RawArgSpec<sizeof(S)> arg0;
     new (arg0.mem) S(stage);
 
-    tickStage(ComponentDescriptionDetails<S>::ID, arg0);
+    tickStage(StageType<S>::id, arg0);
   }
 
   template <typename E>
@@ -250,7 +255,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEvent(eid, ComponentDescriptionDetails<E>::ID, arg0);
+    sendEvent(eid, EventType<E>::id, arg0);
   }
 
   template <typename E>
@@ -259,7 +264,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventSync(eid, ComponentDescriptionDetails<E>::ID, arg0);
+    sendEventSync(eid, EventType<E>::id, arg0);
   }
 
   template <typename E>
@@ -268,7 +273,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventBroadcast(ComponentDescriptionDetails<E>::ID, arg0);
+    sendEventBroadcast(EventType<E>::id, arg0);
   }
 
   template <typename E>
@@ -277,7 +282,7 @@ struct EntityManager
     RawArgSpec<sizeof(E)> arg0;
     new (arg0.mem) E(ev);
 
-    sendEventBroadcastSync(ComponentDescriptionDetails<E>::ID, arg0);
+    sendEventBroadcastSync(EventType<E>::id, arg0);
   }
 };
 

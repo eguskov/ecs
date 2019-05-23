@@ -191,9 +191,6 @@
     <ClCompile Include="ecs\debug.cpp" />
     <ClCompile Include="ecs\stacktrace.cpp" />
     <ClCompile Include="ecs\jobmanager.cpp" />
-    <ClCompile Include="stages\render.stage.cpp" />
-    <ClCompile Include="stages\update.stage.cpp" />
-    <ClCompile Include="stages\dispatchEvent.stage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\EASTL\doc\EASTL.natvis" />

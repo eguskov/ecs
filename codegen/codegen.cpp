@@ -121,9 +121,6 @@ int main(int argc, char* argv[])
         fmt::arg("type", comp.type),
         fmt::arg("name", comp.name));
 
-      out << fmt::format("template <> int ComponentDescriptionDetails<{type}>::ID = -1;\n",
-        fmt::arg("type", comp.type));
-
       out << "\n";
     }
 
@@ -132,9 +129,6 @@ int main(int argc, char* argv[])
       out << fmt::format("static ComponentDescriptionDetails<{type}> _reg_event_{name};\n",
         fmt::arg("type", ev.type),
         fmt::arg("name", escape_name(ev.name)));
-
-      out << fmt::format("int ComponentDescriptionDetails<{type}>::ID = -1;\n",
-        fmt::arg("type", ev.type));
 
       out << "\n";
     }
@@ -440,7 +434,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {query}_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {query}_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("query", query.name),
         fmt::arg("stage", sys.parameters[0].pureType));
@@ -471,7 +465,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -554,7 +548,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -619,7 +613,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -650,7 +644,7 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\");\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType));
     }
@@ -670,7 +664,7 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
@@ -697,7 +691,7 @@ int main(int argc, char* argv[])
       out << "  jobmanager::wait(job);\n";
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
@@ -726,7 +720,7 @@ int main(int argc, char* argv[])
       out << "  jobmanager::start_jobs();\n";
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, \"{stage}\", {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));

@@ -20,17 +20,19 @@
 
 #include <EASTL/list.h>
 
-struct CEFEventOnReady : Event
+struct CEFEventOnReady
 {
   CEFEventOnReady() = default;
-}
-DEF_EVENT(CEFEventOnReady);
+};
 
-struct CEFEventOnAfterCreated : Event
+ECS_EVENT(CEFEventOnReady);
+
+struct CEFEventOnAfterCreated
 {
   CEFEventOnAfterCreated() = default;
-}
-DEF_EVENT(CEFEventOnAfterCreated);
+};
+
+ECS_EVENT(CEFEventOnAfterCreated);
 
 static EntityId g_webui_eid;
 

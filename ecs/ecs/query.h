@@ -556,9 +556,6 @@ struct Query
 
   bool dirty = false;
 
-  int sysId = -1;
-  int stageId = -1;
-
   HashedString name;
   // TODO: Do not add eid
   QueryDescription desc;

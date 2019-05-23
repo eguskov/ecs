@@ -4,10 +4,6 @@
 
 #include <sstream>
 
-REG_EVENT_INIT(EventOnEntityCreate);
-REG_EVENT_INIT(EventOnEntityReady);
-REG_EVENT_INIT(EventOnChangeDetected);
-
 EntityManager *g_mgr = nullptr;
 
 SystemDescription *reg_sys_head = nullptr;
@@ -40,8 +36,6 @@ inline static bool not_have_components(const Archetype &type, const eastl::vecto
 
 SystemDescription::~SystemDescription()
 {
-  if (stageName)
-    ::free(stageName);
 }
 
 const SystemDescription *find_system(const ConstHashedString &name)
@@ -183,7 +177,7 @@ void EntityManager::init()
   eidComp = find_component("eid");
   eidCompId = eidComp->id;
 
-  componentDescByNames[hash::cstr("eid")] = eidComp;
+  componentDescByNames[HASH("eid")] = eidComp;
 
   {
     FILE *file = nullptr;
@@ -252,10 +246,6 @@ void EntityManager::init()
   for (const SystemDescription *sys = reg_sys_head; sys; sys = sys->next)
   {
     ASSERT(sys->sys != nullptr);
-    ASSERT(find_component(sys->stageName) != nullptr);
-    const_cast<SystemDescription*>(sys)->stageId = find_component(sys->stageName)->id;
-    ASSERT(sys->stageId >= 0);
-
     systemDescs[sys->id] = sys;
     systems.push_back({ getSystemWeight(sys->name), sys });
   }
@@ -267,8 +257,6 @@ void EntityManager::init()
   for (const auto &sys : systems)
   {
     auto &q = queries[sys.desc->id];
-    q.stageId = sys.desc->stageId;
-    q.sysId = sys.desc->id;
     q.desc = sys.desc->queryDesc;
     q.desc.filter = sys.desc->filter;
     q.name = sys.desc->name;
@@ -902,7 +890,7 @@ void Query::addChunks(const QueryDescription &in_desc, Archetype &type, int begi
     compIdx++;
   }
 
-  auto &storage = type.storages[type.getComponentIndex(hash::cstr("eid"))];
+  auto &storage = type.storages[type.getComponentIndex(HASH("eid"))];
 
   QueryChunk chunk;
   chunk.beginData = storage->getRawByIndex(begin);
@@ -1093,25 +1081,25 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
   }
 }
 
-void EntityManager::tickStage(int stage_id, const RawArg &stage)
+void EntityManager::tickStage(uint32_t stage_id, const RawArg &stage)
 {
   FrameSnapshot snapshot;
   fillFrameSnapshot(snapshot);
 
   for (const auto &sys : systems)
-    if (sys.desc->stageId == stage_id)
+    if (sys.desc->stageName.hash == stage_id)
       sys.desc->sys(stage, queries[sys.desc->id]);
 
   checkFrameSnapshot(snapshot);
 }
 
-void EntityManager::sendEvent(EntityId eid, int event_id, const RawArg &ev)
+void EntityManager::sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev)
 {
   ASSERT(eid);
   events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
 }
 
-void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
+void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev)
 {
   if (eid.generation != entityGenerations[eid.index])
     return;
@@ -1120,7 +1108,7 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
   auto &type = archetypes[e.archetypeId];
 
   for (const auto &sys : systems)
-    if (sys.desc->stageId == event_id)
+    if (sys.desc->stageName.hash == event_id)
     {
       // TODO: Add checks for isTrue, isFalse, have, notHave
       bool ok = true;
@@ -1161,15 +1149,15 @@ void EntityManager::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
     }
 }
 
-void EntityManager::sendEventBroadcast(int event_id, const RawArg &ev)
+void EntityManager::sendEventBroadcast(uint32_t event_id, const RawArg &ev)
 {
   events[currentEventStream].push(EntityId{}, EventStream::kBroadcast, event_id, ev);
 }
 
-void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
+void EntityManager::sendEventBroadcastSync(uint32_t event_id, const RawArg &ev)
 {
   for (const auto &sys : systems)
-    if (sys.desc->stageId == event_id)
+    if (sys.desc->stageName.hash == event_id)
     {
       auto &query = queries[sys.desc->id];
       sys.desc->sys(ev, query);
@@ -1178,7 +1166,7 @@ void EntityManager::sendEventBroadcastSync(int event_id, const RawArg &ev)
 
 void EntityManager::enableChangeDetection(const HashedString &name)
 {
-  if (name == hash::cstr("eid"))
+  if (name == HASH("eid"))
     return;
   DEBUG_LOG("enableChangeDetection: " << name.str);
   trackComponents.insert(name);

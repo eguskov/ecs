@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   camera.target = Vector2{ hw, hh };
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
-  camera.zoom = 0.15f /* 0.5f */;
+  camera.zoom = /* 0.15f */ 1.0f;
 
   const char *entitiesFilename = "data/entities.json";
   if (argc > 1)

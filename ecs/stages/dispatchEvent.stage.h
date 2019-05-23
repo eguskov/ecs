@@ -5,7 +5,7 @@
 #include "ecs/entity.h"
 #include "ecs/system.h"
 
-struct DispatchEventStage : Stage
+struct DispatchEventStage
 {
   EntityId eid;
   int eventId = -1;
@@ -14,9 +14,10 @@ struct DispatchEventStage : Stage
   DispatchEventStage() = default;
   DispatchEventStage(EntityId _eid, int _event_id, RawArg _ev) : eid(_eid), eventId(_event_id), ev(_ev) {}
 };
-REG_STAGE(DispatchEventStage);
 
-struct DispatchBroadcastEventStage : Stage
+ECS_STAGE(DispatchEventStage);
+
+struct DispatchBroadcastEventStage
 {
   int eventId = -1;
   RawArg ev;
@@ -24,4 +25,5 @@ struct DispatchBroadcastEventStage : Stage
   DispatchBroadcastEventStage() = default;
   DispatchBroadcastEventStage(int _event_id, RawArg _ev) : eventId(_event_id), ev(_ev) {}
 };
-REG_STAGE(DispatchBroadcastEventStage);
+
+ECS_STAGE(DispatchBroadcastEventStage);

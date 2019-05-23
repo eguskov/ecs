@@ -5,23 +5,26 @@
 
 namespace cef
 {
-  struct CmdToggleDevTools : Event
+  struct CmdToggleDevTools
   {
     CmdToggleDevTools() = default;
-  }
-  DEF_EVENT(cef::CmdToggleDevTools);
+  };
 
-  struct CmdToggleWebUI : Event
+  ECS_EVENT(cef::CmdToggleDevTools);
+
+  struct CmdToggleWebUI
   {
     CmdToggleWebUI() = default;
-  }
-  DEF_EVENT(cef::CmdToggleWebUI);
+  };
 
-  struct EventOnClickOutside : Event
+  ECS_EVENT(cef::CmdToggleWebUI);
+
+  struct EventOnClickOutside
   {
     EventOnClickOutside() = default;
-  }
-  DEF_EVENT(cef::EventOnClickOutside);
+  };
+
+  ECS_EVENT(cef::EventOnClickOutside);
 
   EntityId get_eid();
 

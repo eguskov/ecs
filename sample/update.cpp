@@ -140,6 +140,12 @@ struct update_position
   {
     pos += vel * stage.dt;
   }
+
+  // TODO: Will share QL_* filters but not componets requirements
+  // ECS_ON(const EventOnSomething &ev)
+  // {
+
+  // }
 };
 
 struct update_position_for_active

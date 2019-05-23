@@ -1,34 +1,12 @@
 #pragma once
 
-#include "component.h"
+#include "hash.h"
 
 #ifdef __CODEGEN__
-#define DEF_EVENT(...) __attribute__((annotate("@event")))
+#define ECS_EVENT(type) struct ecs_event_##type { static constexpr char const *name = #type; };
 #else
-#define DEF_EVENT(type) ;REG_EVENT(type)
+#define ECS_EVENT(type) template <> struct EventType<type> { constexpr static char const* eventName = #type; constexpr static uint32_t id = HASH(#type).hash; };
 #endif
 
-#define REG_EVENT(type) \
-  template <> struct ComponentType<type> { constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
-  template <> \
-  struct ComponentDescriptionDetails<type> : ComponentDescription \
-  { \
-    using CompType = type; \
-    using CompDesc = ComponentType<type>; \
-    static int ID; \
-    bool init(uint8_t *, const JFrameValue &) const override final { return true; } \
-    bool equal(uint8_t *, uint8_t *) const override final { return false; } \
-    ComponentDescriptionDetails() : ComponentDescription(#type, sizeof(CompType)) { ID = id; } \
-  }; \
-
-#define REG_EVENT_INIT(type) \
-  static ComponentDescriptionDetails<type> _##type; \
-  int ComponentDescriptionDetails<type>::ID = -1; \
-
-#define REG_EVENT_AND_INIT(type) \
-  REG_EVENT(type); \
-  REG_EVENT_INIT(type); \
-
-struct Event
-{
-};
+template <typename T>
+struct EventType;

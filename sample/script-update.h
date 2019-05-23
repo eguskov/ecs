@@ -3,7 +3,8 @@
 #include <ecs/event.h>
 #include <ecs/component.h>
 
-struct CmdReloadScript : Event
+struct CmdReloadScript
 {
-}
-DEF_EVENT(CmdReloadScript);
+};
+
+ECS_EVENT(CmdReloadScript);

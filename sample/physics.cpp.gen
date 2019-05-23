@@ -6,13 +6,10 @@
 #include "physics.cpp"
 
 static ComponentDescriptionDetails<PhysicsWorld> _reg_comp_PhysicsWorld("PhysicsWorld");
-template <> int ComponentDescriptionDetails<PhysicsWorld>::ID = -1;
 
 static ComponentDescriptionDetails<CollisionShape> _reg_comp_CollisionShape("CollisionShape");
-template <> int ComponentDescriptionDetails<CollisionShape>::ID = -1;
 
 static ComponentDescriptionDetails<PhysicsBody> _reg_comp_PhysicsBody("PhysicsBody");
-template <> int ComponentDescriptionDetails<PhysicsBody>::ID = -1;
 
 static constexpr ConstComponentDescription init_physics_collision_handler_components[] = {
   {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
@@ -432,7 +429,7 @@ static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
       GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)
     });
 }
-static SystemDescription _reg_sys_update_player_collisions(HASH("update_player_collisions"), &update_player_collisions_run, "UpdateStage");
+static SystemDescription _reg_sys_update_player_collisions(HASH("update_player_collisions"), &update_player_collisions_run, HASH("UpdateStage"));
 
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&)
 {
@@ -449,7 +446,7 @@ static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&
       GET_COMPONENT(EnemyCollision, q, bool, is_on_ground)
     });
 }
-static SystemDescription _reg_sys_update_auto_move_collisions(HASH("update_auto_move_collisions"), &update_auto_move_collisions_run, "UpdateStage");
+static SystemDescription _reg_sys_update_auto_move_collisions(HASH("update_auto_move_collisions"), &update_auto_move_collisions_run, HASH("UpdateStage"));
 
 static void init_physics_collision_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -460,7 +457,7 @@ static void init_physics_collision_handler_run(const RawArg &stage_or_event, Que
       GET_COMPONENT(init_physics_collision_handler, q, PhysicsBody, phys_body),
       GET_COMPONENT(init_physics_collision_handler, q, CollisionShape, collision_shape));
 }
-static SystemDescription _reg_sys_init_physics_collision_handler(HASH("init_physics_collision_handler"), &init_physics_collision_handler_run, "EventOnEntityCreate", init_physics_collision_handler_query_desc, nullptr);
+static SystemDescription _reg_sys_init_physics_collision_handler(HASH("init_physics_collision_handler"), &init_physics_collision_handler_run, HASH("EventOnEntityCreate"), init_physics_collision_handler_query_desc, nullptr);
 
 static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -470,7 +467,7 @@ static void init_physics_body_handler_run(const RawArg &stage_or_event, Query &q
       GET_COMPONENT(init_physics_body_handler, q, PhysicsBody, phys_body),
       GET_COMPONENT(init_physics_body_handler, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_init_physics_body_handler(HASH("init_physics_body_handler"), &init_physics_body_handler_run, "EventOnEntityCreate", init_physics_body_handler_query_desc, nullptr);
+static SystemDescription _reg_sys_init_physics_body_handler(HASH("init_physics_body_handler"), &init_physics_body_handler_run, HASH("EventOnEntityCreate"), init_physics_body_handler_query_desc, nullptr);
 
 static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -479,7 +476,7 @@ static void init_physics_world_handler_run(const RawArg &stage_or_event, Query &
     init_physics_world_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
       GET_COMPONENT(init_physics_world_handler, q, PhysicsWorld, phys_world));
 }
-static SystemDescription _reg_sys_init_physics_world_handler(HASH("init_physics_world_handler"), &init_physics_world_handler_run, "EventOnEntityCreate", init_physics_world_handler_query_desc, nullptr);
+static SystemDescription _reg_sys_init_physics_world_handler(HASH("init_physics_world_handler"), &init_physics_world_handler_run, HASH("EventOnEntityCreate"), init_physics_world_handler_query_desc, nullptr);
 
 static void update_physics_run(const RawArg &stage_or_event, Query &query)
 {
@@ -488,7 +485,7 @@ static void update_physics_run(const RawArg &stage_or_event, Query &query)
     update_physics::run(*(UpdateStage*)stage_or_event.mem,
       GET_COMPONENT(update_physics, q, PhysicsWorld, phys_world));
 }
-static SystemDescription _reg_sys_update_physics(HASH("update_physics"), &update_physics_run, "UpdateStage", update_physics_query_desc, nullptr);
+static SystemDescription _reg_sys_update_physics(HASH("update_physics"), &update_physics_run, HASH("UpdateStage"), update_physics_query_desc, nullptr);
 
 static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
 {
@@ -497,7 +494,7 @@ static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
     render_debug_physics::run(*(RenderDebugStage*)stage_or_event.mem,
       GET_COMPONENT(render_debug_physics, q, PhysicsWorld, phys_world));
 }
-static SystemDescription _reg_sys_render_debug_physics(HASH("render_debug_physics"), &render_debug_physics_run, "RenderDebugStage", render_debug_physics_query_desc, nullptr);
+static SystemDescription _reg_sys_render_debug_physics(HASH("render_debug_physics"), &render_debug_physics_run, HASH("RenderDebugStage"), render_debug_physics_query_desc, nullptr);
 
 static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Query &query)
 {
@@ -508,7 +505,7 @@ static void update_kinematic_physics_body_run(const RawArg &stage_or_event, Quer
       GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, pos),
       GET_COMPONENT(update_kinematic_physics_body, q, glm::vec2, vel));
 }
-static SystemDescription _reg_sys_update_kinematic_physics_body(HASH("update_kinematic_physics_body"), &update_kinematic_physics_body_run, "UpdateStage", update_kinematic_physics_body_query_desc, nullptr);
+static SystemDescription _reg_sys_update_kinematic_physics_body(HASH("update_kinematic_physics_body"), &update_kinematic_physics_body_run, HASH("UpdateStage"), update_kinematic_physics_body_query_desc, nullptr);
 
 static void render_debug_player_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
@@ -518,7 +515,7 @@ static void render_debug_player_grid_cell_run(const RawArg &stage_or_event, Quer
       GET_COMPONENT(render_debug_player_grid_cell, q, glm::vec2, pos),
       GET_COMPONENT(render_debug_player_grid_cell, q, int, grid_cell));
 }
-static SystemDescription _reg_sys_render_debug_player_grid_cell(HASH("render_debug_player_grid_cell"), &render_debug_player_grid_cell_run, "RenderDebugStage", render_debug_player_grid_cell_query_desc, 
+static SystemDescription _reg_sys_render_debug_player_grid_cell(HASH("render_debug_player_grid_cell"), &render_debug_player_grid_cell_run, HASH("RenderDebugStage"), render_debug_player_grid_cell_query_desc, 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(grid_cell, float);

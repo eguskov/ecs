@@ -13,7 +13,7 @@
 
 #include "script-query.h"
 
-REG_COMP_INIT(script::ScriptComponent, script);
+ECS_COMPONENT_TYPE_DETAILS_ALIAS(script::ScriptComponent, script);
 
 namespace script
 {
@@ -24,11 +24,7 @@ namespace script
 
   void ScriptSys::init(const EntityManager *mgr, const ScriptECS *script_ecs)
   {
-    const ComponentDescription *comp = find_component(params[0].type.c_str());
-    ASSERT(comp != nullptr);
-
-    eventId = -1;
-    stageId = comp ? comp->id : -1;
+    stageName = hash_str(params[0].type.c_str());
 
     for (size_t i = 1; i < params.size(); ++i)
     {
@@ -306,8 +302,6 @@ namespace script
     for (const auto &sys : systems)
     {
       auto &query = systemQueries[sys.id];
-      query.stageId = sys.stageId;
-      query.sysId = sys.id;
       query.desc = sys.queryDesc;
 
       g_mgr->performQuery(query);
@@ -315,7 +309,7 @@ namespace script
     }
   }
 
-  void ScriptECS::sendEventSync(EntityId eid, int event_id, const RawArg &ev)
+  void ScriptECS::sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev)
   {
     script::debug::attach(eventCtx);
 
@@ -327,7 +321,7 @@ namespace script
     const auto &archetype = g_mgr->archetypes[entity.archetypeId];
 
     for (const auto &sys : systems)
-      if (sys.stageId == event_id)
+      if (sys.stageName.hash == event_id)
       {
         bool ok = true;
         for (const auto &c : sys.queryDesc.components)
@@ -353,26 +347,27 @@ namespace script
       }
   }
 
-  void ScriptECS::sendBroadcastEventSync(int event_id, const RawArg &ev)
+  void ScriptECS::sendBroadcastEventSync(uint32_t event_id, const RawArg &ev)
   {
     // TODO: Implementation
   }
 
-  void ScriptECS::tickStage(int stage_id, const RawArg &stage)
+  void ScriptECS::tickStage(uint32_t stage_id, const RawArg &stage)
   {
     script::debug::attach(stageCtx);
 
     // TODO: Store quries in map by stageId
-    for (auto &query : systemQueries)
+    for (const auto &sys : systems)
     {
-      if (query.stageId != stage_id)
+      if (sys.stageName.hash != stage_id)
         continue;
 
+      auto &query = systemQueries[sys.id];
       for (int chunkIdx = 0; chunkIdx < query.chunksCount; ++chunkIdx)
       {
         for (int i = 0; i < query.entitiesInChunk[chunkIdx]; ++i)
         {
-          stageCtx->Prepare(systems[query.sysId].fn);
+          stageCtx->Prepare(sys.fn);
           stageCtx->SetUserData(this, 1000);
           internal::set_arg_wrapped(stageCtx, 0, stage.mem);
           for (int compIdx = 0; compIdx < (int)query.desc.components.size(); ++compIdx)

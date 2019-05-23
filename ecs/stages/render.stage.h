@@ -3,17 +3,20 @@
 #include "ecs/component.h"
 #include "ecs/stage.h"
 
-struct RenderStage : Stage
+struct RenderStage
 {
 };
-REG_STAGE(RenderStage);
 
-struct RenderDebugStage : Stage
-{
-};
-REG_STAGE(RenderDebugStage);
+ECS_STAGE(RenderStage);
 
-struct RenderHUDStage : Stage
+struct RenderDebugStage
 {
 };
-REG_STAGE(RenderHUDStage);
+
+ECS_STAGE(RenderDebugStage);
+
+struct RenderHUDStage
+{
+};
+
+ECS_STAGE(RenderHUDStage);

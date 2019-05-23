@@ -26,16 +26,8 @@
 
 #endif
 
-#define REG_COMP_ARR(type, n, sz) \
-  template <> struct ComponentType<ArrayComponent<type, sz>> { constexpr static size_t Size = sizeof(type) * sz; constexpr static char const* typeName = #type; constexpr static char const* name = __C4(n, [, sz, ]); }; \
-
-#define REG_COMP_INIT(type, n) \
-  static ComponentDescriptionDetails<type> _##n(#n); \
-  template <> int ComponentDescriptionDetails<type>::ID = -1; \
-
-#define REG_COMP_ARR_INIT(type, n, sz) \
-  static ComponentDescriptionDetails<ArrayComponent<type, sz>> _array_##n(__C4(n, [, sz, ])); \
-  template <> int ComponentDescriptionDetails<ArrayComponent<type, sz>>::ID = -1; \
+#define ECS_COMPONENT_TYPE_DETAILS(type) static ComponentDescriptionDetails<type> _##type(#type);
+#define ECS_COMPONENT_TYPE_DETAILS_ALIAS(type, alias) static ComponentDescriptionDetails<type> _##alias(#alias);
 
 template <typename T>
 struct ComponentType;
@@ -166,8 +158,6 @@ struct ComponentDescriptionDetails : ComponentDescription
   using CompType = T;
   using CompDesc = ComponentType<T>;
 
-  static int ID;
-
   bool init(uint8_t *mem, const JFrameValue &value) const override final
   {
     return ComponentSetter<CompType>::set((CompType*)mem, value["$value"]);
@@ -185,7 +175,6 @@ struct ComponentDescriptionDetails : ComponentDescription
 
   ComponentDescriptionDetails(const char *name) : ComponentDescription(name, CompDesc::Size)
   {
-    ID = id;
     hasEqual = HasOperatorEqual<T>::value;
   }
 };

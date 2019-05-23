@@ -5,9 +5,6 @@
 
 #include "script-update.h"
 
-static ComponentDescriptionDetails<CmdReloadScript> _reg_event_CmdReloadScript;
-int ComponentDescriptionDetails<CmdReloadScript>::ID = -1;
-
 
 
 
