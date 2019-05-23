@@ -164,7 +164,7 @@
       "$name": "WebUI",
       "$components": {
         "webui": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -291,7 +291,7 @@
       "$name": "enemy_spawner",
       "$components": {
         "spawner": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "spawn_timer": {
@@ -307,7 +307,7 @@
       "$name": "player_spawner",
       "$components": {
         "player_spawner": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -316,11 +316,11 @@
       "$name": "player_spawn_zone",
       "$components": {
         "zone": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "player_spawn_zone": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "pos": {
@@ -336,7 +336,7 @@
       "$name": "enemy",
       "$components": {
         "enemy": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "grid_cell": {
@@ -592,7 +592,7 @@
       ],
       "$components": {
         "wall_collidable": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "texture": {
@@ -950,7 +950,7 @@
       "$name": "base-block",
       "$components": {
         "wall": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "grid_cell": {
@@ -1048,7 +1048,7 @@
       ],
       "$components": {
         "lift": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "vel": {
@@ -1063,7 +1063,7 @@
           "$value": true
         },
         "key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         },
         "auto_move": {
@@ -1127,7 +1127,7 @@
       ],
       "$components": {
         "cage": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -1218,11 +1218,11 @@
       "$name": "trigger",
       "$components": {
         "trigger": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         },
         "is_binded": {
@@ -1246,11 +1246,11 @@
       ],
       "$components": {
         "switch_trigger": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "action_key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         },
         "pos": {
@@ -1294,11 +1294,11 @@
       ],
       "$components": {
         "zone_trigger": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "action_key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         },
         "pos": {
@@ -1320,11 +1320,11 @@
       "$name": "action",
       "$components": {
         "action": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         },
         "is_active": {
@@ -1340,11 +1340,11 @@
       ],
       "$components": {
         "enable_lift_action": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "lift_key": {
-          "$type": "hash_string",
+          "$type": "StringHash",
           "$value": ""
         }
       }
@@ -1356,7 +1356,7 @@
       ],
       "$components": {
         "kill_player_action": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -1368,7 +1368,7 @@
       ],
       "$components": {
         "open_cage_action": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -1377,7 +1377,7 @@
       "$name": "click_handler_boid",
       "$components": {
         "click_handler_boid": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         }
       }
@@ -1386,7 +1386,7 @@
       "$name": "boid",
       "$components": {
         "boid": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "pos": {
@@ -1478,7 +1478,7 @@
       "$name": "boid_obstacle",
       "$components": {
         "boid_obstacle": {
-          "$type": "tag",
+          "$type": "Tag",
           "$value": {}
         },
         "pos": {

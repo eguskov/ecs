@@ -106,7 +106,7 @@ TEST_F(QueryTest, Select_Have_Tag)
 {
   QueryDescription desc;
   desc.components.push_back({-1, hash::cstr("eid"), find_component("eid")->size, find_component("eid")});
-  desc.haveComponents.push_back({-1, hash::cstr("tag-test"), find_component("tag")->size, find_component("tag")});
+  desc.haveComponents.push_back({-1, hash::cstr("tag-test"), find_component("Tag")->size, find_component("Tag")});
 
   CHECK_QUERY_COUNT(q, 15ul);
 }

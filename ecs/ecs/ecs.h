@@ -20,10 +20,9 @@
 
 #include "jobmanager.h"
 
-#define ECS_PULL(type) static int pull_##type = ComponentDescriptionDetails<type>::ID;
 #define PULL_ESC_CORE \
-  extern uint32_t ecs_core_pull; \
-  static int pull_ecs = ecs_core_pull;
+  extern const uint32_t ecs_pull_core; \
+  uint32_t ecs_pull = 0 + ecs_pull_core;
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
@@ -180,6 +179,9 @@ struct EntityManager
   eastl::vector<Query> queries;
   eastl::vector<Query> namedQueries;
   eastl::vector<Index> namedIndices;
+  eastl::vector<int> dirtyQueries;
+  eastl::vector<int> dirtyNamedQueries;
+  eastl::vector<int> dirtyNamedIndices;
 
   eastl::queue<CreateQueueData> createQueue;
   eastl::queue<EntityId> deleteQueue;

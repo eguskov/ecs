@@ -110,7 +110,7 @@ struct Setter<StringHash>
 };
 
 struct Tag {};
-ECS_COMPONENT_TYPE_ALIAS(Tag, tag);
+ECS_COMPONENT_TYPE(Tag);
 
 ECS_COMPONENT_TYPE_ALIAS(EntityId, eid);
 ECS_COMPONENT_TYPE(bool);
@@ -120,7 +120,7 @@ ECS_COMPONENT_TYPE_ALIAS(glm::vec2, vec2);
 ECS_COMPONENT_TYPE_ALIAS(glm::vec3, vec3);
 ECS_COMPONENT_TYPE_ALIAS(glm::vec4, vec4);
 ECS_COMPONENT_TYPE_ALIAS(eastl::string, string);
-ECS_COMPONENT_TYPE_ALIAS(StringHash, hash_string);
+ECS_COMPONENT_TYPE(StringHash);
 
 // TODO: Remove?
 // REG_COMP_ARR(glm::vec2, vec2, 2);

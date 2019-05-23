@@ -365,6 +365,10 @@ void EntityManager::init()
 
     enableChangeDetection(index->componentName);
   }
+
+  dirtyQueries.reserve(queries.size());
+  dirtyNamedQueries.reserve(namedQueries.size());
+  dirtyNamedIndices.reserve(namedIndices.size());
 }
 
 int EntityManager::getSystemId(const ConstHashedString &name) const
@@ -774,21 +778,17 @@ void EntityManager::tick()
   }
   else
   {
-    for (auto &q : queries)
-      if (q.dirty)
-      {
-        queriesInvalidated = true;
-        performQuery(q);
-      }
-    for (auto &q : namedQueries)
-      if (q.dirty)
-      {
-        queriesInvalidated = true;
-        performQuery(q);
-      }
-    for (auto &i : namedIndices)
-      if (i.dirty)
-        rebuildIndex(i);
+    queriesInvalidated = !dirtyQueries.empty() || !namedQueries.empty();
+    for (int queryIdx : dirtyQueries)
+      performQuery(queries[queryIdx]);
+    for (int queryIdx : dirtyNamedQueries)
+      performQuery(namedQueries[queryIdx]);
+    for (int indexIdx : dirtyNamedIndices)
+      rebuildIndex(namedIndices[indexIdx]);
+
+    dirtyQueries.clear();
+    dirtyNamedQueries.clear();
+    dirtyNamedIndices.clear();
   }
 
   // TODO: Perform only queries are depent on changed component
@@ -903,7 +903,6 @@ void EntityManager::performQuery(Query &query)
 {
   const bool isValid = query.desc.isValid();
 
-  query.dirty = false;
   query.chunksCount = 0;
   query.entitiesCount = 0;
   query.chunks.clear();
@@ -1063,15 +1062,15 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
       {
         if (::memcmp(snapshot[i++], type.storages[index]->data(), type.storages[index]->size()))
         {
-          for (auto &q : queries)
-            if (q.desc.isDependOnComponent(name))
-              q.dirty = true;
-          for (auto &q : namedQueries)
-            if (q.desc.isDependOnComponent(name))
-              q.dirty = true;
-          for (auto &i : namedIndices)
-            if (i.desc.isDependOnComponent(name))
-              i.dirty = true;
+          for (int j = 0, sz = queries.size(); j < sz; ++j)
+            if (queries[j].desc.isDependOnComponent(name))
+              dirtyQueries.push_back(j);
+          for (int j = 0, sz = namedQueries.size(); j < sz; ++j)
+            if (namedQueries[j].desc.isDependOnComponent(name))
+              dirtyNamedQueries.push_back(j);
+          for (int j = 0, sz = namedIndices.size(); j < sz; ++j)
+            if (namedIndices[j].desc.isDependOnComponent(name))
+              dirtyNamedIndices.push_back(j);
           // break;
           // TODO: Correct way to interrupt the cycle
           // return;

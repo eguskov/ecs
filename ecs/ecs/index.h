@@ -6,8 +6,6 @@ struct ComponentDescription;
 
 struct Index
 {
-  bool dirty = false;
-
   HashedString name;
   HashedString componentName;
 

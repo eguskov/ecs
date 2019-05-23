@@ -122,9 +122,6 @@ struct QueryDescription
   eastl::vector<Component> haveComponents;
   eastl::vector<Component> notHaveComponents;
 
-  eastl::vector<int> roComponents;
-  eastl::vector<int> rwComponents;
-
   eastl::vector<int> archetypes;
 
   filter_t filter;
@@ -554,10 +551,8 @@ struct Query
 
   void addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count);
 
-  bool dirty = false;
-
   HashedString name;
-  // TODO: Do not add eid
+
   QueryDescription desc;
 
   int componentsCount = 0;

@@ -39,11 +39,6 @@ namespace script
         desc = mgr->getComponentDescByName(param.name.c_str());
       ASSERT(desc != nullptr);
       queryDesc.components.push_back({ 0, hash_str(param.name.c_str()), desc->size, desc });
-
-      if ((param.flags & asTM_CONST) != 0)
-        queryDesc.roComponents.push_back(i);
-      else
-        queryDesc.rwComponents.push_back(i);
     }
   }
 
