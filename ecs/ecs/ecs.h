@@ -84,7 +84,7 @@ struct EventStream
 {
   enum Flags
   {
-    kTarget = 0,
+    kUnicast = 0,
     kBroadcast = 1 << 0,
   };
 

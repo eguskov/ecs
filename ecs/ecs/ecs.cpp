@@ -1095,7 +1095,7 @@ void EntityManager::tickStage(uint32_t stage_id, const RawArg &stage)
 void EntityManager::sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev)
 {
   ASSERT(eid);
-  events[currentEventStream].push(eid, EventStream::kTarget, event_id, ev);
+  events[currentEventStream].push(eid, EventStream::kUnicast, event_id, ev);
 }
 
 void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev)
