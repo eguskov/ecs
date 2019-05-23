@@ -176,6 +176,10 @@ void EntityManager::init()
 {
   jobmanager::init();
 
+  // Reserve eid = 0 as invalid
+  entities.resize(1);
+  entityGenerations = { 0 };
+
   eidComp = find_component("eid");
   eidCompId = eidComp->id;
 
@@ -651,6 +655,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
     entityGenerations.push_back(0);
   }
 
+  ASSERT(freeIndex > 0);
+
   EntityId eid = make_eid(entityGenerations[freeIndex], freeIndex);
 
   auto &e = entities[freeIndex];
@@ -1080,7 +1086,7 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
               i.dirty = true;
           // break;
           // TODO: Correct way to interrupt the cycle
-          return;
+          // return;
         }
       }
     }
