@@ -166,6 +166,23 @@ EntityManager::~EntityManager()
     t.clear();
 }
 
+void EntityManager::findArchetypes(QueryDescription &desc)
+{
+  if (!desc.isValid())
+    return;
+
+  for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
+  {
+    const auto &type = archetypes[archetypeId];
+    if (not_have_components(type, desc.notHaveComponents) &&
+        has_components(type, desc.components) &&
+        has_components(type, desc.haveComponents))
+    {
+      desc.archetypes.push_back(archetypeId);
+    }
+  }
+}
+
 void EntityManager::init()
 {
   jobmanager::init();
@@ -260,18 +277,9 @@ void EntityManager::init()
     q.desc = sys.desc->queryDesc;
     q.desc.filter = sys.desc->filter;
     q.name = sys.desc->name;
-    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
+    findArchetypes(q.desc);
 
-    for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
-    {
-      const auto &type = archetypes[archetypeId];
-      if (not_have_components(type, q.desc.notHaveComponents) &&
-          has_components(type, q.desc.components) &&
-          has_components(type, q.desc.haveComponents))
-      {
-        q.desc.archetypes.push_back(archetypeId);
-      }
-    }
+    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
   }
 
   systemJobs.resize(systems.size());
@@ -332,7 +340,10 @@ void EntityManager::init()
   {
     auto &q = queries[sys.desc->id];
     if (sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
+    {
       q.desc = empty_query_desc;
+      q.desc.archetypes.clear();
+    }
   }
 
   for (const auto &sys : systems)
@@ -349,6 +360,7 @@ void EntityManager::init()
     namedQueries[queryIdx].name = query->name;
     namedQueries[queryIdx].desc = query->desc;
     namedQueries[queryIdx].desc.filter = query->filter;
+    findArchetypes(namedQueries[queryIdx].desc);
     for (const auto &c : query->desc.trackComponents)
       enableChangeDetection(c.name);
   }
@@ -362,7 +374,7 @@ void EntityManager::init()
     namedIndices[indexIdx].componentName = index->componentName;
     namedIndices[indexIdx].desc = index->desc;
     namedIndices[indexIdx].desc.filter = index->filter;
-
+    findArchetypes(namedIndices[indexIdx].desc);
     enableChangeDetection(index->componentName);
   }
 
@@ -909,35 +921,30 @@ void EntityManager::performQuery(Query &query)
   query.entitiesInChunk.clear();
   query.componentsCount = query.desc.components.size() + 1;
 
-  for (auto &type : archetypes)
+  for (int archetypeId : query.desc.archetypes)
   {
+    auto &type = archetypes[archetypeId];
+
     // TODO: ASSERT on type mismatch
-    bool ok =
-      isValid &&
-      not_have_components(type, query.desc.notHaveComponents) &&
-      has_components(type, query.desc.components) &&
-      has_components(type, query.desc.haveComponents);
+    ASSERT(isValid && not_have_components(type, query.desc.notHaveComponents) && has_components(type, query.desc.components) && has_components(type, query.desc.haveComponents));
+    ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
 
-    if (ok)
+    bool ok = true;
+    int begin = -1;
+    for (int i = 0; i < type.entitiesCapacity; ++i)
     {
-      ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
+      // TODO: Find a better solution
+      ok = !type.storages[0]->freeMask[i];
 
-      int begin = -1;
-      for (int i = 0; i < type.entitiesCapacity; ++i)
+      ok = ok && (!query.desc.filter || query.desc.filter(type, i));
+
+      if (ok && begin < 0)
+        begin = i;
+
+      if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
       {
-        // TODO: Find a better solution
-        ok = !type.storages[0]->freeMask[i];
-
-        ok = ok && (!query.desc.filter || query.desc.filter(type, i));
-
-        if (ok && begin < 0)
-          begin = i;
-
-        if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
-        {
-          query.addChunks(query.desc, type, begin, i - begin + (ok ? 1 : 0));
-          begin = -1;
-        }
+        query.addChunks(query.desc, type, begin, i - begin + (ok ? 1 : 0));
+        begin = -1;
       }
     }
   }

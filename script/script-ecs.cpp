@@ -193,6 +193,7 @@ namespace script
             query.desc.components.push_back({ i, hash_str(name), desc->size, desc });
           }
 
+          g_mgr->findArchetypes(query.desc);
           g_mgr->performQuery(query);
         }
       }
@@ -298,6 +299,7 @@ namespace script
     {
       auto &query = systemQueries[sys.id];
       query.desc = sys.queryDesc;
+      g_mgr->findArchetypes(query.desc);
 
       g_mgr->performQuery(query);
       DEBUG_LOG("invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount);
