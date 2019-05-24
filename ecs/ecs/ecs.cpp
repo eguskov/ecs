@@ -264,16 +264,20 @@ void EntityManager::init()
   {
     ASSERT(sys->sys != nullptr);
     systemDescs[sys->id] = sys;
-    systems.push_back({ getSystemWeight(sys->name), sys });
+    systems.push_back({ getSystemWeight(sys->name), sys->sys, sys });
   }
 
   eastl::sort(systems.begin(), systems.end(),
     [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
 
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
+    systemsByStage.insert(eastl::pair<uint32_t, int>(systems[i].desc->stageName.hash, i));
+
   queries.resize(reg_sys_count);
-  for (const auto &sys : systems)
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    auto &q = queries[sys.desc->id];
+    const auto &sys = systems[i];
+    auto &q = queries[i];
     q.desc = sys.desc->queryDesc;
     q.desc.filter = sys.desc->filter;
     q.name = sys.desc->name;
@@ -287,13 +291,13 @@ void EntityManager::init()
 
   for (int i = reg_sys_count - 1; i >= 0; --i)
   {
-    const auto &qI = queries[systems[i].desc->id];
+    const auto &qI = queries[i];
     const auto &compsI = systems[i].desc->queryDesc.components;
     auto &deps = systemDependencies[systems[i].desc->id];
 
     for (int j = i - 1; j >= 0; --j)
     {
-      const auto &qJ = queries[systems[j].desc->id];
+      const auto &qJ = queries[j];
 
       // TODO: abort loop normaly instead of dry runs
 
@@ -336,10 +340,10 @@ void EntityManager::init()
     }
   }
 
-  for (auto &sys : systems)
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    auto &q = queries[sys.desc->id];
-    if (sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
+    auto &q = queries[i];
+    if (systems[i].desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
     {
       q.desc = empty_query_desc;
       q.desc.archetypes.clear();
@@ -1092,9 +1096,9 @@ void EntityManager::tickStage(uint32_t stage_id, const RawArg &stage)
   FrameSnapshot snapshot;
   fillFrameSnapshot(snapshot);
 
-  for (const auto &sys : systems)
-    if (sys.desc->stageName.hash == stage_id)
-      sys.desc->sys(stage, queries[sys.desc->id]);
+  auto res = systemsByStage.equal_range(stage_id);
+  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
+    systems[sysIt->second].sys(stage, queries[sysIt->second]);
 
   checkFrameSnapshot(snapshot);
 }
@@ -1162,12 +1166,9 @@ void EntityManager::sendEventBroadcast(uint32_t event_id, const RawArg &ev)
 
 void EntityManager::sendEventBroadcastSync(uint32_t event_id, const RawArg &ev)
 {
-  for (const auto &sys : systems)
-    if (sys.desc->stageName.hash == event_id)
-    {
-      auto &query = queries[sys.desc->id];
-      sys.desc->sys(ev, query);
-    }
+  auto res = systemsByStage.equal_range(event_id);
+  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
+    systems[sysIt->second].sys(ev, queries[sysIt->second]);
 }
 
 void EntityManager::enableChangeDetection(const HashedString &name)

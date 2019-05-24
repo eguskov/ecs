@@ -77,6 +77,7 @@ struct Entity
 struct System
 {
   int weight;
+  SystemDescription::SystemCallback sys;
   const SystemDescription *desc;
 };
 
@@ -172,6 +173,7 @@ struct EntityManager
   eastl::vector<uint8_t> entityGenerations;
   eastl::hash_map<HashedString, const ComponentDescription*> componentDescByNames;
   eastl::vector<System> systems;
+  eastl::hash_multimap<uint32_t, int> systemsByStage;
   eastl::vector<const SystemDescription*> systemDescs;
   eastl::vector<eastl::vector<int>> systemDependencies;
   eastl::vector<jobmanager::JobId> systemJobs;
