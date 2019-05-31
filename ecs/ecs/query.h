@@ -196,74 +196,62 @@ struct QueryDescription
   }
 };
 
-struct QueryChunk
-{
-  template <typename T>
-  struct Iterator
-  {
-    using Self = Iterator<T>;
-
-    uint8_t *cur;
-    uint8_t *end;
-
-    Iterator(uint8_t *b, uint8_t *e) : cur(b), end(e) {}
-    Iterator(const Self& assign) : cur(assign.cur), end(assign.end) {}
-
-    Self& operator=(Self&& assign)
-    {
-      cur = assign.cur;
-      end = assign.end;
-      return *this;
-    }
-
-    Self& operator=(const Self& assign)
-    {
-      cur = assign.cur;
-      end = assign.end;
-      return *this;
-    }
-
-    T& operator*()
-    {
-      return *(T*)cur;
-    }
-
-    T* operator->()
-    {
-      return (T*)cur;
-    }
-
-    bool operator==(const Self& rhs) const
-    {
-      return cur == rhs.cur;
-    }
-
-    void operator++()
-    {
-      cur += sizeof(T);
-    }
-  };
-
-  template <typename T>
-  Iterator<T> begin()
-  {
-    return Iterator<T>(beginData, endData);
-  }
-
-  template <typename T>
-  Iterator<T> end()
-  {
-    return Iterator<T>(endData, endData);
-  }
-
-  uint8_t *beginData = nullptr;
-  uint8_t *endData = nullptr;
-  uint32_t elemSize = 0;
-};
-
 // TODO: Query unittest
 struct Query
 {
+  struct ChunkIterator
+  {
+    uint8_t * __restrict * __restrict chunks;
+    const int * __restrict entitiesInChunk;
+    int componentsCount;
+    int offset;
+
+    ChunkIterator(uint8_t * __restrict * __restrict _chunks, const int * __restrict entities_in_chunk, int components_count, int _offset = 0):
+      chunks(_chunks),
+      entitiesInChunk(entities_in_chunk),
+      componentsCount(components_count),
+      offset(_offset)
+    {}
+
+    inline bool operator==(const ChunkIterator &rhs) const
+    {
+      return chunks == rhs.chunks;
+    }
+
+    inline bool operator!=(const ChunkIterator &rhs) const
+    {
+      return !(operator==(rhs));
+    }
+
+    inline void operator++()
+    {
+      chunks += componentsCount;
+      ++entitiesInChunk;
+      offset = 0;
+    }
+
+    inline uint8_t * __restrict * __restrict operator*()
+    {
+      return chunks;
+    }
+
+    inline int32_t begin() const
+    {
+      return offset;
+    }
+
+    inline int32_t end() const
+    {
+      return *entitiesInChunk;
+    }
+
+    template<typename T>
+    inline T& __restrict get(int32_t component_index, int32_t index_in_chunk)
+    {
+      return *(((T * __restrict)chunks[component_index]) + index_in_chunk);
+    }
+  };
+  
   struct AllIterator
   {
     int idx = 0;
@@ -271,16 +259,18 @@ struct Query
     int componentsCount = 0;
     int chunksCount = 0;
 
-    const int *entitiesInChunk = nullptr;
-    QueryChunk *chunks = nullptr;
+    const int * __restrict entitiesInChunk = nullptr;
+    uint8_t * __restrict * __restrict chunks = nullptr;
+    uint8_t * __restrict * __restrict curChunk = nullptr;
 
-    AllIterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int chunk_idx = 0) :
+    AllIterator(uint8_t * __restrict * __restrict _chunks, int chunks_count, int * __restrict entities_in_chunk, int components_count, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
       chunksCount(chunks_count),
       chunkIdx(chunk_idx)
     {
+      curChunk = chunks;
     }
 
     bool operator==(const AllIterator &rhs) const
@@ -300,31 +290,22 @@ struct Query
       {
         idx = 0;
         ++chunkIdx;
+        curChunk += componentsCount;
       }
     }
 
-    uint8_t* getRaw(int comp_idx)
+    template<typename T>
+    inline T& get(int comp_idx)
     {
-      auto &chunk = chunks[comp_idx + chunkIdx * componentsCount];
-      return chunk.beginData + idx * chunk.elemSize;
-    }
-
-    uint8_t* getRaw(int comp_idx) const
-    {
-      auto &chunk = chunks[comp_idx + chunkIdx * componentsCount];
-      return chunk.beginData + idx * chunk.elemSize;
+      uint8_t **chunk = curChunk + comp_idx;
+      return ((T*)*chunk)[idx];
     }
 
     template<typename T>
-    T& get(int comp_idx)
+    inline T& get(int comp_idx) const
     {
-      return *(T*)getRaw(comp_idx);
-    }
-
-    template<typename T>
-    T& get(int comp_idx) const
-    {
-      return *(T*)getRaw(comp_idx);
+      uint8_t **chunk = curChunk + comp_idx;
+      return ((T*)*chunk)[idx];
     }
 
     inline AllIterator operator*()
@@ -369,9 +350,9 @@ struct Query
     int chunksCount = 0;
 
     const int *entitiesInChunk = nullptr;
-    QueryChunk *chunks = nullptr;
+    uint8_t **chunks = nullptr;
 
-    RawIterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
+    RawIterator(uint8_t **_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
@@ -404,13 +385,13 @@ struct Query
 
     uint8_t* operator*()
     {
-      return chunks[compIdx + chunkIdx * componentsCount].beginData + idx * compSize;
+      return chunks[compIdx + chunkIdx * componentsCount] + idx * compSize;
     }
 
     template<typename T>
     T& get()
     {
-      return *(T*)(chunks[compIdx + chunkIdx * componentsCount].beginData + idx * compSize);
+      return *(T*)(chunks[compIdx + chunkIdx * componentsCount] + idx * compSize);
     }
 
     inline RawIterator begin()
@@ -437,9 +418,9 @@ struct Query
     int chunksCount = 0;
 
     const int *entitiesInChunk = nullptr;
-    QueryChunk *chunks = nullptr;
+    uint8_t **chunks = nullptr;
 
-    Iterator(QueryChunk *_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
+    Iterator(uint8_t **_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
@@ -472,7 +453,7 @@ struct Query
 
     T& operator*()
     {
-      return *(T*)(chunks[compIdx + chunkIdx * componentsCount].beginData + idx * compSize);
+      return *(T*)(chunks[compIdx + chunkIdx * componentsCount] + idx * compSize);
     }
 
     inline Self begin()
@@ -552,6 +533,29 @@ struct Query
     return iter;
   }
 
+  inline ChunkIterator beginChunk(int offset)
+  {
+    uint8_t * __restrict * __restrict chunksData = chunks.data();
+    int * __restrict entitiesInChunkData = entitiesInChunk.data();
+    int * __restrict entitiesInChunkDataEnd = entitiesInChunk.data() + chunksCount;
+    while (offset >= *entitiesInChunkData && entitiesInChunkData != entitiesInChunkDataEnd) {
+      offset -= *entitiesInChunkData;
+      ++entitiesInChunkData;
+      chunksData += componentsCount;
+    }
+    return ChunkIterator(chunksData, entitiesInChunkData, componentsCount, offset);
+  }
+
+  inline ChunkIterator beginChunk()
+  {
+    return ChunkIterator(chunks.data(), entitiesInChunk.data(), componentsCount);
+  }
+
+  inline ChunkIterator endChunk()
+  {
+    return ChunkIterator(chunks.data() + chunksCount * componentsCount, entitiesInChunk.data(), componentsCount);
+  }
+
   void addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count);
 
   HashedString name;
@@ -562,7 +566,7 @@ struct Query
   int chunksCount = 0;
   int entitiesCount = 0;
   eastl::vector<int> entitiesInChunk;
-  eastl::vector<QueryChunk> chunks;
+  eastl::vector<uint8_t * __restrict> chunks;
 };
 
 template <typename T, int I>

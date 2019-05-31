@@ -45,7 +45,7 @@ void* ScriptQuery::Iterator::get()
   int compIdx = 0;
   for (const auto &c : sq->query->desc.components)
   {
-    uint8_t *data = sq->query->chunks[compIdx + chunkIdx * sq->query->componentsCount].beginData;
+    uint8_t *data = sq->query->chunks[compIdx + chunkIdx * sq->query->componentsCount];
     void *prop = object->GetAddressOfProperty(compIdx++);
     *(uint8_t **)prop = data + posInChunk * c.size;
   }

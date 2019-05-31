@@ -888,23 +888,12 @@ void Query::addChunks(const QueryDescription &in_desc, Archetype &type, int begi
   for (const auto &c : in_desc.components)
   {
     auto &storage = type.storages[type.getComponentIndex(c.name)];
-
-    QueryChunk chunk;
-    chunk.beginData = storage->getRawByIndex(begin);
-    chunk.endData = storage->getRawByIndex(begin + entities_count);
-    chunk.elemSize = c.size;
-
-    chunks[compIdx + (chunksCount - 1) * componentsCount] = chunk;
+    chunks[compIdx + (chunksCount - 1) * componentsCount] = storage->getRawByIndex(begin);
     compIdx++;
   }
 
   auto &storage = type.storages[type.getComponentIndex(HASH("eid"))];
-
-  QueryChunk chunk;
-  chunk.beginData = storage->getRawByIndex(begin);
-  chunk.endData = storage->getRawByIndex(begin + entities_count);
-  chunk.elemSize = sizeof(EntityId);
-  chunks[compIdx + (chunksCount - 1) * componentsCount] = chunk;
+  chunks[compIdx + (chunksCount - 1) * componentsCount] = storage->getRawByIndex(begin);
 }
 
 void EntityManager::performQuery(Query &query)
@@ -1137,12 +1126,7 @@ void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg 
         for (const auto &c : query.desc.components)
         {
           auto &storage = type.storages[type.getComponentIndex(c.name)];
-
-          QueryChunk chunk;
-          chunk.beginData = storage->getRawByIndex(e.indexInArchetype);
-          chunk.endData = storage->getRawByIndex(e.indexInArchetype + 1);
-
-          query.chunks[compIdx + (query.chunksCount - 1) * componentsCount] = chunk;
+          query.chunks[compIdx + (query.chunksCount - 1) * componentsCount] = storage->getRawByIndex(e.indexInArchetype);
           compIdx++;
         }
 

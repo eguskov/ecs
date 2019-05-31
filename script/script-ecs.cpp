@@ -365,8 +365,8 @@ namespace script
           internal::set_arg_wrapped(stageCtx, 0, stage.mem);
           for (int compIdx = 0; compIdx < (int)query.desc.components.size(); ++compIdx)
           {
-            QueryChunk &chunk = query.chunks[compIdx + chunkIdx * query.componentsCount];
-            internal::set_arg_wrapped(stageCtx, compIdx + 1, chunk.beginData + i * query.desc.components[compIdx].size);
+            uint8_t *chunk = query.chunks[compIdx + chunkIdx * query.componentsCount];
+            internal::set_arg_wrapped(stageCtx, compIdx + 1, chunk + i * query.desc.components[compIdx].size);
           }
           stageCtx->Execute();
         }
