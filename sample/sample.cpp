@@ -260,13 +260,13 @@ int main(int argc, char *argv[])
     }
 
     double t = GetTime();
-    g_mgr->tick();
+    ecs::tick();
     // Clear FrameMem here because it might be used for Jobs
     // This is valid until all jobs live one frame
     clear_frame_mem();
 
     const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f / 60.f);
-    g_mgr->tick(UpdateStage{ dt, totalTime });
+    ecs::tick(UpdateStage{ dt, totalTime });
     const float delta = (float)((GetTime() - t) * 1e3);
 
     minDelta = eastl::min(minDelta, delta);
@@ -280,12 +280,12 @@ int main(int argc, char *argv[])
 
     t = GetTime();
     BeginMode2D(camera);
-    g_mgr->tick(RenderStage{});
+    ecs::tick(RenderStage{});
     EndMode2D();
 
     #ifdef _DEBUG
     BeginMode2D(camera);
-    g_mgr->tick(RenderDebugStage{});
+    ecs::tick(RenderDebugStage{});
     EndMode2D();
     #endif
 
@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
       10, 70, 20, LIME);
     DrawFPS(10, 10);
 
-    g_mgr->tick(RenderHUDStage{});
+    ecs::tick(RenderHUDStage{});
 
     EndDrawing();
 

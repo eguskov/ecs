@@ -193,8 +193,7 @@ namespace script
             query.desc.components.push_back({ i, hash_str(name), desc->size, desc });
           }
 
-          g_mgr->findArchetypes(query.desc);
-          g_mgr->performQuery(query);
+          ecs::perform_query(query.desc, query);
         }
       }
 
@@ -291,17 +290,14 @@ namespace script
   {
     for (auto &it : dataQueries)
     {
-      g_mgr->performQuery(it.second);
+      ecs::perform_query(it.second);
       DEBUG_LOG("invalidate query: " << internal::get_engine()->GetTypeInfoById(it.first.id)->GetName() << "; count: " << it.second.entitiesCount);
     }
 
     for (const auto &sys : systems)
     {
       auto &query = systemQueries[sys.id];
-      query.desc = sys.queryDesc;
-      g_mgr->findArchetypes(query.desc);
-
-      g_mgr->performQuery(query);
+      ecs::perform_query(sys.queryDesc, query);
       DEBUG_LOG("invalidate system query: " << sys.fn->GetName() << "; count: " << query.entitiesCount);
     }
   }

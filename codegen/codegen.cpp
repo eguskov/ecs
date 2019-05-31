@@ -328,13 +328,13 @@ int main(int argc, char* argv[])
     {
       out << "int " << q.name << "::count()\n";
       out << "{\n";
-      out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));\n";
+      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));\n";
       out << "  return query.entitiesCount;\n";
       out << "}\n";
 
       out << "template <typename Callable> void " << q.name << "::foreach(Callable callback)\n";
       out << "{\n";
-      out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));\n";
+      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));\n";
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
       out << "    callback(\n";
       out << "    {\n      ";
@@ -353,7 +353,7 @@ int main(int argc, char* argv[])
       if (q.indexId >= 0)
       {
         const auto &i = state.indices[q.indexId];
-        out << "  return g_mgr->getIndexByName(HASH(\"" << basename << "_" << i.name << "\"));\n";
+        out << "  return ecs::find_index(HASH(\"" << basename << "_" << i.name << "\"));\n";
       }
       else
         out << "  return nullptr;\n";
@@ -420,7 +420,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << fmt::format("  Query &query = *g_mgr->getQueryByName(HASH(\"{basename}_{query}\"));\n",
+      out << fmt::format("  Query &query = *ecs::find_query(HASH(\"{basename}_{query}\"));\n",
         fmt::arg("basename", basename),
         fmt::arg("query", query.name));
       
@@ -452,7 +452,7 @@ int main(int argc, char* argv[])
 
       out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
-      out << fmt::format("  Index &index = *g_mgr->getIndexByName(HASH(\"{basename}_{index}\"));\n",
+      out << fmt::format("  Index &index = *ecs::find_index(HASH(\"{basename}_{index}\"));\n",
         fmt::arg("basename", basename),
         fmt::arg("index", index.name));
 
@@ -481,10 +481,10 @@ int main(int argc, char* argv[])
 
       out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
-      out << "  Index &index = *g_mgr->getIndexByName(HASH(\"" << basename << "_" << index.name << "\"));\n";
+      out << "  Index &index = *ecs::find_index(HASH(\"" << basename << "_" << index.name << "\"));\n";
 
       const auto &q1 = state.queries[sys.parameters[1].queryId];
-      out << "  Query &query1 = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q1.name << "\"));" << std::endl;
+      out << "  Query &query1 = *ecs::find_query(HASH(\"" << basename << "_" << q1.name << "\"));" << std::endl;
 
       std::string indent = "  ";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
@@ -565,7 +565,7 @@ int main(int argc, char* argv[])
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
         const auto &q = state.queries[sys.parameters[i].queryId];
-        out << "  Query &query" << i << " = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
+        out << "  Query &query" << i << " = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
       }
 
       std::string indent = "  ";
@@ -629,7 +629,7 @@ int main(int argc, char* argv[])
 
       out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
-      out << "  Query &query = *g_mgr->getQueryByName(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
+      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
 
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";
@@ -701,7 +701,7 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_add_jobs(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
       out << "{\n";
-      out << "  const int systemId = g_mgr->getSystemId(HASH(\"" << sys.name << "\"));\n";
+      out << "  const int systemId = ecs::get_system_id(HASH(\"" << sys.name << "\"));\n";
       out << "  auto stage = *(" << sys.parameters[0].pureType << "*)stage_or_event.mem;\n";
       out << "  jobmanager::callback_t task = [&query, stage](int from, int count)\n";
       out << "  {\n";
@@ -716,7 +716,7 @@ int main(int argc, char* argv[])
       }
       out << ");\n";
       out << "  };\n";
-      out << "  g_mgr->systemJobs[systemId] = " << sys.name << "::addJobs(eastl::move(g_mgr->getSystemDependencyList(systemId)), eastl::move(task), query.entitiesCount);\n";
+      out << "  ecs::set_system_job(systemId, " << sys.name << "::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));\n";
       out << "  jobmanager::start_jobs();\n";
       out << "}\n";
 

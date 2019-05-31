@@ -377,12 +377,12 @@ static IndexDescription _reg_index_index_by_ActiveTrigger_action_eid(HASH("trigg
 
 int InactiveLift::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveLift"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveLift"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveLift::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveLift"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveLift"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -403,12 +403,12 @@ InactiveLift InactiveLift::get(Query::AllIterator &iter)
 }
 int CageBlock::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_CageBlock"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_CageBlock"));
   return query.entitiesCount;
 }
 template <typename Callable> void CageBlock::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_CageBlock"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_CageBlock"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -427,12 +427,12 @@ CageBlock CageBlock::get(Query::AllIterator &iter)
 }
 int NotBindedTrigger::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_NotBindedTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_NotBindedTrigger"));
   return query.entitiesCount;
 }
 template <typename Callable> void NotBindedTrigger::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_NotBindedTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_NotBindedTrigger"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -459,12 +459,12 @@ NotBindedTrigger NotBindedTrigger::get(Query::AllIterator &iter)
 }
 int ActiveTrigger::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_ActiveTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_ActiveTrigger"));
   return query.entitiesCount;
 }
 template <typename Callable> void ActiveTrigger::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_ActiveTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_ActiveTrigger"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -491,12 +491,12 @@ ActiveTrigger ActiveTrigger::get(Query::AllIterator &iter)
 }
 int InactiveSwitchTrigger::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveSwitchTrigger::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -519,12 +519,12 @@ InactiveSwitchTrigger InactiveSwitchTrigger::get(Query::AllIterator &iter)
 }
 int InactiveZoneTrigger::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveZoneTrigger::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -549,12 +549,12 @@ InactiveZoneTrigger InactiveZoneTrigger::get(Query::AllIterator &iter)
 }
 int Action::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_Action"));
   return query.entitiesCount;
 }
 template <typename Callable> void Action::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_Action"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -575,12 +575,12 @@ Action Action::get(Query::AllIterator &iter)
 }
 int InactiveEnableLiftAction::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveEnableLiftAction::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -605,12 +605,12 @@ InactiveEnableLiftAction InactiveEnableLiftAction::get(Query::AllIterator &iter)
 }
 int InactiveOpenCageAction::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveOpenCageAction::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -633,12 +633,12 @@ InactiveOpenCageAction InactiveOpenCageAction::get(Query::AllIterator &iter)
 }
 int InactiveKillPlayerAction::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
   return query.entitiesCount;
 }
 template <typename Callable> void InactiveKillPlayerAction::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -661,12 +661,12 @@ InactiveKillPlayerAction InactiveKillPlayerAction::get(Query::AllIterator &iter)
 }
 int AlivePlayer::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
   return query.entitiesCount;
 }
 template <typename Callable> void AlivePlayer::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -687,12 +687,12 @@ AlivePlayer AlivePlayer::get(Query::AllIterator &iter)
 }
 int PlayerSpawnZone::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_PlayerSpawnZone"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_PlayerSpawnZone"));
   return query.entitiesCount;
 }
 template <typename Callable> void PlayerSpawnZone::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("triggers.cpp_PlayerSpawnZone"));
+  Query &query = *ecs::find_query(HASH("triggers.cpp_PlayerSpawnZone"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -712,8 +712,8 @@ PlayerSpawnZone PlayerSpawnZone::get(Query::AllIterator &iter)
 static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("bind_trigger_to_action"));
-  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_Action"));
+  Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_Action"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     Action action =
@@ -744,8 +744,8 @@ static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_a
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_switch_triggers"));
-  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveEnableLiftAction action =
@@ -778,8 +778,8 @@ static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_act
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_open_cage_triggers"));
-  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveOpenCageAction"));
+  Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveOpenCageAction action =
@@ -811,8 +811,8 @@ static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_zone_triggers"));
-  Index &index = *g_mgr->getIndexByName(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveKillPlayerAction action =
@@ -844,8 +844,8 @@ static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_activ
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_inactive_switch_triggers"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
-  Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
+  Query &query2 = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     AlivePlayer player =
@@ -870,8 +870,8 @@ static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_i
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_inactive_zone_triggers"));
-  Query &query1 = *g_mgr->getQueryByName(HASH("triggers.cpp_AlivePlayer"));
-  Query &query2 = *g_mgr->getQueryByName(HASH("triggers.cpp_InactiveZoneTrigger"));
+  Query &query1 = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
+  Query &query2 = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     AlivePlayer player =

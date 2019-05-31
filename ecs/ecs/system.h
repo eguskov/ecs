@@ -99,10 +99,6 @@ struct EntityManager;
 #define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components)
 #define GET_COMPONENT(q, i, t, c) i.get<t>(INDEX_OF_COMPONENT(q, c))
 
-struct SystemDescription;
-extern SystemDescription *reg_sys_head;
-extern int reg_sys_count;
-
 struct RawArg
 {
   int size = 0;
@@ -131,16 +127,19 @@ struct SystemDescription
 
   filter_t filter;
 
+  static const SystemDescription *head;
+  static int count;
+
   const SystemDescription *next = nullptr;
 
   ConstQueryDescription queryDesc;
   SystemCallback sys = nullptr;
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, filter_t &&f = nullptr) : name(_name), stageName(stage_name), id(reg_sys_count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
+  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, filter_t &&f = nullptr) : name(_name), stageName(stage_name), id(SystemDescription::count), sys(_sys), queryDesc(query_desc), filter(eastl::move(f))
   {
-    next = reg_sys_head;
-    reg_sys_head = this;
-    ++reg_sys_count;
+    next = SystemDescription::head;
+    SystemDescription::head = this;
+    ++SystemDescription::count;
   }
 
   SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name) : SystemDescription(_name, _sys, stage_name, empty_query_desc)

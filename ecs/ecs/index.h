@@ -25,6 +25,9 @@ struct IndexDescription
 
   filter_t filter;
 
+  static const IndexDescription *head;
+  static int count;
+
   const IndexDescription *next = nullptr;
 
   IndexDescription(const ConstHashedString &name, const ConstHashedString &component_name, const ConstQueryDescription &desc, filter_t &&f = nullptr);

@@ -109,6 +109,9 @@ struct PersistentQueryDescription
 
   filter_t filter;
 
+  static const PersistentQueryDescription *head;
+  static int count;
+
   const PersistentQueryDescription *next = nullptr;
 
   PersistentQueryDescription(const ConstHashedString &name, const ConstQueryDescription &desc, filter_t &&f = nullptr);

@@ -462,9 +462,9 @@ struct update_boid_rules
   {
     using Iter = QueryIterable<BoidSeparation, _>;
 
-    const int systemId = g_mgr->getSystemId(HASH("update_boid_rules"));
+    const int systemId = ecs::get_system_id(HASH("update_boid_rules"));
 
-    jobmanager::DependencyList deps = g_mgr->getSystemDependencyList(systemId);
+    jobmanager::DependencyList deps = ecs::get_system_dependency_list(systemId);
 
     using Vec2List = eastl::vector<glm::vec2, FrameMemAllocator>;
     using IntList = eastl::vector<int, FrameMemAllocator>;
@@ -595,7 +595,7 @@ struct update_boid_rules
       }
     });
 
-    g_mgr->systemJobs[systemId] = steerJob;
+    ecs::set_system_job(systemId, steerJob);
 
     jobmanager::start_jobs();
   }
@@ -623,9 +623,9 @@ struct update_boid_rules
   {
     using Iter = QueryIterable<BoidSeparation, _>;
 
-    const int systemId = g_mgr->getSystemId(HASH("update_boid_rules"));
+    const int systemId = ecs::get_system_id(HASH("update_boid_rules"));
 
-    jobmanager::DependencyList deps = g_mgr->getSystemDependencyList(systemId);
+    jobmanager::DependencyList deps = ecs::get_system_dependency_list(systemId);
 
     using BoidsDataVector = eastl::vector<Data, FrameMemAllocator>;
     BoidsDataVector *boidsData = new (alloc_frame_mem(sizeof(BoidsDataVector))) BoidsDataVector();
@@ -835,7 +835,7 @@ struct update_boid_rules
       }
     });
 
-    g_mgr->systemJobs[systemId] = steerJob;
+    ecs::set_system_job(systemId, steerJob);
 
     jobmanager::start_jobs();
   }

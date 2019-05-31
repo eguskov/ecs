@@ -71,9 +71,9 @@ struct QueryTest : public testing::Test
   void TearDown() override
   {
     for (const auto &eid : eids)
-      g_mgr->deleteEntity(eid);
+      ecs::delete_entity(eid);
     eids.clear();
-    g_mgr->tick();
+    ecs::tick();
   }
 };
 
@@ -81,7 +81,7 @@ struct QueryTest : public testing::Test
   { \
     Query q; \
     q.desc = desc; \
-    g_mgr->performQuery(q); \
+    ecs::perform_query(q); \
     EXPECT_EQ(cnt, q.entitiesCount); \
   } \
 
@@ -188,7 +188,7 @@ IndexDescription _reg_index_test(HASH("test_index"), HASH("grid_cell"), TestInde
 
 TEST_F(QueryTest, Index)
 {
-  Index *index = g_mgr->getIndexByName(HASH("test_index"));
+  Index *index = ecs::find_index(HASH("test_index"));
   g_mgr->rebuildIndex(*index);
 
   EXPECT_EQ(index->itemsMap.size(), 10ul);
@@ -224,11 +224,11 @@ TEST_F(QueryTest, Index)
 
 TEST_F(QueryTest, Index_Delete)
 {
-  Index *index = g_mgr->getIndexByName(HASH("test_index"));
+  Index *index = ecs::find_index(HASH("test_index"));
 
   EXPECT_EQ(gridCells[8], 6);
-  g_mgr->deleteEntity(eids[8]);
-  g_mgr->tick();
+  ecs::delete_entity(eids[8]);
+  ecs::tick();
 
   EXPECT_EQ(index->itemsMap.size(), 10ul);
   EXPECT_EQ(index->queries.size(), 10ul);
@@ -263,7 +263,7 @@ TEST_F(QueryTest, Index_Delete)
 
 TEST_F(QueryTest, Index_ChangeDetection)
 {
-  Index *index = g_mgr->getIndexByName(HASH("test_index"));
+  Index *index = ecs::find_index(HASH("test_index"));
   g_mgr->rebuildIndex(*index);
 
   FrameSnapshot snapshot;
@@ -279,7 +279,7 @@ TEST_F(QueryTest, Index_ChangeDetection)
 
   g_mgr->checkFrameSnapshot(snapshot);
 
-  g_mgr->tick();
+  ecs::tick();
 
   EXPECT_EQ(index->itemsMap.size(), 10ul);
   EXPECT_EQ(index->queries.size(), 10ul);

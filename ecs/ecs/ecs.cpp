@@ -6,17 +6,17 @@
 
 EntityManager *g_mgr = nullptr;
 
-SystemDescription *reg_sys_head = nullptr;
-int reg_sys_count = 0;
+const SystemDescription *SystemDescription::head = nullptr;
+int SystemDescription::count = 0;
 
-ComponentDescription *reg_comp_head = nullptr;
-int reg_comp_count = 0;
+const ComponentDescription *ComponentDescription::head = nullptr;
+int ComponentDescription::count = 0;
 
-PersistentQueryDescription *reg_query_head = nullptr;
-int reg_query_count = 0;
+const PersistentQueryDescription *PersistentQueryDescription::head = nullptr;
+int PersistentQueryDescription::count = 0;
 
-IndexDescription *reg_index_head = nullptr;
-int reg_index_count = 0;
+const IndexDescription *IndexDescription::head = nullptr;
+int IndexDescription::count = 0;
 
 inline static bool has_components(const Archetype &type, const eastl::vector<Component> &components)
 {
@@ -40,22 +40,18 @@ SystemDescription::~SystemDescription()
 
 const SystemDescription *find_system(const ConstHashedString &name)
 {
-  const SystemDescription *head = reg_sys_head;
-  while (head)
-  {
-    if (head->name == name)
-      return head;
-    head = head->next;
-  }
+  for (const auto *sys = SystemDescription::head; sys; sys = sys->next)
+    if (sys->name == name)
+      return sys;
   return nullptr;
 }
 
-ComponentDescription::ComponentDescription(const char *_name, uint32_t _size) : id(reg_comp_count), size(_size)
+ComponentDescription::ComponentDescription(const char *_name, uint32_t _size) : id(ComponentDescription::count), size(_size)
 {
   name = ::_strdup(_name);
-  next = reg_comp_head;
-  reg_comp_head = this;
-  ++reg_comp_count;
+  next = ComponentDescription::head;
+  ComponentDescription::head = this;
+  ++ComponentDescription::count;
 }
 
 ComponentDescription::~ComponentDescription()
@@ -65,28 +61,24 @@ ComponentDescription::~ComponentDescription()
 
 const ComponentDescription *find_component(const char *name)
 {
-  const ComponentDescription *head = reg_comp_head;
-  while (head)
-  {
-    if (::strcmp(head->name, name) == 0)
-      return head;
-    head = head->next;
-  }
+  for (const auto *comp = ComponentDescription::head; comp; comp = comp->next)
+    if (::strcmp(comp->name, name) == 0)
+      return comp;
   return nullptr;
 }
 
 PersistentQueryDescription::PersistentQueryDescription(const ConstHashedString &_name, const ConstQueryDescription &_desc, filter_t &&f) : name(_name), desc(_desc), filter(eastl::move(f))
 {
-  next = reg_query_head;
-  reg_query_head = this;
-  ++reg_query_count;
+  next = PersistentQueryDescription::head;
+  PersistentQueryDescription::head = this;
+  ++PersistentQueryDescription::count;
 }
 
 IndexDescription::IndexDescription(const ConstHashedString &_name, const ConstHashedString &component_name, const ConstQueryDescription &_desc, filter_t &&f) : name(_name), componentName(component_name), desc(_desc), filter(eastl::move(f))
 {
-  next = reg_index_head;
-  reg_index_head = this;
-  ++reg_index_count;
+  next = IndexDescription::head;
+  IndexDescription::head = this;
+  ++IndexDescription::count;
 }
 
 void EventStream::push(EntityId eid, uint8_t flags, int event_id, const RawArg &ev)
@@ -258,9 +250,9 @@ void EntityManager::init()
     }
   }
 
-  systemDescs.resize(reg_sys_count);
+  systemDescs.resize(SystemDescription::count);
 
-  for (const SystemDescription *sys = reg_sys_head; sys; sys = sys->next)
+  for (const auto *sys = SystemDescription::head; sys; sys = sys->next)
   {
     ASSERT(sys->sys != nullptr);
     systemDescs[sys->id] = sys;
@@ -273,7 +265,7 @@ void EntityManager::init()
   for (int i = 0, sz = systems.size(); i < sz; ++i)
     systemsByStage.insert(eastl::pair<uint32_t, int>(systems[i].desc->stageName.hash, i));
 
-  queries.resize(reg_sys_count);
+  queries.resize(SystemDescription::count);
   for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
     const auto &sys = systems[i];
@@ -289,7 +281,7 @@ void EntityManager::init()
   systemJobs.resize(systems.size());
   systemDependencies.resize(systems.size());
 
-  for (int i = reg_sys_count - 1; i >= 0; --i)
+  for (int i = SystemDescription::count - 1; i >= 0; --i)
   {
     const auto &qI = queries[i];
     const auto &compsI = systems[i].desc->queryDesc.components;
@@ -356,11 +348,11 @@ void EntityManager::init()
       enableChangeDetection(c.name);
   }
 
-  namedQueries.resize(reg_query_count);
+  namedQueries.resize(PersistentQueryDescription::count);
   int queryIdx = 0;
-  for (const PersistentQueryDescription *query = reg_query_head; query; query = query->next, ++queryIdx)
+  for (const auto *query = PersistentQueryDescription::head; query; query = query->next, ++queryIdx)
   {
-    ASSERT(getQueryByName(query->name) == nullptr);
+    ASSERT(findQuery(query->name) == nullptr);
     namedQueries[queryIdx].name = query->name;
     namedQueries[queryIdx].desc = query->desc;
     namedQueries[queryIdx].desc.filter = query->filter;
@@ -369,11 +361,11 @@ void EntityManager::init()
       enableChangeDetection(c.name);
   }
 
-  namedIndices.resize(reg_index_count);
+  namedIndices.resize(IndexDescription::count);
   int indexIdx = 0;
-  for (const IndexDescription *index = reg_index_head; index; index = index->next, ++indexIdx)
+  for (const auto *index = IndexDescription::head; index; index = index->next, ++indexIdx)
   {
-    ASSERT(getIndexByName(index->name) == nullptr);
+    ASSERT(findIndex(index->name) == nullptr);
     namedIndices[indexIdx].name = index->name;
     namedIndices[indexIdx].componentName = index->componentName;
     namedIndices[indexIdx].desc = index->desc;
@@ -398,16 +390,16 @@ int EntityManager::getSystemId(const ConstHashedString &name) const
 jobmanager::DependencyList EntityManager::getSystemDependencyList(int id) const
 {
   jobmanager::DependencyList deps;
-  for (int d : g_mgr->systemDependencies[id])
-    if (g_mgr->systemJobs[d])
-      deps.push_back(g_mgr->systemJobs[d]);
+  for (int d : systemDependencies[id])
+    if (systemJobs[d])
+      deps.push_back(systemJobs[d]);
   return eastl::move(deps);
 }
 
 void EntityManager::waitSystemDependencies(int id) const
 {
-  for (int d : g_mgr->systemDependencies[id])
-    jobmanager::wait(g_mgr->systemJobs[d]);
+  for (int d : systemDependencies[id])
+    jobmanager::wait(systemJobs[d]);
 }
 
 int EntityManager::getSystemWeight(const ConstHashedString &name) const
@@ -441,7 +433,7 @@ const ComponentDescription* EntityManager::getComponentDescByName(const ConstHas
   return res->second;
 }
 
-Query* EntityManager::getQueryByName(const ConstHashedString &name)
+Query* EntityManager::findQuery(const ConstHashedString &name)
 {
   for (auto &q : namedQueries)
     if (q.name == name)
@@ -449,7 +441,7 @@ Query* EntityManager::getQueryByName(const ConstHashedString &name)
   return nullptr;
 }
 
-Index* EntityManager::getIndexByName(const ConstHashedString &name)
+Index* EntityManager::findIndex(const ConstHashedString &name)
 {
   for (auto &i : namedIndices)
     if (i.name == name)
@@ -709,7 +701,7 @@ void EntityManager::tick()
 {
   jobmanager::wait_all_jobs();
 
-  for (auto &job : g_mgr->systemJobs)
+  for (auto &job : systemJobs)
     job = jobmanager::JobId{};
 
   bool shouldInvalidateQueries = false;

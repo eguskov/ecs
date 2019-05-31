@@ -23,12 +23,12 @@ static PersistentQueryDescription _reg_query_Script(HASH("webui.cpp_Script"), Sc
 
 int Script::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("webui.cpp_Script"));
+  Query &query = *ecs::find_query(HASH("webui.cpp_Script"));
   return query.entitiesCount;
 }
 template <typename Callable> void Script::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("webui.cpp_Script"));
+  Query &query = *ecs::find_query(HASH("webui.cpp_Script"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {

@@ -26,10 +26,6 @@
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
 
-struct ComponentDescription;
-extern ComponentDescription *reg_comp_head;
-extern int reg_comp_count;
-
 struct EventOnEntityCreate
 {
 };
@@ -211,8 +207,8 @@ struct EntityManager
   const ComponentDescription* getComponentDescByName(const HashedString &name) const;
   const ComponentDescription* getComponentDescByName(const ConstHashedString &name) const;
 
-  Query* getQueryByName(const ConstHashedString &name);
-  Index* getIndexByName(const ConstHashedString &name);
+  Query* findQuery(const ConstHashedString &name);
+  Index* findIndex(const ConstHashedString &name);
 
   int getTemplateId(const char *name);
   void addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends);
@@ -220,6 +216,7 @@ struct EntityManager
 
   void findArchetypes(QueryDescription &desc);
 
+  // TODO: Return EntityId from createEntity
   void createEntity(const char *templ_name, const JValue &comps);
   void createEntity(const char *templ_name, const JFrameValue &comps);
   EntityId createEntitySync(const char *templ_name, const JValue &comps);
@@ -299,14 +296,56 @@ namespace ecs
   inline void init() { EntityManager::create(); }
   inline void release() { EntityManager::release(); }
 
+  inline void tick() { g_mgr->tick(); }
+
+  template <typename S> inline void tick(const S &stage) { g_mgr->tick<S>(stage); }
+
   inline void create_entity(const char *templ_name, const JValue &comps) { g_mgr->createEntity(templ_name, comps); }
   inline void create_entity(const char *templ_name, const JFrameValue &comps) { g_mgr->createEntity(templ_name, comps); }
   inline EntityId create_entity_sync(const char *templ_name, const JValue &comps) { return g_mgr->createEntitySync(templ_name, comps); }
   inline void delete_entity(const EntityId &eid) { g_mgr->deleteEntity(eid); }
 
+  inline void perform_query(Query &query) { g_mgr->performQuery(query); }
+  inline void perform_query(const QueryDescription &desc, Query &query)
+  {
+    query.desc = desc;
+    g_mgr->findArchetypes(query.desc);
+    g_mgr->performQuery(query);
+  }
+  inline void perform_query(const ConstQueryDescription &desc, Query &query)
+  {
+    query.desc = desc;
+    g_mgr->findArchetypes(query.desc);
+    g_mgr->performQuery(query);
+  }
+  inline Query perform_query(const QueryDescription &desc)
+  {
+    Query query;
+    query.desc = desc;
+    g_mgr->findArchetypes(query.desc);
+    g_mgr->performQuery(query);
+    return query;
+  }
+  inline Query perform_query(const ConstQueryDescription &desc)
+  {
+    Query query;
+    query.desc = desc;
+    g_mgr->findArchetypes(query.desc);
+    g_mgr->performQuery(query);
+    return query;
+  }
+
   template <typename E> inline void send_event(EntityId eid, const E &ev) { g_mgr->sendEvent<E>(eid, ev); }
   template <typename E> inline void send_event_broadcast(const E &ev) { g_mgr->sendEventBroadcast<E>(ev); }
 
-  inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(g_mgr->getSystemId(name)); }
+  inline Query* find_query(const ConstHashedString &name) { return g_mgr->findQuery(name); }
+  inline Index* find_index(const ConstHashedString &name) { return g_mgr->findIndex(name); }
+
+  inline int get_system_id(const ConstHashedString &name) { return g_mgr->getSystemId(name); }
+  inline jobmanager::DependencyList get_system_dependency_list(int id)  { return g_mgr->getSystemDependencyList(id); }
+
+  inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(ecs::get_system_id(name)); }
   inline void wait_system_dependencies(int system_id) { g_mgr->waitSystemDependencies(system_id); }
+
+  inline void set_system_job(int system_id, const jobmanager::JobId &jid) { g_mgr->systemJobs[system_id] = jid; }
 } //ecs

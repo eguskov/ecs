@@ -256,12 +256,12 @@ static IndexDescription _reg_index_index_by_Brick_grid_cell(HASH("physics.cpp_in
 
 int Brick::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_Brick"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_Brick"));
   return query.entitiesCount;
 }
 template <typename Callable> void Brick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_Brick"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_Brick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -271,7 +271,7 @@ template <typename Callable> void Brick::foreach(Callable callback)
 }
 Index* Brick::index()
 {
-  return g_mgr->getIndexByName(HASH("physics.cpp_index_by_Brick_grid_cell"));
+  return ecs::find_index(HASH("physics.cpp_index_by_Brick_grid_cell"));
 }
 Brick Brick::get(Query::AllIterator &iter)
 {
@@ -282,12 +282,12 @@ Brick Brick::get(Query::AllIterator &iter)
 }
 int MovingBrick::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_MovingBrick"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_MovingBrick"));
   return query.entitiesCount;
 }
 template <typename Callable> void MovingBrick::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_MovingBrick"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_MovingBrick"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -310,12 +310,12 @@ MovingBrick MovingBrick::get(Query::AllIterator &iter)
 }
 int AliveEnemy::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_AliveEnemy"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_AliveEnemy"));
   return query.entitiesCount;
 }
 template <typename Callable> void AliveEnemy::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_AliveEnemy"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_AliveEnemy"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -342,12 +342,12 @@ AliveEnemy AliveEnemy::get(Query::AllIterator &iter)
 }
 int PlayerCollision::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_PlayerCollision"));
   return query.entitiesCount;
 }
 template <typename Callable> void PlayerCollision::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_PlayerCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -380,12 +380,12 @@ PlayerCollision PlayerCollision::get(Query::AllIterator &iter)
 }
 int EnemyCollision::count()
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_EnemyCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_EnemyCollision"));
   return query.entitiesCount;
 }
 template <typename Callable> void EnemyCollision::foreach(Callable callback)
 {
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_EnemyCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_EnemyCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -415,7 +415,7 @@ EnemyCollision EnemyCollision::get(Query::AllIterator &iter)
 static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_player_collisions"));
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_PlayerCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_PlayerCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_collisions::run(*(UpdateStage*)stage_or_event.mem,
     {
@@ -434,7 +434,7 @@ static SystemDescription _reg_sys_update_player_collisions(HASH("update_player_c
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_auto_move_collisions"));
-  Query &query = *g_mgr->getQueryByName(HASH("physics.cpp_EnemyCollision"));
+  Query &query = *ecs::find_query(HASH("physics.cpp_EnemyCollision"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_move_collisions::run(*(UpdateStage*)stage_or_event.mem,
     {

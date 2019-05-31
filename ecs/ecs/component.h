@@ -41,6 +41,9 @@ struct ComponentDescription
 
   bool hasEqual = false;
 
+  static const ComponentDescription *head;
+  static int count;
+
   const ComponentDescription *next = nullptr;
 
   ComponentDescription(const char *_name, uint32_t _size);
