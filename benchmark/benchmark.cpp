@@ -201,14 +201,439 @@ static void BM_ECS_JobManager(benchmark::State& state)
 }
 BENCHMARK(BM_ECS_JobManager)->RangeMultiplier(2)->Ranges({{1 << 11, 1 << 20}, {256, 1024}});
 
+#include <Windows.h>
+
+#include <condition_variable>
+#include <mutex>
+
+static void BM_ThreadCondVar(benchmark::State& state)
+{
+  struct Worker
+  {
+    std::atomic<bool> working{true};
+    std::thread thread;
+
+    bool start = false;
+    std::condition_variable startCV;
+    std::mutex startMutex;
+
+    bool done = false;
+    std::condition_variable doneCV;
+    std::mutex doneMutex;
+  };
+
+  eastl::array<Worker, 8> workers;
+
+  auto mainThreadId = std::this_thread::get_id();
+  auto mainCpuNo = ::GetCurrentProcessorNumber();
+
+  ::SetThreadAffinityMask(::GetCurrentThread(), 1 << mainCpuNo);
+
+  const int workersCount = std::thread::hardware_concurrency() - 1;
+
+  DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
+  for (int i = 0; i < workersCount; ++i, ++cpuNo)
+  {
+    workers[i].thread = eastl::move(std::thread([&](int wid)
+    {
+      auto &w = workers[wid];
+      while (w.working.load())
+      {
+        {
+          std::unique_lock<std::mutex> lock(w.startMutex);
+          w.startCV.wait(lock, [&] { return w.start; });
+          w.start = false;
+        }
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+
+        {
+          std::lock_guard<std::mutex> lock(w.doneMutex);
+          w.done = true;
+        }
+        w.doneCV.notify_one();
+      }
+    }, i));
+
+    HANDLE handle = (HANDLE)workers[i].thread.native_handle();
+
+    if (cpuNo == mainCpuNo)
+      ++cpuNo;
+
+    ::SetThreadAffinityMask(handle, 1 << cpuNo);
+  }
+
+  for (auto _ : state)
+  {
+    for (int i = 0; i < workersCount; ++i)
+    {
+      {
+        std::lock_guard<std::mutex> lock(workers[i].startMutex);
+        workers[i].start = true;
+      }
+      workers[i].startCV.notify_one();
+    }
+
+    for (int i = 0; i < workersCount; ++i)
+    {
+      std::unique_lock<std::mutex> lock(workers[i].doneMutex);
+      workers[i].doneCV.wait(lock, [&] { return workers[i].done; });
+      workers[i].done = false;
+    }
+  }
+
+  for (int i = 0; i < workersCount; ++i)
+  {
+    workers[i].working = false;
+
+    {
+      std::lock_guard<std::mutex> lock(workers[i].startMutex);
+      workers[i].start = true;
+    }
+    workers[i].startCV.notify_one();
+
+    workers[i].thread.join();
+  }
+}
+BENCHMARK(BM_ThreadCondVar);
+
+static void BM_ThreadBusyWait(benchmark::State& state)
+{
+  struct Worker
+  {
+    std::atomic<bool> working{true};
+    std::thread thread;
+
+    std::atomic<bool> start{false};
+    std::atomic<bool> done{false};
+  };
+
+  eastl::array<Worker, 8> workers;
+
+  auto mainThreadId = std::this_thread::get_id();
+  auto mainCpuNo = ::GetCurrentProcessorNumber();
+
+  ::SetThreadAffinityMask(::GetCurrentThread(), 1 << mainCpuNo);
+
+  const int workersCount = std::thread::hardware_concurrency() - 1;
+
+  DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
+  for (int i = 0; i < workersCount; ++i, ++cpuNo)
+  {
+    workers[i].thread = eastl::move(std::thread([&](int wid)
+    {
+      auto &w = workers[wid];
+      while (w.working.load())
+      {
+        while (!w.start.load())
+        {
+          std::this_thread::yield();
+        }
+        w.start = false;
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+
+        w.done = true;
+      }
+    }, i));
+
+    HANDLE handle = (HANDLE)workers[i].thread.native_handle();
+
+    if (cpuNo == mainCpuNo)
+      ++cpuNo;
+
+    ::SetThreadAffinityMask(handle, 1 << cpuNo);
+  }
+
+  for (auto _ : state)
+  {
+    for (int i = 0; i < workersCount; ++i)
+      workers[i].start = true;
+
+    for (int i = 0; i < workersCount; ++i)
+    {
+      while (!workers[i].done.load())
+      {
+        std::this_thread::yield();
+      }
+      workers[i].done = false;
+    }
+  }
+
+  for (int i = 0; i < workersCount; ++i)
+  {
+    workers[i].working = false;
+    workers[i].start = true;
+    workers[i].thread.join();
+  }
+}
+BENCHMARK(BM_ThreadBusyWait);
+
+static void BM_ThreadEvent(benchmark::State& state)
+{
+  struct Worker
+  {
+    std::atomic<bool> working{true};
+    std::thread thread;
+
+    HANDLE startEvent = NULL;
+    HANDLE doneEvent = NULL;
+  };
+
+  eastl::array<Worker, 8> workers;
+
+  auto mainThreadId = std::this_thread::get_id();
+  auto mainCpuNo = ::GetCurrentProcessorNumber();
+
+  ::SetThreadAffinityMask(::GetCurrentThread(), 1 << mainCpuNo);
+
+  const int workersCount = std::thread::hardware_concurrency() - 1;
+
+  DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
+  for (int i = 0; i < workersCount; ++i, ++cpuNo)
+  {
+    workers[i].startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+    workers[i].doneEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    workers[i].thread = eastl::move(std::thread([&](int wid)
+    {
+      auto &w = workers[wid];
+      while (w.working.load())
+      {
+        ::WaitForSingleObjectEx(w.startEvent, INFINITE, TRUE);
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+
+        ::SetEvent(w.doneEvent);
+      }
+    }, i));
+
+    HANDLE handle = (HANDLE)workers[i].thread.native_handle();
+
+    if (cpuNo == mainCpuNo)
+      ++cpuNo;
+
+    ::SetThreadAffinityMask(handle, 1 << cpuNo);
+  }
+
+  for (auto _ : state)
+  {
+    for (int i = 0; i < workersCount; ++i)
+      ::SetEvent(workers[i].startEvent);
+
+    state.PauseTiming();
+    for (int i = 0; i < workersCount; ++i)
+      ::WaitForSingleObjectEx(workers[i].doneEvent, INFINITE, TRUE);
+    state.ResumeTiming();
+  }
+
+  for (int i = 0; i < workersCount; ++i)
+  {
+    workers[i].working = false;
+    ::SetEvent(workers[i].startEvent);
+  
+    workers[i].thread.join();
+
+    ::CloseHandle(workers[i].startEvent);
+    ::CloseHandle(workers[i].doneEvent);
+  }
+}
+BENCHMARK(BM_ThreadEvent);
+
+static void BM_ThreadEventWithBusyWait(benchmark::State& state)
+{
+  static constexpr int busyWaitCycles = 1024;
+
+  struct Worker
+  {
+    std::atomic<bool> working{true};
+    std::thread thread;
+
+    HANDLE startEvent = NULL;
+    HANDLE doneEvent = NULL;
+
+    std::atomic<bool> done{false};
+  };
+
+  eastl::array<Worker, 8> workers;
+
+  auto mainThreadId = std::this_thread::get_id();
+  auto mainCpuNo = ::GetCurrentProcessorNumber();
+
+  ::SetThreadAffinityMask(::GetCurrentThread(), 1 << mainCpuNo);
+
+  const int workersCount = std::thread::hardware_concurrency() - 1;
+
+  DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
+  for (int i = 0; i < workersCount; ++i, ++cpuNo)
+  {
+    workers[i].startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+    workers[i].doneEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    workers[i].thread = eastl::move(std::thread([&](int wid)
+    {
+      auto &w = workers[wid];
+      while (w.working.load())
+      {
+        ::WaitForSingleObjectEx(w.startEvent, INFINITE, TRUE);
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+
+        w.done = true;
+        ::SetEvent(w.doneEvent);
+      }
+    }, i));
+
+    HANDLE handle = (HANDLE)workers[i].thread.native_handle();
+
+    if (cpuNo == mainCpuNo)
+      ++cpuNo;
+
+    ::SetThreadAffinityMask(handle, 1 << cpuNo);
+  }
+
+  for (auto _ : state)
+  {
+    for (int i = 0; i < workersCount; ++i)
+      ::SetEvent(workers[i].startEvent);
+
+    state.PauseTiming();
+    for (int i = 0; i < workersCount; ++i)
+    {
+      int cycles = busyWaitCycles;
+      while (--cycles && !workers[i].done.load())
+      {
+        std::this_thread::yield();
+      }
+
+      if (workers[i].done.load())
+        ::WaitForSingleObjectEx(workers[i].doneEvent, 0, TRUE);
+      else
+        ::WaitForSingleObjectEx(workers[i].doneEvent, INFINITE, TRUE);
+
+      workers[i].done = false;
+    }
+    state.ResumeTiming();
+  }
+
+  for (int i = 0; i < workersCount; ++i)
+  {
+    workers[i].working = false;
+    ::SetEvent(workers[i].startEvent);
+  
+    workers[i].thread.join();
+
+    ::CloseHandle(workers[i].startEvent);
+    ::CloseHandle(workers[i].doneEvent);
+  }
+}
+BENCHMARK(BM_ThreadEventWithBusyWait);
+
+static void BM_ThreadEventMask(benchmark::State& state)
+{
+  static constexpr int busyWaitCycles = 1024;
+
+  struct Worker
+  {
+    std::atomic<bool> working{true};
+    std::thread thread;
+
+    HANDLE startEvent = NULL;
+  };
+
+  eastl::array<Worker, 8> workers;
+
+  std::mutex doneMutex;
+  eastl::bitset<8> doneWorkers;
+  doneWorkers.reset();
+
+  HANDLE doneEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+  auto mainThreadId = std::this_thread::get_id();
+  auto mainCpuNo = ::GetCurrentProcessorNumber();
+
+  ::SetThreadAffinityMask(::GetCurrentThread(), 1 << mainCpuNo);
+
+  const int workersCount = std::thread::hardware_concurrency() - 1;
+
+  DWORD cpuNo = mainCpuNo == 0 ? 1 : 0;
+  for (int i = 0; i < workersCount; ++i, ++cpuNo)
+  {
+    workers[i].startEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    workers[i].thread = eastl::move(std::thread([&](int wid)
+    {
+      auto &w = workers[wid];
+      while (w.working.load())
+      {
+        ::WaitForSingleObjectEx(w.startEvent, INFINITE, TRUE);
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+
+        {
+          std::lock_guard<std::mutex> lock(doneMutex);
+          doneWorkers.set(wid);
+        }
+        ::SetEvent(doneEvent);
+      }
+    }, i));
+
+    HANDLE handle = (HANDLE)workers[i].thread.native_handle();
+
+    if (cpuNo == mainCpuNo)
+      ++cpuNo;
+
+    ::SetThreadAffinityMask(handle, 1 << cpuNo);
+  }
+
+  for (auto _ : state)
+  {
+    for (int i = 0; i < workersCount; ++i)
+      ::SetEvent(workers[i].startEvent);
+
+    state.PauseTiming();
+    bool allDone = false;
+    while (!allDone)
+    {
+      ::WaitForSingleObjectEx(doneEvent, INFINITE, TRUE);
+
+      allDone = true;
+
+      {
+        std::lock_guard<std::mutex> lock(doneMutex);
+        for (int i = 0; i < workersCount; ++i)
+          if (!doneWorkers[i])
+          {
+            allDone = false;
+            break;
+          }
+      }
+    }
+    doneWorkers.reset();
+    state.ResumeTiming();
+  }
+
+  for (int i = 0; i < workersCount; ++i)
+  {
+    workers[i].working = false;
+    ::SetEvent(workers[i].startEvent);
+  
+    workers[i].thread.join();
+
+    ::CloseHandle(workers[i].startEvent);
+  }
+  ::CloseHandle(doneEvent);
+}
+BENCHMARK(BM_ThreadEventMask);
+
 int main(int argc, char** argv)
 {
-  ecs::init();
+  // ecs::init();
 
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;
   ::benchmark::RunSpecifiedBenchmarks();
 
-  ecs::release();
+  // ecs::release();
 }
