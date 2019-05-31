@@ -76,12 +76,12 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\benchmark\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Debug;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Debug;$(ProjectDir)..\libs\benchmark\src\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ecs.lib;raylibd.lib;EASTL.lib;angelscriptd.lib;jemallocd.lib;DbgHelp.lib;benchmark.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -100,15 +100,15 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ecs;$(ProjectDir)..\libs\rapidjson\include;$(ProjectDir)..\libs\raylib\src;$(ProjectDir)..\libs\EASTL\include;$(ProjectDir)..\libs\EASTL\test\packages\EABase\include\Common;$(ProjectDir)..\libs\glm;$(ProjectDir)..\libs\lua;$(ProjectDir)..\libs\angelscript\angelscript\include;$(ProjectDir)..\libs\angelscript\add_on;$(ProjectDir)..\libs\benchmark\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Release;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(ProjectDir)..\libs\raylib\release\libs\win32\msvc;$(ProjectDir)..\libs\EASTL\Release;$(ProjectDir)..\libs\angelscript\angelscript\lib;$(ProjectDir)..\libs\jemalloc\msvc\Win32\Release;$(ProjectDir)..\libs\benchmark\src\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ecs.lib;raylib.lib;EASTL.lib;angelscript.lib;jemalloc.lib;benchmark.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,28 +127,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="benchmark.cpp" />
-    <CustomBuild Include="benchmark-update.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="benchmark-update.cpp.gen">
-      <FileType>Document</FileType>
-    </ClCompile>
-    <ClCompile Include="benchmark-update.h.gen">
-      <FileType>Document</FileType>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="benchmark-update.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(ProjectDir)..\$(ConfigurationName)\codegen.exe" "%(Identity)"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)%(Identity).gen</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="entities.json" />

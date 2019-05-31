@@ -69,7 +69,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\Debug\\benchmark.exe",
-      "args": [],
+      "args": ["--benchmark_counters_tabular=true", "--benchmark_filter=System/8192"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}\\benchmark",
       "environment": [],
