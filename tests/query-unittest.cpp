@@ -79,9 +79,7 @@ struct QueryTest : public testing::Test
 
 #define CHECK_QUERY_COUNT(q, cnt) \
   { \
-    Query q; \
-    q.desc = desc; \
-    ecs::perform_query(q); \
+    Query q = ecs::perform_query(desc); \
     EXPECT_EQ(cnt, q.entitiesCount); \
   } \
 
