@@ -117,7 +117,6 @@ struct PersistentQueryDescription
   PersistentQueryDescription(const ConstHashedString &name, const ConstQueryDescription &desc, filter_t &&f = nullptr);
 };
 
-// TODO: Use constexpr QueryDescs in codegen
 struct QueryDescription
 {
   eastl::vector<Component> components;
@@ -251,7 +250,7 @@ struct Query
       return *(((T * __restrict)chunks[component_index]) + index_in_chunk);
     }
   };
-  
+
   struct AllIterator
   {
     int idx = 0;
@@ -557,6 +556,13 @@ struct Query
   }
 
   void addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count);
+
+  Query() = default;
+  Query(const Query &) = default;
+  Query(Query &&) = default;
+
+  Query& operator=(const Query &) = default;
+  Query& operator=(Query &&) = default;
 
   HashedString name;
 

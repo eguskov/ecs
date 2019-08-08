@@ -55,6 +55,7 @@ struct EntityManager;
   #define QL_INDEX_LOOKUP(expr) struct ql_index_lookup { static constexpr char const *ql_expr = #expr; };
 
   #define ECS_QUERY struct ecs_query {};
+  #define ECS_LAZY_QUERY struct ecs_lazy_query {};
   #define ECS_SYSTEM struct ecs_system {};
   #define ECS_SYSTEM_IN_JOBS struct ecs_system_in_jobs {};
   #define ECS_JOBS_CHUNK_SIZE(n) struct ecs_jobs_chunk_size { static constexpr char const *ql_expr = #n; };
@@ -73,6 +74,9 @@ struct EntityManager;
     using Self = decltype(detect_self_helper());\
     static __forceinline Self get(Query::AllIterator &iter);\
     static __forceinline Index* index();\
+
+  #define ECS_LAZY_QUERY\
+    template <typename Callable> static __forceinline void perform(Callable);\
 
   #define ECS_SYSTEM
   #define ECS_SYSTEM_IN_JOBS

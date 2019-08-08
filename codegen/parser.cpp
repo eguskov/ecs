@@ -359,17 +359,20 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
     }
 
     bool isQuery = false;
+    bool isLazyQuery = false;
     bool isSystem = false;
     bool isSystemInJobs = false;
     foreach_struct_decl(cursor, [&isQuery](CXCursor, const eastl::string &name) { if (name == "ecs_query") isQuery = true; });
+    foreach_struct_decl(cursor, [&isLazyQuery](CXCursor, const eastl::string &name) { if (name == "ecs_lazy_query") isLazyQuery = true; });
     foreach_struct_decl(cursor, [&isSystem](CXCursor, const eastl::string &name) { if (name == "ecs_system") isSystem = true; });
     foreach_struct_decl(cursor, [&isSystemInJobs](CXCursor, const eastl::string &name) { if (name == "ecs_system_in_jobs") isSystemInJobs = true; });
 
-    if (isQuery)
+    if (isQuery || isLazyQuery)
     {
       auto structName = to_string(clang_getCursorSpelling(cursor));
       auto &q = state.queries.push_back();
       q.name = eastl::move(structName);
+      q.lazy = isLazyQuery;
 
       read_struct_fields(cursor, q.parameters);
 

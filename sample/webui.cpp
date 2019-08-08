@@ -511,7 +511,7 @@ static void run_on_main_thread_and_wait(struct mg_connection *conn, const JDocum
 
 struct Script
 {
-  ECS_QUERY;
+  ECS_LAZY_QUERY;
 
   const script::ScriptComponent &script;
 };
@@ -533,7 +533,7 @@ struct SystemData
 static void gather_script_data(eastl::vector<SystemData> &scriptSystems)
 {
   // TODO: Use query without codegen
-  Script::foreach([&](Script &&s)
+  Script::perform([&](Script &&s)
   {
     for (const auto &sys : s.script.scriptECS.systems)
     {

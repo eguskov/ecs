@@ -314,7 +314,18 @@ int main(int argc, char* argv[])
 
     out << std::endl;
 
+    decltype(state.queries) persistentQueries;
+    decltype(state.queries) lazyQueries;
+
     for (const auto &q : state.queries)
+    {
+      if (q.lazy)
+        lazyQueries.push_back(q);
+      else
+        persistentQueries.push_back(q);
+    }
+
+    for (const auto &q : persistentQueries)
       out << "static PersistentQueryDescription _reg_query_" << q.name << "(HASH(\"" << basename << "_" << q.name << "\"), " << q.name << "_query_desc, " << (q.filter.empty() ? "nullptr" : q.filter) << ");" << std::endl;
 
     out << std::endl;
@@ -324,7 +335,26 @@ int main(int argc, char* argv[])
 
     out << std::endl;
 
-    for (const auto &q : state.queries)
+    for (const auto &q : lazyQueries)
+    {
+      out << "template <typename Callable> void " << q.name << "::perform(Callable callback)\n";
+      out << "{\n";
+      out << "  Query query = ecs::perform_query(" << q.name << "_query_desc);\n";
+      out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
+      out << "    callback(\n";
+      out << "    {\n      ";
+      for (int i = 0; i < (int)q.parameters.size(); ++i)
+      {
+        const auto &p = q.parameters[i];
+        if (i != 0)
+          out << ",\n      ";
+        out << "GET_COMPONENT(" << q.name << ", q, " << p.pureType << ", " << p.name << ")";
+      }
+      out << "\n    });" << std::endl;
+      out << "}\n";
+    }
+
+    for (const auto &q : persistentQueries)
     {
       out << "int " << q.name << "::count()\n";
       out << "{\n";

@@ -48,6 +48,7 @@ struct VisitorState
   struct Query : Function
   {
     bool empty = false;
+    bool lazy = false;
     CXCursor cursor;
     eastl::string components;
   };

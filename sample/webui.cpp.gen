@@ -18,31 +18,15 @@ using ScriptBuilder = StructBuilder<
   StructField<script::ScriptComponent, INDEX_OF_COMPONENT(Script, script)>
 >;
 
-static PersistentQueryDescription _reg_query_Script(HASH("webui.cpp_Script"), Script_query_desc, nullptr);
 
 
-int Script::count()
+template <typename Callable> void Script::perform(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("webui.cpp_Script"));
-  return query.entitiesCount;
-}
-template <typename Callable> void Script::foreach(Callable callback)
-{
-  Query &query = *ecs::find_query(HASH("webui.cpp_Script"));
+  Query query = ecs::perform_query(Script_query_desc);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(Script, q, script::ScriptComponent, script)
     });
-}
-Index* Script::index()
-{
-  return nullptr;
-}
-Script Script::get(Query::AllIterator &iter)
-{
-  return {
-      GET_COMPONENT(Script, iter, script::ScriptComponent, script)
-    };
 }
 #endif // __CODEGEN__
