@@ -41,6 +41,7 @@
 #include <EASTL/iterator.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/initializer_list.h>
+#include <EASTL/bonus/compressed_pair.h>
 
 EA_DISABLE_ALL_VC_WARNINGS()
 #include <new>
@@ -141,11 +142,13 @@ namespace eastl
 
 	#else
 
+		EA_DISABLE_VC_WARNING(4625 4626)
 		template <typename T>
 		struct ListNode : public ListNodeBase
 		{
 			T mValue;
 		};
+		EA_RESTORE_VC_WARNING()
 
 	#endif
 
@@ -160,7 +163,7 @@ namespace eastl
 		typedef ListIterator<T, Pointer, Reference>         this_type;
 		typedef ListIterator<T, T*, T&>                     iterator;
 		typedef ListIterator<T, const T*, const T&>         const_iterator;
-		typedef eastl_size_t                                size_type;     // See config.h for the definition of eastl_size_t, which defaults to uint32_t.
+		typedef eastl_size_t                                size_type;     // See config.h for the definition of eastl_size_t, which defaults to size_t.
 		typedef ptrdiff_t                                   difference_type;
 		typedef T                                           value_type;
 		typedef ListNode<T>                                 node_type;
@@ -205,7 +208,7 @@ namespace eastl
 		typedef T                                    value_type;
 		typedef Allocator                            allocator_type;
 		typedef ListNode<T>                          node_type;
-		typedef eastl_size_t                         size_type;     // See config.h for the definition of eastl_size_t, which defaults to uint32_t.
+		typedef eastl_size_t                         size_type;     // See config.h for the definition of eastl_size_t, which defaults to size_t.
 		typedef ptrdiff_t                            difference_type;
 		#if EASTL_LIST_PROXY_ENABLED
 			typedef ListNodeBaseProxy< ListNode<T> > base_node_type;
@@ -214,11 +217,15 @@ namespace eastl
 		#endif
 
 	protected:
-		base_node_type mNode;
+		eastl::compressed_pair<base_node_type, allocator_type>  mNodeAllocator;
 		#if EASTL_LIST_SIZE_CACHE
 			size_type  mSize;
 		#endif
-		allocator_type mAllocator;  // To do: Use base class optimization to make this go away.
+
+		base_node_type& internalNode() EA_NOEXCEPT { return mNodeAllocator.first(); }
+		base_node_type const& internalNode() const EA_NOEXCEPT { return mNodeAllocator.first(); }
+		allocator_type& internalAllocator() EA_NOEXCEPT { return mNodeAllocator.second(); }
+		const allocator_type& internalAllocator() const EA_NOEXCEPT { return mNodeAllocator.second(); }
 
 	public:
 		const allocator_type& get_allocator() const EA_NOEXCEPT;
@@ -288,8 +295,7 @@ namespace eastl
 		typedef typename base_type::node_type           node_type;
 		typedef typename base_type::base_node_type      base_node_type;
 
-		using base_type::mNode;
-		using base_type::mAllocator;
+		using base_type::mNodeAllocator;
 		using base_type::DoAllocateNode;
 		using base_type::DoFreeNode;
 		using base_type::DoClear;
@@ -298,6 +304,8 @@ namespace eastl
 		#if EASTL_LIST_SIZE_CACHE
 			using base_type::mSize;
 		#endif
+		using base_type::internalNode;
+		using base_type::internalAllocator;
 
 	public:
 		list();
@@ -306,10 +314,8 @@ namespace eastl
 		list(size_type n, const value_type& value, const allocator_type& allocator = EASTL_LIST_DEFAULT_ALLOCATOR);
 		list(const this_type& x);
 		list(const this_type& x, const allocator_type& allocator);
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			list(this_type&& x);
-			list(this_type&&, const allocator_type&);
-		#endif
+		list(this_type&& x);
+		list(this_type&&, const allocator_type&);
 		list(std::initializer_list<value_type> ilist, const allocator_type& allocator = EASTL_LIST_DEFAULT_ALLOCATOR);
 
 		template <typename InputIterator>
@@ -317,9 +323,7 @@ namespace eastl
 
 		this_type& operator=(const this_type& x);
 		this_type& operator=(std::initializer_list<value_type> ilist);
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			this_type& operator=(this_type&& x);
-		#endif
+		this_type& operator=(this_type&& x);
 
 		// In the case that the two containers' allocators are unequal, swap copies elements instead
 		// of replacing them in place. In this case swap is an O(n) operation instead of O(1).
@@ -360,60 +364,36 @@ namespace eastl
 		reference       back();
 		const_reference back() const;
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED
-			template <typename... Args>
-			void emplace_front(Args&&... args);
+		template <typename... Args>
+		void emplace_front(Args&&... args);
 
-			template <typename... Args>
-			void emplace_back(Args&&... args);
-		#else
-			#if EASTL_MOVE_SEMANTICS_ENABLED
-				void emplace_front(value_type&& value);
-				void emplace_back(value_type&& value);
-			#endif
-			void emplace_front(const value_type& value);
-			void emplace_back(const value_type& value);
-		#endif
+		template <typename... Args>
+		void emplace_back(Args&&... args);
 
 		void      push_front(const value_type& value);
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			void  push_front(value_type&& x);
-		#endif
+		void      push_front(value_type&& x);
 		reference push_front();
 		void*     push_front_uninitialized();
 
 		void      push_back(const value_type& value);
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			void  push_back(value_type&& x);
-		#endif
+		void      push_back(value_type&& x);
 		reference push_back();
 		void*     push_back_uninitialized();
 
 		void pop_front();
 		void pop_back();
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED
-			template <typename... Args>
-			iterator emplace(const_iterator position, Args&&... args);
-		#else
-			#if EASTL_MOVE_SEMANTICS_ENABLED
-				iterator emplace(const_iterator position, value_type&& value);
-			#endif
-			iterator emplace(const_iterator position, const value_type& value);
-		#endif
+		template <typename... Args>
+		iterator emplace(const_iterator position, Args&&... args);
 
 		iterator insert(const_iterator position);
 		iterator insert(const_iterator position, const value_type& value);
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			iterator insert(const_iterator position, value_type&& x);
-		#endif
-
-		void insert(const_iterator position, size_type n, const value_type& value);
+		iterator insert(const_iterator position, value_type&& x);
+		iterator insert(const_iterator position, std::initializer_list<value_type> ilist);
+		iterator insert(const_iterator position, size_type n, const value_type& value);
 
 		template <typename InputIterator>
-		void insert(const_iterator position, InputIterator first, InputIterator last);
-
-		iterator insert(const_iterator position, std::initializer_list<value_type> ilist);
+		iterator insert(const_iterator position, InputIterator first, InputIterator last);
 
 		iterator erase(const_iterator position);
 		iterator erase(const_iterator first, const_iterator last);
@@ -438,28 +418,20 @@ namespace eastl
 		void splice(const_iterator position, this_type& x);
 		void splice(const_iterator position, this_type& x, const_iterator i);
 		void splice(const_iterator position, this_type& x, const_iterator first, const_iterator last);
-
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			void splice(const_iterator position, this_type&& x);
-			void splice(const_iterator position, this_type&& x, const_iterator i);
-			void splice(const_iterator position, this_type&& x, const_iterator first, const_iterator last);
-		#endif
+		void splice(const_iterator position, this_type&& x);
+		void splice(const_iterator position, this_type&& x, const_iterator i);
+		void splice(const_iterator position, this_type&& x, const_iterator first, const_iterator last);
 
 	public:
 		// For merge, see notes for splice regarding the handling of unequal allocators.
 		void merge(this_type& x);
-
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			void merge(this_type&& x);
-		#endif
+		void merge(this_type&& x);
 
 		template <typename Compare>
 		void merge(this_type& x, Compare compare);
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			template <typename Compare>
-			void merge(this_type&& x, Compare compare);
-		#endif
+		template <typename Compare>
+		void merge(this_type&& x, Compare compare);
 
 		void unique();
 
@@ -482,15 +454,8 @@ namespace eastl
 	protected:
 		node_type* DoCreateNode();
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED // If we can do variadic arguments...
-			template<typename... Args>
-			node_type* DoCreateNode(Args&&... args);
-		#else
-			#if EASTL_MOVE_SEMANTICS_ENABLED
-				node_type* DoCreateNode(value_type&& value);
-			#endif
-			node_type* DoCreateNode(const value_type& value);
-		#endif
+		template<typename... Args>
+		node_type* DoCreateNode(Args&&... args);
 
 		template <typename Integer>
 		void DoAssign(Integer n, Integer value, true_type);
@@ -508,15 +473,8 @@ namespace eastl
 
 		void DoInsertValues(ListNodeBase* pNode, size_type n, const value_type& value);
 	   
-		#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED // If we can do variadic arguments...
-			template<typename... Args>
-			void DoInsertValue(ListNodeBase* pNode, Args&&... args);
-		#else
-			#if EASTL_MOVE_SEMANTICS_ENABLED
-				void DoInsertValue(ListNodeBase* pNode, value_type&& value);
-			#endif
-			void DoInsertValue(ListNodeBase* pNode, const value_type& value);
-		#endif
+		template<typename... Args>
+		void DoInsertValue(ListNodeBase* pNode, Args&&... args);
 
 		void DoErase(ListNodeBase* pNode);
 
@@ -760,22 +718,20 @@ namespace eastl
 
 	template <typename T, typename Allocator>
 	inline ListBase<T, Allocator>::ListBase()
-		: mNode(),
+		: mNodeAllocator(base_node_type(), allocator_type(EASTL_LIST_DEFAULT_NAME))
 		  #if EASTL_LIST_SIZE_CACHE
-		  mSize(0),
+		  , mSize(0)
 		  #endif
-		  mAllocator(EASTL_LIST_DEFAULT_NAME)
 	{
 		DoInit();
 	}
 
 	template <typename T, typename Allocator>
 	inline ListBase<T, Allocator>::ListBase(const allocator_type& allocator)
-		: mNode(),
+		: mNodeAllocator(base_node_type(), allocator)
 		  #if EASTL_LIST_SIZE_CACHE
-		  mSize(0),
+		  , mSize(0)
 		  #endif
-		  mAllocator(allocator)
 	{
 		DoInit();
 	}
@@ -792,7 +748,7 @@ namespace eastl
 	const typename ListBase<T, Allocator>::allocator_type&
 	ListBase<T, Allocator>::get_allocator() const EA_NOEXCEPT
 	{
-		return mAllocator;
+		return internalAllocator();
 	}
 
 
@@ -800,15 +756,15 @@ namespace eastl
 	typename ListBase<T, Allocator>::allocator_type&
 	ListBase<T, Allocator>::get_allocator() EA_NOEXCEPT
 	{
-		return mAllocator;
+		return internalAllocator();
 	}
 
 
 	template <typename T, typename Allocator>
 	inline void ListBase<T, Allocator>::set_allocator(const allocator_type& allocator)
 	{
-		EASTL_ASSERT((mAllocator == allocator) || (static_cast<node_type*>(mNode.mpNext) == &mNode)); // We can only assign a different allocator if we are empty of elements.
-		mAllocator = allocator;
+		EASTL_ASSERT((internalAllocator() == allocator) || (static_cast<node_type*>(internalNode().mpNext) == &internalNode())); // We can only assign a different allocator if we are empty of elements.
+		internalAllocator() = allocator;
 	}
 
 
@@ -816,7 +772,7 @@ namespace eastl
 	inline typename ListBase<T, Allocator>::node_type*
 	ListBase<T, Allocator>::DoAllocateNode()
 	{
-		node_type* pNode = (node_type*)allocate_memory(mAllocator, sizeof(node_type), EASTL_ALIGN_OF(T), 0);
+		node_type* pNode = (node_type*)allocate_memory(internalAllocator(), sizeof(node_type), EASTL_ALIGN_OF(T), 0);
 		EASTL_ASSERT(pNode != nullptr);
 		return pNode;
 	}
@@ -825,29 +781,29 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline void ListBase<T, Allocator>::DoFreeNode(node_type* p)
 	{
-		EASTLFree(mAllocator, p, sizeof(node_type));
+		EASTLFree(internalAllocator(), p, sizeof(node_type));
 	}
 
 
 	template <typename T, typename Allocator>
 	inline void ListBase<T, Allocator>::DoInit() EA_NOEXCEPT
 	{
-		mNode.mpNext = (ListNode<T>*)&mNode;
-		mNode.mpPrev = (ListNode<T>*)&mNode;
+		internalNode().mpNext = (ListNode<T>*)&internalNode();
+		internalNode().mpPrev = (ListNode<T>*)&internalNode();
 	}
 
 
 	template <typename T, typename Allocator>
 	inline void ListBase<T, Allocator>::DoClear()
 	{
-		node_type* p = static_cast<node_type*>(mNode.mpNext);
+		node_type* p = static_cast<node_type*>(internalNode().mpNext);
 
-		while(p != &mNode)
+		while(p != &internalNode())
 		{
 			node_type* const pTemp = p;
 			p = static_cast<node_type*>(p->mpNext);
 			pTemp->~node_type();
-			EASTLFree(mAllocator, pTemp, sizeof(node_type));
+			EASTLFree(internalAllocator(), pTemp, sizeof(node_type));
 		}
 	}
 
@@ -877,7 +833,7 @@ namespace eastl
 	inline list<T, Allocator>::list(size_type n, const allocator_type& allocator)
 		: base_type(allocator)
 	{
-		DoInsertValues((ListNodeBase*)&mNode, n, value_type());
+		DoInsertValues((ListNodeBase*)&internalNode(), n, value_type());
 	}
 
 
@@ -885,15 +841,15 @@ namespace eastl
 	inline list<T, Allocator>::list(size_type n, const value_type& value, const allocator_type& allocator)
 		: base_type(allocator) 
 	{
-		DoInsertValues((ListNodeBase*)&mNode, n, value);
+		DoInsertValues((ListNodeBase*)&internalNode(), n, value);
 	}
 
 
 	template <typename T, typename Allocator>
 	inline list<T, Allocator>::list(const this_type& x)
-		: base_type(x.mAllocator)
+		: base_type(x.internalAllocator())
 	{
-		DoInsert((ListNodeBase*)&mNode, const_iterator((ListNodeBase*)x.mNode.mpNext), const_iterator((ListNodeBase*)&x.mNode), false_type());
+		DoInsert((ListNodeBase*)&internalNode(), const_iterator((ListNodeBase*)x.internalNode().mpNext), const_iterator((ListNodeBase*)&x.internalNode()), false_type());
 	}
 
 
@@ -901,33 +857,31 @@ namespace eastl
 	inline list<T, Allocator>::list(const this_type& x, const allocator_type& allocator)
 		: base_type(allocator)
 	{
-		DoInsert((ListNodeBase*)&mNode, const_iterator((ListNodeBase*)x.mNode.mpNext), const_iterator((ListNodeBase*)&x.mNode), false_type());
+		DoInsert((ListNodeBase*)&internalNode(), const_iterator((ListNodeBase*)x.internalNode().mpNext), const_iterator((ListNodeBase*)&x.internalNode()), false_type());
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline list<T, Allocator>::list(this_type&& x)
-			: base_type(eastl::move(x.mAllocator))
-		{
-			swap(x);
-		}
+	template <typename T, typename Allocator>
+	inline list<T, Allocator>::list(this_type&& x)
+		: base_type(eastl::move(x.internalAllocator()))
+	{
+		swap(x);
+	}
 
 
-		template <typename T, typename Allocator>
-		inline list<T, Allocator>::list(this_type&& x, const allocator_type& allocator)
-			: base_type(allocator)
-		{
-			swap(x); // member swap handles the case that x has a different allocator than our allocator by doing a copy.
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline list<T, Allocator>::list(this_type&& x, const allocator_type& allocator)
+		: base_type(allocator)
+	{
+		swap(x); // member swap handles the case that x has a different allocator than our allocator by doing a copy.
+	}
 
 
 	template <typename T, typename Allocator>
 	inline list<T, Allocator>::list(std::initializer_list<value_type> ilist, const allocator_type& allocator)
 		: base_type(allocator)
 	{
-		DoInsert((ListNodeBase*)&mNode, ilist.begin(), ilist.end(), false_type());
+		DoInsert((ListNodeBase*)&internalNode(), ilist.begin(), ilist.end(), false_type());
 	}
 
 
@@ -936,8 +890,8 @@ namespace eastl
 	list<T, Allocator>::list(InputIterator first, InputIterator last)
 		: base_type(EASTL_LIST_DEFAULT_ALLOCATOR)
 	{
-		//insert(const_iterator((ListNodeBase*)&mNode), first, last);
-		DoInsert((ListNodeBase*)&mNode, first, last, is_integral<InputIterator>());
+		//insert(const_iterator((ListNodeBase*)&internalNode()), first, last);
+		DoInsert((ListNodeBase*)&internalNode(), first, last, is_integral<InputIterator>());
 	}
 
 
@@ -945,7 +899,7 @@ namespace eastl
 	typename list<T, Allocator>::iterator
 	inline list<T, Allocator>::begin() EA_NOEXCEPT
 	{
-		return iterator((ListNodeBase*)mNode.mpNext);
+		return iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -953,7 +907,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_iterator
 	list<T, Allocator>::begin() const EA_NOEXCEPT
 	{
-		return const_iterator((ListNodeBase*)mNode.mpNext);
+		return const_iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -961,7 +915,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_iterator
 	list<T, Allocator>::cbegin() const EA_NOEXCEPT
 	{
-		return const_iterator((ListNodeBase*)mNode.mpNext);
+		return const_iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -969,7 +923,7 @@ namespace eastl
 	inline typename list<T, Allocator>::iterator
 	list<T, Allocator>::end() EA_NOEXCEPT
 	{
-		return iterator((ListNodeBase*)&mNode);
+		return iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -977,7 +931,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_iterator
 	list<T, Allocator>::end() const EA_NOEXCEPT
 	{
-		return const_iterator((ListNodeBase*)&mNode);
+		return const_iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -985,7 +939,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_iterator
 	list<T, Allocator>::cend() const EA_NOEXCEPT
 	{
-		return const_iterator((ListNodeBase*)&mNode);
+		return const_iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -993,7 +947,7 @@ namespace eastl
 	inline typename list<T, Allocator>::reverse_iterator
 	list<T, Allocator>::rbegin() EA_NOEXCEPT
 	{
-		return reverse_iterator((ListNodeBase*)&mNode);
+		return reverse_iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -1001,7 +955,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_reverse_iterator
 	list<T, Allocator>::rbegin() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator((ListNodeBase*)&mNode);
+		return const_reverse_iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -1009,7 +963,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_reverse_iterator
 	list<T, Allocator>::crbegin() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator((ListNodeBase*)&mNode);
+		return const_reverse_iterator((ListNodeBase*)&internalNode());
 	}
 
 
@@ -1017,7 +971,7 @@ namespace eastl
 	inline typename list<T, Allocator>::reverse_iterator
 	list<T, Allocator>::rend() EA_NOEXCEPT
 	{
-		return reverse_iterator((ListNodeBase*)mNode.mpNext);
+		return reverse_iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -1025,7 +979,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_reverse_iterator
 	list<T, Allocator>::rend() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator((ListNodeBase*)mNode.mpNext);
+		return const_reverse_iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -1033,7 +987,7 @@ namespace eastl
 	inline typename list<T, Allocator>::const_reverse_iterator
 	list<T, Allocator>::crend() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator((ListNodeBase*)mNode.mpNext);
+		return const_reverse_iterator((ListNodeBase*)internalNode().mpNext);
 	}
 
 
@@ -1044,11 +998,11 @@ namespace eastl
 		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
 			// We allow the user to reference an empty container.
 		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::front -- empty container");
 		#endif
 
-		return static_cast<node_type*>(mNode.mpNext)->mValue;
+		return static_cast<node_type*>(internalNode().mpNext)->mValue;
 	}
 
 
@@ -1059,11 +1013,11 @@ namespace eastl
 		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
 			// We allow the user to reference an empty container.
 		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::front -- empty container");
 		#endif
 
-		return static_cast<node_type*>(mNode.mpNext)->mValue;
+		return static_cast<node_type*>(internalNode().mpNext)->mValue;
 	}
 
 
@@ -1074,11 +1028,11 @@ namespace eastl
 		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
 			// We allow the user to reference an empty container.
 		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::back -- empty container");
 		#endif
 
-		return static_cast<node_type*>(mNode.mpPrev)->mValue;
+		return static_cast<node_type*>(internalNode().mpPrev)->mValue;
 	}
 
 
@@ -1089,11 +1043,11 @@ namespace eastl
 		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
 			// We allow the user to reference an empty container.
 		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::back -- empty container");
 		#endif
 
-		return static_cast<node_type*>(mNode.mpPrev)->mValue;
+		return static_cast<node_type*>(internalNode().mpPrev)->mValue;
 	}
 
 
@@ -1103,7 +1057,7 @@ namespace eastl
 		#if EASTL_LIST_SIZE_CACHE
 			return (mSize == 0);
 		#else
-			return static_cast<node_type*>(mNode.mpNext) == &mNode;
+			return static_cast<node_type*>(internalNode().mpNext) == &internalNode();
 		#endif
 	}
 
@@ -1116,9 +1070,9 @@ namespace eastl
 			return mSize;
 		#else
 			#if EASTL_DEBUG
-				const ListNodeBase* p = (ListNodeBase*)mNode.mpNext;
+				const ListNodeBase* p = (ListNodeBase*)internalNode().mpNext;
 				size_type n = 0;
-				while(p != (ListNodeBase*)&mNode)
+				while(p != (ListNodeBase*)&internalNode())
 				{
 					++n;
 					p = (ListNodeBase*)p->mpNext;
@@ -1126,7 +1080,7 @@ namespace eastl
 				return n;
 			#else
 				// The following optimizes to slightly better code than the code above.
-				return (size_type)eastl::distance(const_iterator((ListNodeBase*)mNode.mpNext), const_iterator((ListNodeBase*)&mNode));
+				return (size_type)eastl::distance(const_iterator((ListNodeBase*)internalNode().mpNext), const_iterator((ListNodeBase*)&internalNode()));
 			#endif
 		#endif
 	}
@@ -1145,7 +1099,7 @@ namespace eastl
 			// but instead can copy them in place.
 
 			#if EASTL_ALLOCATOR_COPY_ENABLED
-				bool bSlowerPathwayRequired = (mAllocator != x.mAllocator);
+				bool bSlowerPathwayRequired = (internalAllocator() != x.internalAllocator());
 			#else
 				bool bSlowerPathwayRequired = false;
 			#endif
@@ -1155,7 +1109,7 @@ namespace eastl
 				clear();
 
 				#if EASTL_ALLOCATOR_COPY_ENABLED
-					mAllocator = x.mAllocator;
+					internalAllocator() = x.internalAllocator();
 				#endif
 			}
 
@@ -1166,19 +1120,17 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		typename list<T, Allocator>::this_type&
-		list<T, Allocator>::operator=(this_type&& x)
+	template <typename T, typename Allocator>
+	typename list<T, Allocator>::this_type&
+	list<T, Allocator>::operator=(this_type&& x)
+	{
+		if(this != &x)
 		{
-			if(this != &x)
-			{
-				clear();        // To consider: Are we really required to clear here? x is going away soon and will clear itself in its dtor.
-				swap(x);        // member swap handles the case that x has a different allocator than our allocator by doing a copy.
-			}
-			return *this;
+			clear();        // To consider: Are we really required to clear here? x is going away soon and will clear itself in its dtor.
+			swap(x);        // member swap handles the case that x has a different allocator than our allocator by doing a copy.
 		}
-	#endif
+		return *this;
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1243,18 +1195,18 @@ namespace eastl
 	template <typename T, typename Allocator>
 	void list<T, Allocator>::resize(size_type n, const value_type& value)
 	{
-		iterator current((ListNodeBase*)mNode.mpNext);
+		iterator current((ListNodeBase*)internalNode().mpNext);
 		size_type i = 0;
 
-		while((current.mpNode != &mNode) && (i < n))
+		while((current.mpNode != &internalNode()) && (i < n))
 		{
 			++current;  
 			++i;
 		}
 		if(i == n)
-			erase(current, (ListNodeBase*)&mNode);
+			erase(current, (ListNodeBase*)&internalNode());
 		else
-			insert((ListNodeBase*)&mNode, n - i, value);
+			insert((ListNodeBase*)&internalNode(), n - i, value);
 	}
 
 
@@ -1265,63 +1217,33 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED
-			template <typename T, typename Allocator>
-			template <typename... Args>
-			void list<T, Allocator>::emplace_front(Args&&... args)
-			{
-				DoInsertValue((ListNodeBase*)mNode.mpNext, eastl::forward<Args>(args)...);
-			}
+	template <typename T, typename Allocator>
+	template <typename... Args>
+	void list<T, Allocator>::emplace_front(Args&&... args)
+	{
+		DoInsertValue((ListNodeBase*)internalNode().mpNext, eastl::forward<Args>(args)...);
+	}
 
-			template <typename T, typename Allocator>
-			template <typename... Args>
-			void list<T, Allocator>::emplace_back(Args&&... args)
-			{
-				DoInsertValue((ListNodeBase*)&mNode, eastl::forward<Args>(args)...);
-			}
-	#else
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			template <typename T, typename Allocator>
-			void list<T, Allocator>::emplace_front(value_type&& value)
-			{
-				DoInsertValue((ListNodeBase*)mNode.mpNext, eastl::move(value));
-			}
-
-			template <typename T, typename Allocator>
-			void list<T, Allocator>::emplace_back(value_type&& value)
-			{
-				DoInsertValue((ListNodeBase*)&mNode, eastl::move(value));
-			}
-		#endif
-
-		template <typename T, typename Allocator>
-		void list<T, Allocator>::emplace_front(const value_type& value)
-		{
-			DoInsertValue((ListNodeBase*)mNode.mpNext, value);
-		}
-
-		template <typename T, typename Allocator>
-		void list<T, Allocator>::emplace_back(const value_type& value)
-		{
-			DoInsertValue((ListNodeBase*)&mNode, value);
-		}
-	#endif
+	template <typename T, typename Allocator>
+	template <typename... Args>
+	void list<T, Allocator>::emplace_back(Args&&... args)
+	{
+		DoInsertValue((ListNodeBase*)&internalNode(), eastl::forward<Args>(args)...);
+	}
 
 
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::push_front(const value_type& value)
 	{
-		DoInsertValue((ListNodeBase*)mNode.mpNext, value);
+		DoInsertValue((ListNodeBase*)internalNode().mpNext, value);
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::push_front(value_type&& value)
-		{
-			emplace(begin(), eastl::move(value));
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline void list<T, Allocator>::push_front(value_type&& value)
+	{
+		emplace(begin(), eastl::move(value));
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1329,11 +1251,11 @@ namespace eastl
 	list<T, Allocator>::push_front()
 	{
 		node_type* const pNode = DoCreateNode();
-		((ListNodeBase*)pNode)->insert((ListNodeBase*)mNode.mpNext);
+		((ListNodeBase*)pNode)->insert((ListNodeBase*)internalNode().mpNext);
 		#if EASTL_LIST_SIZE_CACHE
 			++mSize;
 		#endif
-		return static_cast<node_type*>(mNode.mpNext)->mValue; // Same as return front();
+		return static_cast<node_type*>(internalNode().mpNext)->mValue; // Same as return front();
 	}
 
 
@@ -1341,7 +1263,7 @@ namespace eastl
 	inline void* list<T, Allocator>::push_front_uninitialized()
 	{
 		node_type* const pNode = DoAllocateNode();
-		((ListNodeBase*)pNode)->insert((ListNodeBase*)mNode.mpNext);
+		((ListNodeBase*)pNode)->insert((ListNodeBase*)internalNode().mpNext);
 		#if EASTL_LIST_SIZE_CACHE
 			++mSize;
 		#endif
@@ -1353,28 +1275,26 @@ namespace eastl
 	inline void list<T, Allocator>::pop_front()
 	{
 		#if EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::pop_front -- empty container");
 		#endif
 
-		DoErase((ListNodeBase*)mNode.mpNext);
+		DoErase((ListNodeBase*)internalNode().mpNext);
 	}
 
 
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::push_back(const value_type& value)
 	{
-		DoInsertValue((ListNodeBase*)&mNode, value);
+		DoInsertValue((ListNodeBase*)&internalNode(), value);
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::push_back(value_type&& value)
-		{
-			emplace(end(), eastl::move(value));
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline void list<T, Allocator>::push_back(value_type&& value)
+	{
+		emplace(end(), eastl::move(value));
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1382,11 +1302,11 @@ namespace eastl
 	list<T, Allocator>::push_back()
 	{
 		node_type* const pNode = DoCreateNode();
-		((ListNodeBase*)pNode)->insert((ListNodeBase*)&mNode);
+		((ListNodeBase*)pNode)->insert((ListNodeBase*)&internalNode());
 		#if EASTL_LIST_SIZE_CACHE
 			++mSize;
 		#endif
-		return static_cast<node_type*>(mNode.mpPrev)->mValue;  // Same as return back();
+		return static_cast<node_type*>(internalNode().mpPrev)->mValue;  // Same as return back();
 	}
 
 
@@ -1394,7 +1314,7 @@ namespace eastl
 	inline void* list<T, Allocator>::push_back_uninitialized()
 	{
 		node_type* const pNode = DoAllocateNode();
-		((ListNodeBase*)pNode)->insert((ListNodeBase*)&mNode);
+		((ListNodeBase*)pNode)->insert((ListNodeBase*)&internalNode());
 		#if EASTL_LIST_SIZE_CACHE
 			++mSize;
 		#endif
@@ -1406,42 +1326,22 @@ namespace eastl
 	inline void list<T, Allocator>::pop_back()
 	{
 		#if EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<node_type*>(mNode.mpNext) == &mNode))
+			if(EASTL_UNLIKELY(static_cast<node_type*>(internalNode().mpNext) == &internalNode()))
 				EASTL_FAIL_MSG("list::pop_back -- empty container");
 		#endif
 
-		DoErase((ListNodeBase*)mNode.mpPrev);
+		DoErase((ListNodeBase*)internalNode().mpPrev);
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED
-		template <typename T, typename Allocator>
-		template <typename... Args>
-		inline typename list<T, Allocator>::iterator
-		list<T, Allocator>::emplace(const_iterator position, Args&&... args)
-		{
-			DoInsertValue(position.mpNode, eastl::forward<Args>(args)...);
-			return iterator(position.mpNode->mpPrev);
-		}
-	#else
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			template <typename T, typename Allocator>
-			inline typename list<T, Allocator>::iterator
-			list<T, Allocator>::emplace(const_iterator position, value_type&& value)
-			{
-				DoInsertValue(position.mpNode, eastl::move(value));
-				return iterator(position.mpNode->mpPrev);
-			}
-		#endif
-
-		template <typename T, typename Allocator>
-		inline typename list<T, Allocator>::iterator
-		list<T, Allocator>::emplace(const_iterator position, const value_type& value)
-		{
-			DoInsertValue(position.mpNode, value);
-			return iterator(position.mpNode->mpPrev);
-		}
-	#endif
+	template <typename T, typename Allocator>
+	template <typename... Args>
+	inline typename list<T, Allocator>::iterator
+	list<T, Allocator>::emplace(const_iterator position, Args&&... args)
+	{
+		DoInsertValue(position.mpNode, eastl::forward<Args>(args)...);
+		return iterator(position.mpNode->mpPrev);
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1470,29 +1370,33 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline typename list<T, Allocator>::iterator
-		list<T, Allocator>::insert(const_iterator position, value_type&& value)
-		{
-			return emplace(position, eastl::move(value));
-		}
-	#endif
-
+	template <typename T, typename Allocator>
+	inline typename list<T, Allocator>::iterator
+	list<T, Allocator>::insert(const_iterator position, value_type&& value)
+	{
+		return emplace(position, eastl::move(value));
+	}
 
 	template <typename T, typename Allocator>
-	inline void list<T, Allocator>::insert(const_iterator position, size_type n, const value_type& value)
+	inline typename list<T, Allocator>::iterator
+	list<T, Allocator>::insert(const_iterator position, size_type n, const value_type& value)
 	{
-		// To do: Get rid of DoInsertValues and put its implementation directly here.
+		iterator itPrev(position.mpNode);
+		--itPrev;
 		DoInsertValues((ListNodeBase*)position.mpNode, n, value);
+		return ++itPrev; // Inserts in front of position, returns iterator to new elements. 
 	}
 
 
 	template <typename T, typename Allocator>
 	template <typename InputIterator>
-	inline void list<T, Allocator>::insert(const_iterator position, InputIterator first, InputIterator last)
+	inline typename list<T, Allocator>::iterator
+	list<T, Allocator>::insert(const_iterator position, InputIterator first, InputIterator last)
 	{
+		iterator itPrev(position.mpNode);
+		--itPrev;
 		DoInsert((ListNodeBase*)position.mpNode, first, last, is_integral<InputIterator>());
+		return ++itPrev; // Inserts in front of position, returns iterator to new elements. 
 	}
 
 
@@ -1556,9 +1460,9 @@ namespace eastl
 	template <typename T, typename Allocator>
 	void list<T, Allocator>::remove(const value_type& value)
 	{
-		iterator current((ListNodeBase*)mNode.mpNext);
+		iterator current((ListNodeBase*)internalNode().mpNext);
 
-		while(current.mpNode != &mNode)
+		while(current.mpNode != &internalNode())
 		{
 			if(EASTL_LIKELY(!(*current == value)))
 				++current; // We have duplicate '++current' statements here and below, but the logic here forces this.
@@ -1575,7 +1479,7 @@ namespace eastl
 	template <typename Predicate>
 	inline void list<T, Allocator>::remove_if(Predicate predicate)
 	{
-		for(iterator first((ListNodeBase*)mNode.mpNext), last((ListNodeBase*)&mNode); first != last; )
+		for(iterator first((ListNodeBase*)internalNode().mpNext), last((ListNodeBase*)&internalNode()); first != last; )
 		{
 			iterator temp(first);
 			++temp;
@@ -1589,7 +1493,7 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::reverse() EA_NOEXCEPT
 	{
-		((ListNodeBase&)mNode).reverse();
+		((ListNodeBase&)internalNode()).reverse();
 	}
 
 
@@ -1603,18 +1507,18 @@ namespace eastl
 		// user intent most of the time is to copy the range from the source to the dest and 
 		// remove it from the source. 
 
-		if(mAllocator == x.mAllocator)
+		if(internalAllocator() == x.internalAllocator())
 		{
 			#if EASTL_LIST_SIZE_CACHE
 				if(x.mSize)
 				{
-					((ListNodeBase*)position.mpNode)->splice((ListNodeBase*)x.mNode.mpNext, (ListNodeBase*)&x.mNode);
+					((ListNodeBase*)position.mpNode)->splice((ListNodeBase*)x.internalNode().mpNext, (ListNodeBase*)&x.internalNode());
 					mSize += x.mSize;
 					x.mSize = 0;
 				}
 			#else
 				if(!x.empty())
-					((ListNodeBase*)position.mpNode)->splice((ListNodeBase*)x.mNode.mpNext, (ListNodeBase*)&x.mNode);
+					((ListNodeBase*)position.mpNode)->splice((ListNodeBase*)x.internalNode().mpNext, (ListNodeBase*)&x.internalNode());
 			#endif
 		}
 		else
@@ -1624,19 +1528,17 @@ namespace eastl
 		}
 	}
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::splice(const_iterator position, this_type&& x)
-		{
-			return splice(position, x); // This will call splice(const_iterator, const this_type&);
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline void list<T, Allocator>::splice(const_iterator position, this_type&& x)
+	{
+		return splice(position, x); // This will call splice(const_iterator, const this_type&);
+	}
 
 
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::splice(const_iterator position, list& x, const_iterator i)
 	{
-		if(mAllocator == x.mAllocator)
+		if(internalAllocator() == x.internalAllocator())
 		{
 			iterator i2(i.mpNode);
 			++i2;
@@ -1658,19 +1560,17 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::splice(const_iterator position, list<T,Allocator>&& x, const_iterator i)
-		{
-			return splice(position, x, i); // This will call splice(const_iterator, const this_type&, const_iterator);
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline void list<T, Allocator>::splice(const_iterator position, list<T,Allocator>&& x, const_iterator i)
+	{
+		return splice(position, x, i); // This will call splice(const_iterator, const this_type&, const_iterator);
+	}
 		
 
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::splice(const_iterator position, this_type& x, const_iterator first, const_iterator last)
 	{
-		if(mAllocator == x.mAllocator)
+		if(internalAllocator() == x.internalAllocator())
 		{
 			#if EASTL_LIST_SIZE_CACHE
 				const size_type n = (size_type)eastl::distance(first, last);
@@ -1694,19 +1594,17 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::splice(const_iterator position, list<T,Allocator>&& x, const_iterator first, const_iterator last)
-		{
-			return splice(position, x, first, last); // This will call splice(const_iterator, const this_type&, const_iterator, const_iterator);
-		}
-	#endif
+	template <typename T, typename Allocator>
+	inline void list<T, Allocator>::splice(const_iterator position, list<T,Allocator>&& x, const_iterator first, const_iterator last)
+	{
+		return splice(position, x, first, last); // This will call splice(const_iterator, const this_type&, const_iterator, const_iterator);
+	}
 
 
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::swap(this_type& x)
 	{
-		if(mAllocator == x.mAllocator) // If allocators are equivalent...
+		if(internalAllocator() == x.internalAllocator()) // If allocators are equivalent...
 			DoSwap(x);
 		else // else swap the contents.
 		{
@@ -1746,13 +1644,11 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		void list<T, Allocator>::merge(this_type&& x)
-		{
-			return merge(x); // This will call merge(this_type&)
-		}
-	#endif
+	template <typename T, typename Allocator>
+	void list<T, Allocator>::merge(this_type&& x)
+	{
+		return merge(x); // This will call merge(this_type&)
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1785,14 +1681,12 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		template <typename T, typename Allocator>
-		template <typename Compare>
-		void list<T, Allocator>::merge(this_type&& x, Compare compare)
-		{
-			return merge(x, compare); // This will call merge(this_type&, Compare)
-		}
-	#endif
+	template <typename T, typename Allocator>
+	template <typename Compare>
+	void list<T, Allocator>::merge(this_type&& x, Compare compare)
+	{
+		return merge(x, compare); // This will call merge(this_type&, Compare)
+	}
 
 
 	template <typename T, typename Allocator>
@@ -1967,79 +1861,29 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED // If we can do variadic arguments...
-		template <typename T, typename Allocator>
-		template<typename... Args>
-		inline typename list<T, Allocator>::node_type*
-		list<T, Allocator>::DoCreateNode(Args&&... args)
-		{
-			node_type* const pNode = DoAllocateNode();  // pNode is of type node_type, but it's uninitialized memory.
+	template <typename T, typename Allocator>
+	template<typename... Args>
+	inline typename list<T, Allocator>::node_type*
+	list<T, Allocator>::DoCreateNode(Args&&... args)
+	{
+		node_type* const pNode = DoAllocateNode();  // pNode is of type node_type, but it's uninitialized memory.
 
-			#if EASTL_EXCEPTIONS_ENABLED
-				try
-				{
-					::new((void*)&pNode->mValue) value_type(eastl::forward<Args>(args)...);
-				}
-				catch(...)
-				{
-					DoFreeNode(pNode);
-					throw;
-				}
-			#else
-				::new((void*)&pNode->mValue) value_type(eastl::forward<Args>(args)...);
-			#endif
-
-			return pNode;
-		}
-	#else
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			template <typename T, typename Allocator>
-			inline typename list<T, Allocator>::node_type*
-			list<T, Allocator>::DoCreateNode(value_type&& value)
+		#if EASTL_EXCEPTIONS_ENABLED
+			try
 			{
-				node_type* const pNode = DoAllocateNode();
-
-				#if EASTL_EXCEPTIONS_ENABLED
-					try
-					{
-						::new((void*)&pNode->mValue) value_type(eastl::move(value));
-					}
-					catch(...)
-					{
-						DoFreeNode(pNode);
-						throw;
-					}
-				#else
-					::new((void*)&pNode->mValue) value_type(eastl::move(value));
-				#endif
-
-				return pNode;
+				::new((void*)&pNode->mValue) value_type(eastl::forward<Args>(args)...);
 			}
+			catch(...)
+			{
+				DoFreeNode(pNode);
+				throw;
+			}
+		#else
+			::new((void*)&pNode->mValue) value_type(eastl::forward<Args>(args)...);
 		#endif
 
-		template <typename T, typename Allocator>
-		inline typename list<T, Allocator>::node_type*
-		list<T, Allocator>::DoCreateNode(const value_type& value)
-		{
-			node_type* const pNode = DoAllocateNode();
-
-			#if EASTL_EXCEPTIONS_ENABLED
-				try
-				{
-					::new((void*)&pNode->mValue) value_type(value);
-				}
-				catch(...)
-				{
-					DoFreeNode(pNode);
-					throw;
-				}
-			#else
-				::new((void*)&pNode->mValue) value_type(value);
-			#endif
-
-			return pNode;
-		}
-	#endif
+		return pNode;
+	}
 
 
 	template <typename T, typename Allocator>
@@ -2078,36 +1922,36 @@ namespace eastl
 	template <typename InputIterator>
 	void list<T, Allocator>::DoAssign(InputIterator first, InputIterator last, false_type)
 	{
-		node_type* pNode = static_cast<node_type*>(mNode.mpNext);
+		node_type* pNode = static_cast<node_type*>(internalNode().mpNext);
 
-		for(; (pNode != &mNode) && (first != last); ++first)
+		for(; (pNode != &internalNode()) && (first != last); ++first)
 		{
 			pNode->mValue = *first;
 			pNode         = static_cast<node_type*>(pNode->mpNext);
 		}
 
 		if(first == last)
-			erase(const_iterator((ListNodeBase*)pNode), (ListNodeBase*)&mNode);
+			erase(const_iterator((ListNodeBase*)pNode), (ListNodeBase*)&internalNode());
 		else
-			DoInsert((ListNodeBase*)&mNode, first, last, false_type());
+			DoInsert((ListNodeBase*)&internalNode(), first, last, false_type());
 	}
 
 
 	template <typename T, typename Allocator>
 	void list<T, Allocator>::DoAssignValues(size_type n, const value_type& value)
 	{
-		node_type* pNode  = static_cast<node_type*>(mNode.mpNext);
+		node_type* pNode  = static_cast<node_type*>(internalNode().mpNext);
 
-		for(; (pNode != &mNode) && (n > 0); --n)
+		for(; (pNode != &internalNode()) && (n > 0); --n)
 		{
 			pNode->mValue = value;
 			pNode         = static_cast<node_type*>(pNode->mpNext);
 		}
 
 		if(n)
-			DoInsertValues((ListNodeBase*)&mNode, n, value);
+			DoInsertValues((ListNodeBase*)&internalNode(), n, value);
 		else
-			erase(const_iterator((ListNodeBase*)pNode), (ListNodeBase*)&mNode);
+			erase(const_iterator((ListNodeBase*)pNode), (ListNodeBase*)&internalNode());
 	}
 
 
@@ -2136,40 +1980,16 @@ namespace eastl
 	}
 
 
-	#if EASTL_MOVE_SEMANTICS_ENABLED && EASTL_VARIADIC_TEMPLATES_ENABLED // If we can do variadic arguments...
-		template <typename T, typename Allocator>
-		template<typename... Args>
-		inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, Args&&... args)
-		{
-			node_type* const pNodeNew = DoCreateNode(eastl::forward<Args>(args)...);
-			((ListNodeBase*)pNodeNew)->insert(pNode);
-			#if EASTL_LIST_SIZE_CACHE
-				++mSize;
-			#endif
-		}
-	#else
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			template <typename T, typename Allocator>
-			inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, value_type&& value)
-			{
-				node_type* const pNodeNew = DoCreateNode(eastl::move(value));
-				((ListNodeBase*)pNodeNew)->insert(pNode);
-				#if EASTL_LIST_SIZE_CACHE
-					++mSize;
-				#endif
-			}
+	template <typename T, typename Allocator>
+	template<typename... Args>
+	inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, Args&&... args)
+	{
+		node_type* const pNodeNew = DoCreateNode(eastl::forward<Args>(args)...);
+		((ListNodeBase*)pNodeNew)->insert(pNode);
+		#if EASTL_LIST_SIZE_CACHE
+			++mSize;
 		#endif
-
-		template <typename T, typename Allocator>
-		inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, const value_type& value)
-		{
-			node_type* const pNodeNew = DoCreateNode(value);
-			((ListNodeBase*)pNodeNew)->insert(pNode);
-			#if EASTL_LIST_SIZE_CACHE
-				++mSize;
-			#endif
-		}
-	#endif
+	}
 
 
 	template <typename T, typename Allocator>
@@ -2202,8 +2022,8 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline void list<T, Allocator>::DoSwap(this_type& x)
 	{
-		ListNodeBase::swap((ListNodeBase&)mNode, (ListNodeBase&)x.mNode); // We need to implement a special swap because we can't do a shallow swap.
-		eastl::swap(mAllocator, x.mAllocator); // We do this even if EASTL_ALLOCATOR_COPY_ENABLED is 0.
+		ListNodeBase::swap((ListNodeBase&)internalNode(), (ListNodeBase&)x.internalNode()); // We need to implement a special swap because we can't do a shallow swap.
+		eastl::swap(internalAllocator(), x.internalAllocator()); // We do this even if EASTL_ALLOCATOR_COPY_ENABLED is 0.
 		#if EASTL_LIST_SIZE_CACHE
 			eastl::swap(mSize, x.mSize);
 		#endif
@@ -2315,6 +2135,26 @@ namespace eastl
 	void swap(list<T, Allocator>& a, list<T, Allocator>& b)
 	{
 		a.swap(b);
+	}
+
+
+	///////////////////////////////////////////////////////////////////////
+	// erase / erase_if
+	//
+	// https://en.cppreference.com/w/cpp/container/list/erase2
+	///////////////////////////////////////////////////////////////////////
+	template <class T, class Allocator, class U>
+	void erase(list<T, Allocator>& c, const U& value)
+	{
+		// Erases all elements that compare equal to value from the container.
+		c.remove_if([&](auto& elem) { return elem == value; });
+	}
+
+	template <class T, class Allocator, class Predicate>
+	void erase_if(list<T, Allocator>& c, Predicate predicate)
+	{
+		// Erases all elements that satisfy the predicate pred from the container.
+		c.remove_if(predicate);
 	}
 
 

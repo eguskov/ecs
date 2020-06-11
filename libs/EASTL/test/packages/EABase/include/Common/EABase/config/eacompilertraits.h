@@ -53,6 +53,7 @@
  *    EA_SEALED
  *    EA_ABSTRACT
  *    EA_CONSTEXPR / EA_CONSTEXPR_OR_CONST
+ *    EA_CONSTEXPR_IF 
  *    EA_EXTERN_TEMPLATE
  *    EA_NOEXCEPT
  *    EA_NORETURN
@@ -334,7 +335,7 @@
 	//    typedef EA_ALIGNED(int, int16, 16); int16 n16;                typedef int int16; int16 n16;   Define int16 as an int which is aligned on 16.
 	//    typedef EA_ALIGNED(X, X16, 16); X16 x16;                      typedef X X16; X16 x16;         Define X16 as an X which is aligned on 16.
 
-	#if !defined(EA_ALIGN_MAX)          // If the user hasn't globally set an alternative value...
+	#if !defined(EA_ALIGN_MAX)                              // If the user hasn't globally set an alternative value...
 		#if defined(EA_PROCESSOR_ARM)                       // ARM compilers in general tend to limit automatic variables to 8 or less.
 			#define EA_ALIGN_MAX_STATIC    1048576
 			#define EA_ALIGN_MAX_AUTOMATIC       1          // Typically they support only built-in natural aligment types (both arm-eabi and apple-abi).
@@ -352,7 +353,7 @@
 	// using postfix alignment attributes. Prefix works for alignment, but does not align
 	// the size like postfix does.  Prefix also fails on templates.  So gcc style post fix
 	// is still used, but the user will need to use EA_POSTFIX_ALIGN before the constructor parameters.
-	#if   defined(__GNUC__) && (__GNUC__ < 3)
+	#if defined(__GNUC__) && (__GNUC__ < 3)
 		#define EA_ALIGN_OF(type) ((size_t)__alignof__(type))
 		#define EA_ALIGN(n)
 		#define EA_PREFIX_ALIGN(n)
@@ -473,6 +474,56 @@
 		#endif
 	#endif
 
+	// ------------------------------------------------------------------------
+	// EA_HAS_INCLUDE_AVAILABLE
+	//
+	// Used to guard against the EA_HAS_INCLUDE() macro on compilers that do not
+	// support said feature.
+	//
+	// Example usage:
+	//
+	// #if EA_HAS_INCLUDE_AVAILABLE
+	//     #if EA_HAS_INCLUDE("myinclude.h")
+    //         #include "myinclude.h"
+	//     #endif
+	// #endif
+	#if !defined(EA_HAS_INCLUDE_AVAILABLE)
+		#if EA_COMPILER_CPP17_ENABLED || EA_COMPILER_CLANG || EA_COMPILER_GNUC
+			#define EA_HAS_INCLUDE_AVAILABLE 1
+		#else
+			#define EA_HAS_INCLUDE_AVAILABLE 0
+		#endif
+	#endif
+
+
+	// ------------------------------------------------------------------------
+	// EA_HAS_INCLUDE
+	//
+	// May be used in #if and #elif expressions to test for the existence
+	// of the header referenced in the operand. If possible it evaluates to a
+	// non-zero value and zero otherwise. The operand is the same form as the file
+	// in a #include directive.
+	//
+	// Example usage:
+	//
+	// #if EA_HAS_INCLUDE("myinclude.h")
+	//     #include "myinclude.h"
+	// #endif
+	//
+	// #if EA_HAS_INCLUDE(<myinclude.h>)
+	//     #include <myinclude.h>
+	// #endif
+
+	#if !defined(EA_HAS_INCLUDE)
+		#if EA_COMPILER_CPP17_ENABLED
+			#define EA_HAS_INCLUDE(x) __has_include(x)
+		#elif EA_COMPILER_CLANG
+			#define EA_HAS_INCLUDE(x) __has_include(x)
+		#elif EA_COMPILER_GNUC
+			#define EA_HAS_INCLUDE(x) __has_include(x)
+		#endif
+	#endif
+
 
 	// ------------------------------------------------------------------------
 	// EA_INIT_PRIORITY_AVAILABLE
@@ -481,8 +532,10 @@
 	// Defines if the GCC attribute init_priority is supported by the compiler.
 	//
 	#if !defined(EA_INIT_PRIORITY_AVAILABLE)
-		#if   defined(__GNUC__) && !defined(__EDG__) // EDG typically #defines __GNUC__ but doesn't implement init_priority.
+		#if defined(__GNUC__) && !defined(__EDG__) // EDG typically #defines __GNUC__ but doesn't implement init_priority.
 			#define EA_INIT_PRIORITY_AVAILABLE 1 
+		#elif defined(__clang__)
+			#define EA_INIT_PRIORITY_AVAILABLE 1  // Clang implements init_priority
 		#endif
 	#endif
 
@@ -502,6 +555,39 @@
 			#define EA_INIT_PRIORITY(x)  __attribute__ ((init_priority (x)))
 		#else
 			#define EA_INIT_PRIORITY(x)
+		#endif
+	#endif
+
+
+	// ------------------------------------------------------------------------
+	// EA_INIT_SEG_AVAILABLE
+	//
+	//
+	#if !defined(EA_INIT_SEG_AVAILABLE)
+		#if defined(_MSC_VER)
+			#define EA_INIT_SEG_AVAILABLE 1
+		#endif
+	#endif
+
+
+	// ------------------------------------------------------------------------
+	// EA_INIT_SEG
+	//
+	// Specifies a keyword or code section that affects the order in which startup code is executed.
+	//
+	// https://docs.microsoft.com/en-us/cpp/preprocessor/init-seg?view=vs-2019
+	//
+	// Example:
+	// 		EA_INIT_SEG(compiler) MyType gMyTypeGlobal;	
+	// 		EA_INIT_SEG("my_section") MyOtherType gMyOtherTypeGlobal;	
+	//
+	#if !defined(EA_INIT_SEG)
+		#if defined(EA_INIT_SEG_AVAILABLE)
+			#define EA_INIT_SEG(x)                                                                                                \
+				__pragma(warning(push)) __pragma(warning(disable : 4074)) __pragma(warning(disable : 4075)) __pragma(init_seg(x)) \
+					__pragma(warning(pop))
+		#else
+			#define EA_INIT_SEG(x)
 		#endif
 	#endif
 
@@ -770,13 +856,14 @@
 	//     EA_RESTORE_CLANG_WARNING()
 	//
 	#ifndef EA_DISABLE_CLANG_WARNING
-		#if defined(EA_COMPILER_CLANG)
+		#if defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_CLANG_CL)
 			#define EACLANGWHELP0(x) #x
 			#define EACLANGWHELP1(x) EACLANGWHELP0(clang diagnostic ignored x)
 			#define EACLANGWHELP2(x) EACLANGWHELP1(#x)
 
 			#define EA_DISABLE_CLANG_WARNING(w)   \
 				_Pragma("clang diagnostic push")  \
+				_Pragma(EACLANGWHELP2(-Wunknown-warning-option))\
 				_Pragma(EACLANGWHELP2(w))
 		#else
 			#define EA_DISABLE_CLANG_WARNING(w)
@@ -784,7 +871,7 @@
 	#endif
 
 	#ifndef EA_RESTORE_CLANG_WARNING
-		#if defined(EA_COMPILER_CLANG)
+		#if defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_CLANG_CL)
 			#define EA_RESTORE_CLANG_WARNING()    \
 				_Pragma("clang diagnostic pop")
 		#else
@@ -812,7 +899,7 @@
 	//     EA_DISABLE_CLANG_WARNING_AS_ERROR()
 	//
 	#ifndef EA_ENABLE_CLANG_WARNING_AS_ERROR
-		#if defined(EA_COMPILER_CLANG)
+		#if defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_CLANG_CL)
 			#define EACLANGWERRORHELP0(x) #x
 			#define EACLANGWERRORHELP1(x) EACLANGWERRORHELP0(clang diagnostic error x)
 			#define EACLANGWERRORHELP2(x) EACLANGWERRORHELP1(#x)
@@ -826,7 +913,7 @@
 	#endif
 
 	#ifndef EA_DISABLE_CLANG_WARNING_AS_ERROR
-		#if defined(EA_COMPILER_CLANG)
+		#if defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_CLANG_CL)
 			#define EA_DISABLE_CLANG_WARNING_AS_ERROR()    \
 				_Pragma("clang diagnostic pop")
 		#else
@@ -1132,6 +1219,35 @@
 	#endif
 
 
+	// ------------------------------------------------------------------------
+	// EA_CURRENT_FUNCTION
+	//
+	// Provides a consistent way to get the current function name as a macro
+	// like the __FILE__ and __LINE__ macros work. The C99 standard specifies
+	// that __func__ be provided by the compiler, but most compilers don't yet
+	// follow that convention. However, many compilers have an alternative.
+	//
+	// We also define EA_CURRENT_FUNCTION_SUPPORTED for when it is not possible
+	// to have EA_CURRENT_FUNCTION work as expected.
+	//
+	// Defined inside a function because otherwise the macro might not be 
+	// defined and code below might not compile. This happens with some 
+	// compilers.
+	//
+	#ifndef EA_CURRENT_FUNCTION
+		#if defined __GNUC__ || (defined __ICC && __ICC >= 600)
+			#define EA_CURRENT_FUNCTION __PRETTY_FUNCTION__
+		#elif defined(__FUNCSIG__)
+			#define EA_CURRENT_FUNCTION __FUNCSIG__
+		#elif (defined __INTEL_COMPILER && __INTEL_COMPILER >= 600) || (defined __IBMCPP__ && __IBMCPP__ >= 500) || (defined CS_UNDEFINED_STRING && CS_UNDEFINED_STRING >= 0x4200)
+			#define EA_CURRENT_FUNCTION __FUNCTION__
+		#elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901
+			#define EA_CURRENT_FUNCTION __func__
+		#else
+			#define EA_CURRENT_FUNCTION "(unknown function)"
+		#endif
+	#endif
+
 
 	// ------------------------------------------------------------------------
 	// wchar_t
@@ -1154,7 +1270,7 @@
 					#define EA_WCHAR_T_NON_NATIVE 1
 				#endif
 			#endif
-		#elif defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND) || (defined(EA_COMPILER_CLANG) && defined(EA_PLATFORM_WINDOWS))
+		#elif defined(EA_COMPILER_MSVC) || (defined(EA_COMPILER_CLANG) && defined(EA_PLATFORM_WINDOWS))
 			#ifndef _NATIVE_WCHAR_T_DEFINED
 				#define EA_WCHAR_T_NON_NATIVE 1
 			#endif
@@ -1358,6 +1474,31 @@
 
 
 	// ------------------------------------------------------------------------
+	// EA_FORCE_INLINE_LAMBDA
+	//
+	// EA_FORCE_INLINE_LAMBDA is used to force inline a call to a lambda when possible.
+	// Force inlining a lambda can be useful to reduce overhead in situations where a lambda may
+	// may only be called once, or inlining allows the compiler to apply other optimizations that wouldn't
+	// otherwise be possible.
+	//
+	// The ability to force inline a lambda is currently only available on a subset of compilers.
+	//
+	// Example usage:
+	//
+	//		auto lambdaFunction = []() EA_FORCE_INLINE_LAMBDA
+	//		{
+	//		};
+	//
+	#ifndef EA_FORCE_INLINE_LAMBDA
+		#if defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_CLANG)
+			#define EA_FORCE_INLINE_LAMBDA __attribute__((always_inline))
+		#else
+			#define EA_FORCE_INLINE_LAMBDA
+		#endif
+	#endif
+
+
+	// ------------------------------------------------------------------------
 	// EA_NO_INLINE             // Used as a prefix. 
 	// EA_PREFIX_NO_INLINE      // You should need this only for unusual compilers.
 	// EA_POSTFIX_NO_INLINE     // You should need this only for unusual compilers.
@@ -1492,7 +1633,7 @@
 			#else
 				#define EA_SSE 0
 			#endif
-		#elif (defined(EA_SSE3) && EA_SSE3) || defined EA_PLATFORM_CAPILANO
+		#elif (defined(EA_SSE3) && EA_SSE3) || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_SSE 3
 		#elif defined(EA_SSE2) && EA_SSE2
 			#define EA_SSE 2
@@ -1531,28 +1672,28 @@
 		#endif
 	#endif
 	#ifndef EA_SSSE3
-		#if defined __SSSE3__ || defined EA_PLATFORM_CAPILANO
+		#if defined __SSSE3__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_SSSE3 1
 		#else
 			#define EA_SSSE3 0
 		#endif
 	#endif
 	#ifndef EA_SSE4_1
-		#if defined __SSE4_1__ || defined EA_PLATFORM_CAPILANO
+		#if defined __SSE4_1__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_SSE4_1 1
 		#else
 			#define EA_SSE4_1 0
 		#endif
 	#endif
 	#ifndef EA_SSE4_2
-		#if defined __SSE4_2__ || defined EA_PLATFORM_CAPILANO
+		#if defined __SSE4_2__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_SSE4_2 1
 		#else
 			#define EA_SSE4_2 0
 		#endif
 	#endif
 	#ifndef EA_SSE4A
-		#if defined __SSE4A__ || defined EA_PLATFORM_CAPILANO
+		#if defined __SSE4A__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_SSE4A 1
 		#else
 			#define EA_SSE4A 0
@@ -1570,7 +1711,7 @@
 	#ifndef EA_AVX
 		#if defined __AVX2__
 			#define EA_AVX 2
-		#elif defined __AVX__ || defined EA_PLATFORM_CAPILANO
+		#elif defined __AVX__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_AVX 1
 		#else
 			#define EA_AVX 0
@@ -1587,7 +1728,7 @@
 	// EA_FP16C may be used to determine the existence of float <-> half conversion operations on an x86 CPU.
 	// (For example to determine if _mm_cvtph_ps or _mm_cvtps_ph could be used.)
 	#ifndef EA_FP16C
-		#if defined __F16C__ || defined EA_PLATFORM_CAPILANO
+		#if defined __F16C__ || defined EA_PLATFORM_XBOXONE || defined CS_UNDEFINED_STRING
 			#define EA_FP16C 1
 		#else
 			#define EA_FP16C 0
@@ -1598,7 +1739,7 @@
 	// but has support by some implementations of clang (__FLOAT128__)
 	// PS4 does not support __float128 as of SDK 5.500 https://ps4.siedev.net/resources/documents/SDK/5.500/CPU_Compiler_ABI-Overview/0003.html
 	#ifndef EA_FP128
-		#if (defined __FLOAT128__ || defined _GLIBCXX_USE_FLOAT128) && !defined(EA_PLATFORM_KETTLE)
+		#if (defined __FLOAT128__ || defined _GLIBCXX_USE_FLOAT128) && !defined(EA_PLATFORM_SONY)
 			#define EA_FP128 1
 		#else
 			#define EA_FP128 0
@@ -1608,8 +1749,9 @@
 	// ------------------------------------------------------------------------
 	// EA_ABM
 	// EA_ABM may be used to determine if Advanced Bit Manipulation sets are available for the target architecture (POPCNT, LZCNT)
+	// 
 	#ifndef EA_ABM
-		#if defined(__ABM__) || defined(EA_PLATFORM_CAPILANO)
+		#if defined(__ABM__) || defined(EA_PLATFORM_XBOXONE) || defined(EA_PLATFORM_SONY) || defined(CS_UNDEFINED_STRING)
 			#define EA_ABM 1
 		#else
 			#define EA_ABM 0
@@ -1638,7 +1780,7 @@
 	#ifndef EA_BMI
 		#if defined(__BMI2__)
 			#define EA_BMI 2
-		#elif defined(__BMI__) || defined(EA_PLATFORM_CAPILANO)
+		#elif defined(__BMI__) || defined(EA_PLATFORM_XBOXONE) || defined(CS_UNDEFINED_STRING)
 			#define EA_BMI 1
 		#else
 			#define EA_BMI 0
@@ -1866,11 +2008,11 @@
 	//     EA_CONSTEXPR_OR_CONST double gValue = std::sin(kTwoPi);
 	// 
 	#if !defined(EA_CONSTEXPR)
-	#if defined(EA_COMPILER_NO_CONSTEXPR)
-		#define EA_CONSTEXPR
-	#else
-		#define EA_CONSTEXPR constexpr
-	#endif
+		#if defined(EA_COMPILER_NO_CONSTEXPR)
+			#define EA_CONSTEXPR
+		#else
+			#define EA_CONSTEXPR constexpr
+		#endif
 	#endif
 
 	#if !defined(EA_CONSTEXPR_OR_CONST)
@@ -1880,6 +2022,27 @@
 			#define EA_CONSTEXPR_OR_CONST constexpr
 		#endif
 	#endif
+
+	// ------------------------------------------------------------------------
+	// EA_CONSTEXPR_IF
+	// 
+	// Portable wrapper for C++17's 'constexpr if' support.
+	//
+	// https://en.cppreference.com/w/cpp/language/if
+	// 
+	// Example usage:
+	// 
+	// EA_CONSTEXPR_IF(eastl::is_copy_constructible_v<T>) 
+	// 	{ ... }
+	// 
+	#if !defined(EA_CONSTEXPR_IF)
+		#if defined(EA_COMPILER_NO_CONSTEXPR_IF)
+			#define EA_CONSTEXPR_IF(predicate) if ((predicate))
+		#else
+			#define EA_CONSTEXPR_IF(predicate) if constexpr ((predicate))
+		#endif
+	#endif
+
 
 
 	// ------------------------------------------------------------------------
@@ -2299,13 +2462,16 @@
 	#ifdef __cplusplus
 		struct EANonCopyable
 		{
-			#if defined(EA_COMPILER_NO_DEFAULTED_FUNCTIONS) || defined(__EDG__) // EDG doesn't appear to behave properly for the case of defaulted constructors; it generates a mistaken warning about missing default constructors.
-				EANonCopyable(){} // Putting {} here has the downside that it allows a class to create itself, 
-			   ~EANonCopyable(){} // but avoids linker errors that can occur with some compilers (e.g. Green Hills).
+			#if defined(EA_COMPILER_NO_DEFAULTED_FUNCTIONS) ||  defined(__EDG__) 
+				// EDG doesn't appear to behave properly for the case of defaulted constructors; 
+				// it generates a mistaken warning about missing default constructors.					 
+				EANonCopyable() {}  // Putting {} here has the downside that it allows a class to create itself,
+				~EANonCopyable() {} // but avoids linker errors that can occur with some compilers (e.g. Green Hills).
 			#else
 				EANonCopyable() = default;
 			   ~EANonCopyable() = default;
 			#endif
+
 			EA_NON_COPYABLE(EANonCopyable)
 		};
 	#endif

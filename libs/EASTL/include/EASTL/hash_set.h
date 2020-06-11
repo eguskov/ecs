@@ -145,18 +145,16 @@ namespace eastl
 		}
 
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			hash_set(this_type&& x)
-			  : base_type(eastl::move(x))
-			{
-			}
+		hash_set(this_type&& x)
+		  : base_type(eastl::move(x))
+		{
+		}
 
 
-			hash_set(this_type&& x, const allocator_type& allocator)
-			  : base_type(eastl::move(x), allocator)
-			{
-			}
-		#endif
+		hash_set(this_type&& x, const allocator_type& allocator)
+		  : base_type(eastl::move(x), allocator)
+		{
+		}
 
 
 		/// hash_set
@@ -198,18 +196,32 @@ namespace eastl
 		}
 
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			this_type& operator=(this_type&& x)
-			{
-				return static_cast<this_type&>(base_type::operator=(eastl::move(x)));
-			}
-		#endif
+		this_type& operator=(this_type&& x)
+		{
+			return static_cast<this_type&>(base_type::operator=(eastl::move(x)));
+		}
 
 	}; // hash_set
 
-
-
-
+	/// hash_set erase_if
+	///
+	/// https://en.cppreference.com/w/cpp/container/unordered_set/erase_if
+	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode, typename UserPredicate>
+	void erase_if(eastl::hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
+	{
+		// Erases all elements that satisfy the predicate pred from the container.
+		for (auto i = c.begin(), last = c.end(); i != last;)
+		{
+			if (predicate(*i))
+			{
+				i = c.erase(i);
+			}
+			else
+			{
+				++i;
+			}
+		}
+	}
 
 
 	/// hash_multiset
@@ -267,18 +279,16 @@ namespace eastl
 		}
 
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			hash_multiset(this_type&& x)
-			  : base_type(eastl::move(x))
-			{
-			}
+		hash_multiset(this_type&& x)
+		  : base_type(eastl::move(x))
+		{
+		}
 
 
-			hash_multiset(this_type&& x, const allocator_type& allocator)
-			  : base_type(eastl::move(x), allocator)
-			{
-			}
-		#endif
+		hash_multiset(this_type&& x, const allocator_type& allocator)
+		  : base_type(eastl::move(x), allocator)
+		{
+		}
 
 
 		/// hash_multiset
@@ -320,14 +330,32 @@ namespace eastl
 		}
 
 
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			this_type& operator=(this_type&& x)
-			{
-				return static_cast<this_type&>(base_type::operator=(eastl::move(x)));
-			}
-		#endif
+		this_type& operator=(this_type&& x)
+		{
+			return static_cast<this_type&>(base_type::operator=(eastl::move(x)));
+		}
 
 	}; // hash_multiset
+
+	/// hash_multiset erase_if
+	///
+	/// https://en.cppreference.com/w/cpp/container/unordered_multiset/erase_if
+	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode, typename UserPredicate>
+	void erase_if(eastl::hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
+	{
+		// Erases all elements that satisfy the predicate pred from the container.
+		for (auto i = c.begin(), last = c.end(); i != last;)
+		{
+			if (predicate(*i))
+			{
+				i = c.erase(i);
+			}
+			else
+			{
+				++i;
+			}
+		}
+	}
 
 
 

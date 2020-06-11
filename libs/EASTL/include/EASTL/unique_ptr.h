@@ -208,9 +208,11 @@ namespace eastl
 		///    ptr.reset(NULL);        // deletes int(4)
 		void reset(pointer pValue = pointer()) EA_NOEXCEPT
 		{
-			if(pValue != mPair.first())
+			if (pValue != mPair.first())
 			{
-				get_deleter()(mPair.first());
+				if (mPair.first())
+					get_deleter()(mPair.first());
+
 				mPair.first() = pValue;
 			}
 		}
@@ -322,14 +324,13 @@ namespace eastl
 			}
 		#endif
 
-	protected:
-		eastl::compressed_pair<pointer, deleter_type> mPair;
-
-		/// These functions are private in order to prevent copying, for safety.
+		/// These functions are deleted in order to prevent copying, for safety.
 		unique_ptr(const this_type&) = delete;
 		unique_ptr& operator=(const this_type&) = delete;
 		unique_ptr& operator=(pointer pValue) = delete;
 
+	protected:
+		eastl::compressed_pair<pointer, deleter_type> mPair;
 	}; // class unique_ptr
 
 
@@ -500,13 +501,13 @@ namespace eastl
 			}
 		#endif
 
+		/// These functions are deleted in order to prevent copying, for safety.
+		unique_ptr(const this_type&) = delete;
+		unique_ptr& operator=(const this_type&) = delete;
+		unique_ptr& operator=(pointer pArray) = delete;
+
 	protected:
 		eastl::compressed_pair<pointer, deleter_type> mPair;
-
-		/// These functions are private in order to prevent copying, for safety.
-		unique_ptr(const this_type&);
-		unique_ptr& operator=(const this_type&);
-		unique_ptr& operator=(pointer pArray);
 	};
 
 

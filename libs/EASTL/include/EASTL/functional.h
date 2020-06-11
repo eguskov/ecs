@@ -1006,8 +1006,30 @@ namespace eastl
 	///////////////////////////////////////////////////////////////////////
 	// hash
 	///////////////////////////////////////////////////////////////////////
+	namespace Internal
+	{
+		// utility to disable the generic template specialization that is
+		// used for enum types only.
+		template <typename T, bool Enabled>
+		struct EnableHashIf
+		{
+		};
+
+		template <typename T>
+		struct EnableHashIf<T, true>
+		{
+			size_t operator()(const T& p) const { return size_t(p); }
+		};
+	} // namespace Internal
+
 
 	template <typename T> struct hash;
+
+	template <typename T>
+	struct hash : Internal::EnableHashIf<T, is_enum_v<T>>
+	{
+		size_t operator()(T p) const { return size_t(p); }
+	};
 
 	template <typename T> struct hash<T*> // Note that we use the pointer as-is and don't divide by sizeof(T*). This is because the table is of a prime size and this division doesn't benefit distribution.
 		{ size_t operator()(T* p) const { return size_t(uintptr_t(p)); } };
@@ -1086,6 +1108,29 @@ namespace eastl
 	//      special hash customized for such strings that's better than what we provide.
 	///////////////////////////////////////////////////////////////////////////
 
+	template <> struct hash<char*>
+	{
+		size_t operator()(const char* p) const
+		{
+			uint32_t c, result = 2166136261U;   // FNV1 hash. Perhaps the best string hash. Intentionally uint32_t instead of size_t, so the behavior is the same regardless of size.
+			while((c = (uint8_t)*p++) != 0)     // Using '!=' disables compiler warnings.
+				result = (result * 16777619) ^ c;
+			return (size_t)result;
+		}
+	};
+
+	template <> struct hash<const char*>
+	{
+		size_t operator()(const char* p) const
+		{
+			uint32_t c, result = 2166136261U;   // Intentionally uint32_t instead of size_t, so the behavior is the same regardless of size.
+			while((c = (uint8_t)*p++) != 0)     // cast to unsigned 8 bit.
+				result = (result * 16777619) ^ c;
+			return (size_t)result;
+		}
+	};
+
+#if EA_CHAR8_UNIQUE
 	template <> struct hash<char8_t*>
 	{
 		size_t operator()(const char8_t* p) const
@@ -1107,6 +1152,8 @@ namespace eastl
 			return (size_t)result;
 		}
 	};
+#endif
+
 
 	template <> struct hash<char16_t*>
 	{
@@ -1203,12 +1250,7 @@ namespace eastl
 
 } // namespace eastl
 
-#if EASTL_FUNCTION_ENABLED
-	EA_DISABLE_VC_WARNING(4510 4512 4610)  // disable warning: function_manager not generating default constructor and default assignment operators.
-	#include <EASTL/internal/function.h>
-	EA_RESTORE_VC_WARNING()
-#endif
-
+#include <EASTL/internal/function.h>
 
 #endif // Header include guard
 

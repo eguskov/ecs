@@ -1209,7 +1209,7 @@ namespace eastl
 	shared_ptr<T> make_shared(Args&&... args)
 	{
 		// allocate with the default allocator.
-		return allocate_shared<T>(EASTL_SHARED_PTR_DEFAULT_ALLOCATOR, eastl::forward<Args>(args)...);
+		return eastl::allocate_shared<T>(EASTL_SHARED_PTR_DEFAULT_ALLOCATOR, eastl::forward<Args>(args)...);
 	}
 
 
@@ -1284,7 +1284,7 @@ namespace eastl
 	template <typename T>
 	inline shared_ptr<T> atomic_exchange_explicit(shared_ptr<T>* pSharedPtrA, shared_ptr<T> sharedPtrB, ... /*std::memory_order memoryOrder*/)
 	{
-		atomic_exchange(pSharedPtrA, sharedPtrB);
+		return atomic_exchange(pSharedPtrA, sharedPtrB);
 	}
 
 	// Compares the shared pointers pointed-to by p and expected. If they are equivalent (share ownership of the 

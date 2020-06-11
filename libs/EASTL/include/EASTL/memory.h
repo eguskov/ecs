@@ -169,6 +169,10 @@ namespace eastl
 	/// operator * or ->. autoConstruct is convenient but it causes * and -> to be slightly slower
 	/// and may result in construction at an inconvenient time. 
 	///
+	/// The autoDestruct template parameter controls whether the object, if constructed, is automatically
+	/// destructed when ~late_constructed() is called or must be manually destructed via a call to
+	/// destruct().
+	///
 	/// While construction can be automatic or manual, automatic destruction support is always present.
 	/// Thus you aren't required in any case to manually call destruct. However, you may safely manually
 	/// destruct the object at any time before the late_constructed destructor is executed. 
@@ -199,44 +203,52 @@ namespace eastl
 	///         // You may want to call destruct here, but aren't required to do so unless the Widget type requires it.
 	///     }
 	/// 
-	template <typename T, bool autoConstruct = true>
+	template <typename T, bool autoConstruct = true, bool autoDestruct = true>
 	class late_constructed
 	{
 	public:
-		typedef late_constructed<T, autoConstruct>                     this_type;
-		typedef T                                                      value_type;
-		typedef typename eastl::aligned_storage<sizeof(value_type), 
-						 eastl::alignment_of<value_type>::value>::type storage_type;
+		using this_type    = late_constructed<T, autoConstruct, autoDestruct>;
+		using value_type   = T;
+		using storage_type = eastl::aligned_storage_t<sizeof(value_type), eastl::alignment_of_v<value_type>>;
 
-		late_constructed() EA_NOEXCEPT  // In the case of the late_constructed instance being at global scope, we rely on the 
-		  : mpValue(NULL) {}            // compiler executing this constructor or placing the instance in auto-zeroed-at-startup memory.
+		late_constructed() EA_NOEXCEPT       // In the case of the late_constructed instance being at global scope, we rely on the 
+		  : mStorage(), mpValue(nullptr) {}  // compiler executing this constructor or placing the instance in auto-zeroed-at-startup memory.
 
 		~late_constructed()
 		{
-			if(mpValue)
+			if (autoDestruct && mpValue)
 				(*mpValue).~value_type();
-		} 
+		}
 
 		template <typename... Args>
 		void construct(Args&&... args)
 		{
 			if(!mpValue)
-				mpValue = new(&mStorage) value_type(eastl::forward<Args>(args)...);
-		} 
+				mpValue = new (&mStorage) value_type(eastl::forward<Args>(args)...);
+		}
 
 		bool is_constructed() const EA_NOEXCEPT
-			{ return mpValue != NULL; }
+			{ return mpValue != nullptr; }
 
 		void destruct()
 		{
 			if(mpValue)
 			{
 				(*mpValue).~value_type();
-				mpValue = NULL;
+				mpValue = nullptr;
 			}
 		}
 
 		value_type& operator*() EA_NOEXCEPT
+		{
+			if(!mpValue)
+				construct();
+
+			EA_ANALYSIS_ASSUME(mpValue);
+			return *mpValue;
+		}
+
+		const value_type& operator*() const EA_NOEXCEPT
 		{
 			if(!mpValue)
 				construct();
@@ -252,7 +264,21 @@ namespace eastl
 			return mpValue;
 		}
 
+		const value_type* operator->() const EA_NOEXCEPT
+		{
+			if(!mpValue)
+				construct();
+			return mpValue;
+		}
+
 		value_type* get() EA_NOEXCEPT
+		{
+			if(!mpValue)
+				construct(); 
+			return mpValue;
+		}
+
+		const value_type* get() const EA_NOEXCEPT
 		{
 			if(!mpValue)
 				construct(); 
@@ -266,19 +292,28 @@ namespace eastl
 
 
 	// Specialization that doesn't auto-construct on demand.
-	template <typename T>
-	class late_constructed<T, false> : public late_constructed<T, true>
+	template <typename T, bool autoDestruct>
+	class late_constructed<T, false, autoDestruct> : public late_constructed<T, true, autoDestruct>
 	{
 	public:
-		typedef late_constructed<T, true> base_type;
+		typedef late_constructed<T, true, autoDestruct> base_type;
 
 		typename base_type::value_type& operator*() EA_NOEXCEPT
+			{ EASTL_ASSERT(base_type::mpValue); return *base_type::mpValue; }
+
+		const typename base_type::value_type& operator*() const EA_NOEXCEPT
 			{ EASTL_ASSERT(base_type::mpValue); return *base_type::mpValue; }
 
 		typename base_type::value_type* operator->() EA_NOEXCEPT
 			{ EASTL_ASSERT(base_type::mpValue); return base_type::mpValue; }
 
+		const typename base_type::value_type* operator->() const EA_NOEXCEPT
+			{ EASTL_ASSERT(base_type::mpValue); return base_type::mpValue; }
+
 		typename base_type::value_type* get() EA_NOEXCEPT
+			{ return base_type::mpValue; }
+
+		const typename base_type::value_type* get() const EA_NOEXCEPT
 			{ return base_type::mpValue; }
 	};
 
@@ -653,66 +688,58 @@ namespace eastl
 	/// This is a specialization of uninitialized_move for iterators that are pointers. We use it because 
 	/// internally it uses generic_iterator to make pointers act like regular eastl::iterator.
 	///
-	#if EASTL_MOVE_SEMANTICS_ENABLED
-		namespace Internal
+	namespace Internal
+	{
+		template <typename InputIterator, typename ForwardIterator>
+		inline ForwardIterator uninitialized_move_impl(InputIterator first, InputIterator last, ForwardIterator dest, true_type)
 		{
-			template <typename InputIterator, typename ForwardIterator>
-			inline ForwardIterator uninitialized_move_impl(InputIterator first, InputIterator last, ForwardIterator dest, true_type)
-			{
-				return eastl::copy(first, last, dest); // The copy() in turn will use memcpy for is_trivially_copy_assignable (e.g. POD) types.
-			}
-
-			template <typename InputIterator, typename ForwardIterator>
-			inline ForwardIterator uninitialized_move_impl(InputIterator first, InputIterator last, ForwardIterator dest, false_type)
-			{
-				typedef typename eastl::iterator_traits<ForwardIterator>::value_type value_type;
-				ForwardIterator currentDest(dest);
-
-				// We must run a loop over every element and move-construct it at the new location.
-				#if EASTL_EXCEPTIONS_ENABLED
-					try
-					{
-				#endif
-						for(; first != last; ++first, ++currentDest)
-							::new((void*)eastl::addressof(*currentDest)) value_type(eastl::move(*first)); // If value_type has a move constructor then it will be used here.
-				#if EASTL_EXCEPTIONS_ENABLED
-					}
-					catch(...)
-					{
-						// We have a problem here: If an exception occurs while doing the loop below then we will
-						// have values that were moved from the source to the dest that may need to be moved back 
-						// in the catch. What does the C++11 Standard say about this? And what happens if there's an 
-						// exception while moving them back? We may want to trace through a conforming C++11 Standard
-						// Library to see what it does and do something similar. Given that rvalue references are 
-						// objects that are going away, we may not need to move the values back, though that has the 
-						// side effect of a certain kind of lost elements problem.
-						for(; dest < currentDest; ++dest)
-							(*dest).~value_type();
-						throw;
-					}
-				#endif
-
-				return currentDest;
-			}
+			return eastl::copy(first, last, dest); // The copy() in turn will use memcpy for is_trivially_copy_assignable (e.g. POD) types.
 		}
 
-		template <typename First, typename Last, typename Result>
-		inline Result uninitialized_move_ptr(First first, Last last, Result dest)
+		template <typename InputIterator, typename ForwardIterator>
+		inline ForwardIterator uninitialized_move_impl(InputIterator first, InputIterator last, ForwardIterator dest, false_type)
 		{
-			typedef typename eastl::iterator_traits<generic_iterator<Result, void> >::value_type value_type;
-			const generic_iterator<Result, void> i(Internal::uninitialized_move_impl(eastl::generic_iterator<First, void>(first), // generic_iterator makes a pointer act like an iterator.
-																					 eastl::generic_iterator<Last, void>(last), 
-																					 eastl::generic_iterator<Result, void>(dest), 
-																					 eastl::is_trivially_copy_assignable<value_type>())); // is_trivially_copy_assignable identifies if copy assignment would be as valid as move assignment, which means we have the opportunity to memcpy/memmove optimization.
-			return i.base();
+			typedef typename eastl::iterator_traits<ForwardIterator>::value_type value_type;
+			ForwardIterator currentDest(dest);
+
+			// We must run a loop over every element and move-construct it at the new location.
+			#if EASTL_EXCEPTIONS_ENABLED
+				try
+				{
+			#endif
+					for(; first != last; ++first, ++currentDest)
+						::new((void*)eastl::addressof(*currentDest)) value_type(eastl::move(*first)); // If value_type has a move constructor then it will be used here.
+			#if EASTL_EXCEPTIONS_ENABLED
+				}
+				catch(...)
+				{
+					// We have a problem here: If an exception occurs while doing the loop below then we will
+					// have values that were moved from the source to the dest that may need to be moved back 
+					// in the catch. What does the C++11 Standard say about this? And what happens if there's an 
+					// exception while moving them back? We may want to trace through a conforming C++11 Standard
+					// Library to see what it does and do something similar. Given that rvalue references are 
+					// objects that are going away, we may not need to move the values back, though that has the 
+					// side effect of a certain kind of lost elements problem.
+					for(; dest < currentDest; ++dest)
+						(*dest).~value_type();
+					throw;
+				}
+			#endif
+
+			return currentDest;
 		}
-	#else
-		template <typename First, typename Last, typename Result>
-		inline Result uninitialized_move_ptr(First first, Last last, Result dest)
-		{
-			return uninitialized_copy_ptr(first, last, dest);
-		}
-	#endif
+	}
+
+	template <typename First, typename Last, typename Result>
+	inline Result uninitialized_move_ptr(First first, Last last, Result dest)
+	{
+		typedef typename eastl::iterator_traits<generic_iterator<Result, void> >::value_type value_type;
+		const generic_iterator<Result, void> i(Internal::uninitialized_move_impl(eastl::generic_iterator<First, void>(first), // generic_iterator makes a pointer act like an iterator.
+																				 eastl::generic_iterator<Last, void>(last), 
+																				 eastl::generic_iterator<Result, void>(dest), 
+																				 eastl::is_trivially_copy_assignable<value_type>())); // is_trivially_copy_assignable identifies if copy assignment would be as valid as move assignment, which means we have the opportunity to memcpy/memmove optimization.
+		return i.base();
+	}
 
 
 
@@ -736,11 +763,7 @@ namespace eastl
 	template <typename InputIterator, typename ForwardIterator>
 	inline ForwardIterator uninitialized_move(InputIterator first, InputIterator last, ForwardIterator dest)
 	{
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			return eastl::uninitialized_copy(eastl::make_move_iterator(first), eastl::make_move_iterator(last), dest);
-		#else
-			return eastl::uninitialized_copy(first, last, dest);
-		#endif
+		return eastl::uninitialized_copy(eastl::make_move_iterator(first), eastl::make_move_iterator(last), dest);
 	}
 
 
@@ -752,11 +775,7 @@ namespace eastl
 	template <typename InputIterator, typename ForwardIterator>
 	inline ForwardIterator uninitialized_move_if_noexcept(InputIterator first, InputIterator last, ForwardIterator dest)
 	{
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			return eastl::uninitialized_copy(eastl::make_move_if_noexcept_iterator(first), eastl::make_move_if_noexcept_iterator(last), dest);
-		#else
-			return eastl::uninitialized_copy(first, last, dest);
-		#endif
+		return eastl::uninitialized_copy(eastl::make_move_if_noexcept_iterator(first), eastl::make_move_if_noexcept_iterator(last), dest);
 	}
 
 
@@ -786,11 +805,7 @@ namespace eastl
 	template<typename InputIterator, typename Count, typename ForwardIterator>
 	inline ForwardIterator uninitialized_move_n(InputIterator first, Count n, ForwardIterator dest)
 	{
-		#if EASTL_MOVE_SEMANTICS_ENABLED
-			return eastl::uninitialized_copy_n(eastl::make_move_iterator(first), n, dest);
-		#else
-			return eastl::uninitialized_copy_n(first, n, dest);
-		#endif
+		return eastl::uninitialized_copy_n(eastl::make_move_iterator(first), n, dest);
 	}
 
 	// Disable warning C4345 - behavior change: an object of POD type constructed with an initializer of the form ()

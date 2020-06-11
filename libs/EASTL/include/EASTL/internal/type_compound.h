@@ -54,6 +54,11 @@ namespace eastl
 	template<typename T, unsigned N = 0> // extent uses unsigned instead of size_t.
 	struct extent : public eastl::extent_help<T, N> { };
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T, unsigned N = 0> 
+		EA_CONSTEXPR auto extent_v = extent<T, N>::value;
+	#endif
+
 
 	///////////////////////////////////////////////////////////////////////
 	// is_array
@@ -176,6 +181,11 @@ namespace eastl
 	template <typename T> 
 	struct is_member_function_pointer : public integral_constant<bool, is_mem_fun_pointer_value<T>::value>{};
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
+	#endif
+
 
 	///////////////////////////////////////////////////////////////////////
 	// is_member_pointer
@@ -196,6 +206,10 @@ namespace eastl
 	struct is_member_pointer<U T::*> 
 		: public eastl::true_type{};
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_member_pointer_v = is_member_pointer<T>::value;
+	#endif
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -213,6 +227,10 @@ namespace eastl
 																	  eastl::is_member_pointer<T>::value &&
 																	 !eastl::is_member_function_pointer<T>::value
 																	 > {};
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
+	#endif
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -311,11 +329,23 @@ namespace eastl
 
 	#endif
 
-
 	#if !defined(EA_COMPILER_NO_TEMPLATE_ALIASES)
 		template<typename From, typename To>
 		EA_CONSTEXPR bool is_convertible_v = is_convertible<From, To>::value;
 	#endif
+
+
+	///////////////////////////////////////////////////////////////////////
+	// is_nothrow_convertible
+	// 
+	// https://en.cppreference.com/w/cpp/types/is_convertible
+	//
+	// template<typename From, typename To>
+	// struct is_explicitly_convertible
+	//     : public is_constructible<To, From> {};
+	///////////////////////////////////////////////////////////////////////
+	// TODO(rparolin):  implement type-trait
+
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -354,6 +384,10 @@ namespace eastl
 
 	#define EASTL_DECLARE_UNION(T) namespace eastl{ template <> struct is_union<T> : public true_type{}; template <> struct is_union<const T> : public true_type{}; }
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_union_v = is_union<T>::value;
+	#endif
 
 
 
@@ -402,6 +436,10 @@ namespace eastl
 		struct is_class : public false_type{};
 	#endif
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_class_v = is_class<T>::value;
+	#endif
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -445,7 +483,13 @@ namespace eastl
 		template <> struct is_enum<void const volatile> : public false_type {};
 	#endif
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_enum_v = is_enum<T>::value;
+	#endif
+
 	#define EASTL_DECLARE_ENUM(T) namespace eastl{ template <> struct is_enum<T> : public true_type{}; template <> struct is_enum<const T> : public true_type{}; }
+
 
 
 
@@ -513,6 +557,11 @@ namespace eastl
 		struct is_polymorphic : public integral_constant<bool, is_polymorphic_value<T>::value>{};
 	#endif
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_polymorphic_v = is_polymorphic<T>::value;
+	#endif
+
 
 
 
@@ -536,6 +585,11 @@ namespace eastl
 	struct is_object : public integral_constant<bool,
 		!is_reference<T>::value && !is_void<T>::value && !is_function<T>::value
 	>{};
+
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_object_v = is_object<T>::value;
+	#endif
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -563,6 +617,11 @@ namespace eastl
 	template <typename T> struct is_scalar<T* volatile>       : public true_type {};
 	template <typename T> struct is_scalar<T* const volatile> : public true_type {};
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_scalar_v = is_scalar<T>::value;
+	#endif
+
 
 	///////////////////////////////////////////////////////////////////////
 	// is_compound
@@ -583,6 +642,11 @@ namespace eastl
 
 	template <typename T> 
 	struct is_compound : public integral_constant<bool, !is_fundamental<T>::value>{};
+
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_compound_v = is_compound<T>::value;
+	#endif
 
 
 
@@ -625,6 +689,7 @@ namespace eastl
 		#define EASTL_DECAY_T(T) decay_t<T>
 	#endif
 
+
 	///////////////////////////////////////////////////////////////////////
 	// common_type
 	// 
@@ -643,102 +708,92 @@ namespace eastl
 	// explicit conversions are desired among the template arguments.
 	///////////////////////////////////////////////////////////////////////
 
-	#if defined(EA_COMPILER_NO_DECLTYPE)
-		#define EASTL_TYPE_TRAIT_common_type_CONFORMANCE 0
+	#define EASTL_TYPE_TRAIT_common_type_CONFORMANCE 1    // common_type is conforming.
 
-		// Perhaps we can do better. On the other hand, compilers that don't support variadic 
-		// templates and decltype probably won't need the common_type trait anyway.
-		template <typename T, typename U = void, typename V = void>
-		struct common_type
-			{ typedef void type; };
+	template<typename... T>
+	struct common_type;
 
-		template <typename T, typename U>
-		struct common_type<T, U, void>
-			{ typedef void type; };
+	template<typename T>
+	struct common_type<T>
+		{ typedef decay_t<T> type; }; // Question: Should we use T or decay_t<T> here? The C++11 Standard specifically (20.9.7.6,p3) specifies that it be without decay, but libc++ uses decay.
 
-		template <typename T>
-		struct common_type<T, T, void>
-			{ typedef decay_t<T> type; };
+	template<typename T, typename U>
+	struct common_type<T, U>
+	{
+		typedef decay_t<decltype(true ? declval<T>() : declval<U>())> type; // The type of a tertiary expression is set by the compiler to be the common type of the two result types.
+	};
 
-		template <typename T>
-		struct common_type<T, void, void>
-			{ typedef decay_t<T> type; };
+	template<typename T, typename U, typename... V>
+	struct common_type<T, U, V...>
+		{ typedef typename common_type<typename common_type<T, U>::type, V...>::type type; };
 
-	#elif defined(EA_COMPILER_NO_VARIADIC_TEMPLATES)
-		#define EASTL_TYPE_TRAIT_common_type_CONFORMANCE 0
 
-		template <typename T, typename U = void, typename V = void>
-		struct common_type
-			{ typedef typename eastl::common_type<typename eastl::common_type<T, U>::type, V>::type type; };
-
-		template <typename T>
-		struct common_type<T, void, void>
-			{ typedef decay_t<T> type; };
-
-		template <typename T, typename U>
-		class common_type<T, U, void>
-		{
-		public:
-			typedef decay_t<decltype(true ? declval<T>() : declval<U>())> type;
-		};
-
+	// common_type_t is the C++14 using typedef for typename common_type<T...>::type.
+	// We provide a backwards-compatible means to access it through a macro for pre-C++11 compilers.
+	#if defined(EA_COMPILER_NO_TEMPLATE_ALIASES)
+		#define EASTL_COMMON_TYPE_T(...) typename common_type<__VA_ARGS__>::type
 	#else
-		#define EASTL_TYPE_TRAIT_common_type_CONFORMANCE 1    // common_type is conforming.
-
-		template<typename... T>
-		struct common_type;
-
-		template<typename T>
-		struct common_type<T>
-			{ typedef decay_t<T> type; }; // Question: Should we use T or decay_t<T> here? The C++11 Standard specifically (20.9.7.6,p3) specifies that it be without decay, but libc++ uses decay.
-
-		template<typename T, typename U>
-		struct common_type<T, U>
-		{
-			typedef decay_t<decltype(true ? declval<T>() : declval<U>())> type; // The type of a tertiary expression is set by the compiler to be the common type of the two result types.
-		};
-
-		template<typename T, typename U, typename... V>
-		struct common_type<T, U, V...>
-			{ typedef typename common_type<typename common_type<T, U>::type, V...>::type type; };
-
-
-		// common_type_t is the C++14 using typedef for typename common_type<T...>::type.
-		// We provide a backwards-compatible means to access it through a macro for pre-C++11 compilers.
-		#if defined(EA_COMPILER_NO_TEMPLATE_ALIASES)
-			#define EASTL_COMMON_TYPE_T(...) typename common_type<__VA_ARGS__>::type
-		#else
-			template <typename... T>
-			using common_type_t = typename common_type<T...>::type;
-			#define EASTL_COMMON_TYPE_T(...) common_type_t<__VA_ARGS__>
-		#endif
-
+		template <typename... T>
+		using common_type_t = typename common_type<T...>::type;
+		#define EASTL_COMMON_TYPE_T(...) common_type_t<__VA_ARGS__>
 	#endif
 
+	///////////////////////////////////////////////////////////////////////
+	// is_final
+	///////////////////////////////////////////////////////////////////////
 	#if EA_COMPILER_HAS_FEATURE(is_final)
 		template <typename T>
 		struct is_final : public integral_constant<bool, __is_final(T)> {};
 	#else
-		// there's no compiler support... cannot determine
+		// no compiler support so we always return false
 		template <typename T>
 		struct is_final : public false_type {};
+	#endif
+
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template<typename T>
+		EA_CONSTEXPR bool is_final_v = is_final<T>::value;
+	#endif
+
+
+	///////////////////////////////////////////////////////////////////////
+	// is_aggregate
+	//
+	// https://en.cppreference.com/w/cpp/language/aggregate_initialization
+	//
+	// An aggregate is one of the following types:
+	// * array type
+	// * class type (typically, struct or union), that has
+	//     * no private or protected non-static data members
+	//     * no user-provided constructors (explicitly defaulted or deleted constructors are allowed)
+	//     * no user-provided, inherited, or explicit constructors 
+	//         * (explicitly defaulted or deleted constructors are allowed)
+	//     * no virtual, private, or protected (since C++17) base classes
+	//     * no virtual member functions
+	//     * no default member initializers
+	//
+	///////////////////////////////////////////////////////////////////////
+	#if EA_COMPILER_HAS_FEATURE(is_aggregate) || defined(_MSC_VER) && (_MSC_VER >= 1916)  // VS2017 15.9+
+		#define EASTL_TYPE_TRAIT_is_aggregate_CONFORMANCE 1  
+
+		template <typename T>
+		struct is_aggregate : public integral_constant<bool, __is_aggregate(T)> {};
+	#else
+		#define EASTL_TYPE_TRAIT_is_aggregate_CONFORMANCE 0 
+
+		// no compiler support so we always return false
+		template <typename T>
+		struct is_aggregate : public false_type {};
+	#endif
+
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template <typename T>
+		EA_CONSTEXPR bool is_aggregate_v = is_aggregate<T>::value;
 	#endif
 } // namespace eastl
 
 
 #endif // Header include guard
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

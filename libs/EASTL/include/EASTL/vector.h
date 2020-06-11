@@ -204,13 +204,13 @@ namespace eastl
 		using base_type::internalAllocator;
 
 	public:
-		vector() noexcept(noexcept(allocator_type()));
-		explicit vector(const allocator_type& allocator) noexcept;
+		vector() EA_NOEXCEPT_IF(EA_NOEXCEPT_EXPR(EASTL_VECTOR_DEFAULT_ALLOCATOR));
+		explicit vector(const allocator_type& allocator) EA_NOEXCEPT;
 		explicit vector(size_type n, const allocator_type& allocator = EASTL_VECTOR_DEFAULT_ALLOCATOR);
 		vector(size_type n, const value_type& value, const allocator_type& allocator = EASTL_VECTOR_DEFAULT_ALLOCATOR);
 		vector(const this_type& x);
 		vector(const this_type& x, const allocator_type& allocator);
-		vector(this_type&& x) noexcept;
+		vector(this_type&& x) EA_NOEXCEPT;
 		vector(this_type&& x, const allocator_type& allocator);
 		vector(std::initializer_list<value_type> ilist, const allocator_type& allocator = EASTL_VECTOR_DEFAULT_ALLOCATOR);
 
@@ -293,13 +293,9 @@ namespace eastl
 		template <typename InputIterator>
 		iterator insert(const_iterator position, InputIterator first, InputIterator last);
 
-		template <typename = eastl::enable_if<eastl::has_equality_v<T>>>
 		iterator erase_first(const T& value);
-		template <typename = eastl::enable_if<eastl::has_equality_v<T>>>
 		iterator erase_first_unsorted(const T& value); // Same as erase, except it doesn't preserve order, but is faster because it simply copies the last item in the vector over the erased position.
-		template <typename = eastl::enable_if<eastl::has_equality_v<T>>>
 		reverse_iterator erase_last(const T& value);
-		template <typename = eastl::enable_if<eastl::has_equality_v<T>>>
 		reverse_iterator erase_last_unsorted(const T& value); // Same as erase, except it doesn't preserve order, but is faster because it simply copies the last item in the vector over the erased position.
 
 		iterator erase(const_iterator position);
@@ -322,7 +318,9 @@ namespace eastl
 		// (iterator categories). This is because in these cases there is an optimized
 		// implementation that can be had for some cases relative to others. Functions
 		// which aren't referenced are neither compiled nor linked into the application.
-		struct should_copy_tag{}; struct should_move_tag : public should_copy_tag{};
+		template <bool bMove> struct should_move_or_copy_tag{};
+		using should_copy_tag = should_move_or_copy_tag<false>;
+		using should_move_tag = should_move_or_copy_tag<true>;
 
 		template <typename ForwardIterator> // Allocates a pointer of array count n and copy-constructs it with [first,last).
 		pointer DoRealloc(size_type n, ForwardIterator first, ForwardIterator last, should_copy_tag);
@@ -502,7 +500,7 @@ namespace eastl
 	///////////////////////////////////////////////////////////////////////
 
 	template <typename T, typename Allocator>
-	inline vector<T, Allocator>::vector() noexcept(noexcept(allocator_type()))
+	inline vector<T, Allocator>::vector() EA_NOEXCEPT_IF(EA_NOEXCEPT_EXPR(EASTL_VECTOR_DEFAULT_ALLOCATOR))
 		: base_type()
 	{
 		// Empty
@@ -510,7 +508,7 @@ namespace eastl
 
 
 	template <typename T, typename Allocator>
-	inline vector<T, Allocator>::vector(const allocator_type& allocator) noexcept
+	inline vector<T, Allocator>::vector(const allocator_type& allocator) EA_NOEXCEPT
 		: base_type(allocator)
 	{
 		// Empty
@@ -552,7 +550,7 @@ namespace eastl
 
 
 	template <typename T, typename Allocator>
-	inline vector<T, Allocator>::vector(this_type&& x) noexcept
+	inline vector<T, Allocator>::vector(this_type&& x) EA_NOEXCEPT
 		: base_type(eastl::move(x.internalAllocator()))  // vector requires move-construction of allocator in this case.
 	{
 		DoSwap(x);
@@ -1237,9 +1235,10 @@ namespace eastl
 	}
 
 	template <typename T, typename Allocator>
-	template <typename>
 	inline typename vector<T, Allocator>::iterator vector<T, Allocator>::erase_first(const T& value)
 	{
+		static_assert(eastl::has_equality_v<T>, "T must be comparable");
+
 		iterator it = eastl::find(begin(), end(), value);
 
 		if (it != end())
@@ -1249,10 +1248,11 @@ namespace eastl
 	}
 
 	template <typename T, typename Allocator>
-	template <typename>
 	inline typename vector<T, Allocator>::iterator 
 	vector<T, Allocator>::erase_first_unsorted(const T& value)
 	{
+		static_assert(eastl::has_equality_v<T>, "T must be comparable");
+
 		iterator it = eastl::find(begin(), end(), value);
 
 		if (it != end())
@@ -1262,10 +1262,11 @@ namespace eastl
 	}
 
 	template <typename T, typename Allocator>
-	template <typename>
 	inline typename vector<T, Allocator>::reverse_iterator 
 	vector<T, Allocator>::erase_last(const T& value)
 	{
+		static_assert(eastl::has_equality_v<T>, "T must be comparable");
+
 		reverse_iterator it = eastl::find(rbegin(), rend(), value);
 
 		if (it != rend())
@@ -1275,10 +1276,11 @@ namespace eastl
 	}
 
 	template <typename T, typename Allocator>
-	template <typename>
 	inline typename vector<T, Allocator>::reverse_iterator 
 	vector<T, Allocator>::erase_last_unsorted(const T& value)
 	{
+		static_assert(eastl::has_equality_v<T>, "T must be comparable");
+
 		reverse_iterator it = eastl::find(rbegin(), rend(), value);
 
 		if (it != rend())
@@ -1346,7 +1348,7 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline void vector<T, Allocator>::swap(this_type& x)
 	{
-	#if EASTL_VECTOR_LEGACY_SWAP_BEHAVIOUR_REQUIRES_COPY_CTOR
+	#if defined(EASTL_VECTOR_LEGACY_SWAP_BEHAVIOUR_REQUIRES_COPY_CTOR) && EASTL_VECTOR_LEGACY_SWAP_BEHAVIOUR_REQUIRES_COPY_CTOR
 		if(internalAllocator() == x.internalAllocator()) // If allocators are equivalent...
 			DoSwap(x);
 		else // else swap the contents.
@@ -1513,7 +1515,7 @@ namespace eastl
 
 		if(n > size_type(internalCapacityPtr() - mpBegin)) // If n > capacity ...
 		{
-			pointer const pNewData = DoRealloc(n, first, last, bMove ? should_move_tag() : should_copy_tag());
+			pointer const pNewData = DoRealloc(n, first, last, should_move_or_copy_tag<bMove>());
 			eastl::destruct(mpBegin, mpEnd);
 			DoFree(mpBegin, (size_type)(internalCapacityPtr() - mpBegin));
 
@@ -1975,21 +1977,21 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline bool operator==(const vector<T, Allocator>& a, const vector<T, Allocator>& b)
 	{
-		return ((a.size() == b.size()) && equal(a.begin(), a.end(), b.begin()));
+		return ((a.size() == b.size()) && eastl::equal(a.begin(), a.end(), b.begin()));
 	}
 
 
 	template <typename T, typename Allocator>
 	inline bool operator!=(const vector<T, Allocator>& a, const vector<T, Allocator>& b)
 	{
-		return ((a.size() != b.size()) || !equal(a.begin(), a.end(), b.begin()));
+		return ((a.size() != b.size()) || !eastl::equal(a.begin(), a.end(), b.begin()));
 	}
 
 
 	template <typename T, typename Allocator>
 	inline bool operator<(const vector<T, Allocator>& a, const vector<T, Allocator>& b)
 	{
-		return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+		return eastl::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
 	}
 
 
@@ -2015,11 +2017,31 @@ namespace eastl
 
 
 	template <typename T, typename Allocator>
-	inline void swap(vector<T, Allocator>& a, vector<T, Allocator>& b) noexcept(noexcept(a.swap(b)))
+	inline void swap(vector<T, Allocator>& a, vector<T, Allocator>& b) EA_NOEXCEPT_IF(EA_NOEXCEPT_EXPR(a.swap(b)))
 	{
 		a.swap(b);
 	}
 
+
+
+	///////////////////////////////////////////////////////////////////////
+	// erase / erase_if
+	// 
+	// https://en.cppreference.com/w/cpp/container/vector/erase2
+	///////////////////////////////////////////////////////////////////////
+	template <class T, class Allocator, class U>
+	void erase(vector<T, Allocator>& c, const U& value)
+	{
+		// Erases all elements that compare equal to value from the container. 
+		c.erase(eastl::remove(c.begin(), c.end(), value), c.end());
+	}
+
+	template <class T, class Allocator, class Predicate>
+	void erase_if(vector<T, Allocator>& c, Predicate predicate)
+	{
+		// Erases all elements that satisfy the predicate pred from the container. 
+		c.erase(eastl::remove_if(c.begin(), c.end(), predicate), c.end());
+	}
 
 } // namespace eastl
 
