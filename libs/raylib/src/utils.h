@@ -5,7 +5,7 @@
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2014-2018 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2014-2020 Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -32,15 +32,24 @@
     #include <android/asset_manager.h>      // Required for: AAssetManager
 #endif
 
-#ifndef SUPPORT_SAVE_PNG
-#define SUPPORT_SAVE_PNG 1
+#if defined(SUPPORT_TRACELOG)
+    #define TRACELOG(level, ...) TraceLog(level, __VA_ARGS__)
+
+    #if defined(SUPPORT_TRACELOG_DEBUG)
+        #define TRACELOGD(...) TraceLog(LOG_DEBUG, __VA_ARGS__)
+    #else
+        #define TRACELOGD(...) (void)0
+    #endif
+#else
+    #define TRACELOG(level, ...) (void)0
+    #define TRACELOGD(...) (void)0
 #endif
 
 //----------------------------------------------------------------------------------
 // Some basic Defines
 //----------------------------------------------------------------------------------
 #if defined(PLATFORM_ANDROID)
-    #define fopen(name, mode) android_fopen(name, mode) 
+    #define fopen(name, mode) android_fopen(name, mode)
 #endif
 
 //----------------------------------------------------------------------------------
@@ -58,16 +67,9 @@ extern "C" {            // Prevents name mangling of functions
 //----------------------------------------------------------------------------------
 // Module Functions Declaration
 //----------------------------------------------------------------------------------
-#if defined(SUPPORT_SAVE_BMP)
-void SaveBMP(const char *fileName, unsigned char *imgData, int width, int height, int compSize);
-#endif
-#if defined(SUPPORT_SAVE_PNG)
-void SavePNG(const char *fileName, unsigned char *imgData, int width, int height, int compSize);
-#endif
-
 #if defined(PLATFORM_ANDROID)
-void InitAssetManager(AAssetManager *manager);  // Initialize asset manager from android app
-FILE *android_fopen(const char *fileName, const char *mode);    // Replacement for fopen()
+void InitAssetManager(AAssetManager *manager, const char *dataPath);   // Initialize asset manager from android app
+FILE *android_fopen(const char *fileName, const char *mode);            // Replacement for fopen() -> Read-only!
 #endif
 
 #ifdef __cplusplus

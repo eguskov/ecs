@@ -2,12 +2,12 @@
 *
 *   rglfw - raylib GLFW single file compilation
 *
-*   This file includes latest GLFW sources (https://github.com/glfw/glfw) to be compiled together 
+*   This file includes latest GLFW sources (https://github.com/glfw/glfw) to be compiled together
 *   with raylib for all supported platforms, this way, no external dependencies are required.
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2017-2018 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2017-2020 Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -42,9 +42,11 @@
 #endif
 #if defined(__APPLE__)
     #define _GLFW_COCOA
-    #define _GLFW_USE_CHDIR         // To chdir to the Resources subdirectory of the application bundle during glfwInit
     #define _GLFW_USE_MENUBAR       // To create and populate the menu bar when the first window is created
     #define _GLFW_USE_RETINA        // To have windows use the full resolution of Retina displays
+#endif
+#if defined(__TINYC__)
+    #define _WIN32_WINNT_WINXP      0x0501
 #endif
 
 // NOTE: _GLFW_MIR experimental platform not supported at this moment

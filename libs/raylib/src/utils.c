@@ -4,25 +4,14 @@
 *
 *   CONFIGURATION:
 *
-*   #define SUPPORT_SAVE_PNG (defined by default)
-*       Support saving image data as PNG fileformat
-*       NOTE: Requires stb_image_write library
-*
-*   #define SUPPORT_SAVE_BMP
-*       Support saving image data as BMP fileformat
-*       NOTE: Requires stb_image_write library
-*
 *   #define SUPPORT_TRACELOG
 *       Show TraceLog() output messages
 *       NOTE: By default LOG_DEBUG traces not shown
 *
-*   DEPENDENCIES:
-*       stb_image_write - BMP/PNG writting functions
-*
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2014-2018 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2014-2020 Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -41,48 +30,57 @@
 *
 **********************************************************************************************/
 
-#include "config.h"
+#include "raylib.h"                     // WARNING: Required for: LogType enum
 
-#include "raylib.h"                 // WARNING: Required for: LogType enum
+// Check if config flags have been externally provided on compilation line
+#if !defined(EXTERNAL_CONFIG_FLAGS)
+    #include "config.h"                 // Defines module configuration flags
+#endif
+
 #include "utils.h"
 
 #if defined(PLATFORM_ANDROID)
-    #include <errno.h>
-    #include <android/log.h>
-    #include <android/asset_manager.h>
+    #include <errno.h>                  // Required for: Android error types
+    #include <android/log.h>            // Required for: Android log system: __android_log_vprint()
+    #include <android/asset_manager.h>  // Required for: Android assets manager: AAsset, AAssetManager_open(), ...
 #endif
 
-#include <stdlib.h>                 // Required for: malloc(), free()
-#include <stdio.h>                  // Required for: fopen(), fclose(), fputc(), fwrite(), printf(), fprintf(), funopen()
-#include <stdarg.h>                 // Required for: va_list, va_start(), vfprintf(), va_end()
-#include <string.h>                 // Required for: strlen(), strrchr(), strcmp()
+#include <stdlib.h>                     // Required for: exit()
+#include <stdio.h>                      // Required for: vprintf()
+#include <stdarg.h>                     // Required for: va_list, va_start(), va_end()
+#include <string.h>                     // Required for: strcpy(), strcat()
 
-/* This should be in <stdio.h>, but Travis doesn't find it... */
-FILE *funopen(const void *cookie, int (*readfn)(void *, char *, int),
-              int (*writefn)(void *, const char *, int),
-              fpos_t (*seekfn)(void *, fpos_t, int), int (*closefn)(void *));
-
-
-#if defined(PLATFORM_DESKTOP) || defined(PLATFORM_RPI)
-    #define STB_IMAGE_WRITE_IMPLEMENTATION
-    #include "external/stb_image_write.h"   // Required for: stbi_write_bmp(), stbi_write_png()
+//----------------------------------------------------------------------------------
+// Defines and Macros
+//----------------------------------------------------------------------------------
+#ifndef MAX_TRACELOG_MSG_LENGTH
+    #define MAX_TRACELOG_MSG_LENGTH     128     // Max length of one trace-log message
+#endif
+#ifndef MAX_UWP_MESSAGES
+    #define MAX_UWP_MESSAGES            512     // Max UWP messages to process
 #endif
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition
 //----------------------------------------------------------------------------------
 
-// Log types messages supported flags (bit based)
-static unsigned char logTypeFlags = LOG_INFO | LOG_WARNING | LOG_ERROR;
+// Log types messages
+static int logTypeLevel = LOG_INFO;                     // Minimum log type level
+static int logTypeExit = LOG_ERROR;                     // Log type that exits
+static TraceLogCallback logCallback = NULL;             // Log callback function pointer
 
 #if defined(PLATFORM_ANDROID)
-AAssetManager *assetManager;
+static AAssetManager *assetManager = NULL;              // Android assets manager pointer
+static const char *internalDataPath = NULL;             // Android internal data path
 #endif
 
 //----------------------------------------------------------------------------------
 // Module specific Functions Declaration
 //----------------------------------------------------------------------------------
 #if defined(PLATFORM_ANDROID)
+FILE *funopen(const void *cookie, int (*readfn)(void *, char *, int), int (*writefn)(void *, const char *, int),
+              fpos_t (*seekfn)(void *, fpos_t, int), int (*closefn)(void *));
+
 static int android_read(void *cookie, char *buf, int size);
 static int android_write(void *cookie, const char *buf, int size);
 static fpos_t android_seek(void *cookie, fpos_t offset, int whence);
@@ -93,107 +91,247 @@ static int android_close(void *cookie);
 // Module Functions Definition - Utilities
 //----------------------------------------------------------------------------------
 
-// Enable trace log message types (bit flags based)
-void SetTraceLog(unsigned char types)
+// Set the current threshold (minimum) log level
+void SetTraceLogLevel(int logType)
 {
-    logTypeFlags = types;
+    logTypeLevel = logType;
+}
+
+// Set the exit threshold (minimum) log level
+void SetTraceLogExit(int logType)
+{
+    logTypeExit = logType;
+}
+
+// Set a trace log callback to enable custom logging
+void SetTraceLogCallback(TraceLogCallback callback)
+{
+    logCallback = callback;
 }
 
 // Show trace log messages (LOG_INFO, LOG_WARNING, LOG_ERROR, LOG_DEBUG)
-void TraceLog(int msgType, const char *text, ...)
+void TraceLog(int logType, const char *text, ...)
 {
 #if defined(SUPPORT_TRACELOG)
-    static char buffer[128];
+    // Message has level below current threshold, don't emit
+    if (logType < logTypeLevel) return;
 
-    switch(msgType)
+    va_list args;
+    va_start(args, text);
+
+    if (logCallback)
     {
-        case LOG_INFO: strcpy(buffer, "INFO: "); break;
-        case LOG_ERROR: strcpy(buffer, "ERROR: "); break;
-        case LOG_WARNING: strcpy(buffer, "WARNING: "); break;
+        logCallback(logType, text, args);
+        va_end(args);
+        return;
+    }
+
+#if defined(PLATFORM_ANDROID)
+    switch(logType)
+    {
+        case LOG_TRACE: __android_log_vprint(ANDROID_LOG_VERBOSE, "raylib", text, args); break;
+        case LOG_DEBUG: __android_log_vprint(ANDROID_LOG_DEBUG, "raylib", text, args); break;
+        case LOG_INFO: __android_log_vprint(ANDROID_LOG_INFO, "raylib", text, args); break;
+        case LOG_WARNING: __android_log_vprint(ANDROID_LOG_WARN, "raylib", text, args); break;
+        case LOG_ERROR: __android_log_vprint(ANDROID_LOG_ERROR, "raylib", text, args); break;
+        case LOG_FATAL: __android_log_vprint(ANDROID_LOG_FATAL, "raylib", text, args); break;
+        default: break;
+    }
+#else
+    char buffer[MAX_TRACELOG_MSG_LENGTH] = { 0 };
+
+    switch (logType)
+    {
+        case LOG_TRACE: strcpy(buffer, "TRACE: "); break;
         case LOG_DEBUG: strcpy(buffer, "DEBUG: "); break;
+        case LOG_INFO: strcpy(buffer, "INFO: "); break;
+        case LOG_WARNING: strcpy(buffer, "WARNING: "); break;
+        case LOG_ERROR: strcpy(buffer, "ERROR: "); break;
+        case LOG_FATAL: strcpy(buffer, "FATAL: "); break;
         default: break;
     }
 
     strcat(buffer, text);
     strcat(buffer, "\n");
-
-    va_list args;
-    va_start(args, text);
-
-#if defined(PLATFORM_ANDROID)
-    switch(msgType)
-    {
-        case LOG_INFO: if (logTypeFlags & LOG_INFO) __android_log_vprint(ANDROID_LOG_INFO, "raylib", buffer, args); break;
-        case LOG_WARNING: if (logTypeFlags & LOG_WARNING) __android_log_vprint(ANDROID_LOG_WARN, "raylib", buffer, args); break;
-        case LOG_ERROR: if (logTypeFlags & LOG_ERROR) __android_log_vprint(ANDROID_LOG_ERROR, "raylib", buffer, args); break;
-        case LOG_DEBUG: if (logTypeFlags & LOG_DEBUG) __android_log_vprint(ANDROID_LOG_DEBUG, "raylib", buffer, args); break;
-        default: break;
-    }
-#else
-    switch(msgType)
-    {
-        case LOG_INFO: if (logTypeFlags & LOG_INFO) vprintf(buffer, args); break;
-        case LOG_WARNING: if (logTypeFlags & LOG_WARNING) vprintf(buffer, args); break;
-        case LOG_ERROR: if (logTypeFlags & LOG_ERROR) vprintf(buffer, args); break;
-        case LOG_DEBUG: if (logTypeFlags & LOG_DEBUG) vprintf(buffer, args); break;
-        default: break;
-    }
+    vprintf(buffer, args);
 #endif
 
     va_end(args);
 
-    if (msgType == LOG_ERROR) exit(1);  // If LOG_ERROR message, exit program
+    if (logType >= logTypeExit) exit(1); // If exit message, exit program
 
 #endif  // SUPPORT_TRACELOG
 }
 
-// Creates a BMP image file from an array of pixel data
-void SaveBMP(const char *fileName, unsigned char *imgData, int width, int height, int compSize)
+// Load data from file into a buffer
+unsigned char *LoadFileData(const char *fileName, unsigned int *bytesRead)
 {
-#if defined(SUPPORT_SAVE_BMP) && (defined(PLATFORM_DESKTOP) || defined(PLATFORM_RPI))
-    stbi_write_bmp(fileName, width, height, compSize, imgData);
-    TraceLog(LOG_INFO, "BMP Image saved: %s", fileName);
-#endif
+    unsigned char *data = NULL;
+    *bytesRead = 0;
+
+    if (fileName != NULL)
+    {
+        FILE *file = fopen(fileName, "rb");
+
+        if (file != NULL)
+        {
+            // WARNING: On binary streams SEEK_END could not be found,
+            // using fseek() and ftell() could not work in some (rare) cases
+            fseek(file, 0, SEEK_END);
+            int size = ftell(file);
+            fseek(file, 0, SEEK_SET);
+
+            if (size > 0)
+            {
+                data = (unsigned char *)RL_MALLOC(size*sizeof(unsigned char));
+
+                // NOTE: fread() returns number of read elements instead of bytes, so we read [1 byte, size elements]
+                unsigned int count = (unsigned int)fread(data, sizeof(unsigned char), size, file);
+                *bytesRead = count;
+
+                if (count != size) TRACELOG(LOG_WARNING, "FILEIO: [%s] File partially loaded", fileName);
+                else TRACELOG(LOG_INFO, "FILEIO: [%s] File loaded successfully", fileName);
+            }
+            else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to read file", fileName);
+
+            fclose(file);
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
+
+    return data;
 }
 
-// Creates a PNG image file from an array of pixel data
-void SavePNG(const char *fileName, unsigned char *imgData, int width, int height, int compSize)
+// Save data to file from buffer
+void SaveFileData(const char *fileName, void *data, unsigned int bytesToWrite)
 {
-#if defined(SUPPORT_SAVE_PNG) && (defined(PLATFORM_DESKTOP) || defined(PLATFORM_RPI))
-    stbi_write_png(fileName, width, height, compSize, imgData, width*compSize);
-    TraceLog(LOG_INFO, "PNG Image saved: %s", fileName);
-#endif
+    if (fileName != NULL)
+    {
+        FILE *file = fopen(fileName, "wb");
+
+        if (file != NULL)
+        {
+            unsigned int count = (unsigned int)fwrite(data, sizeof(unsigned char), bytesToWrite, file);
+
+            if (count == 0) TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to write file", fileName);
+            else if (count != bytesToWrite) TRACELOG(LOG_WARNING, "FILEIO: [%s] File partially written", fileName);
+            else TRACELOG(LOG_INFO, "FILEIO: [%s] File saved successfully", fileName);
+
+            fclose(file);
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
 }
 
-// Keep track of memory allocated
-// NOTE: mallocType defines the type of data allocated
-/*
-void RecordMalloc(int mallocType, int mallocSize, const char *msg)
+// Load text data from file, returns a '\0' terminated string
+// NOTE: text chars array should be freed manually
+char *LoadFileText(const char *fileName)
 {
-    // TODO: Investigate how to record memory allocation data...
-    // Maybe creating my own malloc function...
+    char *text = NULL;
+
+    if (fileName != NULL)
+    {
+        FILE *textFile = fopen(fileName, "rt");
+
+        if (textFile != NULL)
+        {
+            // WARNING: When reading a file as 'text' file,
+            // text mode causes carriage return-linefeed translation...
+            // ...but using fseek() should return correct byte-offset
+            fseek(textFile, 0, SEEK_END);
+            unsigned int size = (unsigned int)ftell(textFile);
+            fseek(textFile, 0, SEEK_SET);
+
+            if (size > 0)
+            {
+                text = (char *)RL_MALLOC((size + 1)*sizeof(char));
+                unsigned int count = (unsigned int)fread(text, sizeof(char), size, textFile);
+
+                // WARNING: \r\n is converted to \n on reading, so,
+                // read bytes count gets reduced by the number of lines
+                if (count < size) text = RL_REALLOC(text, count + 1);
+
+                // Zero-terminate the string
+                text[count] = '\0';
+
+                TRACELOG(LOG_INFO, "FILEIO: [%s] Text file loaded successfully", fileName);
+            }
+            else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to read text file", fileName);
+
+            fclose(textFile);
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open text file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
+
+    return text;
 }
-*/
+
+// Save text data to file (write), string must be '\0' terminated
+void SaveFileText(const char *fileName, char *text)
+{
+    if (fileName != NULL)
+    {
+        FILE *file = fopen(fileName, "wt");
+
+        if (file != NULL)
+        {
+            int count = fprintf(file, "%s", text);
+
+            if (count == 0) TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to write text file", fileName);
+            else TRACELOG(LOG_INFO, "FILEIO: [%s] Text file saved successfully", fileName);
+
+            fclose(file);
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open text file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
+}
 
 #if defined(PLATFORM_ANDROID)
 // Initialize asset manager from android app
-void InitAssetManager(AAssetManager *manager)
+void InitAssetManager(AAssetManager *manager, const char *dataPath)
 {
     assetManager = manager;
+    internalDataPath = dataPath;
 }
 
 // Replacement for fopen
+// Ref: https://developer.android.com/ndk/reference/group/asset
 FILE *android_fopen(const char *fileName, const char *mode)
 {
-    if (mode[0] == 'w') return NULL;
+    if (mode[0] == 'w')     // TODO: Test!
+    {
+        // TODO: fopen() is mapped to android_fopen() that only grants read access
+        // to assets directory through AAssetManager but we want to also be able to
+        // write data when required using the standard stdio FILE access functions
+        // Ref: https://stackoverflow.com/questions/11294487/android-writing-saving-files-from-native-code-only
+        #undef fopen
+        return fopen(TextFormat("%s/%s", internalDataPath, fileName), mode);
+        #define fopen(name, mode) android_fopen(name, mode)
+    }
+    else
+    {
+        // NOTE: AAsset provides access to read-only asset
+        AAsset *asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_UNKNOWN);
 
-    AAsset *asset = AAssetManager_open(assetManager, fileName, 0);
-
-    if (!asset) return NULL;
-
-    return funopen(asset, android_read, android_write, android_seek, android_close);
+        if (asset != NULL) 
+        {
+            // Return pointer to file in the assets
+            return funopen(asset, android_read, android_write, android_seek, android_close);
+        }
+        else
+        {
+            #undef fopen
+            // Just do a regular open if file is not found in the assets
+            return fopen(TextFormat("%s/%s", internalDataPath, fileName), mode);
+            #define fopen(name, mode) android_fopen(name, mode)
+        }
+    }
 }
-#endif
+#endif  // PLATFORM_ANDROID
 
 //----------------------------------------------------------------------------------
 // Module specific Functions Definition
@@ -206,7 +344,7 @@ static int android_read(void *cookie, char *buf, int size)
 
 static int android_write(void *cookie, const char *buf, int size)
 {
-    TraceLog(LOG_ERROR, "Can't provide write access to the APK");
+    TRACELOG(LOG_WARNING, "ANDROID: Failed to provide write access to APK");
 
     return EACCES;
 }
@@ -221,4 +359,4 @@ static int android_close(void *cookie)
     AAsset_close((AAsset *)cookie);
     return 0;
 }
-#endif
+#endif  // PLATFORM_ANDROID

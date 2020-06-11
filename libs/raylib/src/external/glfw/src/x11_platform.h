@@ -1,8 +1,8 @@
 //========================================================================
-// GLFW 3.3 X11 - www.glfw.org
+// GLFW 3.4 X11 - www.glfw.org
 //------------------------------------------------------------------------
 // Copyright (c) 2002-2006 Marcus Geelnard
-// Copyright (c) 2006-2016 Camilla Löwy <elmindreda@glfw.org>
+// Copyright (c) 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -85,9 +85,15 @@ typedef int (* PFN_XRRUpdateConfiguration)(XEvent*);
 typedef XcursorImage* (* PFN_XcursorImageCreate)(int,int);
 typedef void (* PFN_XcursorImageDestroy)(XcursorImage*);
 typedef Cursor (* PFN_XcursorImageLoadCursor)(Display*,const XcursorImage*);
+typedef char* (* PFN_XcursorGetTheme)(Display*);
+typedef int (* PFN_XcursorGetDefaultSize)(Display*);
+typedef XcursorImage* (* PFN_XcursorLibraryLoadImage)(const char*,const char*,int);
 #define XcursorImageCreate _glfw.x11.xcursor.ImageCreate
 #define XcursorImageDestroy _glfw.x11.xcursor.ImageDestroy
 #define XcursorImageLoadCursor _glfw.x11.xcursor.ImageLoadCursor
+#define XcursorGetTheme _glfw.x11.xcursor.GetTheme
+#define XcursorGetDefaultSize _glfw.x11.xcursor.GetDefaultSize
+#define XcursorLibraryLoadImage _glfw.x11.xcursor.LibraryLoadImage
 
 typedef Bool (* PFN_XineramaIsActive)(Display*);
 typedef Bool (* PFN_XineramaQueryExtension)(Display*,int*,int*);
@@ -180,6 +186,7 @@ typedef struct _GLFWwindowX11
 {
     Colormap        colormap;
     Window          handle;
+    Window          parent;
     XIC             ic;
 
     GLFWbool        overrideRedirect;
@@ -228,7 +235,7 @@ typedef struct _GLFWlibraryX11
     // Clipboard string (while the selection is owned)
     char*           clipboardString;
     // Key name string
-    char            keyName[5];
+    char            keynames[GLFW_KEY_LAST + 1][5];
     // X11 keycode to GLFW key LUT
     short int       keycodes[256];
     // GLFW key to X11 keycode LUT
@@ -239,6 +246,8 @@ typedef struct _GLFWlibraryX11
     _GLFWwindow*    disabledCursorWindow;
 
     // Window manager atoms
+    Atom            NET_SUPPORTED;
+    Atom            NET_SUPPORTING_WM_CHECK;
     Atom            WM_PROTOCOLS;
     Atom            WM_STATE;
     Atom            WM_DELETE_WINDOW;
@@ -259,6 +268,8 @@ typedef struct _GLFWlibraryX11
     Atom            NET_WM_FULLSCREEN_MONITORS;
     Atom            NET_WM_WINDOW_OPACITY;
     Atom            NET_WM_CM_Sx;
+    Atom            NET_WORKAREA;
+    Atom            NET_CURRENT_DESKTOP;
     Atom            NET_ACTIVE_WINDOW;
     Atom            NET_FRAME_EXTENTS;
     Atom            NET_REQUEST_FRAME_EXTENTS;
@@ -319,13 +330,14 @@ typedef struct _GLFWlibraryX11
     } randr;
 
     struct {
-        GLFWbool    available;
-        GLFWbool    detectable;
-        int         majorOpcode;
-        int         eventBase;
-        int         errorBase;
-        int         major;
-        int         minor;
+        GLFWbool     available;
+        GLFWbool     detectable;
+        int          majorOpcode;
+        int          eventBase;
+        int          errorBase;
+        int          major;
+        int          minor;
+        unsigned int group;
     } xkb;
 
     struct {
@@ -347,6 +359,9 @@ typedef struct _GLFWlibraryX11
         PFN_XcursorImageCreate ImageCreate;
         PFN_XcursorImageDestroy ImageDestroy;
         PFN_XcursorImageLoadCursor ImageLoadCursor;
+        PFN_XcursorGetTheme GetTheme;
+        PFN_XcursorGetDefaultSize GetDefaultSize;
+        PFN_XcursorLibraryLoadImage LibraryLoadImage;
     } xcursor;
 
     struct {
