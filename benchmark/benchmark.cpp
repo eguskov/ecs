@@ -9,6 +9,9 @@
 
 #include <benchmark/benchmark.h>
 
+#include <daScript/daScript.h>
+#include <daScript/simulate/fs_file_info.h>
+
 PULL_ESC_CORE;
 
 struct update_position
@@ -20,8 +23,8 @@ struct update_position
 };
 
 static constexpr ConstComponentDescription update_position_components[] = {
-  {HASH("vel"), ComponentType<glm::vec3>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec3>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("vel"), ComponentType<glm::vec3>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec3>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription update_position_query_desc = {
   make_const_array(update_position_components),
@@ -33,13 +36,12 @@ static constexpr ConstQueryDescription update_position_query_desc = {
 static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_position"));
-  for (auto c = query.beginChunk(), ce = query.endChunk(); c != ce; ++c)
-    for (int32_t i = c.begin(), e = c.end(); i != e; ++i)
-      update_position::run(*(UpdateStage*)stage_or_event.mem,
-        c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, vel), i),
-        c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, pos), i));
+  for (auto q = query.begin(), e = query.end(); q != e; ++q)
+    update_position::run(*(UpdateStage*)stage_or_event.mem,
+      GET_COMPONENT(update_position, q, glm::vec3, vel),
+      GET_COMPONENT(update_position, q, glm::vec3, pos));
 }
-static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("UpdateStage"), update_position_query_desc);
+static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("UpdateStage"), update_position_query_desc, "", "");
 
 static void BM_NativeFor(benchmark::State& state)
 {
@@ -66,11 +68,10 @@ static void BM_ECS_System(benchmark::State& state)
 
   eastl::vector<EntityId> eids;
 
-  const JValue emptyValue;
   for (int leftCount = count; leftCount > 0; leftCount -= 4096)
   {
     for (int i = 0; i < eastl::min(leftCount, 4096); ++i)
-      eids.push_back(ecs::create_entity_sync("test", emptyValue));
+      eids.push_back(ecs::create_entity_sync("test", ComponentsMap()));
     ecs::tick();
     clear_frame_mem();
   }
@@ -81,11 +82,10 @@ static void BM_ECS_System(benchmark::State& state)
 
   while (state.KeepRunning())
   {
-    for (auto c = query.beginChunk(), ce = query.endChunk(); c != ce; ++c)
-      for (int32_t i = c.begin(), e = c.end(); i != e; ++i)
-        update_position::run(stage,
-          c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, vel), i),
-          c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, pos), i));
+    for (auto q = query.begin(), e = query.end(); q != e; ++q)
+      update_position::run(stage,
+        GET_COMPONENT(update_position, q, glm::vec3, vel),
+        GET_COMPONENT(update_position, q, glm::vec3, pos));
   }
 
   for (auto eid : eids)
@@ -100,17 +100,16 @@ static void BM_ECS_UpdateStage(benchmark::State& state)
 
   eastl::vector<EntityId> eids;
 
-  const JValue emptyValue;
   for (int leftCount = count; leftCount > 0; leftCount -= 4096)
   {
     for (int i = 0; i < eastl::min(leftCount, 4096); ++i)
-      eids.push_back(ecs::create_entity_sync("test", emptyValue));
+      eids.push_back(ecs::create_entity_sync("test", ComponentsMap()));
     ecs::tick();
 
     // HACK!!!
     // FIXME: create_entity_sync does NOT perform queries!!!
-    for (auto &q : g_mgr->queries)
-      ecs::perform_query(q);
+    for (auto &sys : g_mgr->systems)
+      ecs::perform_query(sys.queryId);
 
     clear_frame_mem();
   }
@@ -125,6 +124,89 @@ static void BM_ECS_UpdateStage(benchmark::State& state)
   ecs::tick();
 }
 BENCHMARK(BM_ECS_UpdateStage)->RangeMultiplier(2)->Range(1 << 11, 1 << 20);
+
+static void BM_ScriptForDas(benchmark::State& state)
+{
+  const int count = (int)state.range(0);
+
+  auto fAccess = das::make_smart<das::FsFileAccess>();
+
+  das::TextPrinter tout;
+  das::ModuleGroup dummyLibGroup;
+
+  auto program = das::compileDaScript("D:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
+
+  das::Context ctx(program->getContextStackSize());
+  if (!program->simulate(ctx, tout))
+  {
+    for (auto & err : program->errors)
+      tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+  }
+
+  auto fnTest = ctx.findFunction("test");
+
+  eastl::vector<glm::vec3> pos;
+  eastl::vector<glm::vec3> vel;
+  pos.resize(count, glm::vec3(0.f, 0.f, 0.f));
+  vel.resize(count, glm::vec3(1.f, 1.f, 1.f));
+
+  if (fnTest)
+    while (state.KeepRunning())
+    {
+      for (int i = 0; i < count; ++i)
+      {
+        ctx.restart();
+        vec4f args[] = { das::cast<char *>::from((char *)&pos[i]), das::cast<char *>::from((char *)&vel[i]) };
+        ctx.eval(fnTest, args);
+      }
+    }
+}
+BENCHMARK(BM_ScriptForDas)->RangeMultiplier(2)->Range(1 << 11, 1 << 20);
+
+static void BM_ScriptForDasAot(benchmark::State& state)
+{
+  const int count = (int)state.range(0);
+
+  auto fAccess = das::make_smart<das::FsFileAccess>();
+
+  das::TextPrinter tout;
+  das::ModuleGroup dummyLibGroup;
+
+  auto program = das::compileDaScript("D:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
+
+  das::Context ctx(program->getContextStackSize());
+  if (!program->simulate(ctx, tout))
+  {
+    for (auto & err : program->errors)
+      tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+  }
+
+  das::AotLibrary aotLib;
+  das::AotListBase::registerAot(aotLib);
+  program->linkCppAot(ctx, aotLib, tout);
+
+  auto fnTest = ctx.findFunction("test");
+
+  eastl::vector<glm::vec3> pos;
+  eastl::vector<glm::vec3> vel;
+  pos.resize(count, glm::vec3(0.f, 0.f, 0.f));
+  vel.resize(count, glm::vec3(1.f, 1.f, 1.f));
+
+  if (fnTest)
+    while (state.KeepRunning())
+    {
+      for (int i = 0; i < count; ++i)
+      {
+        ctx.restart();
+        vec4f args[] = {
+          das::cast<glm::vec3*>::from(&pos[i]),
+          das::cast<const glm::vec3*>::from(&vel[i]),
+        };
+        ctx.eval(fnTest, args);
+      }
+    }
+}
+BENCHMARK(BM_ScriptForDasAot)->RangeMultiplier(2)->Range(1 << 11, 1 << 20);
 
 static void BM_JobManager(benchmark::State& state)
 {
@@ -163,11 +245,10 @@ static void BM_ECS_JobManager(benchmark::State& state)
 
   eastl::vector<EntityId> eids;
 
-  const JValue emptyValue;
   for (int leftCount = count; leftCount > 0; leftCount -= 4096)
   {
     for (int i = 0; i < eastl::min(leftCount, 4096); ++i)
-      eids.push_back(ecs::create_entity_sync("test", emptyValue));
+      eids.push_back(ecs::create_entity_sync("test", ComponentsMap()));
     ecs::tick();
     clear_frame_mem();
   }
@@ -178,11 +259,10 @@ static void BM_ECS_JobManager(benchmark::State& state)
 
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
-    for (auto c = query.beginChunk(from), ce = query.endChunk(); c != ce && count; ++c)
-      for (int32_t i = c.begin(), e = c.end(); i != e && count; ++i, --count)
-        update_position::run(stage,
-          c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, vel), i),
-          c.get<glm::vec3>(INDEX_OF_COMPONENT(update_position, pos), i));
+    for (auto q = query.begin(from), e = query.end(); q != e && count > 0; ++q, --count)
+      update_position::run(stage,
+        GET_COMPONENT(update_position, q, glm::vec3, vel),
+        GET_COMPONENT(update_position, q, glm::vec3, pos));
   };
 
   const int chunkSize = (int)state.range(1);
@@ -630,10 +710,18 @@ int main(int argc, char** argv)
 {
   // ecs::init();
 
+  extern int das_def_tab_size;
+  das_def_tab_size = 2;
+
+  NEED_MODULE(Module_BuiltIn);
+  NEED_MODULE(Module_Math);
+
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;
   ::benchmark::RunSpecifiedBenchmarks();
 
   // ecs::release();
+
+  das::Module::Shutdown();
 }
