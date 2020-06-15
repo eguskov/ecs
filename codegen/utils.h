@@ -76,6 +76,11 @@ namespace utils
 
     return elems;
   }
+
+  static eastl::string replace(const eastl::string &str, const char *what_pattern, const char *with)
+  {
+    return std::regex_replace(str.c_str(), std::regex(what_pattern), with).c_str();
+  }
 }
 
 inline std::ostream& operator<<(std::ostream &out, const eastl::string &s)

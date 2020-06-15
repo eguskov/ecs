@@ -13,6 +13,7 @@
 #include <regex>
 
 #include <EASTL/functional.h>
+#include <EASTL/hash_map.h>
 
 #include "utils.h"
 #include "parser.h"
@@ -25,12 +26,12 @@ eastl::string escape_name(const eastl::string name)
 
 int main(int argc, char* argv[])
 {
-  std::cout << "Codegen: " << argv[1] << std::endl;
-
   char path[MAX_PATH];
   ::GetCurrentDirectory(MAX_PATH, path);
 
-  // TODO: Remove path hardcode or rewrite codegen on AngelScript
+  std::cout << "Codegen: " << argv[1] << "; cwd: " << path << std::endl;
+
+  // TODO: Remove path hardcode or rewrite codegen on daScript
   const char *clangArgs[] = {
     "-xc++",
     "-std=c++14",
@@ -48,20 +49,16 @@ int main(int argc, char* argv[])
     "-fmsc-version=1900",
     "-I../ecs",
     "-I../script",
-    "-I../libs/rapidjson/include",
     "-I../libs/glm",
-    "-I../libs/mongoose",
-    "-I../libs/angelscript/angelscript/include",
-    "-I../libs/angelscript/add_on",
     "-I../libs/EASTL/include",
     "-I../libs/EASTL/test/packages/EABase/include/Common",
     "-I../libs/raylib/src",
-    "-I../libs/Box2D",
-    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/include",
-    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Tools/MSVC/14.14.26428/atlmfc/include",
-    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Auxiliary/VS/include",
+    "-I../libs/Box2D/include",
+    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/include",
+    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/atlmfc/include",
+    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/VS/include",
+    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/VS/UnitTest/include",
     "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt",
-    "-IC:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/VC/Auxiliary/VS/UnitTest/include",
     "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/um",
     "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/shared",
     "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/winrt",
@@ -120,8 +117,6 @@ int main(int argc, char* argv[])
       out << fmt::format("static ComponentDescriptionDetails<{type}> _reg_comp_{name}(\"{name}\");\n",
         fmt::arg("type", comp.type),
         fmt::arg("name", comp.name));
-
-      out << "\n";
     }
 
     for (const auto &ev : state.events)
@@ -133,6 +128,15 @@ int main(int argc, char* argv[])
       out << "\n";
     }
 
+    for (auto &sys : state.systems)
+    {
+      sys.beforeStr = utils::replace(utils::join(sys.before, ","), " ", "");
+      sys.afterStr = utils::replace(utils::join(sys.after, ","), " ", "");
+      if (sys.beforeStr == "")
+        sys.beforeStr = "*";
+      if (sys.afterStr == "")
+        sys.afterStr = "*";
+    }
     for (auto &sys : state.systems)
     {
       sys.fromQuery = false;
@@ -155,10 +159,8 @@ int main(int argc, char* argv[])
         }
       }
 
-      if (sys.fromQuery)
-      {
+      if (sys.fromQuery || sys.isEmpty() || sys.isBarrier)
         continue;
-      }
 
       if (sys.parameters.size() > 1)
       {
@@ -166,7 +168,7 @@ int main(int argc, char* argv[])
         for (int i = 1; i < (int)sys.parameters.size(); ++i)
         {
           const auto &p = sys.parameters[i];
-          out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
         }
         out << "};" << std::endl;
       }
@@ -193,7 +195,7 @@ int main(int argc, char* argv[])
       {
         out << "static constexpr ConstComponentDescription " << sys.name << "_track_components[] = {" << std::endl;
         for (const auto &p : sys.track)
-          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::size}," << std::endl;
         out << "};" << std::endl;
       }
 
@@ -226,7 +228,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstComponentDescription " << q.name << "_components[] = {" << std::endl;
       for (const auto &p : q.parameters)
-        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!q.have.empty())
@@ -247,7 +249,7 @@ int main(int argc, char* argv[])
       {
         out << "static constexpr ConstComponentDescription " << q.name << "_track_components[] = {" << std::endl;
         for (const auto &p : q.track)
-          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::Size}," << std::endl;
+          out << "  {HASH(\"" << p.name << "\"), ComponentType<bool>::size}," << std::endl;
         out << "};" << std::endl;
       }
 
@@ -283,7 +285,7 @@ int main(int argc, char* argv[])
     {
       out << "static constexpr ConstComponentDescription " << i.name << "_components[] = {" << std::endl;
       for (const auto &p : i.parameters)
-        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::Size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
+        out << "  {HASH(\"" << p.name << "\"), ComponentType<" << p.pureType << ">::size, " << (p.isRW ? "ComponentDescriptionFlags::kWrite" : "ComponentDescriptionFlags::kNone") << "}," << std::endl;
       out << "};" << std::endl;
 
       if (!i.have.empty())
@@ -358,13 +360,12 @@ int main(int argc, char* argv[])
     {
       out << "int " << q.name << "::count()\n";
       out << "{\n";
-      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));\n";
-      out << "  return query.entitiesCount;\n";
+      out << "  return ecs::get_entities_count(_reg_query_" << q.name << ".queryId);\n";
       out << "}\n";
 
       out << "template <typename Callable> void " << q.name << "::foreach(Callable callback)\n";
       out << "{\n";
-      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));\n";
+      out << "  Query &query = ecs::get_query(_reg_query_" << q.name << ".queryId);\n";
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
       out << "    callback(\n";
       out << "    {\n      ";
@@ -389,7 +390,7 @@ int main(int argc, char* argv[])
         out << "  return nullptr;\n";
       out << "}\n";
 
-      out << q.name << " " << q.name << "::get(Query::AllIterator &iter)\n";
+      out << q.name << " " << q.name << "::get(QueryIterator &iter)\n";
       out << "{\n";
       out << "  return {\n      ";
       for (int i = 0; i < (int)q.parameters.size(); ++i)
@@ -403,14 +404,17 @@ int main(int argc, char* argv[])
       out << "}\n";
     }
 
-    decltype(state.systems) systemsExternalQuery;
-    decltype(state.systems) systemsInternalQuery;
-    decltype(state.systems) systemsJoinQueries;
-    decltype(state.systems) systemsJoinIndexQueries;
-    decltype(state.systems) systemsGroupBy;
-    decltype(state.systems) systemsQueryIterable;
-    decltype(state.systems) systemsInternalQueryInJobs;
-    decltype(state.systems) systemsAddJobs;
+    using SystemsList = decltype(state.systems);
+    SystemsList systemsEmpty;
+    SystemsList systemsExternalQuery;
+    SystemsList systemsInternalQuery;
+    SystemsList systemsJoinQueries;
+    SystemsList systemsJoinIndexQueries;
+    SystemsList systemsGroupBy;
+    SystemsList systemsQueryIterable;
+    SystemsList systemsInternalQueryInJobs;
+    SystemsList systemsAddJobs;
+    SystemsList barriers;
 
     for (const auto &sys : state.systems)
     {
@@ -437,6 +441,10 @@ int main(int argc, char* argv[])
         systemsInternalQueryInJobs.push_back(sys);
       else if (sys.addJobs)
         systemsAddJobs.push_back(sys);
+      else if (sys.isEmpty())
+        systemsEmpty.push_back(sys);
+      else if (sys.isBarrier)
+        barriers.push_back(sys);
       else
         systemsInternalQuery.push_back(sys);
     }
@@ -450,7 +458,7 @@ int main(int argc, char* argv[])
       out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query&)\n", fmt::arg("system", sys.name));
       out << "{\n";
 
-      out << fmt::format("  Query &query = *ecs::find_query(HASH(\"{basename}_{query}\"));\n",
+      out << fmt::format("  Query &query = ecs::get_query(_reg_query_{query}.queryId);\n",
         fmt::arg("basename", basename),
         fmt::arg("query", query.name));
       
@@ -464,10 +472,12 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {query}_query_desc, SystemDescription::Mode::FROM_EXTERNAL_QUERY);\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {query}_query_desc, \"{before}\", \"{after}\", SystemDescription::Mode::FROM_EXTERNAL_QUERY);\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("query", query.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsGroupBy)
@@ -495,9 +505,11 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), \"{before}\", \"{after}\");\n\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsJoinIndexQueries)
@@ -514,7 +526,7 @@ int main(int argc, char* argv[])
       out << "  Index &index = *ecs::find_index(HASH(\"" << basename << "_" << index.name << "\"));\n";
 
       const auto &q1 = state.queries[sys.parameters[1].queryId];
-      out << "  Query &query1 = *ecs::find_query(HASH(\"" << basename << "_" << q1.name << "\"));" << std::endl;
+      out << "  Query &query1 = ecs::get_query(_reg_query_" << q1.name << ".queryId);" << std::endl;
 
       std::string indent = "  ";
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
@@ -578,9 +590,11 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), \"{before}\", \"{after}\");\n\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsJoinQueries)
@@ -595,7 +609,7 @@ int main(int argc, char* argv[])
       for (int i = 1; i < (int)sys.parameters.size(); ++i)
       {
         const auto &q = state.queries[sys.parameters[i].queryId];
-        out << "  Query &query" << i << " = *ecs::find_query(HASH(\"" << basename << "_" << q.name << "\"));" << std::endl;
+        out << "  Query &query" << i << " = ecs::get_query(_reg_query_"<< q.name << ".queryId);" << std::endl;
       }
 
       std::string indent = "  ";
@@ -643,9 +657,11 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), \"{before}\", \"{after}\");\n\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsExternalQuery)
@@ -659,7 +675,7 @@ int main(int argc, char* argv[])
 
       out << "  ecs::wait_system_dependencies(HASH(\"" << sys.name << "\"));\n";
 
-      out << "  Query &query = *ecs::find_query(HASH(\"" << basename << "_" << query.name << "\"));" << std::endl;
+      out << "  Query &query = ecs::get_query(_reg_query_" << query.name << ".queryId);" << std::endl;
       out << "  for (auto q = query.begin(), e = query.end(); q != e; ++q)\n";
 
       out << "    " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem,\n    {\n      ";
@@ -674,9 +690,11 @@ int main(int argc, char* argv[])
 
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"));\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), \"{before}\", \"{after}\");\n\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType));
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsInternalQuery)
@@ -694,10 +712,12 @@ int main(int argc, char* argv[])
       out << ");" << std::endl;
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, \"{before}\", \"{after}\", {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
-        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
+        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsInternalQueryInJobs)
@@ -721,10 +741,12 @@ int main(int argc, char* argv[])
       out << "  jobmanager::wait(job);\n";
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), {system}_query_desc, \"{before}\", \"{after}\", {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
-        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
+        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
     for (const auto &sys : systemsAddJobs)
@@ -750,13 +772,103 @@ int main(int argc, char* argv[])
       out << "  jobmanager::start_jobs();\n";
       out << "}\n";
 
-      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, HASH(\"{stage}\"), {system}_query_desc, {filter});\n\n",
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_add_jobs, HASH(\"{stage}\"), {system}_query_desc, \"{before}\", \"{after}\", {filter});\n\n",
         fmt::arg("system", sys.name),
         fmt::arg("stage", sys.parameters[0].pureType),
-        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter));
+        fmt::arg("filter", sys.filter.empty() ? "nullptr" : sys.filter),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
     }
 
-    out << "#endif // __CODEGEN__" << std::endl;
+    for (const auto &sys : systemsEmpty)
+    {
+      out << fmt::format("static void {system}_run(const RawArg &stage_or_event, Query &)\n", fmt::arg("system", sys.name));
+      out << "{\n";
+      out << "  " << sys.name << "::run(*(" << sys.parameters[0].pureType << "*)stage_or_event.mem);\n";
+      out << "}\n";
+
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), &{system}_run, HASH(\"{stage}\"), empty_query_desc, \"{before}\", \"{after}\");\n\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
+    }
+
+    for (const auto &sys : barriers)
+    {
+      out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), \"{before}\", \"{after}\");\n",
+        fmt::arg("system", sys.name),
+        fmt::arg("stage", sys.parameters[0].pureType),
+        fmt::arg("before", sys.beforeStr),
+        fmt::arg("after", sys.afterStr));
+    }
+
+    eastl::hash_map<eastl::string, eastl::vector<VisitorState::AutoBind>> autoBindByModule;
+    for (const auto &autoBind : state.autoBind)
+    {
+      auto res = autoBindByModule.find(autoBind.module);
+      if (res == autoBindByModule.end())
+        autoBindByModule.insert(autoBind.module).first->second.push_back(autoBind);
+      else
+        res->second.push_back(autoBind);
+    }
+
+    for (const auto &kv : autoBindByModule)
+    {
+      for (const auto &autoBind : kv.second)
+      {
+        auto args = fmt::make_format_args(fmt::arg("type", autoBind.type), fmt::arg("canNew", autoBind.canNew));
+        out << fmt::vformat("\nstruct {type}Annotation final : das::ManagedStructureAnnotation<{type}, {canNew}>", args);
+        out << "\n{";
+        out << fmt::vformat("\n  {type}Annotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<{type}, {canNew}>(\"{type}\", lib)", args);
+        out << "\n  {";
+        out << fmt::vformat("\n    cppName = \" ::{type}\";", args);
+        for (const auto &field : autoBind.fields)
+        {
+          auto fieldArgs = fmt::make_format_args(fmt::arg("name", field.name), fmt::arg("bindName", field.bindName));
+          out << fmt::vformat("\n    addField<DAS_BIND_MANAGED_FIELD({name})>(\"{bindName}\");", fieldArgs);
+        }
+        out << "\n  }";
+        for (const auto &flag : autoBind.flags)
+        {
+          auto flagArgs = fmt::make_format_args(fmt::arg("key", flag.key), fmt::arg("value", flag.value));
+          out << fmt::vformat("\n  bool {key}() const override {{ return {value}; }}", flagArgs);
+        }
+        if (autoBind.canCopy)
+        {
+          out << "\n  das::SimNode* simulateClone(das::Context & context, const das::LineInfo & at, das::SimNode * l, das::SimNode * r) const override";
+          out << "\n  {";
+          out << fmt::vformat("\n    return context.code->makeNode<das::SimNode_CloneRefValueT<{type}>>(at, l, r);", args);
+          out << "\n  }";
+        }
+        out << "\n};";
+      }
+
+      auto args = fmt::make_format_args(fmt::arg("module", kv.first));
+      out << fmt::vformat("\nstatic void {module}_auto_bind(das::Module &module, das::ModuleLibrary &lib)", args);
+      out << "\n{";
+
+      for (const auto &autoBind : kv.second)
+        out << fmt::format("\n  module.addAnnotation(das::make_smart<{type}Annotation>(lib));", fmt::arg("type", autoBind.type));
+
+      for (const auto &autoBind : kv.second)
+        for (const auto &method : autoBind.methods)
+        {
+          auto dasName = eastl::string(method.isBuiltin ? "_builtin_" : "") + method.name;
+          auto methodArgs = fmt::make_format_args(
+            fmt::arg("name", method.name),
+            fmt::arg("fullName", method.fullName),
+            fmt::arg("dasName", dasName),
+            fmt::arg("sideEffect", method.sideEffect),
+            fmt::arg("simNode", method.simNode));
+          out << fmt::vformat("\n  das::addExtern<DAS_BIND_FUN({fullName}), {simNode}>(module, lib, \"{dasName}\", das::SideEffects::{sideEffect}, \"{fullName}\");", methodArgs);
+        }
+
+      out << "\n}";
+      out << fmt::vformat("\nstatic AutoBindDescription _reg_auto_bind_{module}(HASH(\"{module}\"), &{module}_auto_bind);", args);
+    }
+
+    out << "\n#endif // __CODEGEN__" << std::endl;
   }
 
   clang_disposeTranslationUnit(unit);

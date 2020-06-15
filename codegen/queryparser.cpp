@@ -253,7 +253,7 @@ struct integer : seq<opt<one<'+', '-'>>, plus<digit>>
 struct digits : plus<abnf::DIGIT> {};
 struct exp : seq<one<'e', 'E'>, opt<one<'-', '+'>>, must<digits>> {};
 struct frac : if_must<one<'.'>, digits> {};
-struct int_ : sor<one<'0'>, digits> {};
+struct int_ : sor<one<'0'>, seq<one<'-'>, digits>, digits> {};
 struct real : seq<opt<one<'-'>>, int_, opt<frac>, opt<exp>> {};
 
 struct true_ : string<'t', 'r', 'u', 'e'> {};
@@ -273,7 +273,7 @@ struct bracket : if_must<one<'('>, expression, one<')'>>
 {
 };
 
-struct atomic : sor<real, integer, boolean, component, bracket>
+struct atomic : sor<integer, real, boolean, component, bracket>
 {
 };
 

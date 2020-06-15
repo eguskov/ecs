@@ -42,7 +42,18 @@ struct VisitorState
     bool fromQuery = false;
     bool inJobs = false;
     bool addJobs = false;
+    bool isBarrier = false;
     eastl::string chunkSize;
+    eastl::vector<eastl::string> before;
+    eastl::vector<eastl::string> after;
+
+    eastl::string beforeStr;
+    eastl::string afterStr;
+
+    bool isEmpty() const
+    {
+      return parameters.size() == 1 && filter.empty() && have.empty() && notHave.empty() && track.empty();
+    }
   };
 
   struct Query : Function
@@ -71,6 +82,39 @@ struct VisitorState
     eastl::string type;
   };
 
+  struct AutoBind
+  {
+    struct Flag
+    {
+      eastl::string key;
+      eastl::string value;
+    };
+
+    struct Field
+    {
+      eastl::string name;
+      eastl::string bindName;
+    };
+
+    struct Method
+    {
+      bool isBuiltin = false;
+      eastl::string name;
+      eastl::string fullName;
+      eastl::string sideEffect;
+      eastl::string simNode = "das::SimNode_ExtFuncCall";
+    };
+
+    bool canNew = false;
+    bool canCopy = false;
+
+    eastl::string module;
+    eastl::string type;
+    eastl::vector<Flag> flags;
+    eastl::vector<Field> fields;
+    eastl::vector<Method> methods;
+  };
+
   eastl::string filename;
 
   CXTranslationUnit unit;
@@ -81,6 +125,7 @@ struct VisitorState
   eastl::vector<Index> indices;
   eastl::vector<Component> components;
   eastl::vector<Event> events;
+  eastl::vector<AutoBind> autoBind;
 };
 
 void parse(const CXTranslationUnit &unit, VisitorState &state);

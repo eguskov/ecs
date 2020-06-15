@@ -185,6 +185,31 @@ CXCursor find_method(CXCursor cursor, const char *name)
   return state.res;
 }
 
+eastl::vector<eastl::string> read_struct_methods(CXCursor cursor)
+{
+  struct State
+  {
+    const char *name;
+    eastl::vector<eastl::string> res;
+  } state;
+
+  auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
+  {
+    State &state = *static_cast<State*>(data);
+
+    CXCursorKind kind = clang_getCursorKind(cursor);
+
+    if (kind == CXCursor_CXXMethod || kind == CXCursor_FunctionTemplate)
+      state.res.emplace_back() = to_string(clang_getCursorSpelling(cursor));
+
+    return CXChildVisit_Continue;
+  };
+
+  clang_visitChildren(cursor, visitor, &state);
+
+  return state.res;
+}
+
 eastl::string read_string_literal(CXCursor cursor)
 {
   eastl::string res;
@@ -283,11 +308,15 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       {
         auto name = to_string(clang_getCursorSpelling(cursor));
         auto structName = to_string(clang_getCursorSpelling(parent));
+        eastl::string parentName;
+        eastl::string fieldName;
 
         auto p = clang_getCursorSemanticParent(parent);
         while (!clang_Cursor_isNull(p) && !clang_equalCursors(p, state.unitCursor))
         {
-          structName = to_string(clang_getCursorSpelling(p)) + "::" + structName;
+          parentName = to_string(clang_getCursorSpelling(p));
+          fieldName = structName;
+          structName = parentName + "::" + structName;
           p = clang_getCursorSemanticParent(p);
         }
 
@@ -332,6 +361,51 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
             p.name = name.substr(::strlen("@not-have: "));
           }
         }
+        else if (utils::startsWith(name, "@bind: "))
+        {
+          auto res = eastl::find_if(state.autoBind.begin(), state.autoBind.end(), [&] (const VisitorState::AutoBind &a) { return a.type == parentName; });
+          if (res != state.autoBind.end())
+          {
+            auto flags = utils::split(utils::replace(name.substr(::strlen("@bind: ")), " ", ""), ';');
+            if (clang_getCursorKind(parent) == CXCursor_CXXMethod)
+            {
+              VisitorState::AutoBind::Method &method = res->methods.emplace_back();
+              method.name = fieldName;
+              method.fullName = structName;
+              for (const auto &flag : flags)
+              {
+                auto kv = utils::split(flag, '=');
+                if (kv.empty())
+                  continue;
+
+                if (kv[0] == "name")
+                {
+                  method.name = kv[1];
+                  method.fullName = parentName + "::" + kv[1];
+                }
+                else if (kv[0] == "sideEffect")
+                  method.sideEffect = kv[1];
+                else if (kv[0] == "isBuiltin")
+                  method.isBuiltin = kv[1] == "true";
+                else if (kv[0] == "simNode")
+                  method.simNode = kv[1];
+              }
+            }
+            else
+            {
+              const auto &flag = flags[0];
+              auto kv = utils::split(flag, '=');
+              if (kv.size() > 1 && kv[0] == "name")
+                res->fields.push_back({fieldName, kv[1]});
+              else
+                res->fields.push_back({fieldName, fieldName});
+            }
+          }
+        }
+      }
+      else if (kind == CXCursor_FieldDecl || kind == CXCursor_CXXMethod)
+      {
+        return CXChildVisit_Recurse;
       }
 
       return CXChildVisit_Continue;
@@ -356,16 +430,86 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
           comp.name = fields[0].value;
         }
       }
+      else
+      {
+        CXFile file;
+        unsigned line;
+        unsigned column;
+        unsigned offset;
+        clang_getFileLocation(clang_getCursorLocation(cursor), &file, &line, &column, &offset);
+        if (state.filename == to_string(clang_getFileName(file)))
+        {
+          auto parentCursor = cursor;
+          foreach_struct_decl(cursor, [&](CXCursor cursor, const eastl::string &name)
+          {
+            if (name == "ecs_bind")
+            {
+              auto res = eastl::find_if(state.autoBind.begin(), state.autoBind.end(), [&] (const VisitorState::AutoBind &a) { return a.type == structName; });
+              assert(res != state.autoBind.end());
+
+              foreach_struct_decl(cursor, [&](CXCursor cursor, const eastl::string &name)
+              {
+                if (utils::startsWith(name, "ecs_bind_field_"))
+                {
+                  eastl::vector<VisitorState::Parameter> fields;
+                  read_struct_fields(cursor, fields);
+                  for (const auto &f : fields)
+                    res->fields.emplace_back() = {f.value, f.value};
+                }
+              });
+            }
+            else if (name == "ecs_bind_all_fields")
+            {
+              auto res = eastl::find_if(state.autoBind.begin(), state.autoBind.end(), [&] (const VisitorState::AutoBind &a) { return a.type == structName; });
+              assert(res != state.autoBind.end());
+
+              eastl::vector<VisitorState::Parameter> fields;
+              read_struct_fields(parentCursor, fields);
+              for (const auto &f : fields)
+                res->fields.emplace_back() = {f.name, f.name};
+            }
+            else if (name == "ecs_bind_type")
+            {
+              eastl::vector<VisitorState::Parameter> fields;
+              read_struct_fields(cursor, fields);
+
+              auto &autoBind = state.autoBind.emplace_back();
+
+              for (const auto &f : fields)
+              {
+                auto bindType = utils::split(utils::replace(f.value, " ", ""), ';');
+                autoBind.module = bindType[0];
+                autoBind.type = structName;
+
+                bindType.erase(bindType.begin());
+                for (const auto &flag : bindType)
+                {
+                  auto kv = utils::split(flag, '=');
+                  if (kv[0] == "canCopy")
+                    autoBind.canCopy = kv[1] == "true";
+
+                  if (kv[0] == "canNew")
+                    autoBind.canNew = kv[1] == "true";
+                  else
+                    autoBind.flags.push_back({ kv[0], kv[1] });
+                }
+              }
+            }
+          });
+        }
+      }
     }
 
     bool isQuery = false;
     bool isLazyQuery = false;
     bool isSystem = false;
     bool isSystemInJobs = false;
-    foreach_struct_decl(cursor, [&isQuery](CXCursor, const eastl::string &name) { if (name == "ecs_query") isQuery = true; });
-    foreach_struct_decl(cursor, [&isLazyQuery](CXCursor, const eastl::string &name) { if (name == "ecs_lazy_query") isLazyQuery = true; });
-    foreach_struct_decl(cursor, [&isSystem](CXCursor, const eastl::string &name) { if (name == "ecs_system") isSystem = true; });
+    bool isBarrier = false;
+    foreach_struct_decl(cursor, [&isQuery]       (CXCursor, const eastl::string &name) { if (name == "ecs_query") isQuery = true; });
+    foreach_struct_decl(cursor, [&isLazyQuery]   (CXCursor, const eastl::string &name) { if (name == "ecs_lazy_query") isLazyQuery = true; });
+    foreach_struct_decl(cursor, [&isSystem]      (CXCursor, const eastl::string &name) { if (name == "ecs_system") isSystem = true; });
     foreach_struct_decl(cursor, [&isSystemInJobs](CXCursor, const eastl::string &name) { if (name == "ecs_system_in_jobs") isSystemInJobs = true; });
+    foreach_struct_decl(cursor, [&isBarrier]     (CXCursor, const eastl::string &name) { if (name == "ecs_barrier") isBarrier = true; });
 
     if (isQuery || isLazyQuery)
     {
@@ -457,12 +601,13 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       });
     }
 
-    if (isSystem || isSystemInJobs)
+    if (isSystem || isSystemInJobs || isBarrier)
     {
       auto structName = to_string(clang_getCursorSpelling(cursor));
       auto &s = state.systems.push_back();
       s.name = eastl::move(structName);
       s.inJobs = isSystemInJobs;
+      s.isBarrier = isBarrier;
 
       if (s.inJobs)
       {
@@ -480,10 +625,13 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
       CXCursor addJobsCursor = find_method(cursor, "addJobs");
       s.addJobs = !clang_equalCursors(addJobsCursor, clang_getNullCursor());
 
-      CXCursor runCursor = find_method(cursor, "run");
-      assert(!clang_equalCursors(runCursor, clang_getNullCursor()));
+      if (!isBarrier)
+      {
+        CXCursor runCursor = find_method(cursor, "run");
+        assert(!clang_equalCursors(runCursor, clang_getNullCursor()));
 
-      read_function_params(runCursor, s.parameters);
+        read_function_params(runCursor, s.parameters);
+      }
 
       for (const auto &p : s.parameters)
         if (!p.templateRef.empty() && s.parameters.size() >= 3)
@@ -596,6 +744,20 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData
           i.parameters = res->parameters;
           i.filter = res->filter;
           i.lookup = lookup;
+        }
+        else if (name == "ecs_before")
+        {
+          eastl::vector<VisitorState::Parameter> fields;
+          read_struct_fields(cursor, fields);
+          for (const auto &f : fields)
+            s.before.emplace_back() = f.value;
+        }
+        else if (name == "ecs_after")
+        {
+          eastl::vector<VisitorState::Parameter> fields;
+          read_struct_fields(cursor, fields);
+          for (const auto &f : fields)
+            s.after.emplace_back() = f.value;
         }
       });
     }
