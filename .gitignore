@@ -36,3 +36,9 @@ AS_DEBUG
 /git-tools
 ipch
 secret.json
+cmake-build-debug
+CMakeFiles
+*.idb
+*.VC.db
+*.VC.db-shm
+*.VC.db-wal

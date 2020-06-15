@@ -6,6 +6,9 @@
   ],
   "settings": {
     "explorer.autoReveal": false,
+    "search.exclude": {
+      "**/libs": true,
+    },
     "files.exclude": {
       "**/Debug": true,
       "**/Release": true,
@@ -18,6 +21,8 @@
       "**/.DS_Store": true
     },
     "files.associations": {
+      "*.das": "dascript",
+      "*.das_project": "dascript",
       "*.blk": "blk",
       "*.gen": "cpp",
       "xhash": "cpp",
@@ -103,7 +108,14 @@
       "clocale": "cpp",
       "cwctype": "cpp",
       "numeric": "cpp",
-      "queue": "cpp"
+      "queue": "cpp",
+      "forward_list": "cpp",
+      "stack": "cpp",
+      "hash_map": "cpp",
+      "bitset": "cpp",
+      "hash_set": "cpp",
+      "*.in": "cpp",
+      "variant": "cpp"
     },
     "editor.renderWhitespace": "all",
     "editor.tokenColorCustomizations": {
