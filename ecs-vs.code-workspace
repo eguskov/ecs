@@ -154,6 +154,8 @@
     "gtest-adapter.supportLocation": true,
     "gtest-adapter.showCodeLens": false,
     "gtest-adapter.runAfterBuild": true,
+    "cmake.buildDirectory": "${workspaceFolder}/cmake-build-debug",
+    "cmake.parallelJobs": 0,
     // "terminal.integrated.env.windows": {"CMDER_ROOT": "D:\\cmder"},
     // "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
     // "terminal.integrated.shellArgs.windows": [
