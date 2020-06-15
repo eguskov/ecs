@@ -28,83 +28,14 @@ ECS_COMPONENT_TYPE(HUD);
 
 struct UserInput
 {
+  ECS_BIND_TYPE(sample, isLocal=true);
+
   bool left = false;
   bool right = false;
   bool jump = false;
-
-  bool set(const JFrameValue&) { return true; };
 };
 
 ECS_COMPONENT_TYPE(UserInput);
-
-struct AnimGraph
-{
-  struct Node
-  {
-    bool loop = false;
-    float fps = 0.f;
-    float frameDt = 0.f;
-    eastl::vector<glm::vec4> frames;
-  };
-
-  eastl::hash_map<eastl::string, Node> nodesMap;
-
-  void operator=(const AnimGraph&) { ASSERT(false); }
-
-  bool set(const JFrameValue &value)
-  {
-    for (auto it = value["nodes"].MemberBegin(); it != value["nodes"].MemberEnd(); ++it)
-    {
-      auto &node = nodesMap[it->name.GetString()];
-      node.fps = it->value["fps"].GetFloat();
-      node.loop = it->value["loop"].GetBool();
-      node.frameDt = 1.f / node.fps;
-      for (int i = 0; i < (int)it->value["frames"].Size(); ++i)
-      {
-        auto &frame = node.frames.emplace_back();
-        frame.x = it->value["frames"][i]["x"].GetFloat();
-        frame.y = it->value["frames"][i]["y"].GetFloat();
-        frame.z = it->value["frames"][i]["w"].GetFloat();
-        frame.w = it->value["frames"][i]["h"].GetFloat();
-      }
-    }
-    return true;
-  }
-};
-
-ECS_COMPONENT_TYPE(AnimGraph);
-
-struct AnimState
-{
-  bool done = false;
-  int frameNo = 0;
-  double startTime = -1.0;
-  eastl::string currentNode;
-
-  void operator=(const AnimState&) { ASSERT(false); }
-
-  bool set(const JFrameValue &value)
-  {
-    currentNode = value["node"].GetString();
-    return true;
-  }
-};
-
-ECS_COMPONENT_TYPE(AnimState);
-
-TextureAtlas::TextureAtlas(TextureAtlas &&assign)
-{
-  path = eastl::move(assign.path);
-  id = assign.id;
-  assign.id = Texture2D {};
-}
-
-void TextureAtlas::operator=(TextureAtlas &&assign)
-{
-  path = eastl::move(assign.path);
-  id = assign.id;
-  assign.id = Texture2D {};
-}
 
 // TODO: Implement texture manager
 static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;
@@ -133,6 +64,9 @@ struct load_texture_handler
 
 struct update_position
 {
+  ECS_AFTER(after_phys_update);
+  ECS_BEFORE(before_render);
+
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
@@ -150,6 +84,9 @@ struct update_position
 
 struct update_position_for_active
 {
+  ECS_AFTER(after_phys_update);
+  ECS_BEFORE(update_position);
+
   QL_WHERE(is_alive == true && is_active == true);
 
   ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
@@ -160,9 +97,12 @@ struct update_position_for_active
 
 struct update_anim_frame
 {
+  ECS_AFTER(before_anim_update);
+  ECS_BEFORE(after_anim_update);
+
   ECS_RUN(const UpdateStage &stage, const AnimGraph &anim_graph, AnimState &anim_state, glm::vec4 &frame)
   {
-    if (anim_state.startTime < 0.0)
+    if (anim_state.startTime <= 0.0)
       anim_state.startTime = stage.total;
 
     auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
@@ -188,6 +128,9 @@ struct update_anim_frame
 
 struct render_walls
 {
+  ECS_AFTER(before_render);
+  ECS_BEFORE(after_render);
+
   QL_HAVE(wall);
   QL_WHERE(is_alive == true);
 
@@ -201,6 +144,9 @@ struct render_walls
 
 struct render_normal
 {
+  ECS_AFTER(before_render);
+  ECS_BEFORE(after_render);
+
   QL_NOT_HAVE(wall);
   QL_WHERE(is_alive == true);
 
@@ -214,6 +160,9 @@ struct render_normal
 
 struct read_controls
 {
+  ECS_AFTER(before_input);
+  ECS_BEFORE(after_input);
+
   ECS_RUN(const UpdateStage &stage, UserInput &user_input)
   {
     user_input = {};
@@ -229,6 +178,8 @@ struct read_controls
 
 struct apply_controls
 {
+  ECS_AFTER(read_controls);
+
   ECS_RUN(const UpdateStage &stage, const UserInput &user_input, bool is_on_ground, Jump &jump, glm::vec2 &vel, float &dir)
   {
     if (user_input.left)
@@ -255,6 +206,8 @@ struct apply_controls
 
 struct apply_jump
 {
+  ECS_AFTER(apply_gravity);
+
   ECS_RUN(const UpdateStage &stage, Jump &jump, bool &is_on_ground, glm::vec2 &vel)
   {
     // TODO: Move jump.active to component
@@ -277,6 +230,8 @@ struct apply_jump
 
 struct apply_gravity
 {
+  ECS_AFTER(apply_controls);
+
   QL_WHERE(is_alive == true);
 
   ECS_RUN(const UpdateStage &stage, const Gravity &gravity, glm::vec2 &vel)
@@ -300,6 +255,9 @@ static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, co
 
 struct select_current_anim_frame
 {
+  ECS_AFTER(before_anim_update);
+  ECS_BEFORE(update_anim_frame);
+
   QL_NOT_HAVE(user_input);
 
   ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
@@ -318,6 +276,9 @@ struct select_current_anim_frame
 
 struct select_current_anim_frame_for_player
 {
+  ECS_AFTER(before_anim_update);
+  ECS_BEFORE(update_anim_frame);
+
   ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
   {
     if (vel.x != 0.f && (user_input.left || user_input.right))
@@ -334,11 +295,13 @@ struct select_current_anim_frame_for_player
 
 struct remove_death_fx
 {
+  QL_HAVE(death_fx);
+
   QL_WHERE(is_alive == true);
 
   ECS_RUN(const UpdateStage &stage, EntityId eid, const AnimState &anim_state, bool &is_alive)
   {
-    if (anim_state.currentNode == "death" && anim_state.done)
+    if (anim_state.done)
     {
       is_alive = false;
       ecs::delete_entity(eid);
@@ -348,14 +311,16 @@ struct remove_death_fx
 
 struct update_camera
 {
+  ECS_AFTER(camera_update);
+  ECS_BEFORE(before_render);
+
   QL_HAVE(user_input);
 
   ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos)
   {
     const float hw = 0.5f * screen_width;
     const float hh = 0.5f * screen_width;
-    camera.target = Vector2{ hw, hh };
-    camera.offset = Vector2{ -pos.x * camera.zoom, -pos.y * camera.zoom };
+    camera.target = Vector2{ pos.x * camera.zoom, pos.y * camera.zoom };
   }
 };
 
@@ -391,6 +356,9 @@ static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMo
 // TODO: Add Optional<bool, true> is_active
 struct update_active_auto_move
 {
+  ECS_AFTER(after_input);
+  ECS_BEFORE(collisions_update);
+
   QL_WHERE(is_alive == true && is_active == true);
 
   ECS_RUN(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
@@ -402,6 +370,9 @@ struct update_active_auto_move
 // TODO: Add Optional<bool, true> is_active
 struct update_always_active_auto_move
 {
+  ECS_AFTER(after_input);
+  ECS_BEFORE(collisions_update);
+
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
@@ -417,20 +388,17 @@ struct on_enenmy_kill_handler
 
   ECS_RUN(const EventOnKillEnemy &ev)
   {
-    JFrameAllocator alloc;
-    JFrameValue comps(rapidjson::kObjectType);
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(ev.pos.x, alloc);
-      arr.PushBack(ev.pos.y, alloc);
-      comps.AddMember("pos", eastl::move(arr), alloc);
-    }
-    ecs::create_entity("death_fx", comps);
+    ComponentsMap cmap;
+    cmap.add(HASH("pos"), ev.pos);
+    ecs::create_entity("death_fx", eastl::move(cmap));
   }
 };
 
 struct update_auto_jump
 {
+  ECS_AFTER(after_input);
+  ECS_BEFORE(collisions_update);
+
   QL_WHERE(is_alive == true);
 
   ECS_RUN(const UpdateStage &stage, bool is_alive, Jump &jump, AutoMove &auto_move, glm::vec2 &vel, float &dir)
@@ -451,4 +419,83 @@ struct update_auto_jump
       }
     }
   }
+};
+
+struct test_empty
+{
+  ECS_BEFORE(after_input);
+
+  ECS_RUN(const UpdateStage &stage)
+  {
+  }
+};
+
+// TODO: Move to separate file
+
+// input
+// update
+// integrate
+// solve collisions
+// tick physics
+// update animation
+// render
+
+struct before_input
+{
+  ECS_BARRIER;
+  ECS_BEFORE(after_input);
+};
+
+struct after_input
+{
+  ECS_BARRIER;
+  ECS_AFTER(before_input);
+};
+
+struct collisions_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(after_input);
+};
+
+struct before_phys_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(collisions_update);
+};
+
+struct after_phys_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(before_phys_update);
+};
+
+struct before_anim_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(after_phys_update);
+};
+
+struct after_anim_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(before_anim_update);
+};
+
+struct camera_update
+{
+  ECS_BARRIER;
+  ECS_AFTER(after_anim_update);
+};
+
+struct before_render
+{
+  ECS_BARRIER;
+  ECS_AFTER(camera_update);
+};
+
+struct after_render
+{
+  ECS_BARRIER;
+  ECS_AFTER(before_render);
 };

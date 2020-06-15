@@ -93,7 +93,7 @@
       "$template": "eagle",
       "$components": {
         "pos": [256, -64],
-        "vel": [1, 0],
+        "vel": [-1, 0],
         "dir": -1
       }
     }, {
@@ -198,7 +198,7 @@
           "jump": false
         },
         "pos": [384, -60],
-        "vel": [30, 0]
+        "vel": [-30, 0]
       }
     }, {
       "$template": "block-big",

@@ -1,0 +1,3 @@
+
+#cmakedefine USE_CEF
+#cmakedefine USE_WEB

@@ -64,20 +64,13 @@ struct on_mouse_click_handler_boid
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
-    JFrameAllocator alloc;
-    JFrameValue comps(rapidjson::kObjectType);
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(( ev.pos.x - hw) * (1.f / camera.zoom), alloc);
-      arr.PushBack((-ev.pos.y + hh) * (1.f / camera.zoom), alloc);
-      comps.AddMember("pos", eastl::move(arr), alloc);
-    }
-    {
-      // float mass = 1.f + (3.f - (1.f)) * float(::rand())/float(RAND_MAX);
-      // comps.AddMember("mass", mass, alloc);
-    }
+    const float invZoom = (1.f / camera.zoom);
     for (int i = 0; i < 1000; ++i)
-      ecs::create_entity("boid", comps);
+    {
+      ComponentsMap cmap;
+      cmap.add(HASH("pos"), glm::vec2((ev.pos.x - hw) * invZoom, (-ev.pos.y + hh) * invZoom));
+      ecs::create_entity("boid", eastl::move(cmap));
+    }
   }
 };
 
@@ -90,19 +83,11 @@ struct on_click_space_handler_boid
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
-    JFrameAllocator alloc;
-    JFrameValue comps(rapidjson::kObjectType);
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(( ev.pos.x - hw) * (1.f / camera.zoom), alloc);
-      arr.PushBack((-ev.pos.y + hh) * (1.f / camera.zoom), alloc);
-      comps.AddMember("pos", eastl::move(arr), alloc);
-    }
-    {
-      // float mass = 1.f + (3.f - (1.f)) * float(::rand())/float(RAND_MAX);
-      comps.AddMember("mass", 3.f, alloc);
-    }
-    ecs::create_entity("boid", comps);
+    const float invZoom = (1.f / camera.zoom);
+    ComponentsMap cmap;
+    cmap.add(HASH("pos"), glm::vec2((ev.pos.x - hw) * invZoom, (-ev.pos.y + hh) * invZoom));
+    cmap.add(HASH("mass"), 3.f);
+    ecs::create_entity("boid", eastl::move(cmap));
   }
 };
 
@@ -115,15 +100,10 @@ struct on_click_left_control_handler_boid
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
 
-    JFrameAllocator alloc;
-    JFrameValue comps(rapidjson::kObjectType);
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(( ev.pos.x - hw) * (1.f / camera.zoom), alloc);
-      arr.PushBack((-ev.pos.y + hh) * (1.f / camera.zoom), alloc);
-      comps.AddMember("pos", eastl::move(arr), alloc);
-    }
-    ecs::create_entity("boid_obstacle", comps);
+    const float invZoom = (1.f / camera.zoom);
+    ComponentsMap cmap;
+    cmap.add(HASH("pos"), glm::vec2((ev.pos.x - hw) * invZoom, (-ev.pos.y + hh) * invZoom));
+    ecs::create_entity("boid_obstacle", eastl::move(cmap));
   }
 };
 
@@ -169,6 +149,8 @@ struct on_change_wander_handler_boid
 
 struct render_hud_boid
 {
+  ECS_AFTER(after_render);
+
   QL_HAVE(click_handler_boid);
 
   ECS_RUN(const RenderHUDStage &stage)
@@ -182,6 +164,9 @@ struct render_hud_boid
 
 struct render_boid_obstacle
 {
+  ECS_AFTER(before_render);
+  ECS_BEFORE(after_render);
+
   QL_HAVE(boid_obstacle);
 
   ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
@@ -197,6 +182,9 @@ struct render_boid_obstacle
 
 struct render_boid
 {
+  ECS_AFTER(before_render);
+  ECS_BEFORE(after_render);
+
   QL_HAVE(boid);
 
   ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &cur_pos, const glm::vec2 &cur_separation_center, const glm::vec2 &cur_cohesion_center, float mass, float cur_rotation)

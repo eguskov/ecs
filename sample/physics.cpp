@@ -10,7 +10,6 @@
 #include "update.h"
 #include "grid.h"
 
-extern Camera2D camera;
 extern int screen_width;
 extern int screen_height;
 
@@ -40,13 +39,13 @@ struct PhysDebugDraw : public b2Draw
   }
 
   /// Draw a circle.
-  void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color) override final
+  void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override final
   {
     ::DrawCircleV({center.x, center.y}, radius, to_color(color));
   }
 
   /// Draw a solid circle.
-  void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color) override final
+  void DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2& axis, const b2Color& color) override final
   {
     ::DrawCircleV({center.x, center.y}, radius, to_color(color));
   }
@@ -66,7 +65,7 @@ struct PhysDebugDraw : public b2Draw
   }
 
   /// Draw a point.
-  void DrawPoint(const b2Vec2& p, float32 size, const b2Color& color) override final
+  void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override final
   {
     ::DrawCircleV({p.x, p.y}, 4.f, to_color(color));
   }
@@ -74,28 +73,50 @@ struct PhysDebugDraw : public b2Draw
 
 struct PhysicsWorld
 {
+  ECS_BIND_TYPE(phys, isLocal=true);
+
   int atTick = 0;
 
   PhysDebugDraw debugDraw;
 
-  void operator=(const PhysicsWorld&) { ASSERT(false); }
+  // void operator=(const PhysicsWorld&) { ASSERT(false); }
+  ECS_DEFAULT_CTORS(PhysicsWorld);
 
-  bool set(const JFrameValue &value)
-  {
-    return true;
-  }
-
-  ~PhysicsWorld()
-  {
-    delete g_world;
-    g_world = nullptr;
-  }
+  // TODO: Use event on destruction
+  // ~PhysicsWorld()
+  // {
+  //   delete g_world;
+  //   g_world = nullptr;
+  // }
 };
 
 ECS_COMPONENT_TYPE(PhysicsWorld);
 
 struct CollisionShape
 {
+  ECS_BIND_TYPE(phys, canNew=true; isRefType=true; isPod=false; isLocal=true; canCopy=true; canMove=true);
+
+  ECS_BIND(sideEffect=modifyArgument)
+  static void add_shape(CollisionShape *&self, const char *type, das::float2 size, das::float2 center, float angle, float density, float friction)
+  {
+    auto &s = self->shapes.emplace_back();
+    s.shape.SetAsBox(0.5f * size.x, 0.5f * size.y, { center.x, center.y }, angle);
+    s.density = density;
+    s.friction = friction;
+  }
+
+  ECS_BIND(sideEffect=modifyArgument)
+  static void add_sensor(CollisionShape *&self, const char *type, das::float2 size, das::float2 center)
+  {
+    auto &s = self->shapes.emplace_back();
+    s.shape.SetAsBox(0.5f * size.x, 0.5f * size.y, { center.x, center.y }, 0.f);
+    s.density = 0.f;
+    s.friction = 0.f;
+    s.isSensor = true;
+  }
+
+  ECS_DEFAULT_CTORS(CollisionShape);
+
   struct Shape
   {
     b2PolygonShape shape;
@@ -109,94 +130,44 @@ struct CollisionShape
   };
 
   eastl::vector<Shape> shapes;
-
-  CollisionShape(CollisionShape &&assign)
-  {
-    *this = eastl::move(assign);
-  }
-
-  void operator=(CollisionShape &&assign)
-  {
-    shapes = eastl::move(assign.shapes);
-  }
-
-  CollisionShape() = default;
-  CollisionShape(const CollisionShape&) { ASSERT(false); }
-  void operator=(const CollisionShape&) { ASSERT(false); }
-
-  bool set(const JFrameValue &value)
-  {
-    for (int i = 0; i < (int)value.Size(); ++i)
-    {
-      auto &s = shapes.emplace_back();
-      s.shape.SetAsBox(
-        0.5f * value[i]["size"][0].GetFloat(),
-        0.5f * value[i]["size"][1].GetFloat(),
-        { value[i]["center"][0].GetFloat(), value[i]["center"][1].GetFloat() },
-        value[i]["angle"].GetFloat());
-
-      s.density = value[i]["material"]["density"].GetFloat();
-      s.friction = value[i]["material"]["friction"].GetFloat();
-
-      if (value[i].HasMember("isSensor"))
-        s.isSensor = value[i]["isSensor"].GetBool();
-    }
-    return true;
-  }
 };
 
-ECS_COMPONENT_TYPE(CollisionShape);
+ECS_COMPONENT_TYPE_BIND(CollisionShape);
 
 struct PhysicsBody
 {
-  b2BodyType type = b2_staticBody;
-  b2Body *body = nullptr;
+  ECS_BIND_TYPE(phys, isLocal=true; canCopy=true);
 
-  PhysicsBody() = default;
-  PhysicsBody(PhysicsBody &&other)
+  b2BodyType type;
+  b2Body *body;
+
+  ECS_BIND(sideEffect=none; simNode=das::SimNode_ExtFuncCallAndCopyOrMove)
+  static PhysicsBody create_phys_body(const char *type)
   {
-    if (body)
-      g_world->DestroyBody(body);
-    type = other.type;
-    body = other.body;
-    other.body = nullptr;
-  }
-
-  void operator=(PhysicsBody &&other)
-  {
-    if (body)
-      g_world->DestroyBody(body);
-    type = other.type;
-    body = other.body;
-    other.body = nullptr;
-  }
-
-  PhysicsBody(const PhysicsBody&) { ASSERT(false); }
-  void operator=(const PhysicsBody&) { ASSERT(false); }
-
-  ~PhysicsBody()
-  {
-    if (body && g_world)
-      g_world->DestroyBody(body);
-  }
-
-  bool set(const JFrameValue &value)
-  {
-    eastl::string t = value["type"].GetString();
-    if (t == "static")
-      type = b2_staticBody;
-    else if (t == "kinematic")
-      type = b2_kinematicBody;
-    else if (t == "dynamic")
-      type = b2_dynamicBody;
+    b2BodyType bodyType;
+    if (::strcmp(type, "static") == 0)
+      bodyType = b2_staticBody;
+    else if (::strcmp(type, "kinematic") == 0)
+      bodyType = b2_kinematicBody;
+    else if (::strcmp(type, "dynamic") == 0)
+      bodyType = b2_dynamicBody;
     else
       ASSERT(false);
 
-    return true;
+    return {bodyType, nullptr};
   }
+
+  // ECS_DEFAULT_CTORS(PhysicsBody);
+
+  // TODO: Use event instead
+  // ~PhysicsBody()
+  // {
+  //   if (body && g_world)
+  //     g_world->DestroyBody(body);
+  // }
 };
 
-ECS_COMPONENT_TYPE(PhysicsBody);
+ECS_COMPONENT_TYPE_BIND(PhysicsBody);
 
 struct Brick
 {
@@ -275,6 +246,8 @@ struct EnemyCollision
 
 struct init_physics_collision_handler
 {
+  ECS_AFTER(init_physics_world, init_physics_body_handler);
+
   ECS_RUN(const EventOnEntityCreate &ev, const EntityId &eid, PhysicsBody &phys_body, CollisionShape &collision_shape)
   {
     ASSERT(phys_body.body != nullptr);
@@ -296,6 +269,8 @@ struct init_physics_collision_handler
 
 struct init_physics_body_handler
 {
+  ECS_AFTER(init_physics_world);
+
   ECS_RUN(const EventOnEntityCreate &ev, PhysicsBody &phys_body, const glm::vec2 &pos)
   {
     ASSERT(phys_body.body == nullptr);
@@ -308,7 +283,18 @@ struct init_physics_body_handler
   }
 };
 
-struct init_physics_world_handler
+struct delete_physics_body_handler
+{
+  ECS_BEFORE(delete_physics_world);
+
+  ECS_RUN(const EventOnEntityDelete &ev, PhysicsBody &phys_body)
+  {
+    if (phys_body.body && g_world)
+      g_world->DestroyBody(phys_body.body);
+  }
+};
+
+struct init_physics_world
 {
   ECS_RUN(const EventOnEntityCreate &ev, PhysicsWorld &phys_world)
   {
@@ -320,8 +306,20 @@ struct init_physics_world_handler
   }
 };
 
-struct update_physics
+struct delete_physics_world
 {
+  ECS_RUN(const EventOnEntityDelete &ev, PhysicsWorld &phys_world)
+  {
+    delete g_world;
+    g_world = nullptr;
+  }
+};
+
+struct tick_physics_world
+{
+  ECS_AFTER(before_phys_update);
+  ECS_BEFORE(after_phys_update);
+
   // TODO: Add stages for fixed dt updates
   ECS_RUN(const UpdateStage &stage, PhysicsWorld &phys_world)
   {
@@ -338,14 +336,18 @@ struct update_physics
 
 struct render_debug_physics
 {
+  ECS_AFTER(after_render);
+
   ECS_RUN(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
   {
-    g_world->DrawDebugData();
+    g_world->DebugDraw();
   }
 };
 
-struct update_kinematic_physics_body
+struct copy_kinematic_body_state_to_physics
 {
+  ECS_AFTER(tick_physics_world);
+
   ECS_RUN(const UpdateStage &stage, PhysicsBody &phys_body, const glm::vec2 &pos, const glm::vec2 &vel)
   {
     ASSERT(phys_body.type != b2_staticBody);
@@ -357,6 +359,8 @@ struct update_kinematic_physics_body
 
 struct update_player_collisions
 {
+  ECS_AFTER(collisions_update);
+
   static __forceinline void process_collision(PlayerCollision &player, Brick &&brick)
   {
     const float minD = player.collision_shape.shapes[0].shape.m_radius + brick.collision_shape.shapes[0].shape.m_radius;
@@ -477,6 +481,8 @@ struct update_player_collisions
 
 struct render_debug_player_grid_cell
 {
+  ECS_AFTER(after_render);
+
   QL_HAVE(user_input);
   QL_WHERE(grid_cell != -1);
 
@@ -494,13 +500,13 @@ struct render_debug_player_grid_cell
     for (int x = boxCellLeft; x <= boxCellRight; ++x)
       for (int y = boxCellTop; y <= boxCellBottom; ++y)
       {
-        DrawRectangleV(Vector2{hw + float(x) * float(GRID_CELL_SIZE), hh + float(y) * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, CLITERAL{ 0, 117, 44, 28 });
+        DrawRectangleV(Vector2{hw + float(x) * float(GRID_CELL_SIZE), hh + float(y) * float(GRID_CELL_SIZE)}, Vector2{float(GRID_CELL_SIZE), float(GRID_CELL_SIZE)}, Color{ 0, 117, 44, 28 });
 
         if (Query *cell = Brick::index()->find(MAKE_GRID_CELL(x, y)))
           for (auto q = cell->begin(), e = cell->end(); q != e; ++q)
           {
             Brick brick = Brick::get(q);
-            DrawCircleV(Vector2{hw + brick.pos.x, hh + brick.pos.y}, 5.f, CLITERAL{ 255, 0, 0, 100 });
+            DrawCircleV(Vector2{hw + brick.pos.x, hh + brick.pos.y}, 5.f, Color{ 255, 0, 0, 100 });
           }
       }
   }
@@ -508,6 +514,9 @@ struct render_debug_player_grid_cell
 
 struct update_auto_move_collisions
 {
+  ECS_AFTER(collisions_update);
+  ECS_BEFORE(update_player_collisions);
+
   static __forceinline void process_collision(EnemyCollision &enemy, Brick &&brick)
   {
     b2Transform xfA = { { brick.pos.x, brick.pos.y }, b2Rot{0.f} };

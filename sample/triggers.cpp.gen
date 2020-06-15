@@ -16,15 +16,15 @@ static constexpr ConstQueryDescription update_player_spawner_query_desc = {
 };
 
 static constexpr ConstComponentDescription InactiveLift_components[] = {
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveLift_have_components[] = {
   {HASH("lift"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveLift_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveLift_query_desc = {
   make_const_array(InactiveLift_components),
@@ -33,7 +33,7 @@ static constexpr ConstQueryDescription InactiveLift_query_desc = {
   make_const_array(InactiveLift_track_components),
 };
 static constexpr ConstComponentDescription CageBlock_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription CageBlock_have_components[] = {
   {HASH("cage"), 0},
@@ -45,18 +45,18 @@ static constexpr ConstQueryDescription CageBlock_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription NotBindedTrigger_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_binded"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_binded"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription NotBindedTrigger_have_components[] = {
   {HASH("trigger"), 0},
   {HASH("is_binded"), 0},
 };
 static constexpr ConstComponentDescription NotBindedTrigger_track_components[] = {
-  {HASH("is_binded"), ComponentType<bool>::Size},
+  {HASH("is_binded"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription NotBindedTrigger_query_desc = {
   make_const_array(NotBindedTrigger_components),
@@ -65,18 +65,18 @@ static constexpr ConstQueryDescription NotBindedTrigger_query_desc = {
   make_const_array(NotBindedTrigger_track_components),
 };
 static constexpr ConstComponentDescription ActiveTrigger_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription ActiveTrigger_have_components[] = {
   {HASH("trigger"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription ActiveTrigger_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription ActiveTrigger_query_desc = {
   make_const_array(ActiveTrigger_components),
@@ -85,16 +85,16 @@ static constexpr ConstQueryDescription ActiveTrigger_query_desc = {
   make_const_array(ActiveTrigger_track_components),
 };
 static constexpr ConstComponentDescription InactiveSwitchTrigger_components[] = {
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveSwitchTrigger_have_components[] = {
   {HASH("switch_trigger"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveSwitchTrigger_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveSwitchTrigger_query_desc = {
   make_const_array(InactiveSwitchTrigger_components),
@@ -103,17 +103,17 @@ static constexpr ConstQueryDescription InactiveSwitchTrigger_query_desc = {
   make_const_array(InactiveSwitchTrigger_track_components),
 };
 static constexpr ConstComponentDescription InactiveZoneTrigger_components[] = {
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("collision_rect"), ComponentType<glm::vec4>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
+  {HASH("collision_rect"), ComponentType<glm::vec4>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveZoneTrigger_have_components[] = {
   {HASH("zone_trigger"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveZoneTrigger_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveZoneTrigger_query_desc = {
   make_const_array(InactiveZoneTrigger_components),
@@ -122,8 +122,8 @@ static constexpr ConstQueryDescription InactiveZoneTrigger_query_desc = {
   make_const_array(InactiveZoneTrigger_track_components),
 };
 static constexpr ConstComponentDescription Action_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription Action_have_components[] = {
   {HASH("action"), 0},
@@ -135,17 +135,17 @@ static constexpr ConstQueryDescription Action_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription InactiveEnableLiftAction_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("lift_key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("lift_key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveEnableLiftAction_have_components[] = {
   {HASH("enable_lift_action"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveEnableLiftAction_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveEnableLiftAction_query_desc = {
   make_const_array(InactiveEnableLiftAction_components),
@@ -154,16 +154,16 @@ static constexpr ConstQueryDescription InactiveEnableLiftAction_query_desc = {
   make_const_array(InactiveEnableLiftAction_track_components),
 };
 static constexpr ConstComponentDescription InactiveOpenCageAction_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveOpenCageAction_have_components[] = {
   {HASH("open_cage_action"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveOpenCageAction_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveOpenCageAction_query_desc = {
   make_const_array(InactiveOpenCageAction_components),
@@ -172,16 +172,16 @@ static constexpr ConstQueryDescription InactiveOpenCageAction_query_desc = {
   make_const_array(InactiveOpenCageAction_track_components),
 };
 static constexpr ConstComponentDescription InactiveKillPlayerAction_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription InactiveKillPlayerAction_have_components[] = {
   {HASH("kill_player_action"), 0},
   {HASH("is_active"), 0},
 };
 static constexpr ConstComponentDescription InactiveKillPlayerAction_track_components[] = {
-  {HASH("is_active"), ComponentType<bool>::Size},
+  {HASH("is_active"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription InactiveKillPlayerAction_query_desc = {
   make_const_array(InactiveKillPlayerAction_components),
@@ -190,15 +190,15 @@ static constexpr ConstQueryDescription InactiveKillPlayerAction_query_desc = {
   make_const_array(InactiveKillPlayerAction_track_components),
 };
 static constexpr ConstComponentDescription AlivePlayer_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription AlivePlayer_have_components[] = {
   {HASH("user_input"), 0},
   {HASH("is_alive"), 0},
 };
 static constexpr ConstComponentDescription AlivePlayer_track_components[] = {
-  {HASH("is_alive"), ComponentType<bool>::Size},
+  {HASH("is_alive"), ComponentType<bool>::size},
 };
 static constexpr ConstQueryDescription AlivePlayer_query_desc = {
   make_const_array(AlivePlayer_components),
@@ -207,7 +207,7 @@ static constexpr ConstQueryDescription AlivePlayer_query_desc = {
   make_const_array(AlivePlayer_track_components),
 };
 static constexpr ConstComponentDescription PlayerSpawnZone_components[] = {
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
 };
 static constexpr ConstComponentDescription PlayerSpawnZone_have_components[] = {
   {HASH("player_spawn_zone"), 0},
@@ -219,7 +219,7 @@ static constexpr ConstQueryDescription PlayerSpawnZone_query_desc = {
   empty_desc_array,
 };
 using InactiveLiftBuilder = StructBuilder<
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveLift, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveLift, key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveLift, is_active)>
 >;
 using CageBlockBuilder = StructBuilder<
@@ -227,47 +227,47 @@ using CageBlockBuilder = StructBuilder<
 >;
 using NotBindedTriggerBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(NotBindedTrigger, eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(NotBindedTrigger, key)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(NotBindedTrigger, action_key)>,
+  StructField<int, INDEX_OF_COMPONENT(NotBindedTrigger, key)>,
+  StructField<int, INDEX_OF_COMPONENT(NotBindedTrigger, action_key)>,
   StructField<EntityId, INDEX_OF_COMPONENT(NotBindedTrigger, action_eid)>,
   StructField<bool, INDEX_OF_COMPONENT(NotBindedTrigger, is_binded)>
 >;
 using ActiveTriggerBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(ActiveTrigger, eid)>,
   StructField<EntityId, INDEX_OF_COMPONENT(ActiveTrigger, action_eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(ActiveTrigger, key)>,
+  StructField<int, INDEX_OF_COMPONENT(ActiveTrigger, key)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(ActiveTrigger, pos)>,
   StructField<bool, INDEX_OF_COMPONENT(ActiveTrigger, is_active)>
 >;
 using InactiveSwitchTriggerBuilder = StructBuilder<
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveSwitchTrigger, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveSwitchTrigger, key)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(InactiveSwitchTrigger, pos)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveSwitchTrigger, is_active)>
 >;
 using InactiveZoneTriggerBuilder = StructBuilder<
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveZoneTrigger, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveZoneTrigger, key)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(InactiveZoneTrigger, pos)>,
   StructField<glm::vec4, INDEX_OF_COMPONENT(InactiveZoneTrigger, collision_rect)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveZoneTrigger, is_active)>
 >;
 using ActionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(Action, eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(Action, key)>
+  StructField<int, INDEX_OF_COMPONENT(Action, key)>
 >;
 using InactiveEnableLiftActionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(InactiveEnableLiftAction, eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, key)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveEnableLiftAction, lift_key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveEnableLiftAction, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveEnableLiftAction, lift_key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveEnableLiftAction, is_active)>
 >;
 using InactiveOpenCageActionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(InactiveOpenCageAction, eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveOpenCageAction, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveOpenCageAction, key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveOpenCageAction, is_active)>
 >;
 using InactiveKillPlayerActionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(InactiveKillPlayerAction, eid)>,
-  StructField<StringHash, INDEX_OF_COMPONENT(InactiveKillPlayerAction, key)>,
+  StructField<int, INDEX_OF_COMPONENT(InactiveKillPlayerAction, key)>,
   StructField<bool, INDEX_OF_COMPONENT(InactiveKillPlayerAction, is_active)>
 >;
 using AlivePlayerBuilder = StructBuilder<
@@ -278,11 +278,11 @@ using PlayerSpawnZoneBuilder = StructBuilder<
   StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerSpawnZone, pos)>
 >;
 static constexpr ConstComponentDescription index_by_NotBindedTrigger_action_key_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_binded"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("is_binded"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription index_by_NotBindedTrigger_action_key_query_desc = {
   make_const_array(index_by_NotBindedTrigger_action_key_components),
@@ -291,11 +291,11 @@ static constexpr ConstQueryDescription index_by_NotBindedTrigger_action_key_quer
   empty_desc_array,
 };
 static constexpr ConstComponentDescription index_by_ActiveTrigger_action_eid_components[] = {
-  {HASH("eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("action_eid"), ComponentType<EntityId>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("key"), ComponentType<StringHash>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("pos"), ComponentType<glm::vec2>::Size, ComponentDescriptionFlags::kNone},
-  {HASH("is_active"), ComponentType<bool>::Size, ComponentDescriptionFlags::kWrite},
+  {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("action_eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
+  {HASH("key"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
+  {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
+  {HASH("is_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription index_by_ActiveTrigger_action_eid_query_desc = {
   make_const_array(index_by_ActiveTrigger_action_eid_components),
@@ -377,16 +377,15 @@ static IndexDescription _reg_index_index_by_ActiveTrigger_action_eid(HASH("trigg
 
 int InactiveLift::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveLift"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveLift.queryId);
 }
 template <typename Callable> void InactiveLift::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveLift"));
+  Query &query = ecs::get_query(_reg_query_InactiveLift.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(InactiveLift, q, StringHash, key),
+      GET_COMPONENT(InactiveLift, q, int, key),
       GET_COMPONENT(InactiveLift, q, bool, is_active)
     });
 }
@@ -394,21 +393,20 @@ Index* InactiveLift::index()
 {
   return nullptr;
 }
-InactiveLift InactiveLift::get(Query::AllIterator &iter)
+InactiveLift InactiveLift::get(QueryIterator &iter)
 {
   return {
-      GET_COMPONENT(InactiveLift, iter, StringHash, key),
+      GET_COMPONENT(InactiveLift, iter, int, key),
       GET_COMPONENT(InactiveLift, iter, bool, is_active)
     };
 }
 int CageBlock::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_CageBlock"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_CageBlock.queryId);
 }
 template <typename Callable> void CageBlock::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_CageBlock"));
+  Query &query = ecs::get_query(_reg_query_CageBlock.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -419,7 +417,7 @@ Index* CageBlock::index()
 {
   return nullptr;
 }
-CageBlock CageBlock::get(Query::AllIterator &iter)
+CageBlock CageBlock::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(CageBlock, iter, EntityId, eid)
@@ -427,18 +425,17 @@ CageBlock CageBlock::get(Query::AllIterator &iter)
 }
 int NotBindedTrigger::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_NotBindedTrigger"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_NotBindedTrigger.queryId);
 }
 template <typename Callable> void NotBindedTrigger::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_NotBindedTrigger"));
+  Query &query = ecs::get_query(_reg_query_NotBindedTrigger.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(NotBindedTrigger, q, EntityId, eid),
-      GET_COMPONENT(NotBindedTrigger, q, StringHash, key),
-      GET_COMPONENT(NotBindedTrigger, q, StringHash, action_key),
+      GET_COMPONENT(NotBindedTrigger, q, int, key),
+      GET_COMPONENT(NotBindedTrigger, q, int, action_key),
       GET_COMPONENT(NotBindedTrigger, q, EntityId, action_eid),
       GET_COMPONENT(NotBindedTrigger, q, bool, is_binded)
     });
@@ -447,30 +444,29 @@ Index* NotBindedTrigger::index()
 {
   return nullptr;
 }
-NotBindedTrigger NotBindedTrigger::get(Query::AllIterator &iter)
+NotBindedTrigger NotBindedTrigger::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(NotBindedTrigger, iter, EntityId, eid),
-      GET_COMPONENT(NotBindedTrigger, iter, StringHash, key),
-      GET_COMPONENT(NotBindedTrigger, iter, StringHash, action_key),
+      GET_COMPONENT(NotBindedTrigger, iter, int, key),
+      GET_COMPONENT(NotBindedTrigger, iter, int, action_key),
       GET_COMPONENT(NotBindedTrigger, iter, EntityId, action_eid),
       GET_COMPONENT(NotBindedTrigger, iter, bool, is_binded)
     };
 }
 int ActiveTrigger::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_ActiveTrigger"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_ActiveTrigger.queryId);
 }
 template <typename Callable> void ActiveTrigger::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_ActiveTrigger"));
+  Query &query = ecs::get_query(_reg_query_ActiveTrigger.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(ActiveTrigger, q, EntityId, eid),
       GET_COMPONENT(ActiveTrigger, q, EntityId, action_eid),
-      GET_COMPONENT(ActiveTrigger, q, StringHash, key),
+      GET_COMPONENT(ActiveTrigger, q, int, key),
       GET_COMPONENT(ActiveTrigger, q, glm::vec2, pos),
       GET_COMPONENT(ActiveTrigger, q, bool, is_active)
     });
@@ -479,28 +475,27 @@ Index* ActiveTrigger::index()
 {
   return nullptr;
 }
-ActiveTrigger ActiveTrigger::get(Query::AllIterator &iter)
+ActiveTrigger ActiveTrigger::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(ActiveTrigger, iter, EntityId, eid),
       GET_COMPONENT(ActiveTrigger, iter, EntityId, action_eid),
-      GET_COMPONENT(ActiveTrigger, iter, StringHash, key),
+      GET_COMPONENT(ActiveTrigger, iter, int, key),
       GET_COMPONENT(ActiveTrigger, iter, glm::vec2, pos),
       GET_COMPONENT(ActiveTrigger, iter, bool, is_active)
     };
 }
 int InactiveSwitchTrigger::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveSwitchTrigger.queryId);
 }
 template <typename Callable> void InactiveSwitchTrigger::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  Query &query = ecs::get_query(_reg_query_InactiveSwitchTrigger.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(InactiveSwitchTrigger, q, StringHash, key),
+      GET_COMPONENT(InactiveSwitchTrigger, q, int, key),
       GET_COMPONENT(InactiveSwitchTrigger, q, glm::vec2, pos),
       GET_COMPONENT(InactiveSwitchTrigger, q, bool, is_active)
     });
@@ -509,26 +504,25 @@ Index* InactiveSwitchTrigger::index()
 {
   return nullptr;
 }
-InactiveSwitchTrigger InactiveSwitchTrigger::get(Query::AllIterator &iter)
+InactiveSwitchTrigger InactiveSwitchTrigger::get(QueryIterator &iter)
 {
   return {
-      GET_COMPONENT(InactiveSwitchTrigger, iter, StringHash, key),
+      GET_COMPONENT(InactiveSwitchTrigger, iter, int, key),
       GET_COMPONENT(InactiveSwitchTrigger, iter, glm::vec2, pos),
       GET_COMPONENT(InactiveSwitchTrigger, iter, bool, is_active)
     };
 }
 int InactiveZoneTrigger::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveZoneTrigger.queryId);
 }
 template <typename Callable> void InactiveZoneTrigger::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
+  Query &query = ecs::get_query(_reg_query_InactiveZoneTrigger.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
-      GET_COMPONENT(InactiveZoneTrigger, q, StringHash, key),
+      GET_COMPONENT(InactiveZoneTrigger, q, int, key),
       GET_COMPONENT(InactiveZoneTrigger, q, glm::vec2, pos),
       GET_COMPONENT(InactiveZoneTrigger, q, glm::vec4, collision_rect),
       GET_COMPONENT(InactiveZoneTrigger, q, bool, is_active)
@@ -538,10 +532,10 @@ Index* InactiveZoneTrigger::index()
 {
   return nullptr;
 }
-InactiveZoneTrigger InactiveZoneTrigger::get(Query::AllIterator &iter)
+InactiveZoneTrigger InactiveZoneTrigger::get(QueryIterator &iter)
 {
   return {
-      GET_COMPONENT(InactiveZoneTrigger, iter, StringHash, key),
+      GET_COMPONENT(InactiveZoneTrigger, iter, int, key),
       GET_COMPONENT(InactiveZoneTrigger, iter, glm::vec2, pos),
       GET_COMPONENT(InactiveZoneTrigger, iter, glm::vec4, collision_rect),
       GET_COMPONENT(InactiveZoneTrigger, iter, bool, is_active)
@@ -549,44 +543,42 @@ InactiveZoneTrigger InactiveZoneTrigger::get(Query::AllIterator &iter)
 }
 int Action::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_Action"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_Action.queryId);
 }
 template <typename Callable> void Action::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_Action"));
+  Query &query = ecs::get_query(_reg_query_Action.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(Action, q, EntityId, eid),
-      GET_COMPONENT(Action, q, StringHash, key)
+      GET_COMPONENT(Action, q, int, key)
     });
 }
 Index* Action::index()
 {
   return nullptr;
 }
-Action Action::get(Query::AllIterator &iter)
+Action Action::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(Action, iter, EntityId, eid),
-      GET_COMPONENT(Action, iter, StringHash, key)
+      GET_COMPONENT(Action, iter, int, key)
     };
 }
 int InactiveEnableLiftAction::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveEnableLiftAction.queryId);
 }
 template <typename Callable> void InactiveEnableLiftAction::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  Query &query = ecs::get_query(_reg_query_InactiveEnableLiftAction.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(InactiveEnableLiftAction, q, EntityId, eid),
-      GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, key),
-      GET_COMPONENT(InactiveEnableLiftAction, q, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, q, int, key),
+      GET_COMPONENT(InactiveEnableLiftAction, q, int, lift_key),
       GET_COMPONENT(InactiveEnableLiftAction, q, bool, is_active)
     });
 }
@@ -594,28 +586,27 @@ Index* InactiveEnableLiftAction::index()
 {
   return nullptr;
 }
-InactiveEnableLiftAction InactiveEnableLiftAction::get(Query::AllIterator &iter)
+InactiveEnableLiftAction InactiveEnableLiftAction::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(InactiveEnableLiftAction, iter, EntityId, eid),
-      GET_COMPONENT(InactiveEnableLiftAction, iter, StringHash, key),
-      GET_COMPONENT(InactiveEnableLiftAction, iter, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, iter, int, key),
+      GET_COMPONENT(InactiveEnableLiftAction, iter, int, lift_key),
       GET_COMPONENT(InactiveEnableLiftAction, iter, bool, is_active)
     };
 }
 int InactiveOpenCageAction::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveOpenCageAction.queryId);
 }
 template <typename Callable> void InactiveOpenCageAction::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
+  Query &query = ecs::get_query(_reg_query_InactiveOpenCageAction.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(InactiveOpenCageAction, q, EntityId, eid),
-      GET_COMPONENT(InactiveOpenCageAction, q, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, q, int, key),
       GET_COMPONENT(InactiveOpenCageAction, q, bool, is_active)
     });
 }
@@ -623,27 +614,26 @@ Index* InactiveOpenCageAction::index()
 {
   return nullptr;
 }
-InactiveOpenCageAction InactiveOpenCageAction::get(Query::AllIterator &iter)
+InactiveOpenCageAction InactiveOpenCageAction::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(InactiveOpenCageAction, iter, EntityId, eid),
-      GET_COMPONENT(InactiveOpenCageAction, iter, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, iter, int, key),
       GET_COMPONENT(InactiveOpenCageAction, iter, bool, is_active)
     };
 }
 int InactiveKillPlayerAction::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_InactiveKillPlayerAction.queryId);
 }
 template <typename Callable> void InactiveKillPlayerAction::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  Query &query = ecs::get_query(_reg_query_InactiveKillPlayerAction.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
       GET_COMPONENT(InactiveKillPlayerAction, q, EntityId, eid),
-      GET_COMPONENT(InactiveKillPlayerAction, q, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, q, int, key),
       GET_COMPONENT(InactiveKillPlayerAction, q, bool, is_active)
     });
 }
@@ -651,22 +641,21 @@ Index* InactiveKillPlayerAction::index()
 {
   return nullptr;
 }
-InactiveKillPlayerAction InactiveKillPlayerAction::get(Query::AllIterator &iter)
+InactiveKillPlayerAction InactiveKillPlayerAction::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(InactiveKillPlayerAction, iter, EntityId, eid),
-      GET_COMPONENT(InactiveKillPlayerAction, iter, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, iter, int, key),
       GET_COMPONENT(InactiveKillPlayerAction, iter, bool, is_active)
     };
 }
 int AlivePlayer::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_AlivePlayer.queryId);
 }
 template <typename Callable> void AlivePlayer::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
+  Query &query = ecs::get_query(_reg_query_AlivePlayer.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -678,7 +667,7 @@ Index* AlivePlayer::index()
 {
   return nullptr;
 }
-AlivePlayer AlivePlayer::get(Query::AllIterator &iter)
+AlivePlayer AlivePlayer::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(AlivePlayer, iter, EntityId, eid),
@@ -687,12 +676,11 @@ AlivePlayer AlivePlayer::get(Query::AllIterator &iter)
 }
 int PlayerSpawnZone::count()
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_PlayerSpawnZone"));
-  return query.entitiesCount;
+  return ecs::get_entities_count(_reg_query_PlayerSpawnZone.queryId);
 }
 template <typename Callable> void PlayerSpawnZone::foreach(Callable callback)
 {
-  Query &query = *ecs::find_query(HASH("triggers.cpp_PlayerSpawnZone"));
+  Query &query = ecs::get_query(_reg_query_PlayerSpawnZone.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     callback(
     {
@@ -703,7 +691,7 @@ Index* PlayerSpawnZone::index()
 {
   return nullptr;
 }
-PlayerSpawnZone PlayerSpawnZone::get(Query::AllIterator &iter)
+PlayerSpawnZone PlayerSpawnZone::get(QueryIterator &iter)
 {
   return {
       GET_COMPONENT(PlayerSpawnZone, iter, glm::vec2, pos)
@@ -713,13 +701,13 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("bind_trigger_to_action"));
   Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_NotBindedTrigger_action_key"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_Action"));
+  Query &query1 = ecs::get_query(_reg_query_Action.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     Action action =
     {
       GET_COMPONENT(Action, q1, EntityId, eid),
-      GET_COMPONENT(Action, q1, StringHash, key)
+      GET_COMPONENT(Action, q1, int, key)
     };
     if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.key))
     {
@@ -729,8 +717,8 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
         NotBindedTrigger trigger =
         {
           GET_COMPONENT(NotBindedTrigger, q2, EntityId, eid),
-          GET_COMPONENT(NotBindedTrigger, q2, StringHash, key),
-          GET_COMPONENT(NotBindedTrigger, q2, StringHash, action_key),
+          GET_COMPONENT(NotBindedTrigger, q2, int, key),
+          GET_COMPONENT(NotBindedTrigger, q2, int, action_key),
           GET_COMPONENT(NotBindedTrigger, q2, EntityId, action_eid),
           GET_COMPONENT(NotBindedTrigger, q2, bool, is_binded)
         };
@@ -739,20 +727,20 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
     }
   }
 }
-static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, HASH("UpdateStage"), "*", "*");
 
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_switch_triggers"));
   Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveEnableLiftAction"));
+  Query &query1 = ecs::get_query(_reg_query_InactiveEnableLiftAction.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveEnableLiftAction action =
     {
       GET_COMPONENT(InactiveEnableLiftAction, q1, EntityId, eid),
-      GET_COMPONENT(InactiveEnableLiftAction, q1, StringHash, key),
-      GET_COMPONENT(InactiveEnableLiftAction, q1, StringHash, lift_key),
+      GET_COMPONENT(InactiveEnableLiftAction, q1, int, key),
+      GET_COMPONENT(InactiveEnableLiftAction, q1, int, lift_key),
       GET_COMPONENT(InactiveEnableLiftAction, q1, bool, is_active)
     };
     if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
@@ -764,7 +752,7 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
         {
           GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
           GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
-          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, int, key),
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
@@ -773,19 +761,19 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, HASH("UpdateStage"), "*", "*");
 
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_open_cage_triggers"));
   Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveOpenCageAction"));
+  Query &query1 = ecs::get_query(_reg_query_InactiveOpenCageAction.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveOpenCageAction action =
     {
       GET_COMPONENT(InactiveOpenCageAction, q1, EntityId, eid),
-      GET_COMPONENT(InactiveOpenCageAction, q1, StringHash, key),
+      GET_COMPONENT(InactiveOpenCageAction, q1, int, key),
       GET_COMPONENT(InactiveOpenCageAction, q1, bool, is_active)
     };
     if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
@@ -797,7 +785,7 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
         {
           GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
           GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
-          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, int, key),
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
@@ -806,19 +794,19 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
     }
   }
 }
-static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, HASH("UpdateStage"), "*", "*");
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_active_zone_triggers"));
   Index &index = *ecs::find_index(HASH("triggers.cpp_index_by_ActiveTrigger_action_eid"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_InactiveKillPlayerAction"));
+  Query &query1 = ecs::get_query(_reg_query_InactiveKillPlayerAction.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     InactiveKillPlayerAction action =
     {
       GET_COMPONENT(InactiveKillPlayerAction, q1, EntityId, eid),
-      GET_COMPONENT(InactiveKillPlayerAction, q1, StringHash, key),
+      GET_COMPONENT(InactiveKillPlayerAction, q1, int, key),
       GET_COMPONENT(InactiveKillPlayerAction, q1, bool, is_active)
     };
     if (Query *pquery2 = index.find(*(uint32_t*)(uint8_t*)&action.eid))
@@ -830,7 +818,7 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
         {
           GET_COMPONENT(ActiveTrigger, q2, EntityId, eid),
           GET_COMPONENT(ActiveTrigger, q2, EntityId, action_eid),
-          GET_COMPONENT(ActiveTrigger, q2, StringHash, key),
+          GET_COMPONENT(ActiveTrigger, q2, int, key),
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
@@ -839,13 +827,13 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
     }
   }
 }
-static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, HASH("UpdateStage"), "*", "*");
 
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_inactive_switch_triggers"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
-  Query &query2 = *ecs::find_query(HASH("triggers.cpp_InactiveSwitchTrigger"));
+  Query &query1 = ecs::get_query(_reg_query_AlivePlayer.queryId);
+  Query &query2 = ecs::get_query(_reg_query_InactiveSwitchTrigger.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     AlivePlayer player =
@@ -857,7 +845,7 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
     {
       InactiveSwitchTrigger trigger =
       {
-        GET_COMPONENT(InactiveSwitchTrigger, q2, StringHash, key),
+        GET_COMPONENT(InactiveSwitchTrigger, q2, int, key),
         GET_COMPONENT(InactiveSwitchTrigger, q2, glm::vec2, pos),
         GET_COMPONENT(InactiveSwitchTrigger, q2, bool, is_active)
       };
@@ -865,13 +853,13 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, HASH("UpdateStage"), "*", "*");
 
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_inactive_zone_triggers"));
-  Query &query1 = *ecs::find_query(HASH("triggers.cpp_AlivePlayer"));
-  Query &query2 = *ecs::find_query(HASH("triggers.cpp_InactiveZoneTrigger"));
+  Query &query1 = ecs::get_query(_reg_query_AlivePlayer.queryId);
+  Query &query2 = ecs::get_query(_reg_query_InactiveZoneTrigger.queryId);
   for (auto q1 = query1.begin(), e = query1.end(); q1 != e; ++q1)
   {
     AlivePlayer player =
@@ -883,7 +871,7 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
     {
       InactiveZoneTrigger trigger =
       {
-        GET_COMPONENT(InactiveZoneTrigger, q2, StringHash, key),
+        GET_COMPONENT(InactiveZoneTrigger, q2, int, key),
         GET_COMPONENT(InactiveZoneTrigger, q2, glm::vec2, pos),
         GET_COMPONENT(InactiveZoneTrigger, q2, glm::vec4, collision_rect),
         GET_COMPONENT(InactiveZoneTrigger, q2, bool, is_active)
@@ -892,7 +880,7 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, HASH("UpdateStage"));
+static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, HASH("UpdateStage"), "*", "*");
 
 static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
@@ -900,6 +888,7 @@ static void update_player_spawner_run(const RawArg &stage_or_event, Query &query
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("UpdateStage"), update_player_spawner_query_desc, nullptr);
+static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("UpdateStage"), update_player_spawner_query_desc, "*", "*", nullptr);
+
 
 #endif // __CODEGEN__

@@ -5,33 +5,32 @@
 #include <ecs/hash.h>
 #include <ecs/perf.h>
 #include <ecs/jobmanager.h>
+#include <ecs/autoBind.h>
 
 #include <stages/update.stage.h>
 #include <stages/render.stage.h>
 
-#include <script.h>
-#include <script-ecs.h>
-
-#include <scripthandle/scripthandle.h>
-#include <scriptarray/scriptarray.h>
-#include <scriptmath/scriptmath.h>
-
 #include <raylib.h>
 
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
-#include <rapidjson/prettywriter.h>
+#pragma warning(push)
+#pragma warning(disable: 4838)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4996)
+#define RAYGUI_IMPLEMENTATION
+#include <raygui.h>
+#pragma warning(pop)
 
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/initializer.h>
 
+#include <daScript/daScript.h>
+#include <daScript/simulate/fs_file_info.h>
+#include <daScript/misc/sysos.h>
+
 #include "update.h"
 #include "boids.h"
-
-#include "cef.h"
-#include "webui.h"
 
 PULL_ESC_CORE;
 
@@ -39,84 +38,146 @@ Camera2D camera;
 int screen_width = 800;
 int screen_height = 600;
 
-bool g_enable_cef = false;
-
 std::string get_hashed_string(const HashedString &s)
 {
   return std::string(s.str);
 }
 
-void script_init()
+#include <EASTL/unique_ptr.h>
+
+struct AnimModule final : public das::Module
 {
-  script::init();
-
-  // TODO: Codegen for script bindings
-  script::register_component<EventOnKillEnemy>("EventOnKillEnemy");
-  script::register_component_property("EventOnKillEnemy", "vec2 pos", offsetof(EventOnKillEnemy, pos));
-
-  script::register_component<UpdateStage>("UpdateStage");
-  script::register_component_property("UpdateStage", "float dt", offsetof(UpdateStage, dt));
-  script::register_component_property("UpdateStage", "float total", offsetof(UpdateStage, total));
-
-  script::register_component<AutoMove>("AutoMove");
-  script::register_component_property("AutoMove", "bool jump", offsetof(AutoMove, jump));
-  script::register_component_property("AutoMove", "float time", offsetof(AutoMove, time));
-  script::register_component_property("AutoMove", "float duration", offsetof(AutoMove, duration));
-  script::register_component_property("AutoMove", "float length", offsetof(AutoMove, length));
-
-  script::register_component<Jump>("Jump");
-  script::register_component_property("Jump", "bool active", offsetof(Jump, active));
-  script::register_component_property("Jump", "float startTime", offsetof(Jump, startTime));
-  script::register_component_property("Jump", "float height", offsetof(Jump, height));
-  script::register_component_property("Jump", "float duration", offsetof(Jump, duration));
-
-  script::register_component<Timer>("Timer");
-  script::register_component_property("Timer", "float time", offsetof(Timer, time));
-  script::register_component_property("Timer", "float period", offsetof(Timer, period));
-
-  script::register_component<HashedString>("HashedString");
-  script::register_component_property("HashedString", "uint hash", offsetof(HashedString, hash));
-  script::register_component_function("HashedString", "string str() const", asFUNCTION(get_hashed_string));
-}
-
-void print_document(const JFrameDocument &doc)
-{
-  rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-  doc.Accept(writer);
-  std::cout << buffer.GetString() << std::endl;
-}
-
-bool process_script_command(int argc, char *argv[])
-{
-  if (argc < 2)
-    return false;
-
-  if (::strcmp(argv[1], "--compile") == 0 && argc > 2 && ::strlen(argv[2]) > 0)
+  AnimModule() : das::Module("anim")
   {
-    JFrameDocument res;
-    res.SetObject();
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(das::Module::require("ecs"));
+    lib.addModule(this);
 
-    script::compile_module(argv[2], argv[2], res);
+    do_auto_bind_module(HASH("anim"), *this, lib);
 
-    print_document(res);
-
-    return true;
-  }
-  else if (::strcmp(argv[1], "--inspect") == 0 && argc > 2 && ::strlen(argv[2]) > 0)
-  {
-    JFrameDocument res;
-    res.SetObject();
-
-    script::inspect_module(argv[2], argv[2], res);
-    script::save_all_bindings_to_document(res);
-
-    print_document(res);
-
-    return true;
+    verifyAotReady();
   }
 
-  return false;
+  das::ModuleAotType aotRequire(das::TextWriter& tw) const override
+  {
+    tw << "#include \"dasModules/ecs.h\"\n";
+    return das::ModuleAotType::cpp;
+  }
+};
+
+REGISTER_MODULE(AnimModule);
+
+struct RenderModule final : public das::Module
+{
+  RenderModule() : das::Module("render")
+  {
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(das::Module::require("ecs"));
+    lib.addModule(this);
+
+    do_auto_bind_module(HASH("render"), *this, lib);
+
+    verifyAotReady();
+  }
+
+  das::ModuleAotType aotRequire(das::TextWriter& tw) const override
+  {
+    tw << "#include \"dasModules/ecs.h\"\n";
+    return das::ModuleAotType::cpp;
+  }
+};
+
+REGISTER_MODULE(RenderModule);
+
+struct PhysModule final : public das::Module
+{
+  PhysModule() : das::Module("phys")
+  {
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(das::Module::require("ecs"));
+    lib.addModule(this);
+
+    do_auto_bind_module(HASH("phys"), *this, lib);
+
+    verifyAotReady();
+  }
+
+  das::ModuleAotType aotRequire(das::TextWriter& tw) const override
+  {
+    tw << "#include \"dasModules/ecs.h\"\n";
+    return das::ModuleAotType::cpp;
+  }
+};
+
+REGISTER_MODULE(PhysModule);
+
+struct SampleModule final : public das::Module
+{
+  SampleModule() : das::Module("sample")
+  {
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(das::Module::require("ecs"));
+    lib.addModule(this);
+
+    do_auto_bind_module(HASH("sample"), *this, lib);
+
+    verifyAotReady();
+  }
+
+  das::ModuleAotType aotRequire(das::TextWriter& tw) const override
+  {
+    tw << "#include \"dasModules/ecs.h\"\n";
+    return das::ModuleAotType::cpp;
+  }
+};
+
+REGISTER_MODULE(SampleModule);
+
+bool init_sample()
+{
+  extern int das_def_tab_size;
+  das_def_tab_size = 2;
+
+  das::setDasRoot("D:/projects/daScript");
+
+  NEED_MODULE(Module_BuiltIn);
+  NEED_MODULE(Module_Math);
+  NEED_MODULE(Module_Rtti);
+  NEED_MODULE(Module_Ast);
+  NEED_MODULE(Module_FIO);
+  NEED_MODULE(ECSModule);
+  NEED_MODULE(AnimModule);
+  NEED_MODULE(RenderModule);
+  NEED_MODULE(PhysModule);
+  NEED_MODULE(SampleModule);
+
+  eastl::unique_ptr<das::Context> ctx;
+
+  {
+    auto fAccess = das::make_smart<das::FsFileAccess>("D:/projects/ecs/sample/scripts/project.das_project", das::make_smart<das::FsFileAccess>());
+
+    das::TextPrinter tout;
+    das::ModuleGroup dummyLibGroup;
+    auto program = das::compileDaScript("D:/projects/ecs/sample/scripts/sample.das", fAccess, tout, dummyLibGroup);
+
+    ctx.reset(new das::Context(program->getContextStackSize()));
+    if (!program->simulate(*ctx, tout))
+    {
+      for (auto & err : program->errors)
+        tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+
+      return false;
+    }
+  }
+
+  ctx->restart();
+  ctx->restartHeaps();
+
+  return true;
 }
 
 int main(int argc, char *argv[])
@@ -133,62 +194,22 @@ int main(int argc, char *argv[])
 
   std::srand(unsigned(std::time(0)));
 
-  script_init();
-
-  if (process_script_command(argc, argv))
-  {
-    script::release();
-    return 0;
-  }
-
+  // TODO: Update queries after templates registratina has been done
   ecs::init();
 
-  if (g_enable_cef)
-    cef::init();
+  init_sample();
 
-  webui::init("127.0.0.1:10112");
-
+  // SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(screen_width, screen_height, "ECS Sample");
 
   SetTargetFPS(60);
 
   const float hw = 0.5f * screen_width;
   const float hh = 0.5f * screen_height;
-  camera.target = Vector2{ hw, hh };
+  camera.target = Vector2{ 0.f, 0.f };
   camera.offset = Vector2{ 0.f, 0.f };
   camera.rotation = 0.0f;
   camera.zoom = /* 0.15f */ 1.0f;
-
-  const char *entitiesFilename = "data/entities.json";
-  if (argc > 1)
-    entitiesFilename = argv[1];
-
-  FILE *file = nullptr;
-  ::fopen_s(&file, entitiesFilename, "rb");
-  if (file)
-  {
-    size_t sz = ::ftell(file);
-    ::fseek(file, 0, SEEK_END);
-    sz = ::ftell(file) - sz;
-    ::fseek(file, 0, SEEK_SET);
-
-    char *buffer = new char[sz + 1];
-    buffer[sz] = '\0';
-    ::fread(buffer, 1, sz, file);
-    ::fclose(file);
-
-    JFrameDocument doc;
-    doc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
-    delete[] buffer;
-
-    ASSERT(doc.HasMember("$entities"));
-    ASSERT(doc["$entities"].IsArray());
-    for (int i = 0; i < (int)doc["$entities"].Size(); ++i)
-    {
-      const JFrameValue &ent = doc["$entities"][i];
-      ecs::create_entity(ent["$template"].GetString(), ent["$components"]);
-    }
-  }
 
   double nextResetMinMax = 0.0;
 
@@ -200,17 +221,6 @@ int main(int argc, char *argv[])
   float totalTime = 0.f;
   while (!WindowShouldClose())
   {
-    if (g_enable_cef)
-    {
-      if (IsKeyPressed(KEY_F11))
-        ecs::send_event(cef::get_eid(), cef::CmdToggleDevTools{});
-      else if (IsKeyPressed(KEY_F10))
-        ecs::send_event(cef::get_eid(), cef::CmdToggleWebUI{});
-
-      if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-        ecs::send_event(cef::get_eid(), cef::EventOnClickOutside{});
-    }
-
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
       Vector2 pos = GetMousePosition();
@@ -303,26 +313,20 @@ int main(int argc, char *argv[])
 
     ecs::tick(RenderHUDStage{});
 
+    // float w = screen_width;
+    // float h = screen_height;
+    // /* exitWindow = */ GuiWindowBox({ 0.f, 0.f, w*0.5f, h*0.5f }, "PORTABLE WINDOW");
+
     EndDrawing();
-
-    if (g_enable_cef)
-      cef::update();
-
-    webui::update();
   }
 
-  webui::release();
-
   ecs::release();
-  script::release();
+  das::Module::Shutdown();
 
   extern void clear_textures();
   clear_textures();
 
   CloseWindow();
-
-  if (g_enable_cef)
-    cef::release();
 
   stacktrace::release();
 

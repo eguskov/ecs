@@ -9,7 +9,7 @@ struct InactiveLift
   QL_HAVE(lift);
   QL_WHERE(is_active == false);
 
-  const StringHash &key;
+  const int &key;
   bool &is_active;
 };
 
@@ -30,8 +30,8 @@ struct NotBindedTrigger
   QL_WHERE(is_binded == false);
 
   const EntityId &eid;
-  const StringHash &key;
-  const StringHash &action_key;
+  const int &key;
+  const int &action_key;
   EntityId &action_eid;
   bool &is_binded;
 };
@@ -45,7 +45,7 @@ struct ActiveTrigger
 
   const EntityId &eid;
   const EntityId &action_eid;
-  const StringHash &key;
+  const int &key;
   const glm::vec2 &pos;
   bool &is_active;
 };
@@ -57,7 +57,7 @@ struct InactiveSwitchTrigger
   QL_HAVE(switch_trigger);
   QL_WHERE(is_active == false);
 
-  const StringHash &key;
+  const int &key;
   const glm::vec2 &pos;
   bool &is_active;
 };
@@ -69,7 +69,7 @@ struct InactiveZoneTrigger
   QL_HAVE(zone_trigger);
   QL_WHERE(is_active == false);
 
-  const StringHash &key;
+  const int &key;
   const glm::vec2 &pos;
   const glm::vec4 &collision_rect;
   bool &is_active;
@@ -82,7 +82,7 @@ struct Action
   QL_HAVE(action);
 
   const EntityId &eid;
-  const StringHash &key;
+  const int &key;
 };
 
 struct InactiveEnableLiftAction
@@ -93,8 +93,8 @@ struct InactiveEnableLiftAction
   QL_WHERE(is_active == false);
 
   const EntityId &eid;
-  const StringHash &key;
-  const StringHash &lift_key;
+  const int &key;
+  const int &lift_key;
   bool &is_active;
 };
 
@@ -106,7 +106,7 @@ struct InactiveOpenCageAction
   QL_WHERE(is_active == false);
 
   const EntityId &eid;
-  const StringHash &key;
+  const int &key;
   bool &is_active;
 };
 
@@ -118,7 +118,7 @@ struct InactiveKillPlayerAction
   QL_WHERE(is_active == false);
 
   const EntityId &eid;
-  const StringHash &key;
+  const int &key;
   bool &is_active;
 };
 
@@ -164,22 +164,10 @@ struct update_player_spawner
 
     DEBUG_LOG("Spawn player");
 
-    // TODO: Send event and create through script
-    JFrameAllocator alloc;
-    JFrameValue comps(rapidjson::kObjectType);
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(spawnPos.x, alloc);
-      arr.PushBack(spawnPos.y, alloc);
-      comps.AddMember("pos", eastl::move(arr), alloc);
-    }
-    {
-      JFrameValue arr(rapidjson::kArrayType);
-      arr.PushBack(0.f, alloc);
-      arr.PushBack(0.f, alloc);
-      comps.AddMember("vel", eastl::move(arr), alloc);
-    }
-    ecs::create_entity("fox", comps);
+    ComponentsMap cmap;
+    cmap.add(HASH("pos"), spawnPos);
+    cmap.add(HASH("vel"), glm::vec2());
+    ecs::create_entity("fox", eastl::move(cmap));
   }
 };
 

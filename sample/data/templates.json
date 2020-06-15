@@ -1,44 +1,41 @@
 {
   "$order": [
-    "cef_ready_handler",
-    "cef_after_created_handler",
-    "cef_toggle_dev_tools_handler",
-    "cef_toggle_webui_handler",
-    "cef_click_outside_handler",
-    "init_websocket_server_handler",
     "update_websocket_server",
-    "init_physics_world_handler",
-    "init_physics_body_handler",
-    "init_physics_collision_handler",
-    "physics_contact_handler",
-    "reload_script_handler",
-    "build_script_handler",
+
     "update_script_query",
     "dispatch_broadcast_event_script",
     "dispatch_event_script",
+
     "process_on_kill_event",
-    "load_texture_handler",
-    "reg_anim_seq_handler",
+
     "read_controls",
-    "update_enemies_collisions",
+
     "apply_controls",
     "apply_gravity",
     "apply_jump",
+
     "update_player_spawner",
     "bind_trigger_to_action",
+
     "update_inactive_switch_triggers",
     "update_inactive_zone_triggers",
     "update_active_switch_triggers",
     "update_active_zone_triggers",
     "update_active_open_cage_triggers",
+
     "update_auto_jump",
+
     "update_script",
+
     "update_active_auto_move",
+
     "update_always_active_auto_move",
     "update_auto_move_collisions",
     "update_player_collisions",
-    "update_physics",
-    "update_kinematic_physics_body",
+
+    "tick_physics_world",
+    "copy_kinematic_body_state_to_physics",
+
     "copy_boid_state",
     "update_boid_avoid_walls",
     "update_boid_avoid_obstacle",
@@ -47,117 +44,35 @@
     "update_boid_move_to_center",
     "apply_boid_force",
     "control_boid_velocity",
+
     "remove_death_fx",
+
     "update_spawner",
+
     "update_position",
     "update_position_for_active",
+
     "update_boid_position",
     "update_boid_rotation",
+
     "validate_position",
+
     "update_grid_cell",
     "update_small_grid_cell",
+
     "select_current_anim_frame",
     "select_current_anim_frame_for_player",
     "update_anim_frame",
+
     "update_camera",
+
     "render_walls",
     "render_normal",
     "render_boid",
     "render_boid_obstacle",
     "render_debug_physics",
     "render_debug_player_grid_cell",
-    "render_boid_debug",
     "render_hud_boid",
-    "on_enenmy_kill_handler",
-    "on_enenmy_hit_wall_handler",
-    "on_enenmy_hit_ground_handler",
-    "on_mouse_click_handler_boid",
-    "on_click_space_handler_boid",
-    "on_click_left_control_handler_boid",
-    "on_change_cohesion_handler_boid",
-    "on_change_alignment_handler_boid",
-    "on_change_separation_handler_boid",
-    "on_change_wander_handler_boid"
-  ],
-  "$templates$v1": [
-    {
-      "death_fx": {
-        "pos:vec2": [
-          0.0,
-          0.0
-        ],
-        "dir:float": 1.0,
-        "is_alive:bool": true,
-        "alive_timer:timer": {
-          "time": 5.0,
-          "period": 5.0
-        },
-        "texture:texture": {
-          "path": "../assets/atlas/atlas.png"
-        },
-        "frame:vec4": [
-          368,
-          68,
-          36,
-          28
-        ],
-        "anim_state": {
-          "$type": "AnimState",
-          "$value": {
-            "node": "death"
-          }
-        },
-        "anim_graph": {
-          "$type": "AnimGraph",
-          "$value": {
-            "nodes": {
-              "death": {
-                "fps": 10.0,
-                "loop": false,
-                "frames": [
-                  {
-                    "x": 248,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  },
-                  {
-                    "x": 122,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  },
-                  {
-                    "x": 206,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  },
-                  {
-                    "x": 164,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  },
-                  {
-                    "x": 80,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  },
-                  {
-                    "x": 38,
-                    "y": 102,
-                    "w": 40,
-                    "h": 41
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    }
   ],
   "$templates": [
     {
@@ -182,7 +97,7 @@
       }
     },
     {
-      "$name": "PhysicsWorld",
+      "$name": "physics_world",
       "$components": {
         "phys_world": {
           "$type": "PhysicsWorld",
@@ -193,6 +108,10 @@
     {
       "$name": "death_fx",
       "$components": {
+        "death_fx": {
+          "$type": "Tag",
+          "$value": {}
+        },
         "pos": {
           "$type": "vec2",
           "$value": [
@@ -403,40 +322,22 @@
                 "loop": true,
                 "frames": [
                   {
-                    "x": 368,
-                    "y": 68,
-                    "w": 36,
-                    "h": 28
+                    "x": 368, "y": 68, "w": 36, "h": 28
                   },
                   {
-                    "x": 292,
-                    "y": 68,
-                    "w": 36,
-                    "h": 28
+                    "x": 292, "y": 68, "w": 36, "h": 28
                   },
                   {
-                    "x": 330,
-                    "y": 68,
-                    "w": 36,
-                    "h": 28
+                    "x": 330, "y": 68, "w": 36, "h": 28
                   },
                   {
-                    "x": 406,
-                    "y": 68,
-                    "w": 36,
-                    "h": 28
+                    "x": 406, "y": 68, "w": 36, "h": 28
                   },
                   {
-                    "x": 0,
-                    "y": 102,
-                    "w": 36,
-                    "h": 28
+                    "x": 0, "y": 102, "w": 36, "h": 28
                   },
                   {
-                    "x": 444,
-                    "y": 68,
-                    "w": 36,
-                    "h": 28
+                    "x": 444, "y": 68, "w": 36, "h": 28
                   }
                 ]
               }
@@ -456,19 +357,10 @@
           "$value": [
             {
               "type": "box",
-              "size": [
-                36.0,
-                20.0
-              ],
-              "center": [
-                18.0,
-                14.0
-              ],
+              "size": [ 36.0, 20.0 ],
+              "center": [ 18.0, 14.0 ],
               "angle": 0.0,
-              "material": {
-                "density": 1.0,
-                "friction": 0.5
-              }
+              "material": { "density": 1.0, "friction": 0.5 }
             }
           ]
         },

@@ -1,7 +1,7 @@
 {
   "$entities": [
     {
-      "$template": "PhysicsWorld",
+      "$template": "physics_world",
       "$components": {}
     },
     {
