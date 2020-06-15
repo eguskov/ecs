@@ -2,6 +2,8 @@
 
 #include <EASTL/hash_map.h>
 
+using ecs_hash_t = uint32_t;
+
 namespace hash
 {
   template <typename S> struct fnv_internal;
@@ -33,7 +35,7 @@ namespace hash
 
 struct ConstHashedString
 {
-  uint32_t hash = 0;
+  ecs_hash_t hash = 0;
   char const* const str;
 
   constexpr ConstHashedString(char const* const s) : str(s), hash(hash::fnv1a<uint32_t>::hash(s)) {}
@@ -46,7 +48,7 @@ struct ConstHashedString
 
 namespace hash
 {
-  inline uint32_t str(const char *s) { return fnv1a<uint32_t>::hash(s); }
+  inline ecs_hash_t str(const char *s) { return fnv1a<uint32_t>::hash(s); }
   inline constexpr ConstHashedString cstr(char const* const s) { return ConstHashedString(s); }
 }
 
@@ -56,7 +58,7 @@ namespace hash
 struct HashedString
 {
   bool isOwnMemory = false;
-  uint32_t hash = 0;
+  ecs_hash_t hash = 0;
   const char *str = nullptr;
 
   HashedString() = default;
@@ -79,11 +81,7 @@ struct HashedString
       ::free((void*)str);
     hash = s.hash;
     isOwnMemory = s.isOwnMemory;
-    if (isOwnMemory)
-      str = ::_strdup(s.str);
-    else
-      str = s.str;
-
+    str = isOwnMemory ? ::_strdup(s.str) : s.str;
     return *this;
   }
 
@@ -92,22 +90,6 @@ struct HashedString
   bool operator==(const HashedString &rhs) const { return hash == rhs.hash; }
   bool operator<(const HashedString &rhs) const { return hash < rhs.hash; }
   bool operator>(const HashedString &rhs) const { return hash > rhs.hash; }
-};
-
-struct StringHash
-{
-  uint32_t hash = 0;
-
-  StringHash() = default;
-
-  StringHash(const char *s) : hash(hash::str(s)) {}
-  StringHash(const ConstHashedString &s) : hash(s.hash) {}
-
-  operator bool() const { return hash != 0; }
-
-  bool operator==(const StringHash &rhs) const { return hash == rhs.hash; }
-  bool operator<(const StringHash &rhs) const { return hash < rhs.hash; }
-  bool operator>(const StringHash &rhs) const { return hash > rhs.hash; }
 };
 
 inline HashedString hash_str(char const* const s) { return HashedString(s); }

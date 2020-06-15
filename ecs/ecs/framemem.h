@@ -26,7 +26,7 @@ struct FrameMemAllocator
 };
 
 template <typename T>
-struct RawAllocator
+struct RawFrameMemAllocator
 {
   static T *alloc()
   {

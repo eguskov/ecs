@@ -1,4 +1,5 @@
 #include "ecs.h"
+#include "autoBind.h"
 
 #include "stages/dispatchEvent.stage.h"
 
@@ -18,6 +19,9 @@ int PersistentQueryDescription::count = 0;
 const IndexDescription *IndexDescription::head = nullptr;
 int IndexDescription::count = 0;
 
+const AutoBindDescription *AutoBindDescription::head = nullptr;
+int AutoBindDescription::count = 0;
+
 inline static bool has_components(const Archetype &type, const eastl::vector<Component> &components)
 {
   for (const auto &c : components)
@@ -34,10 +38,6 @@ inline static bool not_have_components(const Archetype &type, const eastl::vecto
   return true;
 }
 
-SystemDescription::~SystemDescription()
-{
-}
-
 const SystemDescription *find_system(const ConstHashedString &name)
 {
   for (const auto *sys = SystemDescription::head; sys; sys = sys->next)
@@ -46,7 +46,10 @@ const SystemDescription *find_system(const ConstHashedString &name)
   return nullptr;
 }
 
-ComponentDescription::ComponentDescription(const char *_name, uint32_t _size) : id(ComponentDescription::count), size(_size)
+ComponentDescription::ComponentDescription(const char *_name, uint32_t _type_hash, uint32_t _size) :
+  id(ComponentDescription::count),
+  typeHash(_type_hash),
+  size(_size)
 {
   name = ::_strdup(_name);
   next = ComponentDescription::head;
@@ -65,6 +68,26 @@ const ComponentDescription *find_component(const char *name)
     if (::strcmp(comp->name, name) == 0)
       return comp;
   return nullptr;
+}
+
+const ComponentDescription *find_component(const ConstHashedString &name)
+{
+  return find_component(name.hash);
+}
+
+const ComponentDescription *find_component(uint32_t type_hash)
+{
+  for (const auto *comp = ComponentDescription::head; comp; comp = comp->next)
+    if (comp->typeHash == type_hash)
+      return comp;
+  return nullptr;
+}
+
+void do_auto_bind_module(const ConstHashedString &module_name, das::Module &module, das::ModuleLibrary &lib)
+{
+  for (const auto *autoBind = AutoBindDescription::head; autoBind; autoBind = autoBind->next)
+    if (autoBind->module == module_name)
+      autoBind->callback(module, lib);
 }
 
 PersistentQueryDescription::PersistentQueryDescription(const ConstHashedString &_name, const ConstQueryDescription &_desc, filter_t &&f) : name(_name), desc(_desc), filter(eastl::move(f))
@@ -163,6 +186,8 @@ void EntityManager::findArchetypes(QueryDescription &desc)
   if (!desc.isValid())
     return;
 
+  desc.archetypes.clear();
+
   for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
   {
     const auto &type = archetypes[archetypeId];
@@ -175,127 +200,227 @@ void EntityManager::findArchetypes(QueryDescription &desc)
   }
 }
 
+template<class MarkContainer, class ListContainer, class EdgeContainer, typename LoopDetected>
+static bool visit_top_sort(size_t node, const EdgeContainer &edges, MarkContainer & temp, MarkContainer &perm, ListContainer& result, LoopDetected cb)
+{
+  if (perm[node])
+    return true;
+  if (temp[node])
+  {
+    cb(node, temp);
+    perm.set(node, true);
+    return false;
+  }
+  temp.set(node, true);
+  bool ret = true;
+  if (edges.size() > node)
+    for (auto child : edges[node])
+      ret &= visit_top_sort(child, edges, temp, perm, result, cb);
+
+  temp.set(node, false);
+  if (!perm[node])//this check is needed in case graph is not DAG. we will just ignore such nodes.
+    result.push_back(node);
+  perm.set(node, true);
+  return ret;
+}
+
+typedef eastl::fixed_vector<int, 2, true> edge_container;//typically no more than 2 edges
+
+template<typename LoopDetected>
+static bool topo_sort(size_t N, const eastl::vector<edge_container> &edges, eastl::vector<int, FrameMemAllocator> &sortedList, LoopDetected cb)
+{
+  sortedList.reserve(N);
+  eastl::bitvector<FrameMemAllocator> tempMark(N, false);
+  eastl::bitvector<FrameMemAllocator> visitedMark(N, false);
+  bool isDAG = true;
+  for (size_t i = 0; i < N; ++i)
+    isDAG &= visit_top_sort(i, edges, tempMark, visitedMark, sortedList, cb);
+  return isDAG;
+}
+
+static eastl::vector<eastl::string_view, FrameMemAllocator> split(const char *str, const char *delim)
+{
+  if (!str || str[0] == '\0')
+    return {""};
+
+  eastl::vector<eastl::string_view, FrameMemAllocator> elems;
+
+  const char *begin = str;
+  const char *end = ::strstr(begin, delim);
+  if (!end)
+    return {str};
+
+  for (; end; begin = end + 1, end = ::strstr(begin, delim))
+    elems.emplace_back(begin, end - begin);
+
+  const int len = ::strlen(str);
+  if (begin != str)
+    elems.emplace_back(begin, str - begin + len);
+
+  return elems;
+}
+
 void EntityManager::init()
 {
   jobmanager::init();
 
   // Reserve eid = 0 as invalid
   entities.resize(1);
-  entityGenerations = { 0 };
 
-  eidComp = find_component("eid");
-  eidCompId = eidComp->id;
-
-  componentDescByNames[HASH("eid")] = eidComp;
-
-  {
-    FILE *file = nullptr;
-    ::fopen_s(&file, "data/templates.json", "rb");
-    ASSERT_FMT(file != nullptr, "data/templates.json not found!");
-    if (file)
-    {
-      size_t sz = ::ftell(file);
-      ::fseek(file, 0, SEEK_END);
-      sz = ::ftell(file) - sz;
-      ::fseek(file, 0, SEEK_SET);
-
-      char *buffer = new char[sz + 1];
-      buffer[sz] = '\0';
-      ::fread(buffer, 1, sz, file);
-      ::fclose(file);
-
-      templatesDoc.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(buffer);
-      delete [] buffer;
-
-      ASSERT(templatesDoc.HasMember("$order"));
-      ASSERT(templatesDoc["$order"].IsArray());
-      for (int i = 0; i < (int)templatesDoc["$order"].Size(); ++i)
-        order.emplace_back(templatesDoc["$order"][i].GetString());
-
-      ASSERT(templatesDoc.HasMember("$templates"));
-      ASSERT(templatesDoc["$templates"].IsArray());
-      for (int i = 0; i < (int)templatesDoc["$templates"].Size(); ++i)
-      {
-        const JValue &templ = templatesDoc["$templates"][i];
-
-        eastl::vector<eastl::pair<const char*, const char*>> comps;
-        eastl::vector<const char*> extends;
-        if (templ.HasMember("$extends"))
-          for (int j = 0; j < (int)templ["$extends"].Size(); ++j)
-            extends.push_back(templ["$extends"][j].GetString());
-
-        const JValue &templComps = templ["$components"];
-        for (auto compIter = templComps.MemberBegin(); compIter != templComps.MemberEnd(); ++compIter)
-        {
-          const JValue &type = compIter->value["$type"];
-          comps.push_back({ type.GetString(), compIter->name.GetString() });
-
-          #ifdef _DEBUG
-          if (compIter->value.HasMember("$array"))
-          {
-            // Debug check
-            std::ostringstream oss;
-            oss << "[" << compIter->value["$array"].Size() << "]";
-            std::string res = oss.str();
-            int offset = type.GetStringLength() - (int)res.length();
-            ASSERT(offset > 0);
-            const char *tail = type.GetString() + offset;
-            ASSERT(::strcmp(res.c_str(), tail) == 0);
-          }
-          #endif
-        }
-
-        addTemplate(i, templ["$name"].GetString(), comps, extends);
-      }
-    }
-  }
+  // No more data/templates.json! daScript only!
 
   systemDescs.resize(SystemDescription::count);
 
   for (const auto *sys = SystemDescription::head; sys; sys = sys->next)
   {
-    ASSERT(sys->sys != nullptr);
+    // Not valid since we have Barriers
+    // ASSERT(sys->sys != nullptr);
     systemDescs[sys->id] = sys;
-    systems.push_back({ getSystemWeight(sys->name), sys->sys, sys });
+    systems.push_back({ sys->sys, sys });
   }
 
-  eastl::sort(systems.begin(), systems.end(),
-    [](const System &lhs, const System &rhs) { return lhs.weight < rhs.weight; });
+  eastl::hash_map<eastl::string_view, int, eastl::hash<eastl::string_view>, eastl::equal_to<eastl::string_view>, FrameMemAllocator> nameESMap;
+
+  eastl::vector<int> esToGraphNodeMap;//ES to graph vertex map
+  esToGraphNodeMap.reserve(systems.size());
+  eastl::vector<int> graphNodeToEsMap;//graph vertex -> ES map
+  graphNodeToEsMap.reserve(systems.size());
+  int graphNodesCount = 0;
+  eastl::vector<edge_container> edgesFrom;
+  auto insertEdge = [&edgesFrom](int from, int to)
+  {
+    if (int(edgesFrom.size()) <= eastl::max(from, to))
+      edgesFrom.resize(eastl::max(from, to)+1);
+    edgesFrom[from].push_back(to);
+  };
+
+  // auto r1 = split("", ",");
+  // auto r2 = split("aaa", ",");
+  // auto r3 = split("aaa,bbb", ",");
+  // auto r4 = split("aaa,bbb,ccc", ",");
+  // auto r5 = split("aaa,,ccc", ",");
+  // auto r6 = split(",aaa", ",");
+  // auto r7 = split("aaa,", ",");
+
+  //before/after edges
+  auto insertEdges = [&](const char *name, int graphNode, const char *nodes, bool before)
+  {
+    if (!nodes || nodes[0] == '*')
+      return;
+    for (const auto &node : split(nodes, ","))
+    {
+      auto res = nameESMap.emplace(node, graphNodesCount);
+      if (res.second)
+        ++graphNodesCount;
+      const int other = res.first->second;
+      insertEdge(before ? graphNode : other, before ? other : graphNode);
+    }
+  };
+
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
+  {
+    eastl::string_view name(systems[i].desc->name.str);
+    auto insResult = nameESMap.emplace(name, graphNodesCount);
+    const int graphNode = insResult.first->second;
+    if (!insResult.second)
+    {
+      const int j = int(graphNodeToEsMap.size()) <= graphNode ? -1 : graphNodeToEsMap[graphNode];
+      ASSERT(j < 0);
+    }
+    else
+      graphNodesCount++;
+
+    if (int(graphNodeToEsMap.size()) <= graphNode)
+      graphNodeToEsMap.resize(graphNode + 1, -1);
+    graphNodeToEsMap[graphNode] = i;
+
+    if (int(esToGraphNodeMap.size()) <= i)
+      esToGraphNodeMap.resize(i + 1, -1);
+    esToGraphNodeMap[i] = graphNode;
+  }
+
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
+  {
+    auto it = nameESMap.find(eastl::string_view(systems[i].desc->name.str));
+    ASSERT(it != nameESMap.end());
+    const int graphNode = it->second;
+    insertEdges(systems[i].desc->name.str, graphNode, systems[i].desc->before.c_str(), true);
+    insertEdges(systems[i].desc->name.str, graphNode, systems[i].desc->after.c_str(), false);
+  }
+
+  eastl::vector<int, FrameMemAllocator> sortedList;
+  auto loopDetected = [&](int i, auto &)
+  {
+    auto it = eastl::find_if(nameESMap.begin(), nameESMap.end(), [&](const auto &it){return it.second == i;});
+    eastl::string node="n/a";
+    if (it != nameESMap.end())
+      node = it->first;
+    ASSERT_FMT(false, "Node %s resulted in graph to become cyclic and was removed from sorting. ES order is non-determinstic", node.c_str());
+  };
+  topo_sort(graphNodesCount, edgesFrom, sortedList, loopDetected);
+
+  const int lowestWeight = eastl::numeric_limits<int>::max();
+  eastl::vector<int, FrameMemAllocator> sortedWeights;
+  sortedWeights.resize(sortedList.size(), lowestWeight);
+  for (size_t i = 0, sz = sortedList.size(); i < sz; ++i)
+    if (uint32_t(sortedList[i]) < sortedList.size())
+      sortedWeights[sortedList[i]] = sortedList.size()-i;
+
+  struct SystemWithWeight
+  {
+    int id;
+    int weight;
+    SystemWithWeight(int _id, int _weight) : id(_id), weight(_weight) {}
+  };
+  eastl::vector<SystemWithWeight, FrameMemAllocator> weights;
+  weights.reserve(systems.size());
+
+  for (int i = 0, sz = systems.size(); i < sz; ++i)
+  {
+    const System &sys = systems[i];
+
+    const uint32_t graphNode = i < int(esToGraphNodeMap.size()) ? esToGraphNodeMap[i] : ~0u;
+    const int weight = (uint32_t(graphNode) < sortedWeights.size()) ? sortedWeights[graphNode] : lowestWeight;
+
+    weights.push_back({i, weight});
+  }
+
+  eastl::sort(weights.begin(), weights.end(), [](const SystemWithWeight &a, const SystemWithWeight&b) {return a.weight < b.weight;});
+  eastl::vector<System> systemsSorted;
+  systemsSorted.resize(systems.size());
+  for (int i = 0, sz = weights.size(); i < sz; ++i)
+  {
+    systemsSorted[i] = systems[weights[i].id];
+    const bool isBarrier = systemsSorted[i].sys == nullptr;
+    DEBUG_LOG((!isBarrier ? "  " : "") << systemsSorted[i].desc->name.str);
+  }
+  eastl::swap(systemsSorted, systems);
 
   for (int i = 0, sz = systems.size(); i < sz; ++i)
     systemsByStage.insert(eastl::pair<uint32_t, int>(systems[i].desc->stageName.hash, i));
 
-  queries.resize(SystemDescription::count);
-  for (int i = 0, sz = systems.size(); i < sz; ++i)
-  {
-    const auto &sys = systems[i];
-    auto &q = queries[i];
-    q.desc = sys.desc->queryDesc;
-    q.desc.filter = sys.desc->filter;
-    q.name = sys.desc->name;
-    findArchetypes(q.desc);
-
-    ASSERT_FMT(q.desc.isValid() || sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY, "Query for system '%s' is invalid!", sys.desc->name);
-  }
+  for (auto &sys : systems)
+    sys.queryId = createQuery(sys.desc->name, sys.desc->queryDesc, sys.desc->filter);
 
   systemJobs.resize(systems.size());
   systemDependencies.resize(systems.size());
 
+  // TODO: Check this. The code might be broken. archetypes are empty by this moment.
   for (int i = SystemDescription::count - 1; i >= 0; --i)
   {
-    const auto &qI = queries[i];
+    const auto &qI = queryDescriptions[systems[i].queryId.index];
     const auto &compsI = systems[i].desc->queryDesc.components;
     auto &deps = systemDependencies[systems[i].desc->id];
 
     for (int j = i - 1; j >= 0; --j)
     {
-      const auto &qJ = queries[j];
+      const auto &qJ = queryDescriptions[systems[j].queryId.index];
 
       // TODO: abort loop normaly instead of dry runs
 
       bool found = false;
-      for (int archI : qI.desc.archetypes)
-        for (int archJ : qJ.desc.archetypes)
+      for (int archI : qI.archetypes)
+        for (int archJ : qJ.archetypes)
           if (!found && archI == archJ)
           {
             found = true;
@@ -332,15 +457,12 @@ void EntityManager::init()
     }
   }
 
-  for (int i = 0, sz = systems.size(); i < sz; ++i)
-  {
-    auto &q = queries[i];
-    if (systems[i].desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
+  for (auto &sys : systems)
+    if (sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
     {
-      q.desc = empty_query_desc;
-      q.desc.archetypes.clear();
+      deleteQuery(sys.queryId);
+      sys.queryId = QueryId();
     }
-  }
 
   for (const auto &sys : systems)
   {
@@ -348,15 +470,10 @@ void EntityManager::init()
       enableChangeDetection(c.name);
   }
 
-  namedQueries.resize(PersistentQueryDescription::count);
   int queryIdx = 0;
   for (const auto *query = PersistentQueryDescription::head; query; query = query->next, ++queryIdx)
   {
-    ASSERT(findQuery(query->name) == nullptr);
-    namedQueries[queryIdx].name = query->name;
-    namedQueries[queryIdx].desc = query->desc;
-    namedQueries[queryIdx].desc.filter = query->filter;
-    findArchetypes(namedQueries[queryIdx].desc);
+    const_cast<PersistentQueryDescription*>(query)->queryId = createQuery(query->name, query->desc, query->filter);
     for (const auto &c : query->desc.trackComponents)
       enableChangeDetection(c.name);
   }
@@ -375,8 +492,17 @@ void EntityManager::init()
   }
 
   dirtyQueries.reserve(queries.size());
-  dirtyNamedQueries.reserve(namedQueries.size());
   dirtyNamedIndices.reserve(namedIndices.size());
+}
+
+void EntityManager::registerSystem(const ConstHashedString &name, SystemDescription::SystemCallback callback)
+{
+  // Insert to systems
+  // Sort systems
+  // Insert to systemsByStage
+  // Insert to queries
+
+  // Do not shrik systems array. id only move forward.
 }
 
 int EntityManager::getSystemId(const ConstHashedString &name) const
@@ -400,13 +526,6 @@ void EntityManager::waitSystemDependencies(int id) const
 {
   for (int d : systemDependencies[id])
     jobmanager::wait(systemJobs[d]);
-}
-
-int EntityManager::getSystemWeight(const ConstHashedString &name) const
-{
-  auto res = eastl::find_if(order.begin(), order.end(), [name](const eastl::string &n) { return n == name.str; });
-  ASSERT_FMT(res != order.end(), "System '%s' must be added to $order!", name);
-  return (int)(res - order.begin());
 }
 
 const ComponentDescription* EntityManager::getComponentDescByName(const char *name) const
@@ -433,14 +552,6 @@ const ComponentDescription* EntityManager::getComponentDescByName(const ConstHas
   return res->second;
 }
 
-Query* EntityManager::findQuery(const ConstHashedString &name)
-{
-  for (auto &q : namedQueries)
-    if (q.name == name)
-      return &q;
-  return nullptr;
-}
-
 Index* EntityManager::findIndex(const ConstHashedString &name)
 {
   for (auto &i : namedIndices)
@@ -449,111 +560,54 @@ Index* EntityManager::findIndex(const ConstHashedString &name)
   return nullptr;
 }
 
-static void add_component_to_template(const char *comp_type, const HashedString &comp_name,
-  EntityTemplate &templ,
-  eastl::hash_map<HashedString, const ComponentDescription*> &component_desc_by_names)
+void EntityManager::addTemplate(const char *templ_name, ComponentsMap &&cmap)
 {
-  auto res = eastl::find_if(templ.components.begin(), templ.components.end(), [&](const Component &c) { return c.name == comp_name; });
-  if (res != templ.components.end())
-    return;
-
-  ASSERT_FMT(find_component(comp_type) != nullptr, "Type '%s' for component '%s' not found!", comp_type, comp_name.str);
-  templ.components.push_back({ 0, comp_name, find_component(comp_type)->size, find_component(comp_type) });
-
-  const ComponentDescription *desc = templ.components.back().desc;
-  ASSERT(desc != nullptr);
-  ASSERT(component_desc_by_names.find(comp_name) == component_desc_by_names.end() || component_desc_by_names[comp_name] == desc);
-  component_desc_by_names[comp_name] = desc;
-}
-
-static void process_extends(EntityManager *mgr,
-  EntityTemplate &templ,
-  const eastl::vector<const char*> &extends,
-  eastl::hash_map<HashedString, const ComponentDescription*> &component_desc_by_names)
-{
-  for (const auto &e : extends)
-  {
-    const int templateId = mgr->getTemplateId(e);
-    templ.extends.push_back(templateId);
-    for (const auto &c : mgr->templates[templateId].components)
-      add_component_to_template(c.desc->name, c.name, templ, component_desc_by_names);
-  }
-}
-
-void EntityManager::addTemplate(int doc_id, const char *templ_name, const eastl::vector<eastl::pair<const char*, const char*>> &comp_names, const eastl::vector<const char*> &extends)
-{
-  templates.emplace_back();
-  auto &templ = templates.back();
-  templ.docId = doc_id;
+  EntityTemplate &templ = templates.emplace_back();
   templ.name = templ_name;
+  templ.cmap = eastl::move(cmap);
+  templ.cmap.createComponent(HASH("eid"), find_component(HASH("EntityId")));
 
-  process_extends(this, templ, extends, componentDescByNames);
-
-  for (const auto &name : comp_names)
-    add_component_to_template(name.first, name.second, templ, componentDescByNames);
-
-  eastl::sort(templ.components.begin(), templ.components.end(),
-    [](const Component &lhs, const Component &rhs)
-    {
-      if (lhs.desc->id == rhs.desc->id)
-        return lhs.name < rhs.name;
-      return lhs.desc->id < rhs.desc->id;
-    });
-
-  int offset = 0;
-  for (size_t i = 0; i < templ.components.size(); ++i)
+  templ.size = 0;
+  for (const auto &kv : templ.cmap.components)
   {
-    auto &c = templ.components[i];
-    c.id = i;
-    offset += c.desc->size;
+    templ.size += kv.second.desc->size;
+
+    auto res = componentDescByNames.find(kv.first);
+    if (res == componentDescByNames.end())
+      componentDescByNames[kv.first] = kv.second.desc;
+    else
+    {
+      ASSERT(res->second == kv.second.desc);
+    }
   }
-  templ.size = offset;
 
   // TODO: Create arhcetypes by componets list. Not per template
   Archetype &type = archetypes.emplace_back();
-  type.storages.resize(templ.components.size());
-  type.storageNames.resize(templ.components.size());
+  type.componentsCount = templ.cmap.components.size();
+  type.storages.reset(new Archetype::Storage[type.componentsCount]);
+  type.storageNames.reset(new HashedString[type.componentsCount]);
 
   templ.archetypeId = archetypes.size() - 1;
 
-  int compIdx = 0;
-  for (auto &storage : type.storages)
+  int i = 0;
+  for (auto &kv : templ.cmap.components)
   {
-    const auto &c = templ.components[compIdx];
-
-    storage = componentDescByNames[c.name]->createStorage();
-    ASSERT(storage != nullptr);
-
-    type.storageNames[compIdx] = c.name;
-    storage->elemSize = componentDescByNames[c.name]->size;
-
-    ++compIdx;
+    ASSERT(kv.second.desc != nullptr);
+    new (&type.storages[i]) Archetype::Storage(kv.second.desc);
+    new (&type.storageNames[i]) HashedString(kv.first);
+    ++i;
   }
 
-  type.storages.emplace_back() = eidComp->createStorage();
-  type.storageNames.emplace_back() = HASH("eid");
-  type.storages.back()->elemSize = eidComp->size;
+  // TODO: Do it once per tick
+  for (QueryDescription &d : queryDescriptions)
+    findArchetypes(d);
 }
 
-void EntityManager::createEntity(const char *templ_name, const JValue &comps)
+void EntityManager::createEntity(const char *templ_name, ComponentsMap &&comps)
 {
-  JDocument doc;
-  doc.CopyFrom(comps, doc.GetAllocator());
-
   CreateQueueData q;
   q.templanemName = templ_name;
-  q.components = eastl::move(doc);
-  createQueue.emplace_back(eastl::move(q));
-}
-
-void EntityManager::createEntity(const char *templ_name, const JFrameValue &comps)
-{
-  JDocument doc;
-  doc.CopyFrom(comps, doc.GetAllocator());
-
-  CreateQueueData q;
-  q.templanemName = templ_name;
-  q.components = eastl::move(doc);
+  q.components = eastl::move(comps);
   createQueue.emplace_back(eastl::move(q));
 }
 
@@ -566,7 +620,7 @@ void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
 {
   ASSERT(std::find_if(asyncValues.begin(), asyncValues.end(), [eid](const AsyncValue &v) { return v.eid == eid; }) == asyncValues.end());
   asyncValues.emplace_back(eid, std::move(value));
-  if (eid.generation == entityGenerations[eid.index])
+  if (eidFactory.isValid(eid))
     entities[eid.index].ready = false;
 }
 
@@ -579,53 +633,10 @@ int EntityManager::getTemplateId(const char *name)
   return -1;
 }
 
-template <typename Allocator>
-static void override_component(JFrameValue &dst, JFrameValue &src, const char *name, Allocator &allocator)
-{
-  if (!dst.HasMember(name))
-    dst.AddMember(rapidjson::StringRef(name), src, allocator);
-}
-
-template <typename Allocator>
-static void process_templates(EntityManager *mgr,
-  const EntityTemplate &templ,
-  const JDocument &templates_doc,
-  JFrameValue &dst,
-  Allocator &allocator)
-{
-  for (int id : templ.extends)
-  {
-    const JValue &extendsValue = templates_doc["$templates"][mgr->templates[id].docId];
-    for (auto it = extendsValue["$components"].MemberBegin(); it != extendsValue["$components"].MemberEnd(); ++it)
-    {
-      JFrameValue v(rapidjson::kObjectType);
-      v.CopyFrom(it->value, allocator);
-      override_component(dst, v, it->name.GetString(), allocator);
-    }
-
-    process_templates(mgr, mgr->templates[id], templates_doc, dst, allocator);
-  }
-}
-
-void EntityManager::buildComponentsValuesFromTemplate(int template_id, const JValue &comps, JFrameValue &out_value)
-{
-  auto &templ = templates[template_id];
-
-  const JValue &value = templatesDoc["$templates"][templ.docId];
-
-  JFrameAllocator allocator;
-  out_value.CopyFrom(value["$components"], allocator);
-
-  process_templates(this, templ, templatesDoc, out_value, allocator);
-
-  if (!comps.IsNull())
-    for (auto compIter = comps.MemberBegin(); compIter != comps.MemberEnd(); ++compIter)
-      out_value[compIter->name.GetString()]["$value"].CopyFrom(compIter->value, allocator);
-}
-
-EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &comps)
+EntityId EntityManager::createEntitySync(const char *templ_name, ComponentsMap &&comps)
 {
   int templateId = -1;
+  // TODO: Use hash_map for search templates
   for (size_t i = 0; i < templates.size(); ++i)
     if (templates[i].name == templ_name)
     {
@@ -636,30 +647,15 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   auto &templ = templates[templateId];
 
-  JFrameValue tmpValue(rapidjson::kObjectType);
-  buildComponentsValuesFromTemplate(templateId, comps, tmpValue);
+  const EntityId eid = eidFactory.allocate();
+  if (eid.index >= entities.size())
+    entities.resize(eid.index + 1);
 
-  int freeIndex = -1;
+  DEBUG_LOG("[create][" << eid.handle << "]: " << templ_name);
 
-  static constexpr uint32_t MINIMUM_FREE_INDICES = 1024;
-  if (freeEntityQueue.size() > MINIMUM_FREE_INDICES)
-  {
-    freeIndex = freeEntityQueue.front();
-    freeEntityQueue.pop_front();
-  }
+  ASSERT(eid);
 
-  if (freeIndex < 0)
-  {
-    freeIndex = entities.size();
-    entities.emplace_back();
-    entityGenerations.push_back(0);
-  }
-
-  ASSERT(freeIndex > 0);
-
-  EntityId eid = make_eid(entityGenerations[freeIndex], freeIndex);
-
-  auto &e = entities[freeIndex];
+  auto &e = entities[eid.index];
 
   e.templateId = templateId;
   e.archetypeId = templ.archetypeId;
@@ -667,30 +663,8 @@ EntityId EntityManager::createEntitySync(const char *templ_name, const JValue &c
 
   ++entitiesCount;
 
-  archetypes[e.archetypeId].entitiesCount++;
-  if (archetypes[e.archetypeId].entitiesCount > archetypes[e.archetypeId].entitiesCapacity)
-    archetypes[e.archetypeId].entitiesCapacity = archetypes[e.archetypeId].entitiesCount;
-
-  int compId = 0;
-  auto &type = archetypes[templ.archetypeId];
-  for (const auto &c : templ.components)
-  {
-    uint8_t *mem = nullptr;
-    int offset = 0;
-    eastl::tie(mem, offset) = type.storages[compId++]->allocate();
-
-    c.desc->init(mem, tmpValue[c.name.str]);
-  }
-
-  // eid
-  {
-    uint8_t *mem = nullptr;
-    int offset = 0;
-    eastl::tie(mem, offset) = type.storages.back()->allocate();
-    new (mem) EntityId(eid);
-
-    e.indexInArchetype = offset / sizeof(EntityId);
-  }
+  comps.add(HASH("eid"), eid);
+  e.indexInArchetype = archetypes[e.archetypeId].allocate(templ.cmap, eastl::move(comps));
 
   sendEventSync(eid, EventOnEntityCreate{});
 
@@ -710,33 +684,24 @@ void EntityManager::tick()
   {
     EntityId eid = deleteQueue.front();
 
-    auto &entity = entities[eid.index];
-    if (eid.generation == entityGenerations[eid.index])
+    if (eidFactory.isValid(eid))
     {
+      DEBUG_LOG("[delete][" << eid.handle << "]: " << templates[entities[eid.index].templateId].name.c_str());
+
       shouldInvalidateQueries = true;
 
-      const auto &templ = templates[entity.templateId];
+      sendEventSync(eid, EventOnEntityDelete{});
 
-      int compId = 0;
-      auto &type = archetypes[templ.archetypeId];
-      for (const auto &c : templ.components)
-      {
-        auto &storage = type.storages[compId++];
-        const int offset = entity.indexInArchetype * storage->elemSize;
-        storage->deallocate(offset);
-      }
+      auto &entity = entities[eid.index];
 
-      // eid
-      type.storages.back()->deallocate(entity.indexInArchetype * type.storages.back()->elemSize);
+      archetypes[entity.archetypeId].deallocate(entity.indexInArchetype);
 
       --entitiesCount;
-      --type.entitiesCount;
 
-      entityGenerations[eid.index] = (eid.generation + 1) % EntityId::GENERATION_LIMIT;
       entity.ready = false;
       entity.indexInArchetype = -1;
 
-      freeEntityQueue.push_back(eid.index);
+      eidFactory.free(eid);
     }
 
     deleteQueue.pop();
@@ -746,14 +711,10 @@ void EntityManager::tick()
   {
     shouldInvalidateQueries = true;
 
-    const auto &q = createQueue.front();
-    createEntitySync(q.templanemName.c_str(), q.components);
+    auto &q = createQueue.front();
+    createEntitySync(q.templanemName.c_str(), eastl::move(q.components));
     createQueue.pop();
   }
-
-  if (shouldInvalidateQueries)
-    for (auto &t : archetypes)
-      t.invalidate();
 
   for (const auto &v : asyncValues)
   {
@@ -762,7 +723,7 @@ void EntityManager::tick()
     {
       shouldInvalidateQueries = true;
 
-      if (v.eid.generation == entityGenerations[v.eid.index])
+      if (eidFactory.isValid(v.eid))
       {
         entities[v.eid.index].ready = ready;
         sendEventSync(v.eid, EventOnEntityReady{});
@@ -778,24 +739,19 @@ void EntityManager::tick()
   {
     queriesInvalidated = true;
     for (auto &q : queries)
-      performQuery(q);
-    for (auto &q : namedQueries)
-      performQuery(q);
+      performQuery(queryDescriptions[q.id.index], q);
     for (auto &i : namedIndices)
       rebuildIndex(i);
   }
   else
   {
-    queriesInvalidated = !dirtyQueries.empty() || !namedQueries.empty();
-    for (int queryIdx : dirtyQueries)
-      performQuery(queries[queryIdx]);
-    for (int queryIdx : dirtyNamedQueries)
-      performQuery(namedQueries[queryIdx]);
+    queriesInvalidated = !dirtyQueries.empty();
+    for (QueryId queryId : dirtyQueries)
+      performQuery(queryId);
     for (int indexIdx : dirtyNamedIndices)
       rebuildIndex(namedIndices[indexIdx]);
 
     dirtyQueries.clear();
-    dirtyNamedQueries.clear();
     dirtyNamedIndices.clear();
   }
 
@@ -846,7 +802,7 @@ bool Archetype::hasCompontent(const ConstHashedString &name) const
 
 int Archetype::getComponentIndex(const HashedString &name) const
 {
-  for (int i = 0; i < (int)storageNames.size(); ++i)
+  for (int i = 0; i < componentsCount; ++i)
     if (storageNames[i] == name)
       return i;
   return -1;
@@ -855,18 +811,6 @@ int Archetype::getComponentIndex(const HashedString &name) const
 int Archetype::getComponentIndex(const ConstHashedString &name) const
 {
   return getComponentIndex(HashedString(name));
-}
-
-template <typename T>
-inline static bool is_components_values_equal_to(const T &value, int entity_idx, const Archetype &type, const eastl::vector<Component> &components)
-{
-  for (const auto &c : components)
-  {
-    const int compIdx = type.getComponentIndex(c.name);
-    if (type.storages[compIdx]->getByIndex<T>(entity_idx) != value)
-      return false;
-  }
-  return true;
 }
 
 Query* Index::find(uint32_t value)
@@ -887,48 +831,49 @@ void Query::addChunks(const QueryDescription &in_desc, Archetype &type, int begi
   int compIdx = 0;
   for (const auto &c : in_desc.components)
   {
-    auto &storage = type.storages[type.getComponentIndex(c.name)];
-    chunks[compIdx + (chunksCount - 1) * componentsCount] = storage->getRawByIndex(begin);
+    chunks[compIdx + (chunksCount - 1) * componentsCount] = type.getRaw(begin, type.getComponentIndex(c.name));
     compIdx++;
   }
-
-  auto &storage = type.storages[type.getComponentIndex(HASH("eid"))];
-  chunks[compIdx + (chunksCount - 1) * componentsCount] = storage->getRawByIndex(begin);
 }
 
-void EntityManager::performQuery(Query &query)
+void EntityManager::performQuery(const QueryId &qid)
 {
-  const bool isValid = query.desc.isValid();
+  if (qidFactory.isValid(qid))
+    performQuery(queryDescriptions[qid.index], queries[qid.index]);
+}
+
+void EntityManager::performQuery(const QueryDescription &desc, Query &query)
+{
+  const bool isValid = desc.isValid();
 
   query.chunksCount = 0;
   query.entitiesCount = 0;
   query.chunks.clear();
   query.entitiesInChunk.clear();
-  query.componentsCount = query.desc.components.size() + 1;
+  query.componentsCount = desc.components.size();
 
-  for (int archetypeId : query.desc.archetypes)
+  for (int archetypeId : desc.archetypes)
   {
     auto &type = archetypes[archetypeId];
 
     // TODO: ASSERT on type mismatch
-    ASSERT(isValid && not_have_components(type, query.desc.notHaveComponents) && has_components(type, query.desc.components) && has_components(type, query.desc.haveComponents));
-    ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
+    ASSERT(isValid && not_have_components(type, desc.notHaveComponents) && has_components(type, desc.components) && has_components(type, desc.haveComponents));
 
     bool ok = true;
     int begin = -1;
     for (int i = 0; i < type.entitiesCapacity; ++i)
     {
       // TODO: Find a better solution
-      ok = !type.storages[0]->freeMask[i];
+      ok = !type.freeMask[i];
 
-      ok = ok && (!query.desc.filter || query.desc.filter(type, i));
+      ok = ok && (!desc.filter || desc.filter(type, i));
 
       if (ok && begin < 0)
         begin = i;
 
       if (begin >= 0 && (!ok || i == type.entitiesCapacity - 1))
       {
-        query.addChunks(query.desc, type, begin, i - begin + (ok ? 1 : 0));
+        query.addChunks(desc, type, begin, i - begin + (ok ? 1 : 0));
         begin = -1;
       }
     }
@@ -953,11 +898,9 @@ void EntityManager::rebuildIndex(Index &index)
 
     if (ok)
     {
-      ASSERT(type.entitiesCapacity == type.storages[0]->totalCount);
-
       const int componentIdx = type.getComponentIndex(index.componentName);
       ASSERT(componentIdx >= 0);
-      const int componentSize = type.storages[componentIdx]->elemSize;
+      const int componentSize = type.storages[componentIdx].itemSize;
       ASSERT(componentSize == sizeof(uint32_t));
 
       int lastQueryId = -1;
@@ -965,7 +908,7 @@ void EntityManager::rebuildIndex(Index &index)
       for (int i = 0; i < type.entitiesCapacity; ++i)
       {
         // TODO: Find a better solution
-        ok = !type.storages[0]->freeMask[i];
+        ok = !type.freeMask[i];
 
         if (!ok && lastQueryId < 0)
           continue;
@@ -975,7 +918,7 @@ void EntityManager::rebuildIndex(Index &index)
 
         if (ok)
         {
-          const uint32_t key = type.storages[componentIdx]->getByIndex<uint32_t>(i);
+          const uint32_t key = type.get<uint32_t>(i, componentIdx);
 
           auto res = index.itemsMap.find(key);
           if (res == index.itemsMap.end() || res->first != key)
@@ -1002,7 +945,7 @@ void EntityManager::rebuildIndex(Index &index)
 
         ASSERT(query != nullptr);
 
-        query->componentsCount = index.desc.components.size() + 1;
+        query->componentsCount = index.desc.components.size();
         lastQueryId = queryId;
 
         ok = ok && (!index.desc.filter || index.desc.filter(type, i));
@@ -1033,9 +976,10 @@ void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
       int index = type.getComponentIndex(name);
       if (index >= 0)
       {
-        const size_t sz = type.storages[index]->size();
+        // TODO: Normal copy. Check copy flags.
+        const size_t sz = type.storages[index].size();
         snapshot.emplace_back() = alloc_frame_mem(sz);
-        ::memcpy(snapshot.back(), type.storages[index]->data(), sz);
+        ::memcpy(snapshot.back(), type.storages[index].items, sz);
       }
     }
   }
@@ -1044,6 +988,7 @@ void EntityManager::fillFrameSnapshot(FrameSnapshot &snapshot) const
 void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
 {
   // TODO: Optimize
+  // TODO: Use component's opertator== instead of ::memcmp if possible
   int i = 0;
   for (const auto &type : archetypes)
   {
@@ -1052,14 +997,11 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
       int index = type.getComponentIndex(name);
       if (index >= 0)
       {
-        if (::memcmp(snapshot[i++], type.storages[index]->data(), type.storages[index]->size()))
+        if (::memcmp(snapshot[i++], type.storages[index].items, type.storages[index].size()))
         {
-          for (int j = 0, sz = queries.size(); j < sz; ++j)
-            if (queries[j].desc.isDependOnComponent(name))
-              dirtyQueries.push_back(j);
-          for (int j = 0, sz = namedQueries.size(); j < sz; ++j)
-            if (namedQueries[j].desc.isDependOnComponent(name))
-              dirtyNamedQueries.push_back(j);
+          for (const Query &q : queries)
+            if (queryDescriptions[q.id.index].isDependOnComponent(name))
+              dirtyQueries.push_back(q.id);
           for (int j = 0, sz = namedIndices.size(); j < sz; ++j)
             if (namedIndices[j].desc.isDependOnComponent(name))
               dirtyNamedIndices.push_back(j);
@@ -1079,7 +1021,7 @@ void EntityManager::tickStage(uint32_t stage_id, const RawArg &stage)
 
   auto res = systemsByStage.equal_range(stage_id);
   for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
-    systems[sysIt->second].sys(stage, queries[sysIt->second]);
+    systems[sysIt->second].sys(stage, queries[systems[sysIt->second].queryId.index]);
 
   checkFrameSnapshot(snapshot);
 }
@@ -1092,7 +1034,7 @@ void EntityManager::sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev)
 
 void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev)
 {
-  if (eid.generation != entityGenerations[eid.index])
+  if (!eidFactory.isValid(eid))
     return;
 
   auto &e = entities[eid.index];
@@ -1113,22 +1055,8 @@ void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg 
       if (ok)
       {
         Query query;
-        query.desc = sys.desc->queryDesc;
-        query.chunksCount = 1;
-
-        const int componentsCount = query.desc.components.size();
-        query.chunks.resize(componentsCount);
-
-        query.entitiesInChunk.resize(query.chunksCount);
-        query.entitiesInChunk[query.chunksCount - 1] = 1;
-
-        int compIdx = 0;
-        for (const auto &c : query.desc.components)
-        {
-          auto &storage = type.storages[type.getComponentIndex(c.name)];
-          query.chunks[compIdx + (query.chunksCount - 1) * componentsCount] = storage->getRawByIndex(e.indexInArchetype);
-          compIdx++;
-        }
+        query.componentsCount = sys.desc->queryDesc.components.size();
+        query.addChunks(sys.desc->queryDesc, type, e.indexInArchetype, 1);
 
         sys.desc->sys(ev, query);
       }
@@ -1144,7 +1072,7 @@ void EntityManager::sendEventBroadcastSync(uint32_t event_id, const RawArg &ev)
 {
   auto res = systemsByStage.equal_range(event_id);
   for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
-    systems[sysIt->second].sys(ev, queries[sysIt->second]);
+    systems[sysIt->second].sys(ev, queries[systems[sysIt->second].queryId.index]);
 }
 
 void EntityManager::enableChangeDetection(const HashedString &name)
@@ -1159,4 +1087,37 @@ void EntityManager::disableChangeDetection(const HashedString &name)
 {
   DEBUG_LOG("disableChangeDetection: " << name.str);
   trackComponents.erase(name);
+}
+
+QueryId EntityManager::createQuery(const ConstHashedString &name, const QueryDescription &desc, const filter_t &filter)
+{
+  QueryId qid = qidFactory.allocate();
+  if (qid.index >= queries.size())
+  {
+    queries.resize(qid.index + 1);
+    queryDescriptions.resize(qid.index + 1);
+  }
+
+  queries[qid.index].reset();
+
+  queries[qid.index].id = qid;
+  queries[qid.index].name = name;
+  queryDescriptions[qid.index] = desc;
+  queryDescriptions[qid.index].filter = filter;
+  findArchetypes(queryDescriptions[qid.index]);
+  return qid;
+}
+
+QueryId EntityManager::createQuery(const ConstHashedString &name, const ConstQueryDescription &desc, const filter_t &filter)
+{
+  return createQuery(name, QueryDescription(desc), filter);
+}
+
+void EntityManager::deleteQuery(const QueryId &qid)
+{
+  if (!qidFactory.isValid(qid))
+    return;
+  queries[qid.index].reset();
+  queryDescriptions[qid.index].reset();
+  qidFactory.free(qid);
 }

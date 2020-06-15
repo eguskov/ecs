@@ -85,14 +85,12 @@ constexpr ConstQueryDescription empty_query_desc
 
 struct Component
 {
-  int id;
   HashedString name;
   uint32_t size;
   const ComponentDescription* desc;
 
   Component& operator=(const ConstComponentDescription &d)
   {
-    id = -1;
     desc = nullptr;
     name = d.name;
     size = d.size;
@@ -108,6 +106,8 @@ struct PersistentQueryDescription
   ConstQueryDescription desc;
 
   filter_t filter;
+
+  QueryId queryId;
 
   static const PersistentQueryDescription *head;
   static int count;
@@ -127,6 +127,21 @@ struct QueryDescription
   eastl::vector<int> archetypes;
 
   filter_t filter;
+
+  void reset()
+  {
+    components.clear();
+    haveComponents.clear();
+    notHaveComponents.clear();
+    archetypes.clear();
+    filter = nullptr;
+  }
+
+  QueryDescription() = default;
+  QueryDescription(const ConstQueryDescription &desc)
+  {
+    *this = desc;
+  }
 
   QueryDescription& operator=(const ConstQueryDescription &desc)
   {
@@ -195,7 +210,96 @@ struct QueryDescription
   }
 };
 
+struct QueryIterator
+{
+  int idx = 0;
+  int chunkIdx = 0;
+  int componentsCount = 0;
+  int chunksCount = 0;
+
+  const int * __restrict entitiesInChunk = nullptr;
+  uint8_t * __restrict * __restrict chunks = nullptr;
+  uint8_t * __restrict * __restrict curChunk = nullptr;
+
+  QueryIterator(uint8_t * __restrict * __restrict _chunks, int chunks_count, int * __restrict entities_in_chunk, int components_count, int chunk_idx = 0) :
+    chunks(_chunks),
+    entitiesInChunk(entities_in_chunk),
+    componentsCount(components_count),
+    chunksCount(chunks_count),
+    chunkIdx(chunk_idx)
+  {
+    curChunk = chunks;
+  }
+
+  bool operator==(const QueryIterator &rhs) const
+  {
+    return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
+  }
+
+  bool operator!=(const QueryIterator &rhs) const
+  {
+    return !(operator==(rhs));
+  }
+
+  void operator++()
+  {
+    ++idx;
+    if (idx >= entitiesInChunk[chunkIdx])
+    {
+      idx = 0;
+      ++chunkIdx;
+      curChunk += componentsCount;
+    }
+  }
+
+  template<typename T>
+  inline T& get(int comp_idx)
+  {
+    uint8_t **chunk = curChunk + comp_idx;
+    return ((T*)*chunk)[idx];
+  }
+
+  template<typename T>
+  inline T& get(int comp_idx) const
+  {
+    uint8_t **chunk = curChunk + comp_idx;
+    return ((T*)*chunk)[idx];
+  }
+
+  inline QueryIterator operator*()
+  {
+    return *this;
+  }
+
+  inline QueryIterator begin()
+  {
+    return *this;
+  }
+
+  inline QueryIterator end()
+  {
+    return QueryIterator(nullptr, -1, nullptr, -1, chunksCount);
+  }
+
+  inline void advance(int offset)
+  {
+    idx += offset;
+    while (idx >= entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
+      idx -= entitiesInChunk[chunkIdx];
+      ++chunkIdx;
+    }
+  }
+
+  inline QueryIterator operator+(int offset) const
+  {
+    QueryIterator it(*this);
+    it.advance(offset);
+    return it;
+  }
+};
+
 // TODO: Query unittest
+// TODO: Rename to QueryResult
 struct Query
 {
   struct ChunkIterator
@@ -251,163 +355,10 @@ struct Query
     }
   };
 
-  struct AllIterator
-  {
-    int idx = 0;
-    int chunkIdx = 0;
-    int componentsCount = 0;
-    int chunksCount = 0;
-
-    const int * __restrict entitiesInChunk = nullptr;
-    uint8_t * __restrict * __restrict chunks = nullptr;
-    uint8_t * __restrict * __restrict curChunk = nullptr;
-
-    AllIterator(uint8_t * __restrict * __restrict _chunks, int chunks_count, int * __restrict entities_in_chunk, int components_count, int chunk_idx = 0) :
-      chunks(_chunks),
-      entitiesInChunk(entities_in_chunk),
-      componentsCount(components_count),
-      chunksCount(chunks_count),
-      chunkIdx(chunk_idx)
-    {
-      curChunk = chunks;
-    }
-
-    bool operator==(const AllIterator &rhs) const
-    {
-      return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
-    }
-
-    bool operator!=(const AllIterator &rhs) const
-    {
-      return !(operator==(rhs));
-    }
-
-    void operator++()
-    {
-      ++idx;
-      if (idx >= entitiesInChunk[chunkIdx])
-      {
-        idx = 0;
-        ++chunkIdx;
-        curChunk += componentsCount;
-      }
-    }
-
-    template<typename T>
-    inline T& get(int comp_idx)
-    {
-      uint8_t **chunk = curChunk + comp_idx;
-      return ((T*)*chunk)[idx];
-    }
-
-    template<typename T>
-    inline T& get(int comp_idx) const
-    {
-      uint8_t **chunk = curChunk + comp_idx;
-      return ((T*)*chunk)[idx];
-    }
-
-    inline AllIterator operator*()
-    {
-      return *this;
-    }
-
-    inline AllIterator begin()
-    {
-      return *this;
-    }
-
-    inline AllIterator end()
-    {
-      return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
-    }
-
-    inline void advance(int offset)
-    {
-      idx += offset;
-      while (idx >= entitiesInChunk[chunkIdx] && chunkIdx < chunksCount) {
-        idx -= entitiesInChunk[chunkIdx];
-        ++chunkIdx;
-      }
-    }
-
-    inline AllIterator operator+(int offset) const
-    {
-      AllIterator it(*this);
-      it.advance(offset);
-      return it;
-    }
-  };
-
-  struct RawIterator
-  {
-    int idx = 0;
-    int chunkIdx = 0;
-    int compIdx = 0;
-    int compSize = 0;
-    int componentsCount = 0;
-    int chunksCount = 0;
-
-    const int *entitiesInChunk = nullptr;
-    uint8_t **chunks = nullptr;
-
-    RawIterator(uint8_t **_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
-      chunks(_chunks),
-      entitiesInChunk(entities_in_chunk),
-      componentsCount(components_count),
-      chunksCount(chunks_count),
-      compIdx(comp_idx),
-      compSize(comp_size),
-      chunkIdx(chunk_idx)
-    {
-    }
-
-    bool operator==(const RawIterator &rhs) const
-    {
-      return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
-    }
-
-    bool operator!=(const RawIterator &rhs) const
-    {
-      return !(operator==(rhs));
-    }
-
-    void operator++()
-    {
-      ++idx;
-      if (idx >= entitiesInChunk[chunkIdx])
-      {
-        idx = 0;
-        ++chunkIdx;
-      }
-    }
-
-    uint8_t* operator*()
-    {
-      return chunks[compIdx + chunkIdx * componentsCount] + idx * compSize;
-    }
-
-    template<typename T>
-    T& get()
-    {
-      return *(T*)(chunks[compIdx + chunkIdx * componentsCount] + idx * compSize);
-    }
-
-    inline RawIterator begin()
-    {
-      return *this;
-    }
-
-    inline RawIterator end()
-    {
-      return RawIterator(nullptr, -1, nullptr, -1, -1, -1, chunksCount);
-    }
-  };
-
   template <typename T>
-  struct Iterator
+  struct TypedIterator
   {
-    using Self = Iterator<T>;
+    using Self = TypedIterator<T>;
 
     int idx = 0;
     int chunkIdx = 0;
@@ -419,7 +370,7 @@ struct Query
     const int *entitiesInChunk = nullptr;
     uint8_t **chunks = nullptr;
 
-    Iterator(uint8_t **_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
+    TypedIterator(uint8_t **_chunks, int chunks_count, int *entities_in_chunk, int components_count, int comp_idx, int comp_size, int chunk_idx = 0) :
       chunks(_chunks),
       entitiesInChunk(entities_in_chunk),
       componentsCount(components_count),
@@ -430,12 +381,12 @@ struct Query
     {
     }
 
-    bool operator==(const Iterator &rhs) const
+    inline bool operator==(const TypedIterator &rhs) const
     {
       return idx == rhs.idx && chunkIdx == rhs.chunkIdx;
     }
 
-    bool operator!=(const Iterator &rhs) const
+    inline bool operator!=(const TypedIterator &rhs) const
     {
       return !(operator==(rhs));
     }
@@ -450,7 +401,7 @@ struct Query
       }
     }
 
-    T& operator*()
+    inline T& operator*()
     {
       return *(T*)(chunks[compIdx + chunkIdx * componentsCount] + idx * compSize);
     }
@@ -466,68 +417,34 @@ struct Query
     }
   };
 
-  inline RawIterator iter(int comp_idx)
-  {
-    ASSERT(comp_idx >= 0);
-    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
-  }
-
-  inline RawIterator iter(const HashedString &name)
+  template <typename T>
+  inline TypedIterator<T> iter(const ConstHashedString &name)
   {
     const int compIdx = desc.getComponentIndex(name);
     ASSERT(compIdx >= 0);
-    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
-  }
-
-  inline RawIterator iter(const ConstHashedString &name)
-  {
-    const int compIdx = desc.getComponentIndex(name);
-    ASSERT(compIdx >= 0);
-    return RawIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
+    return TypedIterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
   }
 
   template <typename T>
-  inline Iterator<T> iter(const ConstHashedString &name)
-  {
-    const int compIdx = desc.getComponentIndex(name);
-    ASSERT(compIdx >= 0);
-    return Iterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, desc.components[compIdx].size);
-  }
-
-  template <>
-  inline Iterator<EntityId> iter(const ConstHashedString &name)
-  {
-    const int compIdx = componentsCount - 1;
-    return Iterator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
-  }
-
-  template <typename T>
-  inline Iterator<T> iter(int comp_idx)
+  inline TypedIterator<T> iter(int comp_idx)
   {
     ASSERT(comp_idx >= 0 && comp_idx < (int)desc.components.size());
-    return Iterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
+    return TypedIterator<T>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, comp_idx, desc.components[comp_idx].size);
   }
 
-  template <>
-  inline Iterator<EntityId> iter(int)
+  inline QueryIterator begin()
   {
-    const int compIdx = componentsCount - 1;
-    return Iterator<EntityId>(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount, compIdx, sizeof(EntityId));
+    return QueryIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
   }
 
-  inline AllIterator begin()
+  inline QueryIterator end()
   {
-    return AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
+    return QueryIterator(nullptr, -1, nullptr, -1, chunksCount);
   }
 
-  inline AllIterator end()
+  inline QueryIterator begin(int offset)
   {
-    return AllIterator(nullptr, -1, nullptr, -1, chunksCount);
-  }
-
-  inline AllIterator begin(int offset)
-  {
-    auto iter = AllIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
+    auto iter = QueryIterator(chunks.data(), chunksCount, entitiesInChunk.data(), componentsCount);
     iter.advance(offset);
     return iter;
   }
@@ -557,6 +474,16 @@ struct Query
 
   void addChunks(const QueryDescription &in_desc, Archetype &type, int begin, int entities_count);
 
+  void reset()
+  {
+    name = HashedString(HASH(""));
+    componentsCount = 0;
+    chunksCount = 0;
+    entitiesCount = 0;
+    entitiesInChunk.clear();
+    chunks.clear();
+  }
+
   Query() = default;
   Query(const Query &) = default;
   Query(Query &&) = default;
@@ -564,9 +491,9 @@ struct Query
   Query& operator=(const Query &) = default;
   Query& operator=(Query &&) = default;
 
-  HashedString name;
+  QueryId id;
 
-  QueryDescription desc;
+  HashedString name;
 
   int componentsCount = 0;
   int chunksCount = 0;
@@ -588,14 +515,14 @@ struct StructBuilder
   template <typename T>
   struct helper
   {
-    static inline typename T::Type& get(const Query::AllIterator &iter)
+    static inline typename T::Type& get(const QueryIterator &iter)
     {
       return iter.get<typename T::Type>(T::index);
     }
   };
 
   template <typename Struct>
-  static inline Struct build(const Query::AllIterator &iter)
+  static inline Struct build(const QueryIterator &iter)
   {
     return { helper<Head>::get(iter), helper<Tail>::get(iter)... };
   }
@@ -604,8 +531,8 @@ struct StructBuilder
 template <typename T, typename Builder>
 struct QueryIterable
 {
-  Query::AllIterator first;
-  Query::AllIterator last;
+  QueryIterator first;
+  QueryIterator last;
 
   int entitiesCount = -1;
 
@@ -613,7 +540,7 @@ struct QueryIterable
   {
   }
 
-  QueryIterable(Query::AllIterator _first, Query::AllIterator _last) : first(_first), last(_last)
+  QueryIterable(QueryIterator _first, QueryIterator _last) : first(_first), last(_last)
   {
   }
 
@@ -632,7 +559,7 @@ struct QueryIterable
     return QueryIterable(last, last);
   }
 
-  static inline T get(const Query::AllIterator &it)
+  static inline T get(const QueryIterator &it)
   {
     return typename Builder::template build<T>(it);
   }

@@ -2,10 +2,6 @@
 
 #include "stdafx.h"
 
-#include "ecs/storage.h"
-
-#include "io/json.h"
-
 #define __S(a) #a
 #define __C2(a, b) __S(a) __S(b)
 #define __C3(a, b, c) __C2(a, b) __S(c)
@@ -14,27 +10,64 @@
 #ifdef __CODEGEN__
 
 #define ECS_COMPONENT_TYPE(type) struct ecs_component_##type { static constexpr char const *name = #type; };
+#define ECS_COMPONENT_TYPE_BIND(type) struct ecs_component_##type { static constexpr char const *name = #type; };
 #define ECS_COMPONENT_TYPE_ALIAS(type, alias) struct ecs_component_##type { static constexpr char const *name = #alias; };
 
 #else
 
-#define ECS_COMPONENT_TYPE(type) \
-  template <> struct ComponentType<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #type; }; \
+#define ECS_COMPONENT_TYPE(T) \
+  template <> struct ComponentType<T> \
+  { \
+    constexpr static uint32_t type = HASH(#T).hash; \
+    constexpr static size_t size = sizeof(T); \
+    constexpr static char const* typeName = #T; \
+    constexpr static char const* name = #T; \
+  }; \
 
-#define ECS_COMPONENT_TYPE_ALIAS(type, alias) \
-  template <> struct ComponentType<type> { constexpr static size_t Size = sizeof(type); constexpr static char const* typeName = #type; constexpr static char const* name = #alias; }; \
+#define ECS_COMPONENT_TYPE_BIND(T) \
+  MAKE_TYPE_FACTORY(T, ::T); \
+  template <> struct ComponentType<T> \
+  { \
+    constexpr static uint32_t type = HASH(#T).hash; \
+    constexpr static size_t size = sizeof(T); \
+    constexpr static char const* typeName = #T; \
+    constexpr static char const* name = #T; \
+  }; \
+
+#define ECS_COMPONENT_TYPE_ALIAS(T, alias) \
+  template <> struct ComponentType<T> \
+  { \
+    constexpr static uint32_t type = HASH(#T).hash; \
+    constexpr static size_t size = sizeof(T); \
+    constexpr static char const* typeName = #T; \
+    constexpr static char const* name = #alias; \
+  }; \
 
 #endif
 
 #define ECS_COMPONENT_TYPE_DETAILS(type) static ComponentDescriptionDetails<type> _##type(#type);
 #define ECS_COMPONENT_TYPE_DETAILS_ALIAS(type, alias) static ComponentDescriptionDetails<type> _##alias(#alias);
 
+#define ECS_DEFAULT_CTORS(T) \
+  T() = default; \
+  T(T &&assign) = default; \
+  T(const T&) = default; \
+  T& operator=(T &&assign) = default; \
+  T& operator=(const T &assign) = default; \
+
+struct ConstHashedString;
+
+struct Storage;
+template <typename T> struct StorageSpec;
+
 template <typename T>
 struct ComponentType;
 
+// TODO: Add copy-flags: memcpy, move, etc.
 struct ComponentDescription
 {
   char *name = nullptr;
+  uint32_t typeHash = 0;
 
   int id = -1;
   uint32_t size = 0;
@@ -46,89 +79,25 @@ struct ComponentDescription
 
   const ComponentDescription *next = nullptr;
 
-  ComponentDescription(const char *_name, uint32_t _size);
+  ComponentDescription(const char *_name, uint32_t _type_hash, uint32_t _size);
   virtual ~ComponentDescription();
 
-  virtual bool init(uint8_t *mem, const JFrameValue &value) const = 0;
+  virtual void ctor(uint8_t *mem) const = 0;
+  virtual void dtor(uint8_t *mem) const = 0;
   virtual bool equal(uint8_t *lhs, uint8_t *rhs) const = 0;
-
-  virtual Storage* createStorage() const { return nullptr; }
-};
-
-template <typename T>
-struct HasSetMethod
-{
-  struct has { char d[1]; };
-  struct notHas { char d[2]; };
-  template <typename C> static has test(decltype(&C::set));
-  template <typename C> static notHas test(...);
-  static constexpr bool value = sizeof(test<T>(0)) == sizeof(has);
-};
-
-template <typename T>
-struct Setter;
-
-template <typename T, bool = HasSetMethod<T>::value>
-struct ComponentSetter;
-
-template <typename T>
-struct ComponentSetter<T, true>
-{
-  static inline bool set(T *comp, const JFrameValue &value) { return comp->set(value); }
-};
-
-template <typename T>
-struct ComponentSetter<T, false>
-{
-  template <typename U = T>
-  static inline typename  eastl::enable_if_t<HasSetMethod<Setter<U>>::value, bool> set(U *comp, const JFrameValue &value) { return Setter<U>::set(*comp, value); }
-
-  template <typename U = T>
-  static inline typename eastl::disable_if_t<HasSetMethod<Setter<U>>::value, bool> set(U *, const JFrameValue &) { return true; }
-};
-
-template <typename T, size_t Size>
-struct ArrayComponent
-{
-  using ArrayDesc = ComponentType<ArrayComponent<T, Size>>;
-  using ItemType = T;
-  using ItemDesc = ComponentType<T>;
-
-  eastl::array<ItemType, Size> items;
-
-  ArrayComponent()
-  {
-  }
-
-  bool set(const JFrameValue &value)
-  {
-    ASSERT(value.IsArray());
-    for (int i = 0; i < Size; ++i)
-      if (!ComponentSetter<ItemType>::set(&items[i], value[i]))
-        return false;
-    return true;
-  }
-
-  ItemType& operator[](int i)
-  {
-    return items[i];
-  }
-
-  const ItemType& operator[](int i) const
-  {
-    return items[i];
-  }
+  virtual void copy(uint8_t *to, const uint8_t *from) const = 0;
+  virtual void move(uint8_t *to, uint8_t *from) const = 0;
 };
 
 template<class T, class EqualTo>
 struct HasOperatorEqualImpl
 {
-    template<class U, class V>
-    static auto test(U*) -> decltype(eastl::declval<U>() == eastl::declval<V>());
-    template<typename, typename>
-    static auto test(...) -> eastl::false_type;
+  template<class U, class V>
+  static auto test(U*) -> decltype(eastl::declval<U>() == eastl::declval<V>());
+  template<typename, typename>
+  static auto test(...) -> eastl::false_type;
 
-    using type = typename eastl::is_same<bool, decltype(test<T, EqualTo>(0))>::type;
+  using type = typename eastl::is_same<bool, decltype(test<T, EqualTo>(0))>::type;
 };
 
 template<class T, class EqualTo = T>
@@ -156,14 +125,19 @@ struct ComponentComparator<T, false>
 };
 
 template <typename T>
-struct ComponentDescriptionDetails : ComponentDescription
+struct ComponentDescriptionDetails final : ComponentDescription
 {
   using CompType = T;
   using CompDesc = ComponentType<T>;
 
-  bool init(uint8_t *mem, const JFrameValue &value) const override final
+  void ctor(uint8_t *mem) const override final
   {
-    return ComponentSetter<CompType>::set((CompType*)mem, value["$value"]);
+    new (mem) T();
+  }
+
+  void dtor(uint8_t *mem) const override final
+  {
+    ((T*)mem)->~T();
   }
 
   bool equal(uint8_t *lhs, uint8_t *rhs) const override final
@@ -171,15 +145,22 @@ struct ComponentDescriptionDetails : ComponentDescription
     return ComponentComparator<T, HasOperatorEqual<T>::value>::equal(*(T*)lhs, *(T*)rhs);
   }
 
-  Storage* createStorage() const override final
+  void copy(uint8_t *to, const uint8_t *from) const override final
   {
-    return new StorageSpec<CompType>;
+    *(T*)to = *(T*)from;
   }
 
-  ComponentDescriptionDetails(const char *name) : ComponentDescription(name, CompDesc::Size)
+  void move(uint8_t *to, uint8_t *from) const override final
+  {
+    *(T*)to = eastl::move(*(T*)from);
+  }
+
+  ComponentDescriptionDetails(const char *name) : ComponentDescription(name, CompDesc::type, CompDesc::size)
   {
     hasEqual = HasOperatorEqual<T>::value;
   }
 };
 
 const ComponentDescription *find_component(const char *name);
+const ComponentDescription *find_component(const ConstHashedString &name);
+const ComponentDescription *find_component(uint32_t type_hash);
