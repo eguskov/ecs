@@ -1,0 +1,7 @@
+require strings
+require daslib/strings_boost
+
+include common.das_project
+include foo/foo.das_module
+
+

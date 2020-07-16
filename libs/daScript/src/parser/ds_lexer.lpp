@@ -1,0 +1,678 @@
+%{
+    #include "daScript/misc/platform.h"
+    #include <inttypes.h>
+    #include "daScript/ast/ast.h"
+    #include "ds_parser.hpp"
+
+    #ifndef SCNi64
+      #define SCNi64       "lli"
+    #endif
+    #ifndef SCNu64
+      #define SCNu64       "llu"
+    #endif
+    #ifndef SCNx64
+      #define SCNx64       "llx"
+    #endif
+
+    using namespace das;
+
+    #define YY_NO_INPUT
+
+    void das_yyerror(const string & error);
+    void das_yyfatalerror(const string & error, CompilationError cerr = CompilationError::syntax_error);
+
+    int das_current_line_indent = 0;
+    int das_indent_level = 0;
+    int das_def_tab_size = 4;
+    int das_tab_size = das_def_tab_size;   // only 2,4 or 8
+    int das_nested_parentheses = 0;
+    int das_nested_curly_braces = 0;
+    int das_nested_square_braces = 0;
+    int das_nested_sb = 0;
+    int das_yycolumn = 0;
+    int das_c_style_depth = 0;
+    int das_arrow_depth = 0;
+    bool das_need_oxford_comma = true;
+    bool das_force_oxford_comma = false;
+    bool das_supress_errors = false;
+    bool das_in_normal = false;
+    vector<int> das_line_no;
+    das_set<string> das_already_include;
+    Structure * g_thisStructure = nullptr;
+
+    namespace das {
+        das_map<string,string>   das_module_alias;
+    }
+
+    #define YY_USER_ACTION \
+        das_yylloc.first_line = das_yylloc.last_line = yylineno; \
+        das_yylloc.first_column = das_yycolumn; \
+        das_yylloc.last_column = das_yycolumn + yyleng - 1; \
+        YYCOLUMN (das_yycolumn += yyleng, "YY_USER_ACTION");
+
+#ifdef FLEX_DEBUG
+    void YYCOLUMN ( int, const char * comment ) {
+        printf("%i:%i %s\n", das_yycolumn, yylineno, comment ? comment : "");
+    }
+#else
+    #define YYCOLUMN(expr,comment)  ((expr))
+#endif
+
+void YYTAB() {
+    // YYCOLUMN(das_yycolumn = (das_yycolumn - 1 + das_tab_size) & ~(das_tab_size-1), "TAB");
+}
+
+void YYNEWLINE() {
+    YYCOLUMN(das_yycolumn = 0,"NEW LINE");
+}
+
+%}
+
+%option prefix="das_yy"
+%option noyywrap
+%option never-interactive
+%option nounistd
+%option yylineno
+
+/* %option debug */
+
+%x indent
+%x strb
+%x c_comment
+%x cpp_comment
+%x include
+%s normal
+%x reader
+
+%%
+
+<indent,normal>\#[0-9]+,[0-9]+,\"[^\"]+\"\# {
+    string txt = yytext;
+    int lRow, lCol;
+    char lFile[256];
+    if ( sscanf ( yytext, "#%i,%i,\"%255s\"#", &lRow, &lCol, lFile )==3 ) {
+        lFile[strlen(lFile)-2] = 0;
+        auto cfi = g_FileAccessStack.back();
+        string incFileName = g_Access->getIncludeFileName(cfi->name,lFile);
+        auto info = g_Access->getFileInfo(incFileName);
+        if ( !info ) {
+            das_yyfatalerror("can't open "+incFileName);
+        } else {
+            g_FileAccessStack.pop_back();
+            g_FileAccessStack.push_back(info);
+            yylineno = lRow;
+            YYCOLUMN ( das_yycolumn = lCol, "LINE DIRECTIVE");
+        }
+    } else {
+        das_yyfatalerror ("can't process line directive " + string(yytext),
+            CompilationError::invalid_line_directive); return LEXER_ERROR;
+    }
+}
+<indent>"*/"                        das_yyfatalerror ("Unexpected */", CompilationError::unexpected_close_comment); return LEXER_ERROR;
+<indent>"/*"                        BEGIN(c_comment); das_c_style_depth = 1; das_in_normal = false;
+<normal>"*/"                        das_yyfatalerror ("Unexpected */", CompilationError::unexpected_close_comment); return LEXER_ERROR;
+<normal>"/*"                        BEGIN(c_comment); das_c_style_depth = 1; das_in_normal = true;
+<indent>"\/\/"                      BEGIN(cpp_comment);
+<normal>"\/\/"                      BEGIN(cpp_comment);
+<cpp_comment>.
+<cpp_comment>\n                     BEGIN(normal); unput('\n');
+<cpp_comment><<EOF>>                BEGIN(normal);
+<c_comment>"/*"                     das_c_style_depth ++;
+<c_comment>"*/" {
+    das_c_style_depth --;
+    if ( das_c_style_depth==0 ) {
+        if ( das_in_normal ) {
+            BEGIN(normal);
+        } else {
+            BEGIN(indent);
+        }
+    }
+}
+<c_comment>.                        /* skipping comment body */
+<c_comment>[\r\n]                   /* skipping comment eol */
+<c_comment><<EOF>>             {
+    das_yyfatalerror("end of file encountered inside c-style comment", CompilationError::comment_contains_eof);
+    BEGIN(normal);
+}
+<reader><<EOF>>         {
+    das_yyfatalerror("reader constant exceeds file", CompilationError::string_constant_exceeds_file);
+    BEGIN(normal);
+    return END_OF_READ;
+}
+<reader>\n        {
+    YYNEWLINE();
+    das_yylval.ch = yytext[0];
+    return STRING_CHARACTER;
+}
+<reader>.         {
+    das_yylval.ch = yytext[0];
+    return STRING_CHARACTER;
+}
+<strb>\"                {
+    // assert(nested_sb==0);
+    BEGIN(normal);
+    return END_STRING;
+}
+<strb>\{                {
+    DAS_ASSERT(das_nested_sb==0);
+    das_nested_sb ++;
+    BEGIN(normal);
+    return BEGIN_STRING_EXPR;
+}
+<strb><<EOF>>             {
+    das_yyfatalerror("string constant exceeds file", CompilationError::string_constant_exceeds_file);
+    BEGIN(normal);
+    return END_STRING;
+}
+<strb>\\[\{\"\}]        {
+    das_yylval.ch = yytext[1];
+    return STRING_CHARACTER;
+}
+<strb>\r              /* do exactly nothing */
+<strb>\n                {
+    das_yylval.ch = *yytext;
+    YYNEWLINE();
+    return STRING_CHARACTER;
+}
+<strb>\t                {
+    YYTAB();
+    das_yylval.ch = *yytext;
+    return STRING_CHARACTER;
+}
+<strb>.                 {
+    das_yylval.ch = *yytext;
+    return STRING_CHARACTER;
+}
+<indent>[ \t\r]*\n      /* skip empty line */ {
+    das_current_line_indent = 0;
+    YYNEWLINE();
+}
+<indent>" "             {
+    das_current_line_indent++;
+    #ifdef FLEX_DEBUG
+        printf("[ ], indent=%i\n", das_current_line_indent);
+    #endif
+}
+<indent>\t            {
+    das_current_line_indent = (das_current_line_indent + das_tab_size) & ~(das_tab_size-1);
+    #ifdef FLEX_DEBUG
+        printf("\\t, cli=%i\n", das_current_line_indent);
+    #endif
+    YYTAB();
+}
+<indent>(\/\/.*)*\n     {
+    das_current_line_indent = 0;
+    das_need_oxford_comma = true;
+    YYNEWLINE();
+    #ifdef FLEX_DEBUG
+        printf("new line\n");
+    #endif
+}
+<indent>.               {
+    unput(*yytext);
+    YYCOLUMN(das_yycolumn--, "UNPUT");
+    if (das_current_line_indent > das_indent_level*das_tab_size ) {
+        if ( das_current_line_indent % das_tab_size ) {
+            #ifdef FLEX_DEBUG
+            printf("INVALID INDENT at %i, emit {\n", das_current_line_indent);
+            #endif
+            das_yyfatalerror("invalid indentation"); // pretend tab was pressed
+            das_current_line_indent = (das_current_line_indent + das_tab_size) & ~(das_tab_size-1);
+        }
+        das_indent_level++;
+        #ifdef FLEX_DEBUG
+        printf("emit {, cli=%i, indent =%i\n", das_current_line_indent, das_indent_level);
+        #endif
+        return '{';
+    } else if (das_current_line_indent < das_indent_level*das_tab_size ) {
+        das_indent_level--;
+        #ifdef FLEX_DEBUG
+        printf("emit }, cli=%i, indent =%i\n", das_current_line_indent, das_indent_level);
+        #endif
+        return '}';
+    } else {
+        BEGIN(normal);
+    }
+}
+<indent><<EOF>>         {
+    if ( g_FileAccessStack.size()==1 ) {
+        if ( das_indent_level ) {
+            das_indent_level--;
+            unput('\r');
+            #ifdef FLEX_DEBUG
+            printf("emit }\n");
+            #endif
+            return '}';
+        } else {
+            return 0;
+        }
+    } else {
+        yypop_buffer_state();
+        g_FileAccessStack.pop_back();
+        yylineno = das_line_no.back();
+        das_line_no.pop_back();
+    }
+}
+
+<include>[ ]*                     /* eat the whitespace */
+<include>\t {
+    YYTAB();
+}
+<include>[^ \t\r\n]+                { /* got the include file name */
+    auto cfi = g_FileAccessStack.back();
+    string incFileName = g_Access->getIncludeFileName(cfi->name,yytext);
+    auto info = g_Access->getFileInfo(incFileName);
+    if ( !info ) {
+        das_yyfatalerror("can't open "+incFileName);
+    } else {
+        if ( das_already_include.find(incFileName) == das_already_include.end() ) {
+            das_already_include.insert(incFileName);
+            g_FileAccessStack.push_back(info);
+            das_line_no.push_back(yylineno);
+            yylineno = 1;
+            yypush_buffer_state(YY_CURRENT_BUFFER);
+            yy_scan_bytes(info->source, info->sourceLength);
+        }
+    }
+    BEGIN(normal);
+}
+
+<normal>"include"                                       BEGIN(include);
+<normal>"for"                                           /* das_need_oxford_comma = false; */ return DAS_FOR;
+<normal>"while"                                         das_need_oxford_comma = false; return DAS_WHILE;
+<normal>"if"                                            das_need_oxford_comma = false; return DAS_IF;
+<normal>"static_if"                                     das_need_oxford_comma = false; return DAS_STATIC_IF;
+<normal>"elif"                                          das_need_oxford_comma = false; return DAS_ELIF;
+<normal>"static_elif"                                   das_need_oxford_comma = false; return DAS_STATIC_ELIF;
+<normal>"else"                                          das_need_oxford_comma = false; return DAS_ELSE;
+<normal>"finally"                                       das_need_oxford_comma = false; return DAS_FINALLY;
+<normal>"def"                                           das_need_oxford_comma = false; return DAS_DEF;
+<normal>"with"                                          das_need_oxford_comma = false; return DAS_WITH;
+<normal>"let"[ \t\r]*\/\/.*\n                           das_need_oxford_comma = false; unput('\n'); return DAS_LET;
+<normal>"let"                                           return DAS_LET;
+<normal>"var"[ \t\r]*\/\/.*\n                           das_need_oxford_comma = false; unput('\n'); return DAS_VAR;
+<normal>"var"                                           return DAS_VAR;
+<normal>"struct"                                        das_need_oxford_comma = false; return DAS_STRUCT;
+<normal>"class"                                         das_need_oxford_comma = false; return DAS_CLASS;
+<normal>"enum"                                          das_need_oxford_comma = false; return DAS_ENUM;
+<normal>"try"                                           das_need_oxford_comma = false; return DAS_TRY;
+<normal>"recover"                                       das_need_oxford_comma = false; return DAS_CATCH;
+<normal>"typedef"                                       das_need_oxford_comma = false; return DAS_TYPEDEF;
+<normal>"label"                                         return DAS_LABEL;
+<normal>"goto"                                          return DAS_GOTO;
+<normal>"module"                                        return DAS_MODULE;
+<normal>"public"                                        return DAS_PUBLIC;
+<normal>"options"                                       return DAS_OPTIONS;
+<normal>"operator"                                      return DAS_OPERATOR;
+<normal>"require"                                       return DAS_REQUIRE;
+<normal>"block"                                         return DAS_TBLOCK;
+<normal>"function"                                      return DAS_TFUNCTION;
+<normal>"lambda"                                        return DAS_TLAMBDA;
+<normal>"generator"                                     return DAS_GENERATOR;
+<normal>"tuple"                                         return DAS_TTUPLE;
+<normal>"variant"                                       return DAS_TVARIANT;
+<normal>"const"                                         return DAS_CONST;
+<normal>"continue"                                      return DAS_CONTINUE;
+<normal>"where"                                         return DAS_WHERE;
+<normal>"cast"                                          return DAS_CAST;
+<normal>"upcast"                                        return DAS_UPCAST;
+<normal>"pass"                                          return DAS_PASS;
+<normal>"reinterpret"                                   return DAS_REINTERPRET;
+<normal>"override"                                      return DAS_OVERRIDE;
+<normal>"abstract"                                      return DAS_ABSTRACT;
+<normal>"expect"                                        return DAS_EXPECT;
+<normal>"table"                                         return DAS_TABLE;
+<normal>"array"                                         return DAS_ARRAY;
+<normal>"iterator"                                      return DAS_ITERATOR;
+<normal>"in"                                            return DAS_IN;
+<normal>"implicit"                                      return DAS_IMPLICIT;
+<normal>"explicit"                                      return DAS_EXPLICIT;
+<normal>"shared"                                        return DAS_SHARED;
+<normal>"smart_ptr"                                     return DAS_SMART_PTR;
+<normal>"unsafe"                                        das_need_oxford_comma = false; return DAS_UNSAFE;
+<normal>"as"                                            return DAS_AS;
+<normal>"is"                                            return DAS_IS;
+<normal>"deref"                                         return DAS_DEREF;
+<normal>"addr"                                          return DAS_ADDR;
+<normal>"null"                                          return DAS_NULL;
+<normal>"return"                                        return DAS_RETURN;
+<normal>"yield"                                         return DAS_YIELD;
+<normal>"break"                                         return DAS_BREAK;
+<normal>"typeinfo"                                      return DAS_TYPEINFO;
+<normal>"type"                                          return DAS_TYPE;
+<normal>"new"                                           return DAS_NEWT;
+<normal>"delete"                                        return DAS_DELETE;
+<normal>"true"                                          return DAS_TRUE;
+<normal>"false"                                         return DAS_FALSE;
+<normal>"auto"                                          return DAS_TAUTO;
+<normal>"bool"                                          return DAS_TBOOL;
+<normal>"void"                                          return DAS_TVOID;
+<normal>"string"                                        return DAS_TSTRING;
+<normal>"range"                                         return DAS_TRANGE;
+<normal>"urange"                                        return DAS_TURANGE;
+<normal>"int"                                           return DAS_TINT;
+<normal>"int8"                                          return DAS_TINT8;
+<normal>"int16"                                         return DAS_TINT16;
+<normal>"int64"                                         return DAS_TINT64;
+<normal>"int2"                                          return DAS_TINT2;
+<normal>"int3"                                          return DAS_TINT3;
+<normal>"int4"                                          return DAS_TINT4;
+<normal>"uint"                                          return DAS_TUINT;
+<normal>"bitfield"                                      return DAS_TBITFIELD;
+<normal>"uint8"                                         return DAS_TUINT8;
+<normal>"uint16"                                        return DAS_TUINT16;
+<normal>"uint64"                                        return DAS_TUINT64;
+<normal>"uint2"                                         return DAS_TUINT2;
+<normal>"uint3"                                         return DAS_TUINT3;
+<normal>"uint4"                                         return DAS_TUINT4;
+<normal>"double"                                        return DAS_TDOUBLE;
+<normal>"float"                                         return DAS_TFLOAT;
+<normal>"float2"                                        return DAS_TFLOAT2;
+<normal>"float3"                                        return DAS_TFLOAT3;
+<normal>"float4"                                        return DAS_TFLOAT4;
+<normal>[_[:alpha:]][_[:alnum:]\`]*                     das_yylval.s = new string(yytext);  return NAME;    // TODO: track allocations
+<normal>\"                                  {
+        BEGIN(strb);
+        return BEGIN_STRING;
+    }
+<normal>\'\\b\'                         das_yylval.i = 8; return INTEGER;
+<normal>\'\\t\'                         das_yylval.i = 9; return INTEGER;
+<normal>\'\\n\'                         das_yylval.i = 10; return INTEGER;
+<normal>\'\\f\'                         das_yylval.i = 12; return INTEGER;
+<normal>\'\\r\'                         das_yylval.i = 13; return INTEGER;
+<normal>\'\\\\'                         das_yylval.i = '\\'; return INTEGER;
+<normal>\'.\'                           das_yylval.i = int32_t(yytext[1]); return INTEGER;
+<normal>[0-9]+(u|U)(l|L)                return sscanf(yytext, "%" SCNu64, &das_yylval.ui64)!=1 ? LEXER_ERROR : UNSIGNED_LONG_INTEGER;
+<normal>[0-9]+(l|L)                     return sscanf(yytext, "%" SCNi64, &das_yylval.i64)!=1 ? LEXER_ERROR : LONG_INTEGER;
+<normal>[0-9]+(u|U)                     return sscanf(yytext, "%u",  &das_yylval.ui)!=1 ? LEXER_ERROR : UNSIGNED_INTEGER;
+<normal>[0-9]+                          {
+        int64_t int_const;
+        if ( sscanf(yytext, "%" SCNi64,  &int_const)!=1 ) {
+            return LEXER_ERROR;
+        } else {
+            if ( int_const<INT32_MIN || int_const>INT32_MAX ) {
+                das_yyfatalerror("integer constant out of range", CompilationError::integer_constant_out_of_range);
+            }
+            das_yylval.i = int32_t(int_const);
+            return INTEGER;
+        }
+    }
+
+<normal>0[xX][0-9a-fA-F]+(u|U)(l|L)     return sscanf(yytext, "%" SCNx64, &das_yylval.ui64)!=1 ? LEXER_ERROR : UNSIGNED_LONG_INTEGER;
+<normal>0[xX][0-9a-fA-F]+(l|L)          return sscanf(yytext, "%" SCNx64, &das_yylval.ui64)!=1 ? LEXER_ERROR : UNSIGNED_LONG_INTEGER;
+
+<normal>0[xX][0-9a-fA-F]+(u|U)          {
+        uint64_t int_const;
+        if ( sscanf(yytext, "%" SCNx64,  &int_const)!=1 ) {
+            return LEXER_ERROR;
+        } else {
+            if ( int_const>UINT32_MAX ) {
+                das_yyfatalerror("integer constant out of range", CompilationError::integer_constant_out_of_range);
+            }
+            das_yylval.ui = uint32_t(int_const);
+            return UNSIGNED_INTEGER;
+        }
+    }
+
+<normal>0[xX][0-9a-fA-F]+               {
+        uint64_t int_const;
+        if ( sscanf(yytext, "%" SCNx64,  &int_const)!=1 ) {
+            return LEXER_ERROR;
+        } else {
+            if ( int_const>UINT32_MAX ) {
+                das_yyfatalerror("integer constant out of range", CompilationError::integer_constant_out_of_range);
+            }
+            das_yylval.ui = uint32_t(int_const);
+            return UNSIGNED_INTEGER;
+        }
+    }
+
+<normal>([0-9]*)?\.[0-9]+([eE][+\-]?[0-9]+)?(f|F)?      return sscanf(yytext, "%lf", &das_yylval.fd)!=1 ? LEXER_ERROR : FLOAT;
+<normal>[0-9][0-9]*\.[0-9]+?([eE][+\-]?[0-9]+)?(f|F)?   return sscanf(yytext, "%lf", &das_yylval.fd)!=1 ? LEXER_ERROR : FLOAT;
+<normal>[0-9]+(f|F)                                     return sscanf(yytext, "%lf", &das_yylval.fd)!=1 ? LEXER_ERROR : FLOAT;
+<normal>[0-9]+[eE][+\-]?[0-9]+(f|F)?                    return sscanf(yytext, "%lf", &das_yylval.fd)!=1 ? LEXER_ERROR : FLOAT;
+
+<normal>([0-9]*)?\.[0-9]+([eE][+\-]?[0-9]+)?lf          return sscanf(yytext, "%lf", &das_yylval.d)!=1 ? LEXER_ERROR : DOUBLE;
+<normal>[0-9][0-9]*\.[0-9]+?([eE][+\-]?[0-9]+)?lf       return sscanf(yytext, "%lf", &das_yylval.d)!=1 ? LEXER_ERROR : DOUBLE;
+<normal>[0-9]+lf                                        return sscanf(yytext, "%lf", &das_yylval.d)!=1 ? LEXER_ERROR : DOUBLE;
+<normal>[0-9]+[eE][+\-]?[0-9]+lf                        return sscanf(yytext, "%lf", &das_yylval.d)!=1 ? LEXER_ERROR : DOUBLE;
+<normal>\)                                  {
+    if ( !das_nested_parentheses ) {
+        das_yyfatalerror("mismatching parentheses", CompilationError::mismatching_parentheses);
+        return LEXER_ERROR;
+    }
+    das_nested_parentheses --;
+    return ')';
+}
+<normal>\(                                  {
+    das_nested_parentheses ++;
+    return '(';
+}
+<normal>\]                                  {
+    if ( !das_nested_square_braces ) {
+        das_yyfatalerror("mismatching square braces", CompilationError::mismatching_parentheses);
+        return LEXER_ERROR;
+    }
+    das_nested_square_braces --;
+    return ']';
+}
+<normal>\[                                  {
+    das_nested_square_braces ++;
+    return '[';
+}
+<normal>\}                                  {
+    if ( das_nested_sb ) {
+        das_nested_sb --;
+        if ( !das_nested_sb ) {
+            BEGIN(strb);
+            return END_STRING_EXPR;
+        } else {
+            return '}';
+        }
+    } else {
+        if ( !das_nested_curly_braces ) {
+            das_yyfatalerror("mismatching curly braces", CompilationError::mismatching_curly_bracers);
+            return LEXER_ERROR;
+        }
+        das_nested_curly_braces --;
+        return '}';
+    }
+}
+<normal>\{                                  {
+    if ( das_nested_sb ) {
+        das_nested_sb ++;
+    } else {
+        das_nested_curly_braces ++;
+    }
+    return '{';
+}
+<normal>"\:\:"                              return COLCOL;
+<normal>"\|\>"                              return RPIPE;
+<normal>\<\|[ \t\r]*\/\/.*\n                das_need_oxford_comma = false; unput('\n'); return LBPIPE;
+<normal>\<\|[ \t\r]*\n                      das_need_oxford_comma = false; unput('\n'); return LBPIPE;
+<normal>\<\|[ \t]\$                         {
+    unput('$');
+    YYCOLUMN(das_yycolumn--, "UNPUT $");
+    if ( das_nested_parentheses ) {
+        return LPIPE;
+    } else {
+        das_need_oxford_comma = false;
+        return LBPIPE;
+    }
+}
+<normal>\<\|[ \t]\@                         {
+    unput('@');
+    YYCOLUMN(das_yycolumn--, "UNPUT @");
+    if ( das_nested_parentheses ) {
+        return LPIPE;
+    } else {
+        das_need_oxford_comma = false;
+        return LBPIPE;
+    }
+}
+<normal>\@[ \t]*\<\|               {
+    unput('@');
+    YYCOLUMN(das_yycolumn--, "UNPUT @");
+    if ( das_nested_parentheses ) {
+        return LAPIPE;
+    } else {
+        das_need_oxford_comma = false;
+        return LAPIPE;
+    }
+}
+<normal>"\<\|"                              return LPIPE;
+<normal>"\?\?"                              return QQ;
+<normal>"\?\["                              {
+    das_nested_square_braces ++;
+    return QBRA;
+}
+<normal>"\?\."                              return QDOT;
+<normal>"\:\="                              return CLONEEQU;
+<normal>"\-\>"                              return RARROW;
+<normal>"\<\-"                              return LARROW;
+<normal>"\+\="                              return ADDEQU;
+<normal>"\-\="                              return SUBEQU;
+<normal>"\/\="                              return DIVEQU;
+<normal>"\*\="                              return MULEQU;
+<normal>"\%\="                              return MODEQU;
+<normal>"\&\&\="                            return ANDANDEQU;
+<normal>"\|\|\="                            return OROREQU;
+<normal>"\^\^\="                            return XORXOREQU;
+<normal>"\&\&"                              return ANDAND;
+<normal>"\|\|"                              return OROR;
+<normal>"\^\^"                              return XORXOR;
+<normal>"\&\="                              return ANDEQU;
+<normal>"\|\="                              return OREQU;
+<normal>"\^\="                              return XOREQU;
+<normal>"\+\+"                              return ADDADD;
+<normal>"\-\-"                              return SUBSUB;
+<normal>"\<\="                              return LEEQU;
+<normal>"\>\="                              return GREQU;
+<normal>"\=\="                              return EQUEQU;
+<normal>"\!\="                              return NOTEQU;
+<normal>"\>\>\>" {
+    if ( das_arrow_depth ) {
+        unput('>');
+        unput('>');
+        YYCOLUMN(das_yycolumn-=2, "UNPUT");
+        return '>';
+    } else {
+        return ROTR;
+    }
+}
+<normal>"\>\>" {
+    if ( das_arrow_depth ) {
+        unput('>');
+        YYCOLUMN(das_yycolumn--, "UNPUT");
+        return '>';
+    } else {
+        return SHR;
+    }
+}
+<normal>"\<\<\<"                            return ROTL;
+<normal>"\<\<"                              return SHL;
+<normal>"\>\>\="                            return SHREQU;
+<normal>"\<\<\="                            return SHLEQU;
+<normal>"\>\>\>\="                          return ROTREQU;
+<normal>"\<\<\<\="                          return ROTLEQU;
+<normal>"\=\>"                              return MAPTO;
+<normal>"\[\["                              {
+        das_nested_square_braces ++;
+        das_nested_square_braces ++;
+        return BRABRAB;
+    }
+<normal>"\[\{"                              {
+        das_nested_square_braces ++;
+        das_nested_curly_braces ++;
+        return BRACBRB;
+    }
+<normal>"\{\{"                              {
+        das_nested_curly_braces ++;
+        das_nested_curly_braces ++;
+        return CBRCBRB;
+    }
+<normal>[ \r]                             /* skip white space */
+<normal>\t {
+    YYTAB();
+}
+<normal>(\/\/.*)*\n {
+    YYCOLUMN(das_yycolumn = 0, "NEW LINE");
+    if  ( !das_nested_parentheses && !das_nested_curly_braces && !das_nested_square_braces ) {
+        bool ns = ((das_current_line_indent!=0) && das_need_oxford_comma) || das_force_oxford_comma;
+        #ifdef FLEX_DEBUG
+        if ( das_force_oxford_comma ) printf ( "forcing oxford comma\n");
+        #endif
+        das_force_oxford_comma = false;
+        das_current_line_indent = 0;
+        das_need_oxford_comma = true;
+        BEGIN(indent);
+        if ( ns ) {
+            #ifdef FLEX_DEBUG
+            printf("emit ; at EOL\n");
+            #endif
+            return ';';
+        }
+    }
+}
+<normal><<EOF>>         {
+    if ( g_FileAccessStack.size()==1 ) {
+        YYCOLUMN(das_yycolumn = 0,"EOF");
+        if  ( !das_nested_parentheses && !das_nested_curly_braces && !das_nested_square_braces ) {
+            bool ns = (das_current_line_indent!=0) && das_need_oxford_comma;
+            das_current_line_indent = 0;
+            das_need_oxford_comma = true;
+            BEGIN(indent);
+            if ( ns ) {
+                #ifdef FLEX_DEBUG
+                printf("emit ; at EOF\n");
+                #endif
+                return ';';
+            }
+        } else {
+            return 0;
+        }
+    } else {
+        yypop_buffer_state();
+        g_FileAccessStack.pop_back();
+        yylineno = das_line_no.back();
+        das_line_no.pop_back();
+    }
+}
+<normal>.                                   return *yytext;
+
+%%
+
+extern int das_yydebug;
+
+void das_yybegin_reader ( void ) {
+    BEGIN(reader);
+}
+
+void das_yyend_reader ( void ) {
+    BEGIN(normal);
+}
+
+void das_yybegin(const char * str) {
+    g_thisStructure = nullptr;
+    das_module_alias.clear();
+    das_already_include.clear();
+    das_yydebug = 0;
+    yylineno = 1;
+    das_tab_size = das_def_tab_size;
+    das_line_no.clear();
+    YYCOLUMN(das_yycolumn = 0,"YYBEGIN");
+    das_current_line_indent = 0;
+    das_indent_level = 0;
+    das_nested_parentheses = 0;
+    das_nested_curly_braces = 0;
+    das_nested_square_braces = 0;
+    das_nested_sb = 0;
+    das_need_oxford_comma = true;
+    das_force_oxford_comma = false;
+    das_c_style_depth = 0;
+    das_arrow_depth = 0;
+    BEGIN(normal);
+    yy_scan_string(str);
+}
+
+
