@@ -21,6 +21,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/weak_ptr.h>
 #include <eathread/eathread_thread.h>
+#include <future>
 
 EA_DISABLE_ALL_VC_WARNINGS()
 #include <stdio.h>
@@ -392,6 +393,33 @@ namespace SmartPtrTest
 		int mX;
 	};
 
+	struct CheckUPtrEmptyInDestructor
+	{
+		~CheckUPtrEmptyInDestructor()
+		{
+			if(mpUPtr)
+				mCheckUPtrEmpty = (*mpUPtr == nullptr);
+		}
+
+		eastl::unique_ptr<CheckUPtrEmptyInDestructor>* mpUPtr{};
+		static bool mCheckUPtrEmpty;
+	};
+
+	bool CheckUPtrEmptyInDestructor::mCheckUPtrEmpty = false;
+
+	struct CheckUPtrArrayEmptyInDestructor
+	{
+		~CheckUPtrArrayEmptyInDestructor()
+		{
+			if(mpUPtr)
+				mCheckUPtrEmpty = (*mpUPtr == nullptr);
+		}
+
+		eastl::unique_ptr<CheckUPtrArrayEmptyInDestructor[]>* mpUPtr{};
+		static bool mCheckUPtrEmpty;
+	};
+
+	bool CheckUPtrArrayEmptyInDestructor::mCheckUPtrEmpty = false;
 } // namespace SmartPtrTest
 
 
@@ -540,6 +568,26 @@ static int Test_unique_ptr()
 
 			EATEST_VERIFY(sLocalDeleterCalled == false);
 		}
+	}
+
+	{
+		// Test that unique_ptr internal pointer is reset before calling the destructor
+		CheckUPtrEmptyInDestructor::mCheckUPtrEmpty = false;
+
+		unique_ptr<CheckUPtrEmptyInDestructor> uptr(new CheckUPtrEmptyInDestructor);
+		uptr->mpUPtr = &uptr;
+		uptr.reset();
+		EATEST_VERIFY(CheckUPtrEmptyInDestructor::mCheckUPtrEmpty);
+	}
+
+	{
+		// Test that unique_ptr<[]> internal pointer is reset before calling the destructor
+		CheckUPtrArrayEmptyInDestructor::mCheckUPtrEmpty = false;
+
+		unique_ptr<CheckUPtrArrayEmptyInDestructor[]> uptr(new CheckUPtrArrayEmptyInDestructor[1]);
+		uptr[0].mpUPtr = &uptr;
+		uptr.reset();
+		EATEST_VERIFY(CheckUPtrArrayEmptyInDestructor::mCheckUPtrEmpty);
 	}
 
 	{
@@ -1132,6 +1180,15 @@ static int Test_shared_ptr()
 	}
 
 
+	{ // Test shared_ptr lambda deleter
+		auto deleter = [](int*) {}; 
+		eastl::shared_ptr<int> ptr(nullptr, deleter);
+
+		EATEST_VERIFY(!ptr);
+		EATEST_VERIFY(ptr.get() == nullptr);
+	}
+
+
 	{ // Test of shared_ptr<void const>
 		#if !defined(__GNUC__) ||  (__GNUC__ >= 3) // If not using old GCC (GCC 2.x is broken)...
 			shared_ptr<void const> voidPtr = shared_ptr<A1>(new A1);
@@ -1336,6 +1393,29 @@ static int Test_shared_ptr()
 #endif
 
 
+template<typename Fct1, typename Fct2>
+void Try_to_invoke_2tasks_at_same_time(const Fct1& fct1, const Fct2& fct2)
+{
+	std::atomic_uint32_t waitThread = true;
+	std::atomic_uint32_t waitMainThread = true;
+
+	std::future<void> f1 = std::async(
+		[&]
+		{
+			waitThread = false;
+			while(waitMainThread)
+			{
+			}
+			fct1();
+		});
+
+	waitMainThread = false;
+	while(waitThread)
+	{
+	}
+	fct2();
+}
+
 static int Test_shared_ptr_thread()
 {
 	using namespace SmartPtrTest;
@@ -1429,6 +1509,84 @@ static int Test_shared_ptr_thread()
 
 	EATEST_VERIFY(A::mCount == 0);
 	TestObject::Reset();
+
+	{
+		// Check that counter inside shared_ptr<> is thread safe when using reset().
+		for(uint32_t counter = 0; counter < 200000; ++counter)
+		{
+			eastl::shared_ptr<double> valueSPtr1(new double(0.));
+			eastl::shared_ptr<double> valueSPtr2(valueSPtr1);
+
+			Try_to_invoke_2tasks_at_same_time(
+				[&]
+				{
+					valueSPtr1.reset();
+				},
+				[&]
+				{
+					valueSPtr2.reset();
+				});
+		}
+	}
+
+	{
+		// Check that counter inside shared_ptr<> and weak_ptr<> is thread safe when using reset().
+		for(uint32_t counter = 0; counter < 200000; ++counter)
+		{
+			eastl::shared_ptr<double> valueSPtr(new double(0.));
+			eastl::weak_ptr<double> valueWPtr(valueSPtr);
+
+			Try_to_invoke_2tasks_at_same_time(
+				[&]
+				{
+					valueSPtr.reset();
+				},
+				[&]
+				{
+					valueWPtr.reset();
+				});
+		}
+	}
+
+	{
+		// Check that counter inside shared_ptr<> is thread safe when using operator =().
+		for(uint32_t counter = 0; counter < 200000; ++counter)
+		{
+			eastl::shared_ptr<double> valueSPtr(new double(0.));
+			eastl::weak_ptr<double> valueWPtr(valueSPtr);
+			eastl::shared_ptr<double> otherValueSPtr(new double(0.));
+
+			Try_to_invoke_2tasks_at_same_time(
+				[&]
+				{
+					valueSPtr = otherValueSPtr;
+				},
+				[&]
+				{
+					valueWPtr = otherValueSPtr;
+				});
+		}
+	}
+
+	{
+		// Check that counter inside shared_ptr<> and weak_ptr<> is thread safe when using operator =().
+		for(uint32_t counter = 0; counter < 200000; ++counter)
+		{
+			eastl::shared_ptr<double> valueSPtr(new double(0.));
+			eastl::shared_ptr<double> valueWPtr(valueSPtr);
+			eastl::shared_ptr<double> otherValueSPtr(new double(0.));
+
+			Try_to_invoke_2tasks_at_same_time(
+				[&]
+				{
+					valueSPtr = otherValueSPtr;
+				},
+				[&]
+				{
+					valueWPtr = otherValueSPtr;
+				});
+		}
+	}
 
 	return nErrorCount;
 }

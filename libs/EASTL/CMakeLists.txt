@@ -8,7 +8,7 @@ project(EASTL CXX)
 # Options
 #-------------------------------------------------------------------------------------------
 option(EASTL_BUILD_BENCHMARK "Enable generation of build files for benchmark" OFF)
-option(EASTL_BUILD_TESTS "Enable generation of build files for tests" ON)
+option(EASTL_BUILD_TESTS "Enable generation of build files for tests" OFF)
 
 #-------------------------------------------------------------------------------------------
 # Compiler Flags
@@ -46,5 +46,9 @@ target_include_directories(EASTL PUBLIC include)
 #-------------------------------------------------------------------------------------------
 # Dependencies
 #-------------------------------------------------------------------------------------------
+if (NOT TARGET EABase)
+    add_subdirectory(test/packages/EABase)
+endif()
+
 target_link_libraries(EASTL EABase)
 
