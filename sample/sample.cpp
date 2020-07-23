@@ -20,11 +20,6 @@
 #include <raygui.h>
 #pragma warning(pop)
 
-#include <log4cplus/logger.h>
-#include <log4cplus/loggingmacros.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/initializer.h>
-
 #include <daScript/daScript.h>
 #include <daScript/simulate/fs_file_info.h>
 #include <daScript/misc/sysos.h>
@@ -182,14 +177,6 @@ bool init_sample()
 
 int main(int argc, char *argv[])
 {
-  log4cplus::initialize();
-
-  log4cplus::BasicConfigurator config;
-  config.configure();
-
-  log4cplus::Logger logger = log4cplus::Logger::getRoot();
-  LOG4CPLUS_WARN_FMT(logger, "%s, %s!", "Hello", "World");
-
   stacktrace::init();
 
   std::srand(unsigned(std::time(0)));
@@ -329,8 +316,6 @@ int main(int argc, char *argv[])
   CloseWindow();
 
   stacktrace::release();
-
-  log4cplus::deinitialize();
 
   return 0;
 }
