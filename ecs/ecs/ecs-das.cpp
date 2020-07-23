@@ -189,7 +189,7 @@ static void delete_entity(EntityId eid)
 
 static eastl::string* to_eastl_string(const char *str, das::Context *ctx)
 {
-  return new (ctx->heap.allocate(sizeof(eastl::string))) eastl::string(str);
+  return new (ctx->heap->allocate(sizeof(eastl::string))) eastl::string(str);
 }
 
 static int ecs_hash(const char *s)
