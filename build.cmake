@@ -3,30 +3,30 @@ set(ecs_common_includes
   "${PROJECT_SOURCE_DIR}/libs/EASTL/test/packages/EABase/include/Common"
   "${PROJECT_SOURCE_DIR}/libs/glm"
   "${PROJECT_SOURCE_DIR}/libs/raylib/src"
-  "${PROJECT_SOURCE_DIR}/libs/log4cplus/include"
   "${PROJECT_SOURCE_DIR}/libs/Box2D/include"
-  "${PROJECT_SOURCE_DIR}/../daScript/include"
+  "${PROJECT_SOURCE_DIR}/libs/daScript/3rdparty/uriparser/include"
+  "${PROJECT_SOURCE_DIR}/libs/daScript/include"
 )
 
 set(ecs_common_libs_dir
-  "${PROJECT_SOURCE_DIR}/libs/log4cplus/msvc14/Win32/bin.Release"
+  ""
 )
 
-set(ecs_common_libs log4cplus)
+set(ecs_common_libs "")
 set(
   ecs_common_libs_debug
   ${ecs_common_libs}
   DbgHelp
   "${PROJECT_BINARY_DIR}/libs/EASTL/EASTL-dbg.lib"
   "${PROJECT_SOURCE_DIR}/libs/jemalloc/msvc/Win32/Debug/jemallocd.lib"
-  "${PROJECT_SOURCE_DIR}/../daScript/build/libDaScript.lib")
+  "${CMAKE_SOURCE_DIR}/libs/daScript/libDaScript.lib")
 
 set(
   ecs_common_libs_release
   ${ecs_common_libs}
   "${PROJECT_BINARY_DIR}/libs/EASTL/EASTL.lib"
   "${PROJECT_SOURCE_DIR}/libs/jemalloc/msvc/Win32/Release/jemalloc.lib"
-  "${PROJECT_SOURCE_DIR}/../daScript/build/libDaScript.lib")
+  "${CMAKE_SOURCE_DIR}/libs/daScript/libDaScript.lib")
 
 function(ecs_add_codegen source_files ret)
   set(codegen_exe "${PROJECT_SOURCE_DIR}/bin/codegen.exe")
@@ -64,8 +64,8 @@ function(ecs_post_build trg)
   )
   add_custom_command(
     TARGET ${trg} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy "${PROJECT_SOURCE_DIR}/Release/log4cplus.dll" "${PROJECT_SOURCE_DIR}/bin/log4cplus.dll"
-    COMMENT "Copy log4cplus.dll"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${PROJECT_SOURCE_DIR}/Debug/libclang.dll" "${PROJECT_SOURCE_DIR}/bin/libclang.dll"
+    COMMENT "Copy libclang.dll"
   )
 endfunction()
 
@@ -85,7 +85,7 @@ function(ecs_link_libraries trg libs)
 endfunction()
 
 function(das_aot source_files ret)
-  set(das_aot_exe "${PROJECT_SOURCE_DIR}/../daScript/build/dasAot.exe")
+  set(das_aot_exe "${CMAKE_SOURCE_DIR}/libs/daScript/bin/dasAot.exe")
 
   foreach(src IN LISTS source_files)
     set(source_file "${CMAKE_CURRENT_SOURCE_DIR}/${src}")

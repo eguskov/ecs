@@ -9,7 +9,7 @@ set(das_files
 das_aot("${das_files}" aot_files)
 
 add_executable(ecs-benchmark ${src} ${aot_files})
-add_dependencies(ecs-benchmark ecs EASTL)
+add_dependencies(ecs-benchmark ecs EASTL libDaScript)
 
 ecs_post_build(ecs-benchmark)
 

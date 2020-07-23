@@ -15,7 +15,7 @@ set(source_files
 ecs_add_codegen("${source_files}" gen_files)
 
 add_executable(sample sample.cpp ${gen_files})
-add_dependencies(sample ecs EASTL raylib box2d)
+add_dependencies(sample ecs EASTL raylib box2d libDaScript)
 
 ecs_post_build(sample)
 

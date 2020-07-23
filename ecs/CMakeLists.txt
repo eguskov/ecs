@@ -4,7 +4,7 @@ file(GLOB components_src "components/*.cpp")
 list(APPEND ecs_src ${components_src})
 
 add_library(ecs ${ecs_src})
-add_dependencies(ecs EASTL)
+add_dependencies(ecs EASTL libDaScript)
 
 target_include_directories(ecs PUBLIC
                           "${PROJECT_BINARY_DIR}"
@@ -16,7 +16,7 @@ target_include_directories(ecs PUBLIC
                           "${PROJECT_SOURCE_DIR}/libs/libyaml/include"
                           "${PROJECT_SOURCE_DIR}/libs/jemalloc/include"
                           "${PROJECT_SOURCE_DIR}/libs/jemalloc/include/msvc_compat"
-                          "${PROJECT_SOURCE_DIR}/../daScript/include"
+                          "${PROJECT_SOURCE_DIR}/libs/daScript/include"
                           )
 
 set_target_properties(ecs PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})

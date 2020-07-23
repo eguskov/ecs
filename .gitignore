@@ -42,3 +42,7 @@ CMakeFiles
 *.VC.db
 *.VC.db-shm
 *.VC.db-wal
+/bin
+libs/daScript/*.lib
+libs/daScript/*.ninja*
+libs/daScript/cmake*
