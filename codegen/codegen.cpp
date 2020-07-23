@@ -798,7 +798,6 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static SystemDescription _reg_sys_{system}(HASH(\"{system}\"), \"{before}\", \"{after}\");\n",
         fmt::arg("system", sys.name),
-        fmt::arg("stage", sys.parameters[0].pureType),
         fmt::arg("before", sys.beforeStr),
         fmt::arg("after", sys.afterStr));
     }
