@@ -1,3 +1,0 @@
-enum Numbers
-    zero
-    one
