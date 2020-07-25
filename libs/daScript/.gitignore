@@ -1,0 +1,15 @@
+cmake_temp/
+
+*.DS_Store
+.DS_Store
+tmtags
+
+*.output
+**/_aot_generated
+
+build/
+bin/
+.vscode/
+
+
+test.bin

@@ -1,0 +1,56 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"xstring": "cpp",
+			"type_traits": "cpp",
+			"xtr1common": "cpp",
+			"regex": "cpp",
+			"xlocale": "cpp",
+			"cstddef": "cpp",
+			"vector": "cpp",
+			"utility": "cpp",
+			"xhash": "cpp",
+			"xtree": "cpp",
+			"xutility": "cpp",
+			"list": "cpp",
+			"codecvt": "cpp",
+			"map": "cpp",
+			"unordered_map": "cpp",
+			"locale": "cpp",
+			"memory": "cpp",
+			"system_error": "cpp",
+			"thread": "cpp",
+			"chrono": "cpp",
+			"functional": "cpp",
+			"ratio": "cpp",
+			"tuple": "cpp",
+			"xmemory": "cpp",
+			"xlocmon": "cpp",
+			"ios": "cpp",
+			"xiosbase": "cpp",
+			"atomic": "cpp",
+			"exception": "cpp",
+			"istream": "cpp",
+			"iterator": "cpp",
+			"ostream": "cpp",
+			"set": "cpp",
+			"streambuf": "cpp",
+			"unordered_set": "cpp",
+			"xlocinfo": "cpp",
+			"xlocnum": "cpp",
+			"xloctime": "cpp",
+			"xstddef": "cpp",
+			"*.rh": "cpp",
+			"initializer_list": "cpp",
+			"xlocbuf": "cpp",
+			"algorithm": "cpp",
+			"cmath": "cpp",
+			"string": "cpp"
+		}
+	}
+}
