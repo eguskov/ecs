@@ -137,9 +137,11 @@ bool init_sample()
   extern int das_def_tab_size;
   das_def_tab_size = 2;
 
-  das::setDasRoot("D:/projects/daScript");
+  // TODO: Pass from command line
+  das::setDasRoot("C:/projects/daScript");
 
   NEED_MODULE(Module_BuiltIn);
+  NEED_MODULE(Module_Strings);
   NEED_MODULE(Module_Math);
   NEED_MODULE(Module_Rtti);
   NEED_MODULE(Module_Ast);
@@ -153,11 +155,11 @@ bool init_sample()
   eastl::unique_ptr<das::Context> ctx;
 
   {
-    auto fAccess = das::make_smart<das::FsFileAccess>("D:/projects/ecs/sample/scripts/project.das_project", das::make_smart<das::FsFileAccess>());
+    auto fAccess = das::make_smart<das::FsFileAccess>("C:/projects/ecs/sample/scripts/project.das_project", das::make_smart<das::FsFileAccess>());
 
     das::TextPrinter tout;
     das::ModuleGroup dummyLibGroup;
-    auto program = das::compileDaScript("D:/projects/ecs/sample/scripts/sample.das", fAccess, tout, dummyLibGroup);
+    auto program = das::compileDaScript("C:/projects/ecs/sample/scripts/sample.das", fAccess, tout, dummyLibGroup);
 
     ctx.reset(new das::Context(program->getContextStackSize()));
     if (!program->simulate(*ctx, tout))

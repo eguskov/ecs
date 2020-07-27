@@ -1,3 +1,4 @@
-require daslib/strings
+require strings
+require daslib/strings_boost
 
 include common.das_project

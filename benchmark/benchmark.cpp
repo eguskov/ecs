@@ -134,7 +134,7 @@ static void BM_ScriptForDas(benchmark::State& state)
   das::TextPrinter tout;
   das::ModuleGroup dummyLibGroup;
 
-  auto program = das::compileDaScript("D:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
+  auto program = das::compileDaScript("C:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
 
   das::Context ctx(program->getContextStackSize());
   if (!program->simulate(ctx, tout))
@@ -172,7 +172,7 @@ static void BM_ScriptForDasAot(benchmark::State& state)
   das::TextPrinter tout;
   das::ModuleGroup dummyLibGroup;
 
-  auto program = das::compileDaScript("D:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
+  auto program = das::compileDaScript("C:/projects/ecs/benchmark/benchmark.das", fAccess, tout, dummyLibGroup);
 
   das::Context ctx(program->getContextStackSize());
   if (!program->simulate(ctx, tout))

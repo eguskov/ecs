@@ -204,7 +204,7 @@ require ecs
 
 [generic]
 def add(var cmap: ComponentsMap; n: string; v)
-  static_if typeinfo(is_pod v) | typeinfo(is_handle v) | typeinfo(is_pointer v) | typeinfo(is_string v)
+  static_if typeinfo(is_pod v) || typeinfo(is_handle v) || typeinfo(is_pointer v) || typeinfo(is_string v)
     _builtin_add(cmap, n, v)
   else
     try
