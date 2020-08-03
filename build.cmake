@@ -100,6 +100,31 @@ function(das_aot source_files ret)
     )
 
     list(APPEND result ${target_file})
+
+    set_source_files_properties(${target_file} PROPERTIES LANGUAGE CXX)
+  endforeach()
+
+  SET(${ret} ${result} PARENT_SCOPE)
+endfunction()
+
+function(make_char_array source_files ret)
+  set(codegen_exe "${PROJECT_SOURCE_DIR}/bin/codegen.exe")
+
+  foreach(src IN LISTS source_files)
+    set(source_file "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+    set(target_file "${CMAKE_CURRENT_SOURCE_DIR}/${src}.gen")
+
+    get_filename_component(source_name ${source_file} NAME_WE)
+
+    add_custom_command(
+      OUTPUT ${target_file}
+      COMMAND ${codegen_exe} ${source_file} --make-char-array ${source_name}_builtin
+      DEPENDS codegen ${source_file}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      COMMENT "Make char array from ${src}..."
+    )
+
+    list(APPEND result ${target_file})
   endforeach()
 
   SET(${ret} ${result} PARENT_SCOPE)

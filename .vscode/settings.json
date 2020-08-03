@@ -1,4 +1,9 @@
 {
     "cmake.configureOnOpen": false,
-    "cmake.generator": "Ninja"
+    "cmake.generator": "Ninja",
+    "files.associations": {
+        "*.das_project": "dascript",
+        "xiosbase": "cpp",
+        "*.gen": "cpp"
+    }
 }

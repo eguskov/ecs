@@ -3,7 +3,17 @@ file(GLOB components_src "components/*.cpp")
 
 list(APPEND ecs_src ${components_src})
 
-add_library(ecs ${ecs_src})
+include("../build.cmake")
+
+set(builtin_files
+  "ecs/ecs.das"
+)
+
+make_char_array("${builtin_files}" gen_files)
+
+message("${gen_files}")
+
+add_library(ecs ${ecs_src} ${gen_files})
 add_dependencies(ecs EASTL libDaScript)
 
 target_include_directories(ecs PUBLIC

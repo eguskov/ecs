@@ -197,26 +197,6 @@ static int ecs_hash(const char *s)
   return hash::str(s ? s : "");
 }
 
-static unsigned char builtin_das[] = R"DAS(
-options indenting = 2
-
-require ecs
-
-[generic]
-def add(var cmap: ComponentsMap; n: string; v)
-  static_if typeinfo(is_pod v) || typeinfo(is_handle v) || typeinfo(is_pointer v) || typeinfo(is_string v)
-    _builtin_add(cmap, n, v)
-  else
-    try
-      _builtin_add(cmap, n, invoke(v))
-    recover
-      assert(false)
-
-[generic]
-def create_entity(template_name: string)
-  create_entity(template_name) <| $(var cm: ComponentsMap) {}
-)DAS";
-
 struct ECSModule final : public das::Module
 {
   ECSModule() : das::Module("ecs")
@@ -243,7 +223,8 @@ struct ECSModule final : public das::Module
 
     addAnnotation(das::make_smart<TemplateRegistrator>());
 
-    compileBuiltinModule("builtin_ecs.das", builtin_das, sizeof(builtin_das));
+    #include "ecs.das.gen"
+    compileBuiltinModule("ecs.das", ecs_builtin, sizeof(ecs_builtin));
 
     verifyAotReady();
   }

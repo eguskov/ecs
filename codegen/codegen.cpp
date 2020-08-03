@@ -11,6 +11,7 @@
 #include <sstream>
 #include <cassert>
 #include <regex>
+#include  <iomanip>
 
 #include <EASTL/functional.h>
 #include <EASTL/hash_map.h>
@@ -24,12 +25,55 @@ eastl::string escape_name(const eastl::string name)
   return std::regex_replace(name.c_str(), std::regex("::"), "_").c_str();
 }
 
+void makeCharArray(const eastl::string &filename, const eastl::string &arr_name)
+{
+  eastl::string outFilename = filename + ".gen";
+  std::ofstream out(outFilename.c_str(), std::ofstream::out);
+  if (out.fail())
+  {
+    std::cerr << "Cannot open " << outFilename << "\n";
+    return;
+  }
+
+  std::ifstream in(filename.c_str(), std::ifstream::in | std::ifstream::binary);
+  if (in.fail())
+  {
+    std::cerr << "Cannot open " << filename << "\n";
+    return;
+  }
+
+  std::cout << "Make char array from " << filename << "\n";
+
+  out << "unsigned char " << arr_name << "[] = {\n";
+  uint8_t ch = 0;
+  int index = 0;
+  while (in.read((char*)&ch, 1)) {
+    out << "0x" << std::setfill('0') << std::setw(2) << std::right << std::hex << (int)ch << ", ";
+    if ((++index) % 8 == 0)
+      out << "\n";
+  }
+  out << "\n};\n";
+
+  out.flush();
+  out.close();
+}
+
 int main(int argc, char* argv[])
 {
   char path[MAX_PATH];
   ::GetCurrentDirectory(MAX_PATH, path);
 
   std::cout << "Codegen: " << argv[1] << "; cwd: " << path << std::endl;
+
+  for (int i = 1; i < argc; ++i)
+  {
+    if (::strcmp(argv[i], "--make-char-array") == 0 && i + 1 < argc)
+    {
+      const char *arrName = argv[i + 1];
+      makeCharArray(argv[1], arrName);
+      return 0;
+    }
+  }
 
   // TODO: Remove path hardcode or rewrite codegen on daScript
   const char *clangArgs[] = {
