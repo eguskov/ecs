@@ -14,9 +14,9 @@ daScript allows to bind constant values to a global variable identifier.
 Whenever possible all constant global variables will be evaluated at compile time.
 There are also Enumerations which are strong type constant collections similar to enum class in C++.
 
----------------
-Constants
----------------
+--------
+Constant
+--------
 
 .. index::
     single: Constants
@@ -43,9 +43,11 @@ Mutable global variables are defined as::
 
 and their usage can be switched on and off per-project basis via CodeOfPolicies.
 
----------------
-Enumerations
----------------
+.. _enumerations:
+
+-----------
+Enumeration
+-----------
 
 .. index::
     single: Enumerations
