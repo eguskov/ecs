@@ -13,7 +13,6 @@
 #include "index.h"
 
 #include "event.h"
-#include "stage.h"
 
 #include "components/core.h"
 
@@ -28,6 +27,32 @@
   uint32_t ecs_pull = 0 + ecs_pull_core;
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
+
+struct EventUpdate
+{
+  float dt;
+  double total;
+};
+
+ECS_EVENT(EventUpdate);
+
+struct EventRender
+{
+};
+
+ECS_EVENT(EventRender);
+
+struct EventRenderDebug
+{
+};
+
+ECS_EVENT(EventRenderDebug);
+
+struct EventRenderHUD
+{
+};
+
+ECS_EVENT(EventRenderHUD);
 
 struct EventOnEntityCreate
 {
@@ -511,12 +536,12 @@ struct EntityManager
   void checkFrameSnapshot(const FrameSnapshot &snapshot);
 
   void tick();
-  void tickStage(uint32_t stage_id, const RawArg &stage);
   void sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev);
   void sendEventSync(EntityId eid, uint32_t event_id, const RawArg &ev);
 
   void sendEventBroadcast(uint32_t event_id, const RawArg &ev);
   void sendEventBroadcastSync(uint32_t event_id, const RawArg &ev);
+  void invokeEventBroadcast(uint32_t event_id, const RawArg &ev);
 
   void registerSystem(const ConstHashedString &name, SystemDescription::SystemCallback callback);
   void unregisterSystem(const ConstHashedString &name);
@@ -524,15 +549,6 @@ struct EntityManager
   QueryId createQuery(const ConstHashedString &name, const QueryDescription &desc, const filter_t &filter = nullptr);
   QueryId createQuery(const ConstHashedString &name, const ConstQueryDescription &desc, const filter_t &filter = nullptr);
   void deleteQuery(const QueryId &qid);
-
-  template <typename S>
-  void tick(const S &stage)
-  {
-    RawArgSpec<sizeof(S)> arg0;
-    new (arg0.mem) S(stage);
-
-    tickStage(StageType<S>::id, arg0);
-  }
 
   template <typename E>
   void sendEvent(EntityId eid, const E &ev)
@@ -569,6 +585,15 @@ struct EntityManager
 
     sendEventBroadcastSync(EventType<E>::id, arg0);
   }
+
+  template <typename E>
+  void invokeEventBroadcast(const E &ev)
+  {
+    RawArgSpec<sizeof(E)> arg0;
+    new (arg0.mem) E(ev);
+
+    invokeEventBroadcast(EventType<E>::id, arg0);
+  }
 };
 
 extern EntityManager *g_mgr;
@@ -579,8 +604,6 @@ namespace ecs
   inline void release() { EntityManager::release(); }
 
   inline void tick() { g_mgr->tick(); }
-
-  template <typename S> inline void tick(const S &stage) { g_mgr->tick<S>(stage); }
 
   inline void create_entity(const char *templ_name, ComponentsMap &&comps) { g_mgr->createEntity(templ_name, eastl::move(comps)); }
   inline EntityId create_entity_sync(const char *templ_name, ComponentsMap &&comps) { return g_mgr->createEntitySync(templ_name, eastl::move(comps)); }
@@ -599,6 +622,7 @@ namespace ecs
 
   template <typename E> inline void send_event(EntityId eid, const E &ev) { g_mgr->sendEvent<E>(eid, ev); }
   template <typename E> inline void send_event_broadcast(const E &ev) { g_mgr->sendEventBroadcast<E>(ev); }
+  template <typename E> inline void invoke_event_broadcast(const E &ev) { g_mgr->invokeEventBroadcast<E>(ev); }
 
   inline Index* find_index(const ConstHashedString &name) { return g_mgr->findIndex(name); }
 

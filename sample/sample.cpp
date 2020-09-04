@@ -7,9 +7,6 @@
 #include <ecs/jobmanager.h>
 #include <ecs/autoBind.h>
 
-#include <stages/update.stage.h>
-#include <stages/render.stage.h>
-
 #include <raylib.h>
 
 #pragma warning(push)
@@ -138,7 +135,7 @@ bool init_sample()
   das_def_tab_size = 2;
 
   // TODO: Pass from command line
-  das::setDasRoot("C:/projects/daScript");
+  das::setDasRoot("C:/projects/ecs/libs/daScript");
 
   NEED_MODULE(Module_BuiltIn);
   NEED_MODULE(Module_Strings);
@@ -265,7 +262,7 @@ int main(int argc, char *argv[])
     clear_frame_mem();
 
     const float dt = glm::clamp(GetFrameTime(), 0.f, 1.f / 60.f);
-    ecs::tick(UpdateStage{ dt, totalTime });
+    ecs::invoke_event_broadcast(EventUpdate{ dt, totalTime });
     const float delta = (float)((GetTime() - t) * 1e3);
 
     minDelta = eastl::min(minDelta, delta);
@@ -279,12 +276,12 @@ int main(int argc, char *argv[])
 
     t = GetTime();
     BeginMode2D(camera);
-    ecs::tick(RenderStage{});
+    ecs::invoke_event_broadcast(EventRender{});
     EndMode2D();
 
     #ifdef _DEBUG
     BeginMode2D(camera);
-    ecs::tick(RenderDebugStage{});
+    ecs::invoke_event_broadcast(EventRenderDebug{});
     EndMode2D();
     #endif
 
@@ -300,7 +297,7 @@ int main(int argc, char *argv[])
       10, 70, 20, LIME);
     DrawFPS(10, 10);
 
-    ecs::tick(RenderHUDStage{});
+    ecs::invoke_event_broadcast(EventRenderHUD{});
 
     // float w = screen_width;
     // float h = screen_height;

@@ -87,7 +87,7 @@ struct AliveEnemy
 
 struct Simple
 {
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &pos)
   {
   }
 };
@@ -97,7 +97,7 @@ struct Where
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &pos)
   {
     AliveEnemy::foreach([&](AliveEnemy &&enemy)
     {
@@ -108,21 +108,21 @@ struct Where
 
 struct ExternalQuery
 {
-  ECS_RUN(const UpdateStage &stage, AliveEnemy &&enemy)
+  ECS_RUN(const EventUpdate &evt, AliveEnemy &&enemy)
   {
   }
 };
 
 struct ExternalQueryIterable
 {
-  ECS_RUN_T(const UpdateStage &stage, QueryIterable<AliveEnemy, _> &&enemies)
+  ECS_RUN_T(const EventUpdate &evt, QueryIterable<AliveEnemy, _> &&enemies)
   {
   }
 };
 
 struct JoinAll
 {
-  ECS_RUN(const UpdateStage &stage, TestA &&test_a, TestB &&test_b)
+  ECS_RUN(const EventUpdate &evt, TestA &&test_a, TestB &&test_b)
   {
   }
 };
@@ -131,7 +131,7 @@ struct JoinIf
 {
   QL_JOIN(test_a.eid == test_b.eid_a);
 
-  ECS_RUN(const UpdateStage &stage, TestA &&test_a, TestB &&test_b)
+  ECS_RUN(const EventUpdate &evt, TestA &&test_a, TestB &&test_b)
   {
   }
 };
@@ -141,14 +141,14 @@ struct JoinIndex
   QL_INDEX(TestB eid_a);
   QL_INDEX_LOOKUP(test_a.eid);
 
-  ECS_RUN(const UpdateStage &stage, TestA &&test_a, TestB &&test_b)
+  ECS_RUN(const EventUpdate &evt, TestA &&test_a, TestB &&test_b)
   {
   }
 };
 
 struct GroupBy
 {
-  ECS_RUN_T(const UpdateStage &stage, int grid_cell, QueryIterable<AliveEnemy, _> &&enemies)
+  ECS_RUN_T(const EventUpdate &evt, int grid_cell, QueryIterable<AliveEnemy, _> &&enemies)
   {
   }
 };

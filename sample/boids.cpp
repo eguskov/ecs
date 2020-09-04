@@ -3,9 +3,6 @@
 #include <ecs/ecs.h>
 #include <ecs/jobmanager.h>
 
-#include <stages/update.stage.h>
-#include <stages/render.stage.h>
-
 #include <raylib.h>
 
 #include <glm/glm.hpp>
@@ -153,7 +150,7 @@ struct render_hud_boid
 
   QL_HAVE(click_handler_boid);
 
-  ECS_RUN(const RenderHUDStage &stage)
+  ECS_RUN(const EventRenderHUD &evt)
   {
     DrawText(FormatText("Cohesion: %2.2f", COHESION), 10, 90, 20, LIME);
     DrawText(FormatText("Alignment: %2.2f", ALIGNMENT), 10, 110, 20, LIME);
@@ -169,7 +166,7 @@ struct render_boid_obstacle
 
   QL_HAVE(boid_obstacle);
 
-  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
+  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
@@ -187,7 +184,7 @@ struct render_boid
 
   QL_HAVE(boid);
 
-  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &cur_pos, const glm::vec2 &cur_separation_center, const glm::vec2 &cur_cohesion_center, float mass, float cur_rotation)
+  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &cur_pos, const glm::vec2 &cur_separation_center, const glm::vec2 &cur_cohesion_center, float mass, float cur_rotation)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
@@ -224,7 +221,7 @@ struct copy_boid_state
   QL_HAVE(boid);
 
   ECS_RUN(
-    const UpdateStage &stage,
+    const EventUpdate &stage,
     const glm::vec2 &pos,
     const glm::vec2 &separation_center,
     const glm::vec2 &cohesion_center,
@@ -253,9 +250,9 @@ struct update_boid_position
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &pos)
   {
-    pos += vel * stage.dt;
+    pos += vel * evt.dt;
   }
 };
 
@@ -268,7 +265,7 @@ struct update_boid_rotation
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, float &rotation)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, float &rotation)
   {
     const glm::vec2 dir = glm::normalize(vel);
     rotation = glm::degrees(glm::acos(dir.x)) * glm::sign(vel.y);
@@ -284,7 +281,7 @@ struct update_boid_avoid_walls
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &pos, const glm::vec2 &vel, float mass, float &move_to_center_timer, glm::vec2 &force)
   {
     const float hw = 0.5f * screen_width * (1.f / camera.zoom);
     const float hh = 0.5f * screen_height * (1.f / camera.zoom);
@@ -313,7 +310,7 @@ struct update_boid_avoid_obstacle
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, glm::vec2 &force)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &pos, glm::vec2 &force)
   {
     BoidObstacle::foreach([&](BoidObstacle &&obstacle)
     {
@@ -333,11 +330,11 @@ struct update_boid_move_to_center
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &pos, float &move_to_center_timer, glm::vec2 &force)
   {
     if (move_to_center_timer > 0.f)
     {
-      move_to_center_timer -= stage.dt;
+      move_to_center_timer -= evt.dt;
 
       glm::vec2 center(0.f, 0.f);
       glm::vec2 steer = center - pos;
@@ -356,9 +353,9 @@ struct update_boid_wander
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &force, glm::vec2 &wander_vel, float &wander_timer)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &force, glm::vec2 &wander_vel, float &wander_timer)
   {
-    wander_timer -= stage.dt;
+    wander_timer -= evt.dt;
     if (wander_timer <= 0.f)
     {
       wander_timer = float(::rand())/float(RAND_MAX) + 1.f;
@@ -382,7 +379,7 @@ struct control_boid_velocity
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, float max_vel, glm::vec2 &vel)
+  ECS_RUN(const EventUpdate &evt, float max_vel, glm::vec2 &vel)
   {
     if (glm::length(vel) == 0.f)
     {
@@ -403,9 +400,9 @@ struct apply_boid_force
     return jobmanager::add_job(eastl::move(deps), count, 256, eastl::move(task));
   }
 
-  ECS_RUN(const UpdateStage &stage, float mass, glm::vec2 &force, glm::vec2 &vel)
+  ECS_RUN(const EventUpdate &evt, float mass, glm::vec2 &force, glm::vec2 &vel)
   {
-    vel += force * (1.f / mass) * stage.dt;
+    vel += force * (1.f / mass) * evt.dt;
     force = glm::vec2(0.f, 0.f);
   }
 };
@@ -446,7 +443,7 @@ struct update_boid_rules
     res->second = index;
   }
 
-  ECS_RUN_T(const UpdateStage &stage, QueryIterable<BoidSeparation, _> &&boids)
+  ECS_RUN_T(const EventUpdate &evt, QueryIterable<BoidSeparation, _> &&boids)
   {
     using Iter = QueryIterable<BoidSeparation, _>;
 
@@ -607,7 +604,7 @@ struct update_boid_rules
     }
   };
 
-  ECS_RUN_T(const UpdateStage &stage, QueryIterable<BoidSeparation, _> &&boids)
+  ECS_RUN_T(const EventUpdate &evt, QueryIterable<BoidSeparation, _> &&boids)
   {
     using Iter = QueryIterable<BoidSeparation, _>;
 

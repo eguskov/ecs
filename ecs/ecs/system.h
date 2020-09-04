@@ -2,7 +2,6 @@
 
 #include "stdafx.h"
 
-#include "ecs/stage.h"
 #include "ecs/event.h"
 #include "ecs/query.h"
 

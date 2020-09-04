@@ -427,7 +427,7 @@ static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
   ecs::wait_system_dependencies(HASH("update_player_collisions"));
   Query &query = ecs::get_query(_reg_query_PlayerCollision.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_player_collisions::run(*(UpdateStage*)stage_or_event.mem,
+    update_player_collisions::run(*(EventUpdate*)stage_or_event.mem,
     {
       GET_COMPONENT(PlayerCollision, q, EntityId, eid),
       GET_COMPONENT(PlayerCollision, q, CollisionShape, collision_shape),
@@ -439,14 +439,14 @@ static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
       GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)
     });
 }
-static SystemDescription _reg_sys_update_player_collisions(HASH("update_player_collisions"), &update_player_collisions_run, HASH("UpdateStage"), "*", "collisions_update");
+static SystemDescription _reg_sys_update_player_collisions(HASH("update_player_collisions"), &update_player_collisions_run, HASH("EventUpdate"), "*", "collisions_update");
 
 static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&)
 {
   ecs::wait_system_dependencies(HASH("update_auto_move_collisions"));
   Query &query = ecs::get_query(_reg_query_EnemyCollision.queryId);
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_auto_move_collisions::run(*(UpdateStage*)stage_or_event.mem,
+    update_auto_move_collisions::run(*(EventUpdate*)stage_or_event.mem,
     {
       GET_COMPONENT(EnemyCollision, q, EntityId, eid),
       GET_COMPONENT(EnemyCollision, q, CollisionShape, collision_shape),
@@ -456,7 +456,7 @@ static void update_auto_move_collisions_run(const RawArg &stage_or_event, Query&
       GET_COMPONENT(EnemyCollision, q, bool, is_on_ground)
     });
 }
-static SystemDescription _reg_sys_update_auto_move_collisions(HASH("update_auto_move_collisions"), &update_auto_move_collisions_run, HASH("UpdateStage"), "update_player_collisions", "collisions_update");
+static SystemDescription _reg_sys_update_auto_move_collisions(HASH("update_auto_move_collisions"), &update_auto_move_collisions_run, HASH("EventUpdate"), "update_player_collisions", "collisions_update");
 
 static void init_physics_collision_handler_run(const RawArg &stage_or_event, Query &query)
 {
@@ -510,40 +510,40 @@ static void tick_physics_world_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("tick_physics_world"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    tick_physics_world::run(*(UpdateStage*)stage_or_event.mem,
+    tick_physics_world::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(tick_physics_world, q, PhysicsWorld, phys_world));
 }
-static SystemDescription _reg_sys_tick_physics_world(HASH("tick_physics_world"), &tick_physics_world_run, HASH("UpdateStage"), tick_physics_world_query_desc, "after_phys_update", "before_phys_update", nullptr);
+static SystemDescription _reg_sys_tick_physics_world(HASH("tick_physics_world"), &tick_physics_world_run, HASH("EventUpdate"), tick_physics_world_query_desc, "after_phys_update", "before_phys_update", nullptr);
 
 static void render_debug_physics_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("render_debug_physics"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    render_debug_physics::run(*(RenderDebugStage*)stage_or_event.mem,
+    render_debug_physics::run(*(EventRenderDebug*)stage_or_event.mem,
       GET_COMPONENT(render_debug_physics, q, PhysicsWorld, phys_world));
 }
-static SystemDescription _reg_sys_render_debug_physics(HASH("render_debug_physics"), &render_debug_physics_run, HASH("RenderDebugStage"), render_debug_physics_query_desc, "*", "after_render", nullptr);
+static SystemDescription _reg_sys_render_debug_physics(HASH("render_debug_physics"), &render_debug_physics_run, HASH("EventRenderDebug"), render_debug_physics_query_desc, "*", "after_render", nullptr);
 
 static void copy_kinematic_body_state_to_physics_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("copy_kinematic_body_state_to_physics"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    copy_kinematic_body_state_to_physics::run(*(UpdateStage*)stage_or_event.mem,
+    copy_kinematic_body_state_to_physics::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(copy_kinematic_body_state_to_physics, q, PhysicsBody, phys_body),
       GET_COMPONENT(copy_kinematic_body_state_to_physics, q, glm::vec2, pos),
       GET_COMPONENT(copy_kinematic_body_state_to_physics, q, glm::vec2, vel));
 }
-static SystemDescription _reg_sys_copy_kinematic_body_state_to_physics(HASH("copy_kinematic_body_state_to_physics"), &copy_kinematic_body_state_to_physics_run, HASH("UpdateStage"), copy_kinematic_body_state_to_physics_query_desc, "*", "tick_physics_world", nullptr);
+static SystemDescription _reg_sys_copy_kinematic_body_state_to_physics(HASH("copy_kinematic_body_state_to_physics"), &copy_kinematic_body_state_to_physics_run, HASH("EventUpdate"), copy_kinematic_body_state_to_physics_query_desc, "*", "tick_physics_world", nullptr);
 
 static void render_debug_player_grid_cell_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("render_debug_player_grid_cell"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    render_debug_player_grid_cell::run(*(RenderDebugStage*)stage_or_event.mem,
+    render_debug_player_grid_cell::run(*(EventRenderDebug*)stage_or_event.mem,
       GET_COMPONENT(render_debug_player_grid_cell, q, glm::vec2, pos),
       GET_COMPONENT(render_debug_player_grid_cell, q, int, grid_cell));
 }
-static SystemDescription _reg_sys_render_debug_player_grid_cell(HASH("render_debug_player_grid_cell"), &render_debug_player_grid_cell_run, HASH("RenderDebugStage"), render_debug_player_grid_cell_query_desc, "*", "after_render", 
+static SystemDescription _reg_sys_render_debug_player_grid_cell(HASH("render_debug_player_grid_cell"), &render_debug_player_grid_cell_run, HASH("EventRenderDebug"), render_debug_player_grid_cell_query_desc, "*", "after_render", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(grid_cell, int);

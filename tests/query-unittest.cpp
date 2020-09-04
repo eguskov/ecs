@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
-#include <stages/update.stage.h>
 
 #include <random>
 
@@ -159,7 +158,7 @@ struct TestIndexSystem
   int errorsCount = 0;
 
   template <typename Builder>
-  void run(const UpdateStage &stage, int grid_cell, QueryIterable<TestView, Builder> &&items)
+  void run(const EventUpdate &evt, int grid_cell, QueryIterable<TestView, Builder> &&items)
   {
     const int count = items.count();
     entitiesCount += count;
@@ -198,9 +197,9 @@ TEST_F(QueryTest, Index)
   >;
 
   TestIndexSystem testSystem;
-  UpdateStage stage;
+  EventUpdate evt;
   for (const auto &item : index->itemsMap)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
+    testSystem.run(evt, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 30);
   EXPECT_EQ(testSystem.entitiesCount, 30);
@@ -211,8 +210,8 @@ TEST_F(QueryTest, Index)
   if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
-    UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
+    EventUpdate evt;
+    testSystem.run(evt, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 3);
     EXPECT_EQ(testSystem.entitiesCount, 3);
@@ -237,9 +236,9 @@ TEST_F(QueryTest, Index_Delete)
   >;
 
   TestIndexSystem testSystem;
-  UpdateStage stage;
+  EventUpdate evt;
   for (const auto &item : index->itemsMap)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
+    testSystem.run(evt, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 29);
   EXPECT_EQ(testSystem.entitiesCount, 29);
@@ -250,8 +249,8 @@ TEST_F(QueryTest, Index_Delete)
   if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
-    UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
+    EventUpdate evt;
+    testSystem.run(evt, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 2);
     EXPECT_EQ(testSystem.entitiesCount, 2);
@@ -288,9 +287,9 @@ TEST_F(QueryTest, Index_ChangeDetection)
   >;
 
   TestIndexSystem testSystem;
-  UpdateStage stage;
+  EventUpdate evt;
   for (const auto &item : index->itemsMap)
-    testSystem.run(stage, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
+    testSystem.run(evt, *(int*)(uint8_t*)&item.first, QueryIterable<TestView, TestViewBuilder>(index->queries[item.second]));
 
   EXPECT_EQ(testSystem.entitiesIterCount, 30);
   EXPECT_EQ(testSystem.entitiesCount, 30);
@@ -301,8 +300,8 @@ TEST_F(QueryTest, Index_ChangeDetection)
   if (res != index->itemsMap.end() && res->first == 6)
   {
     TestIndexSystem testSystem;
-    UpdateStage stage;
-    testSystem.run(stage, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
+    EventUpdate evt;
+    testSystem.run(evt, *(int*)(uint8_t*)&res->first, QueryIterable<TestView, TestViewBuilder>(index->queries[res->second]));
 
     EXPECT_EQ(testSystem.entitiesIterCount, 2);
     EXPECT_EQ(testSystem.entitiesCount, 2);

@@ -1,7 +1,5 @@
 #include <ecs/ecs.h>
 
-#include <stages/update.stage.h>
-
 struct InactiveLift
 {
   ECS_QUERY;
@@ -146,7 +144,7 @@ struct update_player_spawner
 {
   QL_HAVE(player_spawner);
 
-  ECS_RUN(const UpdateStage &stage)
+  ECS_RUN(const EventUpdate &evt)
   {
     if (AlivePlayer::count() != 0)
       return;
@@ -176,7 +174,7 @@ struct bind_trigger_to_action
   QL_INDEX(NotBindedTrigger action_key);
   QL_INDEX_LOOKUP(action.key);
 
-  ECS_RUN(const UpdateStage &stage, Action &&action, NotBindedTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, Action &&action, NotBindedTrigger &&trigger)
   {
     ASSERT(!(action.eid == trigger.eid)); // Check for entity collision
     ASSERT(action.key == trigger.action_key);
@@ -189,7 +187,7 @@ struct bind_trigger_to_action
 
 struct update_inactive_switch_triggers
 {
-  ECS_RUN(const UpdateStage &stage, AlivePlayer &&player, InactiveSwitchTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, AlivePlayer &&player, InactiveSwitchTrigger &&trigger)
   {
     if (glm::distance(player.pos, trigger.pos) < 1.f)
     {
@@ -201,7 +199,7 @@ struct update_inactive_switch_triggers
 
 struct update_inactive_zone_triggers
 {
-  ECS_RUN(const UpdateStage &stage, AlivePlayer &&player, InactiveZoneTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, AlivePlayer &&player, InactiveZoneTrigger &&trigger)
   {
     if (player.pos.x >= trigger.pos.x &&
         player.pos.y >= trigger.pos.y &&
@@ -219,7 +217,7 @@ struct update_active_switch_triggers
   QL_INDEX(ActiveTrigger action_eid);
   QL_INDEX_LOOKUP(action.eid);
 
-  ECS_RUN(const UpdateStage &stage, InactiveEnableLiftAction &&action, ActiveTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, InactiveEnableLiftAction &&action, ActiveTrigger &&trigger)
   {
     ASSERT(!(action.eid == trigger.eid)); // Check for entity collision
     ASSERT(action.eid == trigger.action_eid);
@@ -243,7 +241,7 @@ struct update_active_open_cage_triggers
   QL_INDEX(ActiveTrigger action_eid);
   QL_INDEX_LOOKUP(action.eid);
 
-  ECS_RUN(const UpdateStage &stage, InactiveOpenCageAction &&action, ActiveTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, InactiveOpenCageAction &&action, ActiveTrigger &&trigger)
   {
     ASSERT(!(action.eid == trigger.eid)); // Check for entity collision
     ASSERT(action.eid == trigger.action_eid);
@@ -263,7 +261,7 @@ struct update_active_zone_triggers
   QL_INDEX(ActiveTrigger action_eid);
   QL_INDEX_LOOKUP(action.eid);
 
-  ECS_RUN(const UpdateStage &stage, InactiveKillPlayerAction &&action, ActiveTrigger &&trigger)
+  ECS_RUN(const EventUpdate &evt, InactiveKillPlayerAction &&action, ActiveTrigger &&trigger)
   {
     ASSERT(!(action.eid == trigger.eid)); // Check for entity collision
     ASSERT(action.eid == trigger.action_eid);

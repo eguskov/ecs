@@ -1,8 +1,6 @@
 #include "ecs.h"
 #include "autoBind.h"
 
-#include "stages/dispatchEvent.stage.h"
-
 #include <sstream>
 
 EntityManager *g_mgr = nullptr;
@@ -608,12 +606,12 @@ void EntityManager::createEntity(const char *templ_name, ComponentsMap &&comps)
   CreateQueueData q;
   q.templanemName = templ_name;
   q.components = eastl::move(comps);
-  createQueue.emplace_back(eastl::move(q));
+  createQueue.emplace(eastl::move(q));
 }
 
 void EntityManager::deleteEntity(const EntityId &eid)
 {
-  deleteQueue.emplace_back(eid);
+  deleteQueue.emplace(eid);
 }
 
 void EntityManager::waitFor(EntityId eid, std::future<bool> && value)
@@ -775,15 +773,9 @@ void EntityManager::tick()
       eastl::tie(header, ev) = events[streamIndex].pop();
 
       if (header.flags & EventStream::kBroadcast)
-      {
         sendEventBroadcastSync(header.eventId, ev);
-        tick(DispatchBroadcastEventStage{ header.eventId, ev });
-      }
       else
-      {
         sendEventSync(header.eid, header.eventId, ev);
-        tick(DispatchEventStage{ header.eid, header.eventId, ev });
-      }
     }
 
     checkFrameSnapshot(snapshot);
@@ -1014,18 +1006,6 @@ void EntityManager::checkFrameSnapshot(const FrameSnapshot &snapshot)
   }
 }
 
-void EntityManager::tickStage(uint32_t stage_id, const RawArg &stage)
-{
-  FrameSnapshot snapshot;
-  fillFrameSnapshot(snapshot);
-
-  auto res = systemsByStage.equal_range(stage_id);
-  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
-    systems[sysIt->second].sys(stage, queries[systems[sysIt->second].queryId.index]);
-
-  checkFrameSnapshot(snapshot);
-}
-
 void EntityManager::sendEvent(EntityId eid, uint32_t event_id, const RawArg &ev)
 {
   ASSERT(eid);
@@ -1073,6 +1053,18 @@ void EntityManager::sendEventBroadcastSync(uint32_t event_id, const RawArg &ev)
   auto res = systemsByStage.equal_range(event_id);
   for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
     systems[sysIt->second].sys(ev, queries[systems[sysIt->second].queryId.index]);
+}
+
+void EntityManager::invokeEventBroadcast(uint32_t event_id, const RawArg &ev)
+{
+  FrameSnapshot snapshot;
+  fillFrameSnapshot(snapshot);
+
+  auto res = systemsByStage.equal_range(event_id);
+  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
+    systems[sysIt->second].sys(ev, queries[systems[sysIt->second].queryId.index]);
+
+  checkFrameSnapshot(snapshot);
 }
 
 void EntityManager::enableChangeDetection(const HashedString &name)

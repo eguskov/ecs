@@ -722,12 +722,12 @@ static void bind_trigger_to_action_run(const RawArg &stage_or_event, Query&)
           GET_COMPONENT(NotBindedTrigger, q2, EntityId, action_eid),
           GET_COMPONENT(NotBindedTrigger, q2, bool, is_binded)
         };
-        bind_trigger_to_action::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+        bind_trigger_to_action::run(*(EventUpdate*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
       }
     }
   }
 }
-static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_bind_trigger_to_action(HASH("bind_trigger_to_action"), &bind_trigger_to_action_run, HASH("EventUpdate"), "*", "*");
 
 static void update_active_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -756,12 +756,12 @@ static void update_active_switch_triggers_run(const RawArg &stage_or_event, Quer
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
-        update_active_switch_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+        update_active_switch_triggers::run(*(EventUpdate*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
       }
     }
   }
 }
-static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_update_active_switch_triggers(HASH("update_active_switch_triggers"), &update_active_switch_triggers_run, HASH("EventUpdate"), "*", "*");
 
 static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -789,12 +789,12 @@ static void update_active_open_cage_triggers_run(const RawArg &stage_or_event, Q
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
-        update_active_open_cage_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+        update_active_open_cage_triggers::run(*(EventUpdate*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
       }
     }
   }
 }
-static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_update_active_open_cage_triggers(HASH("update_active_open_cage_triggers"), &update_active_open_cage_triggers_run, HASH("EventUpdate"), "*", "*");
 
 static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -822,12 +822,12 @@ static void update_active_zone_triggers_run(const RawArg &stage_or_event, Query&
           GET_COMPONENT(ActiveTrigger, q2, glm::vec2, pos),
           GET_COMPONENT(ActiveTrigger, q2, bool, is_active)
         };
-        update_active_zone_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
+        update_active_zone_triggers::run(*(EventUpdate*)stage_or_event.mem, eastl::move(action), eastl::move(trigger));
       }
     }
   }
 }
-static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_update_active_zone_triggers(HASH("update_active_zone_triggers"), &update_active_zone_triggers_run, HASH("EventUpdate"), "*", "*");
 
 static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -849,11 +849,11 @@ static void update_inactive_switch_triggers_run(const RawArg &stage_or_event, Qu
         GET_COMPONENT(InactiveSwitchTrigger, q2, glm::vec2, pos),
         GET_COMPONENT(InactiveSwitchTrigger, q2, bool, is_active)
       };
-      update_inactive_switch_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
+      update_inactive_switch_triggers::run(*(EventUpdate*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_update_inactive_switch_triggers(HASH("update_inactive_switch_triggers"), &update_inactive_switch_triggers_run, HASH("EventUpdate"), "*", "*");
 
 static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Query&)
 {
@@ -876,19 +876,19 @@ static void update_inactive_zone_triggers_run(const RawArg &stage_or_event, Quer
         GET_COMPONENT(InactiveZoneTrigger, q2, glm::vec4, collision_rect),
         GET_COMPONENT(InactiveZoneTrigger, q2, bool, is_active)
       };
-      update_inactive_zone_triggers::run(*(UpdateStage*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
+      update_inactive_zone_triggers::run(*(EventUpdate*)stage_or_event.mem, eastl::move(player), eastl::move(trigger));
     }
   }
 }
-static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, HASH("UpdateStage"), "*", "*");
+static SystemDescription _reg_sys_update_inactive_zone_triggers(HASH("update_inactive_zone_triggers"), &update_inactive_zone_triggers_run, HASH("EventUpdate"), "*", "*");
 
 static void update_player_spawner_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_player_spawner"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_player_spawner::run(*(UpdateStage*)stage_or_event.mem);
+    update_player_spawner::run(*(EventUpdate*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("UpdateStage"), update_player_spawner_query_desc, "*", "*", nullptr);
+static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("EventUpdate"), update_player_spawner_query_desc, "*", "*", nullptr);
 
 
 #endif // __CODEGEN__

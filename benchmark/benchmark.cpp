@@ -1,7 +1,6 @@
 #include <ecs/ecs.h>
 #include <ecs/jobmanager.h>
 #include <ecs/perf.h>
-#include <stages/update.stage.h>
 
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
@@ -16,9 +15,9 @@ PULL_ESC_CORE;
 
 struct update_position
 {
-  ECS_RUN(const UpdateStage &stage, const glm::vec3 &vel, glm::vec3 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec3 &vel, glm::vec3 &pos)
   {
-    pos += vel * stage.dt;
+    pos += vel * evt.dt;
   }
 };
 
@@ -37,11 +36,11 @@ static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_position"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_position::run(*(UpdateStage*)stage_or_event.mem,
+    update_position::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_position, q, glm::vec3, vel),
       GET_COMPONENT(update_position, q, glm::vec3, pos));
 }
-static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("UpdateStage"), update_position_query_desc, "", "");
+static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("EventUpdate"), update_position_query_desc, "", "");
 
 static void BM_NativeFor(benchmark::State& state)
 {
@@ -76,14 +75,14 @@ static void BM_ECS_System(benchmark::State& state)
     clear_frame_mem();
   }
 
-  UpdateStage stage = { 1.f / 60.f, 10.f };
+  EventUpdate evt = { 1.f / 60.f, 10.f };
 
   Query query = ecs::perform_query(update_position_query_desc);
 
   while (state.KeepRunning())
   {
     for (auto q = query.begin(), e = query.end(); q != e; ++q)
-      update_position::run(stage,
+      update_position::run(evt,
         GET_COMPONENT(update_position, q, glm::vec3, vel),
         GET_COMPONENT(update_position, q, glm::vec3, pos));
   }
@@ -116,7 +115,7 @@ static void BM_ECS_UpdateStage(benchmark::State& state)
 
   while (state.KeepRunning())
   {
-    ecs::tick(UpdateStage{ 1.f / 60.f, 10.f });
+    ecs::invoke_event_broadcast(EventUpdate{ 1.f / 60.f, 10.f });
   }
 
   for (auto eid : eids)
@@ -253,14 +252,14 @@ static void BM_ECS_JobManager(benchmark::State& state)
     clear_frame_mem();
   }
 
-  UpdateStage stage = { 1.f / 60.f, 10.f };
+  EventUpdate evt = { 1.f / 60.f, 10.f };
 
   Query query = ecs::perform_query(update_position_query_desc);
 
-  jobmanager::callback_t task = [&query, stage](int from, int count)
+  jobmanager::callback_t task = [&query, evt](int from, int count)
   {
     for (auto q = query.begin(from), e = query.end(); q != e && count > 0; ++q, --count)
-      update_position::run(stage,
+      update_position::run(evt,
         GET_COMPONENT(update_position, q, glm::vec3, vel),
         GET_COMPONENT(update_position, q, glm::vec3, pos));
   };

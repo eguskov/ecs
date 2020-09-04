@@ -305,11 +305,11 @@ static void update_position_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_position"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_position::run(*(UpdateStage*)stage_or_event.mem,
+    update_position::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_position, q, glm::vec2, vel),
       GET_COMPONENT(update_position, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("UpdateStage"), update_position_query_desc, "before_render", "after_phys_update", 
+static SystemDescription _reg_sys_update_position(HASH("update_position"), &update_position_run, HASH("EventUpdate"), update_position_query_desc, "before_render", "after_phys_update", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -320,11 +320,11 @@ static void update_position_for_active_run(const RawArg &stage_or_event, Query &
 {
   ecs::wait_system_dependencies(HASH("update_position_for_active"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_position_for_active::run(*(UpdateStage*)stage_or_event.mem,
+    update_position_for_active::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_position_for_active, q, glm::vec2, vel),
       GET_COMPONENT(update_position_for_active, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_update_position_for_active(HASH("update_position_for_active"), &update_position_for_active_run, HASH("UpdateStage"), update_position_for_active_query_desc, "update_position", "after_phys_update", 
+static SystemDescription _reg_sys_update_position_for_active(HASH("update_position_for_active"), &update_position_for_active_run, HASH("EventUpdate"), update_position_for_active_query_desc, "update_position", "after_phys_update", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -336,23 +336,23 @@ static void update_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_anim_frame"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
+    update_anim_frame::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_anim_frame, q, AnimGraph, anim_graph),
       GET_COMPONENT(update_anim_frame, q, AnimState, anim_state),
       GET_COMPONENT(update_anim_frame, q, glm::vec4, frame));
 }
-static SystemDescription _reg_sys_update_anim_frame(HASH("update_anim_frame"), &update_anim_frame_run, HASH("UpdateStage"), update_anim_frame_query_desc, "after_anim_update", "before_anim_update", nullptr);
+static SystemDescription _reg_sys_update_anim_frame(HASH("update_anim_frame"), &update_anim_frame_run, HASH("EventUpdate"), update_anim_frame_query_desc, "after_anim_update", "before_anim_update", nullptr);
 
 static void render_walls_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("render_walls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    render_walls::run(*(RenderStage*)stage_or_event.mem,
+    render_walls::run(*(EventRender*)stage_or_event.mem,
       GET_COMPONENT(render_walls, q, TextureAtlas, texture),
       GET_COMPONENT(render_walls, q, glm::vec4, frame),
       GET_COMPONENT(render_walls, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_render_walls(HASH("render_walls"), &render_walls_run, HASH("RenderStage"), render_walls_query_desc, "after_render", "before_render", 
+static SystemDescription _reg_sys_render_walls(HASH("render_walls"), &render_walls_run, HASH("EventRender"), render_walls_query_desc, "after_render", "before_render", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -363,13 +363,13 @@ static void render_normal_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("render_normal"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    render_normal::run(*(RenderStage*)stage_or_event.mem,
+    render_normal::run(*(EventRender*)stage_or_event.mem,
       GET_COMPONENT(render_normal, q, TextureAtlas, texture),
       GET_COMPONENT(render_normal, q, glm::vec4, frame),
       GET_COMPONENT(render_normal, q, glm::vec2, pos),
       GET_COMPONENT(render_normal, q, float, dir));
 }
-static SystemDescription _reg_sys_render_normal(HASH("render_normal"), &render_normal_run, HASH("RenderStage"), render_normal_query_desc, "after_render", "before_render", 
+static SystemDescription _reg_sys_render_normal(HASH("render_normal"), &render_normal_run, HASH("EventRender"), render_normal_query_desc, "after_render", "before_render", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -380,44 +380,44 @@ static void read_controls_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("read_controls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    read_controls::run(*(UpdateStage*)stage_or_event.mem,
+    read_controls::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(read_controls, q, UserInput, user_input));
 }
-static SystemDescription _reg_sys_read_controls(HASH("read_controls"), &read_controls_run, HASH("UpdateStage"), read_controls_query_desc, "after_input", "before_input", nullptr);
+static SystemDescription _reg_sys_read_controls(HASH("read_controls"), &read_controls_run, HASH("EventUpdate"), read_controls_query_desc, "after_input", "before_input", nullptr);
 
 static void apply_controls_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("apply_controls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_controls::run(*(UpdateStage*)stage_or_event.mem,
+    apply_controls::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(apply_controls, q, UserInput, user_input),
       GET_COMPONENT(apply_controls, q, bool, is_on_ground),
       GET_COMPONENT(apply_controls, q, Jump, jump),
       GET_COMPONENT(apply_controls, q, glm::vec2, vel),
       GET_COMPONENT(apply_controls, q, float, dir));
 }
-static SystemDescription _reg_sys_apply_controls(HASH("apply_controls"), &apply_controls_run, HASH("UpdateStage"), apply_controls_query_desc, "*", "read_controls", nullptr);
+static SystemDescription _reg_sys_apply_controls(HASH("apply_controls"), &apply_controls_run, HASH("EventUpdate"), apply_controls_query_desc, "*", "read_controls", nullptr);
 
 static void apply_jump_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("apply_jump"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_jump::run(*(UpdateStage*)stage_or_event.mem,
+    apply_jump::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(apply_jump, q, Jump, jump),
       GET_COMPONENT(apply_jump, q, bool, is_on_ground),
       GET_COMPONENT(apply_jump, q, glm::vec2, vel));
 }
-static SystemDescription _reg_sys_apply_jump(HASH("apply_jump"), &apply_jump_run, HASH("UpdateStage"), apply_jump_query_desc, "*", "apply_gravity", nullptr);
+static SystemDescription _reg_sys_apply_jump(HASH("apply_jump"), &apply_jump_run, HASH("EventUpdate"), apply_jump_query_desc, "*", "apply_gravity", nullptr);
 
 static void apply_gravity_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("apply_gravity"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_gravity::run(*(UpdateStage*)stage_or_event.mem,
+    apply_gravity::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(apply_gravity, q, Gravity, gravity),
       GET_COMPONENT(apply_gravity, q, glm::vec2, vel));
 }
-static SystemDescription _reg_sys_apply_gravity(HASH("apply_gravity"), &apply_gravity_run, HASH("UpdateStage"), apply_gravity_query_desc, "*", "apply_controls", 
+static SystemDescription _reg_sys_apply_gravity(HASH("apply_gravity"), &apply_gravity_run, HASH("EventUpdate"), apply_gravity_query_desc, "*", "apply_controls", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -428,20 +428,20 @@ static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &q
 {
   ecs::wait_system_dependencies(HASH("select_current_anim_frame"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    select_current_anim_frame::run(*(UpdateStage*)stage_or_event.mem,
+    select_current_anim_frame::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame, q, glm::vec2, vel),
       GET_COMPONENT(select_current_anim_frame, q, AnimGraph, anim_graph),
       GET_COMPONENT(select_current_anim_frame, q, bool, is_on_ground),
       GET_COMPONENT(select_current_anim_frame, q, TextureAtlas, texture),
       GET_COMPONENT(select_current_anim_frame, q, AnimState, anim_state));
 }
-static SystemDescription _reg_sys_select_current_anim_frame(HASH("select_current_anim_frame"), &select_current_anim_frame_run, HASH("UpdateStage"), select_current_anim_frame_query_desc, "update_anim_frame", "before_anim_update", nullptr);
+static SystemDescription _reg_sys_select_current_anim_frame(HASH("select_current_anim_frame"), &select_current_anim_frame_run, HASH("EventUpdate"), select_current_anim_frame_query_desc, "update_anim_frame", "before_anim_update", nullptr);
 
 static void select_current_anim_frame_for_player_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("select_current_anim_frame_for_player"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    select_current_anim_frame_for_player::run(*(UpdateStage*)stage_or_event.mem,
+    select_current_anim_frame_for_player::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(select_current_anim_frame_for_player, q, glm::vec2, vel),
       GET_COMPONENT(select_current_anim_frame_for_player, q, AnimGraph, anim_graph),
       GET_COMPONENT(select_current_anim_frame_for_player, q, UserInput, user_input),
@@ -449,18 +449,18 @@ static void select_current_anim_frame_for_player_run(const RawArg &stage_or_even
       GET_COMPONENT(select_current_anim_frame_for_player, q, TextureAtlas, texture),
       GET_COMPONENT(select_current_anim_frame_for_player, q, AnimState, anim_state));
 }
-static SystemDescription _reg_sys_select_current_anim_frame_for_player(HASH("select_current_anim_frame_for_player"), &select_current_anim_frame_for_player_run, HASH("UpdateStage"), select_current_anim_frame_for_player_query_desc, "update_anim_frame", "before_anim_update", nullptr);
+static SystemDescription _reg_sys_select_current_anim_frame_for_player(HASH("select_current_anim_frame_for_player"), &select_current_anim_frame_for_player_run, HASH("EventUpdate"), select_current_anim_frame_for_player_query_desc, "update_anim_frame", "before_anim_update", nullptr);
 
 static void remove_death_fx_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("remove_death_fx"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    remove_death_fx::run(*(UpdateStage*)stage_or_event.mem,
+    remove_death_fx::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(remove_death_fx, q, EntityId, eid),
       GET_COMPONENT(remove_death_fx, q, AnimState, anim_state),
       GET_COMPONENT(remove_death_fx, q, bool, is_alive));
 }
-static SystemDescription _reg_sys_remove_death_fx(HASH("remove_death_fx"), &remove_death_fx_run, HASH("UpdateStage"), remove_death_fx_query_desc, "*", "*", 
+static SystemDescription _reg_sys_remove_death_fx(HASH("remove_death_fx"), &remove_death_fx_run, HASH("EventUpdate"), remove_death_fx_query_desc, "*", "*", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -471,10 +471,10 @@ static void update_camera_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_camera"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_camera::run(*(UpdateStage*)stage_or_event.mem,
+    update_camera::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_camera, q, glm::vec2, pos));
 }
-static SystemDescription _reg_sys_update_camera(HASH("update_camera"), &update_camera_run, HASH("UpdateStage"), update_camera_query_desc, "before_render", "camera_update", nullptr);
+static SystemDescription _reg_sys_update_camera(HASH("update_camera"), &update_camera_run, HASH("EventUpdate"), update_camera_query_desc, "before_render", "camera_update", nullptr);
 
 static void process_on_kill_event_run(const RawArg &stage_or_event, Query &query)
 {
@@ -489,12 +489,12 @@ static void update_active_auto_move_run(const RawArg &stage_or_event, Query &que
 {
   ecs::wait_system_dependencies(HASH("update_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
+    update_active_auto_move::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_active_auto_move, q, AutoMove, auto_move),
       GET_COMPONENT(update_active_auto_move, q, glm::vec2, vel),
       GET_COMPONENT(update_active_auto_move, q, float, dir));
 }
-static SystemDescription _reg_sys_update_active_auto_move(HASH("update_active_auto_move"), &update_active_auto_move_run, HASH("UpdateStage"), update_active_auto_move_query_desc, "collisions_update", "after_input", 
+static SystemDescription _reg_sys_update_active_auto_move(HASH("update_active_auto_move"), &update_active_auto_move_run, HASH("EventUpdate"), update_active_auto_move_query_desc, "collisions_update", "after_input", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -506,12 +506,12 @@ static void update_always_active_auto_move_run(const RawArg &stage_or_event, Que
 {
   ecs::wait_system_dependencies(HASH("update_always_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_always_active_auto_move::run(*(UpdateStage*)stage_or_event.mem,
+    update_always_active_auto_move::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_always_active_auto_move, q, AutoMove, auto_move),
       GET_COMPONENT(update_always_active_auto_move, q, glm::vec2, vel),
       GET_COMPONENT(update_always_active_auto_move, q, float, dir));
 }
-static SystemDescription _reg_sys_update_always_active_auto_move(HASH("update_always_active_auto_move"), &update_always_active_auto_move_run, HASH("UpdateStage"), update_always_active_auto_move_query_desc, "collisions_update", "after_input", 
+static SystemDescription _reg_sys_update_always_active_auto_move(HASH("update_always_active_auto_move"), &update_always_active_auto_move_run, HASH("EventUpdate"), update_always_active_auto_move_query_desc, "collisions_update", "after_input", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -530,14 +530,14 @@ static void update_auto_jump_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("update_auto_jump"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    update_auto_jump::run(*(UpdateStage*)stage_or_event.mem,
+    update_auto_jump::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_auto_jump, q, bool, is_alive),
       GET_COMPONENT(update_auto_jump, q, Jump, jump),
       GET_COMPONENT(update_auto_jump, q, AutoMove, auto_move),
       GET_COMPONENT(update_auto_jump, q, glm::vec2, vel),
       GET_COMPONENT(update_auto_jump, q, float, dir));
 }
-static SystemDescription _reg_sys_update_auto_jump(HASH("update_auto_jump"), &update_auto_jump_run, HASH("UpdateStage"), update_auto_jump_query_desc, "collisions_update", "after_input", 
+static SystemDescription _reg_sys_update_auto_jump(HASH("update_auto_jump"), &update_auto_jump_run, HASH("EventUpdate"), update_auto_jump_query_desc, "collisions_update", "after_input", 
 [](const Archetype &type, int entity_idx)
 {
   GET_COMPONENT_VALUE(is_alive, bool);
@@ -546,9 +546,9 @@ static SystemDescription _reg_sys_update_auto_jump(HASH("update_auto_jump"), &up
 
 static void test_empty_run(const RawArg &stage_or_event, Query &)
 {
-  test_empty::run(*(UpdateStage*)stage_or_event.mem);
+  test_empty::run(*(EventUpdate*)stage_or_event.mem);
 }
-static SystemDescription _reg_sys_test_empty(HASH("test_empty"), &test_empty_run, HASH("UpdateStage"), empty_query_desc, "after_input", "*");
+static SystemDescription _reg_sys_test_empty(HASH("test_empty"), &test_empty_run, HASH("EventUpdate"), empty_query_desc, "after_input", "*");
 
 static SystemDescription _reg_sys_before_input(HASH("before_input"), "after_input", "*");
 static SystemDescription _reg_sys_after_input(HASH("after_input"), "*", "before_input");

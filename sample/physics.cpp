@@ -1,8 +1,5 @@
 #include <ecs/ecs.h>
 
-#include <stages/update.stage.h>
-#include <stages/render.stage.h>
-
 #include <raylib.h>
 
 #include <Box2D/Box2D.h>
@@ -321,10 +318,10 @@ struct tick_physics_world
   ECS_BEFORE(after_phys_update);
 
   // TODO: Add stages for fixed dt updates
-  ECS_RUN(const UpdateStage &stage, PhysicsWorld &phys_world)
+  ECS_RUN(const EventUpdate &evt, PhysicsWorld &phys_world)
   {
     const float physDt = 1.f / 60.f;
-    const int curTick = (int)ceil(stage.total / (double)physDt);
+    const int curTick = (int)ceil(evt.total / (double)physDt);
 
     if (curTick > phys_world.atTick)
     {
@@ -338,7 +335,7 @@ struct render_debug_physics
 {
   ECS_AFTER(after_render);
 
-  ECS_RUN(const RenderDebugStage &stage, const PhysicsWorld &phys_world)
+  ECS_RUN(const EventRenderDebug &evt, const PhysicsWorld &phys_world)
   {
     g_world->DebugDraw();
   }
@@ -348,7 +345,7 @@ struct copy_kinematic_body_state_to_physics
 {
   ECS_AFTER(tick_physics_world);
 
-  ECS_RUN(const UpdateStage &stage, PhysicsBody &phys_body, const glm::vec2 &pos, const glm::vec2 &vel)
+  ECS_RUN(const EventUpdate &evt, PhysicsBody &phys_body, const glm::vec2 &pos, const glm::vec2 &vel)
   {
     ASSERT(phys_body.type != b2_staticBody);
 
@@ -407,7 +404,7 @@ struct update_player_collisions
     }
   }
 
-  ECS_RUN(const UpdateStage &stage, PlayerCollision &&player)
+  ECS_RUN(const EventUpdate &evt, PlayerCollision &&player)
   {
     AliveEnemy::foreach([&](AliveEnemy &&enemy)
     {
@@ -444,7 +441,7 @@ struct update_player_collisions
         enemy.vel = glm::vec2(0.f, 0.f);
 
         player.jump.active = true;
-        player.jump.startTime = stage.total;
+        player.jump.startTime = evt.total;
       }
     });
 
@@ -486,7 +483,7 @@ struct render_debug_player_grid_cell
   QL_HAVE(user_input);
   QL_WHERE(grid_cell != -1);
 
-  ECS_RUN(const RenderDebugStage &stage, const glm::vec2 &pos, int grid_cell)
+  ECS_RUN(const EventRenderDebug &evt, const glm::vec2 &pos, int grid_cell)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
@@ -561,7 +558,7 @@ struct update_auto_move_collisions
     }
   }
 
-  ECS_RUN(const UpdateStage &stage, EnemyCollision &&enemy)
+  ECS_RUN(const EventUpdate &evt, EnemyCollision &&enemy)
   {
     glm::vec2 box(64.f, 64.f);
     const int boxCellLeft = MAKE_GRID_INDEX(enemy.pos.x - box.x, GRID_CELL_SIZE);

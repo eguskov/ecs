@@ -8,9 +8,6 @@
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 
-#include <stages/update.stage.h>
-#include <stages/render.stage.h>
-
 #include <raylib.h>
 
 #include <Box2D/Box2D.h>
@@ -70,9 +67,9 @@ struct update_position
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &pos)
   {
-    pos += vel * stage.dt;
+    pos += vel * evt.dt;
   }
 
   // TODO: Will share QL_* filters but not componets requirements
@@ -89,9 +86,9 @@ struct update_position_for_active
 
   QL_WHERE(is_alive == true && is_active == true);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, glm::vec2 &pos)
   {
-    pos += vel * stage.dt;
+    pos += vel * evt.dt;
   }
 };
 
@@ -100,10 +97,10 @@ struct update_anim_frame
   ECS_AFTER(before_anim_update);
   ECS_BEFORE(after_anim_update);
 
-  ECS_RUN(const UpdateStage &stage, const AnimGraph &anim_graph, AnimState &anim_state, glm::vec4 &frame)
+  ECS_RUN(const EventUpdate &evt, const AnimGraph &anim_graph, AnimState &anim_state, glm::vec4 &frame)
   {
     if (anim_state.startTime <= 0.0)
-      anim_state.startTime = stage.total;
+      anim_state.startTime = evt.total;
 
     auto res = anim_graph.nodesMap.find_as(anim_state.currentNode.c_str());
     if (res == anim_graph.nodesMap.end())
@@ -111,7 +108,7 @@ struct update_anim_frame
 
     const auto &node = res->second;
 
-    const int frameNo = (int)floor((stage.total - anim_state.startTime) / (double)node.frameDt);
+    const int frameNo = (int)floor((evt.total - anim_state.startTime) / (double)node.frameDt);
     if (node.loop)
     {
       anim_state.frameNo = frameNo % node.frames.size();
@@ -134,7 +131,7 @@ struct render_walls
   QL_HAVE(wall);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
+  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
@@ -150,7 +147,7 @@ struct render_normal
   QL_NOT_HAVE(wall);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const RenderStage &stage, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float dir)
+  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float dir)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
@@ -163,7 +160,7 @@ struct read_controls
   ECS_AFTER(before_input);
   ECS_BEFORE(after_input);
 
-  ECS_RUN(const UpdateStage &stage, UserInput &user_input)
+  ECS_RUN(const EventUpdate &evt, UserInput &user_input)
   {
     user_input = {};
 
@@ -180,7 +177,7 @@ struct apply_controls
 {
   ECS_AFTER(read_controls);
 
-  ECS_RUN(const UpdateStage &stage, const UserInput &user_input, bool is_on_ground, Jump &jump, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, const UserInput &user_input, bool is_on_ground, Jump &jump, glm::vec2 &vel, float &dir)
   {
     if (user_input.left)
     {
@@ -198,7 +195,7 @@ struct apply_controls
     if (user_input.jump && !jump.active && is_on_ground)
     {
       jump.active = true;
-      jump.startTime = stage.total;
+      jump.startTime = evt.total;
     }
   }
 };
@@ -208,7 +205,7 @@ struct apply_jump
 {
   ECS_AFTER(apply_gravity);
 
-  ECS_RUN(const UpdateStage &stage, Jump &jump, bool &is_on_ground, glm::vec2 &vel)
+  ECS_RUN(const EventUpdate &evt, Jump &jump, bool &is_on_ground, glm::vec2 &vel)
   {
     // TODO: Move jump.active to component
     if (!jump.active)
@@ -216,7 +213,7 @@ struct apply_jump
 
     is_on_ground = false;
 
-    const float k = (float)glm::clamp((stage.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
+    const float k = (float)glm::clamp((evt.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
     const float v = jump.height / jump.duration;
     vel.y = -v;
 
@@ -234,9 +231,9 @@ struct apply_gravity
 
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, const Gravity &gravity, glm::vec2 &vel)
+  ECS_RUN(const EventUpdate &evt, const Gravity &gravity, glm::vec2 &vel)
   {
-    vel.y += gravity.mass * 9.8f * stage.dt;
+    vel.y += gravity.mass * 9.8f * evt.dt;
   }
 };
 
@@ -260,17 +257,17 @@ struct select_current_anim_frame
 
   QL_NOT_HAVE(user_input);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
   {
     if (vel.x != 0.f)
-      set_anim_node(anim_graph, anim_state, "run", stage.total);
+      set_anim_node(anim_graph, anim_state, "run", evt.total);
     else
-      set_anim_node(anim_graph, anim_state, "idle", stage.total);
+      set_anim_node(anim_graph, anim_state, "idle", evt.total);
 
     if (vel.y < 0.f)
-      set_anim_node(anim_graph, anim_state, "jump", stage.total);
+      set_anim_node(anim_graph, anim_state, "jump", evt.total);
     else if (vel.y > 0.f && !is_on_ground)
-      set_anim_node(anim_graph, anim_state, "fall", stage.total);
+      set_anim_node(anim_graph, anim_state, "fall", evt.total);
   }
 };
 
@@ -279,17 +276,17 @@ struct select_current_anim_frame_for_player
   ECS_AFTER(before_anim_update);
   ECS_BEFORE(update_anim_frame);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
   {
     if (vel.x != 0.f && (user_input.left || user_input.right))
-      set_anim_node(anim_graph, anim_state, "run", stage.total);
+      set_anim_node(anim_graph, anim_state, "run", evt.total);
     else
-      set_anim_node(anim_graph, anim_state, "idle", stage.total);
+      set_anim_node(anim_graph, anim_state, "idle", evt.total);
 
     if (vel.y < 0.f)
-      set_anim_node(anim_graph, anim_state, "jump", stage.total);
+      set_anim_node(anim_graph, anim_state, "jump", evt.total);
     else if (vel.y > 0.f && !is_on_ground)
-      set_anim_node(anim_graph, anim_state, "fall", stage.total);
+      set_anim_node(anim_graph, anim_state, "fall", evt.total);
   }
 };
 
@@ -299,7 +296,7 @@ struct remove_death_fx
 
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, EntityId eid, const AnimState &anim_state, bool &is_alive)
+  ECS_RUN(const EventUpdate &evt, EntityId eid, const AnimState &anim_state, bool &is_alive)
   {
     if (anim_state.done)
     {
@@ -316,7 +313,7 @@ struct update_camera
 
   QL_HAVE(user_input);
 
-  ECS_RUN(const UpdateStage &stage, const glm::vec2 &pos)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &pos)
   {
     const float hw = 0.5f * screen_width;
     const float hh = 0.5f * screen_width;
@@ -332,14 +329,14 @@ struct process_on_kill_event
   }
 };
 
-static __forceinline void update_auto_move_impl(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+static __forceinline void update_auto_move_impl(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
 {
   if (!auto_move.jump && auto_move.length > 0.f && auto_move.duration > 0.f)
   {
     if (glm::length(vel) > 0.f)
       vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
 
-    auto_move.time -= stage.dt;
+    auto_move.time -= evt.dt;
     if (auto_move.time < 0.f)
     {
       auto_move.time = auto_move.duration;
@@ -361,9 +358,9 @@ struct update_active_auto_move
 
   QL_WHERE(is_alive == true && is_active == true);
 
-  ECS_RUN(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
   {
-    update_auto_move_impl(stage, auto_move, vel, dir);
+    update_auto_move_impl(evt, auto_move, vel, dir);
   }
 };
 
@@ -376,9 +373,9 @@ struct update_always_active_auto_move
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
   {
-    update_auto_move_impl(stage, auto_move, vel, dir);
+    update_auto_move_impl(evt, auto_move, vel, dir);
   }
 };
 
@@ -401,18 +398,18 @@ struct update_auto_jump
 
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const UpdateStage &stage, bool is_alive, Jump &jump, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, bool is_alive, Jump &jump, AutoMove &auto_move, glm::vec2 &vel, float &dir)
   {
     // TODO: auto_move.jump must be component
     if (auto_move.jump)
     {
-      auto_move.time -= stage.dt;
+      auto_move.time -= evt.dt;
       if (auto_move.time < 0.f)
       {
         auto_move.time = auto_move.duration;
 
         jump.active = true;
-        jump.startTime = stage.total;
+        jump.startTime = evt.total;
 
         vel.x = 40.f * -dir;
         vel.y = -40.f;
@@ -425,7 +422,7 @@ struct test_empty
 {
   ECS_BEFORE(after_input);
 
-  ECS_RUN(const UpdateStage &stage)
+  ECS_RUN(const EventUpdate &evt)
   {
   }
 };
