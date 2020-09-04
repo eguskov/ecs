@@ -51,7 +51,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'daScript documentation'
 copyright = '2018-%s, Gaijin Entertainment' % time.strftime('%Y')
-author = u'Anton Yudintsev'
+author = u'Anton Yudintsev @* Boris Batkin'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -208,6 +208,7 @@ htmlhelp_basename = 'daScript_doc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
+'extrapackages': r'\usepackage{textgreek}'
 # The paper size ('letterpaper' or 'a4paper').
 #'papersize': 'letterpaper',
 

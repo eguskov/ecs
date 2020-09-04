@@ -346,10 +346,6 @@ namespace das {
                     resT->constant = (resT->constant | decl->constant) & !decl->removeConstant;
                     resT->temporary = (resT->temporary | decl->temporary) & !decl->removeTemporary;
                     resT->dim = decl->dim;
-                    // resT->dim.clear();
-                    // resT->dim.insert(resT->dim.end(), decl->dim.begin(), decl->dim.end());
-                    // if ( decl->removeDim && resT->dim.size() ) resT->dim.pop_back();
-                    // resT->alias = decl->alias;
                     resT->alias.clear();
                     return resT;
                 } else {
@@ -427,10 +423,6 @@ namespace das {
                     resT->constant = (resT->constant | decl->constant) & !decl->removeConstant;
                     resT->temporary = (resT->temporary | decl->temporary) & !decl->removeTemporary;
                     resT->dim = decl->dim;
-                    // resT->dim.clear();
-                    // resT->dim.insert(resT->dim.end(), decl->dim.begin(), decl->dim.end());
-                    // if ( decl->removeDim && resT->dim.size() ) resT->dim.pop_back();
-                    // resT->alias = decl->alias;
                     resT->alias.clear();
                     return resT;
                 } else {
@@ -1075,7 +1067,7 @@ namespace das {
                         pSt = eWT->firstType->structType;
                     }
                     if ( pSt ) {
-                        if ( pSt->filedLookup.find(fieldName) != pSt->filedLookup.end() ) {
+                        if ( pSt->fieldLookup.find(fieldName) != pSt->fieldLookup.end() ) {
                             return eW;
                         }
                     }
@@ -1234,12 +1226,12 @@ namespace das {
             cppLayout = that->cppLayout;
             cppLayoutPod = !that->cppLayoutNotPod;
             cppLayoutParent = nullptr;
-            that->filedLookup.clear();
+            that->fieldLookup.clear();
             fieldIndex = 0;
         }
         virtual void preVisitStructureField ( Structure * that, Structure::FieldDeclaration & decl, bool last ) override {
             Visitor::preVisitStructureField(that, decl, last);
-            that->filedLookup[decl.name] = fieldIndex++;
+            that->fieldLookup[decl.name] = fieldIndex++;
             if ( decl.type->isAuto() && !decl.init) {
                 error("structure field type can't be infered, it needs an initializer", "", "",
                       decl.at, CompilationError::cant_infer_missing_initializer );
@@ -1453,9 +1445,12 @@ namespace das {
             if ( var->global_shared && !var->init )
                 error("shared global variable must be initialized", "", "",
                       var->at, CompilationError::invalid_variable_type);
-            if ( var->global_shared && !var->type->isShareable() )
-                error("this variable type can't be shared, " + var->type->describe(), "", "",
-                      var->at, CompilationError::invalid_variable_type);
+            if ( var->global_shared && !var->type->isShareable() ) {
+                if ( !(var->type->isSimpleType(Type::tLambda) && program->policies.allow_shared_lambda) ) {
+                    error("this variable type can't be shared, " + var->type->describe(), "", "",
+                        var->at, CompilationError::invalid_variable_type);
+                }
+            }
             verifyType(var->type);
             return Visitor::visitGlobalLet(var);
         }
@@ -1738,13 +1733,13 @@ namespace das {
                         expr->funcType = aT;
                         reportAstChanged();
                     } else {
-                        error("udefined type " + expr->funcType->describe(),  "", "",
+                        error("undefined type " + expr->funcType->describe(),  "", "",
                             expr->at, CompilationError::type_not_found);
                         return Visitor::visit(expr);
                     }
                 }
                 if (expr->funcType->isAuto()) {
-                    error("function of udefined type " + expr->funcType->describe(),  "", "",
+                    error("function of undefined type " + expr->funcType->describe(),  "", "",
                         expr->at, CompilationError::type_not_found);
                     return Visitor::visit(expr);
                 }
@@ -1975,13 +1970,13 @@ namespace das {
                     expr->iterType = aT;
                     reportAstChanged();
                 } else {
-                    error("udefined type " + expr->iterType->describe(),  "", "",
+                    error("undefined type " + expr->iterType->describe(),  "", "",
                         expr->at, CompilationError::type_not_found);
                     return Visitor::visit(expr);
                 }
             }
             if ( expr->iterType->isAuto() ) {
-                error("generator of udefined type " + expr->iterType->describe(),  "", "",
+                error("generator of undefined type " + expr->iterType->describe(),  "", "",
                     expr->at, CompilationError::type_not_found);
                 return Visitor::visit(expr);
             } else if ( expr->iterType->isVoid() ) {
@@ -2426,7 +2421,7 @@ namespace das {
                     reportAstChanged();
                     return Visitor::visit(expr);
                 } else {
-                    error("udefined type " + expr->typeexpr->describe(), "", "",
+                    error("undefined type " + expr->typeexpr->describe(), "", "",
                           expr->at, CompilationError::type_not_found);
                     return Visitor::visit(expr);
                 }
@@ -2476,7 +2471,7 @@ namespace das {
                     reportAstChanged();
                     return Visitor::visit(expr);
                 } else {
-                    error("udefined type " + expr->typeexpr->describe(), "", "",
+                    error("undefined type " + expr->typeexpr->describe(), "", "",
                           expr->at, CompilationError::type_not_found);
                     return Visitor::visit(expr);
                 }
@@ -2507,7 +2502,7 @@ namespace das {
                 } else if ( expr->trait=="dim" ) {
                     if ( expr->typeexpr->dim.size() ) {
                         reportAstChanged();
-                        return make_smart<ExprConstInt>(expr->at, expr->typeexpr->dim.back());
+                        return make_smart<ExprConstInt>(expr->at, expr->typeexpr->dim[0]);
                     } else {
                         error("typeinfo(dim non_array) is prohibited, " + expr->typeexpr->describe(), "", "",
                               expr->at,CompilationError::typeinfo_dim);
@@ -3062,13 +3057,13 @@ namespace das {
                     expr->castType->sanitize();
                     reportAstChanged();
                 } else {
-                    error("udefined type " + expr->castType->describe(),  "", "",
+                    error("undefined type " + expr->castType->describe(),  "", "",
                         expr->at, CompilationError::type_not_found);
                     return Visitor::visit(expr);
                 }
             }
             if ( expr->castType->isAuto() ) {
-                error("casting to udefined type " + expr->castType->describe(),  "", "",
+                error("casting to undefined type " + expr->castType->describe(),  "", "",
                     expr->at, CompilationError::type_not_found);
                 return Visitor::visit(expr);
             }
@@ -3300,10 +3295,17 @@ namespace das {
                     error("type can't be indexed " + seT->describe(),  "", "",
                         expr->subexpr->at, CompilationError::cant_index);
                     return Visitor::visit(expr);
+                } else if ( !seT->isAutoArrayResolved() ) {
+                    error("type dimensions are not resolved yet " + seT->describe(),  "", "",
+                        expr->subexpr->at, CompilationError::cant_index);
+                    return Visitor::visit(expr);
                 } else {
                     expr->type = make_smart<TypeDecl>(*seT);
                     expr->type->ref = true;
-                    expr->type->dim.pop_back();
+                    expr->type->dim.erase(expr->type->dim.begin());
+                    if ( !expr->type->dimExpr.empty() ) {
+                        expr->type->dimExpr.erase(expr->type->dimExpr.begin());
+                    }
                     expr->type->constant |= seT->constant;
                 }
             }
@@ -3373,10 +3375,19 @@ namespace das {
                         expr->type->firstType = make_smart<TypeDecl>(*seT->firstType);
                         expr->type->firstType->constant |= seT->constant;
                     } else if ( seT->dim.size() ) {
-                        expr->type = make_smart<TypeDecl>(Type::tPointer);
-                        expr->type->firstType = make_smart<TypeDecl>(*seT);
-                        expr->type->firstType->dim.pop_back();
-                        expr->type->firstType->constant |= seT->constant;
+                        if ( !seT->isAutoArrayResolved() ) {
+                            error("type dimensions are not resolved yet " + seT->describe(), "", "",
+                                expr->subexpr->at, CompilationError::cant_index);
+                            return Visitor::visit(expr);
+                        } else {
+                            expr->type = make_smart<TypeDecl>(Type::tPointer);
+                            expr->type->firstType = make_smart<TypeDecl>(*seT);
+                            expr->type->firstType->dim.erase(expr->type->firstType->dim.begin());
+                            if ( !expr->type->firstType->dimExpr.empty() ) {
+                                expr->type->firstType->dimExpr.erase(expr->type->firstType->dimExpr.begin());
+                            }
+                            expr->type->firstType->constant |= seT->constant;
+                        }
                     } else if ( seT->isVectorType() ) {
                         expr->type = make_smart<TypeDecl>(Type::tPointer);
                         expr->type->firstType = make_smart<TypeDecl>(seT->getVectorBaseType());
@@ -3417,9 +3428,16 @@ namespace das {
                         expr->at, CompilationError::unsafe);
                 }
                 const auto & seT = expr->subexpr->type;
+                if ( !seT->isAutoArrayResolved() ) {
+                    error("type dimensions are not resolved yet " + seT->describe(), "", "",
+                        expr->subexpr->at, CompilationError::cant_index);
+                }
                 expr->type = make_smart<TypeDecl>(Type::tPointer);
                 expr->type->firstType = make_smart<TypeDecl>(*seT);
-                expr->type->firstType->dim.pop_back();
+                expr->type->firstType->dim.erase(expr->type->firstType->dim.begin());
+                if ( !expr->type->firstType->dimExpr.empty() ) {
+                    expr->type->firstType->dimExpr.erase(expr->type->firstType->dimExpr.begin());
+                }
                 expr->type->firstType->constant |= seT->constant;
             } else if ( expr->subexpr->type->isVectorType() && expr->subexpr->type->isRef() ) {
                 const auto & seT = expr->subexpr->type;
@@ -3510,7 +3528,7 @@ namespace das {
                     var->type = aT;
                     reportAstChanged();
                 } else {
-                    error("udefined type " + var->type->describe(),  "", "",
+                    error("undefined type " + var->type->describe(),  "", "",
                         var->at, CompilationError::type_not_found);
                 }
             }
@@ -4858,7 +4876,10 @@ namespace das {
                 if ( src->type->dim.size() ) {
                     pVar->type = make_smart<TypeDecl>(*src->type);
                     pVar->type->ref = true;
-                    pVar->type->dim.pop_back();
+                    pVar->type->dim.erase(pVar->type->dim.begin());
+                    if ( !pVar->type->dimExpr.empty() ) {
+                        pVar->type->dimExpr.erase(pVar->type->dimExpr.begin());
+                    }
                 } else if ( src->type->isGoodIteratorType() ) {
                     pVar->type = make_smart<TypeDecl>(*src->type->firstType);
                 } else if ( src->type->isGoodArrayType() ) {
@@ -4944,7 +4965,7 @@ namespace das {
                     var->type->sanitize();
                     reportAstChanged();
                 } else {
-                    error("udefined type " + var->type->describe(), "", "",
+                    error("undefined type " + var->type->describe(), "", "",
                         var->at, CompilationError::type_not_found);
                 }
             }
@@ -5305,8 +5326,8 @@ namespace das {
     // at this point we are dealing with 2 auto types
         // 3. one with dim is more specialized, than one without
         //      if both have dim, one with actual value is more specialized, than the other one
-            int d1 = t1->dim.size() ? t1->dim.back() : 0;
-            int d2 = t2->dim.size() ? t2->dim.back() : 0;
+            int d1 = t1->dim.size() ? t1->dim[0] : 0;
+            int d2 = t2->dim.size() ? t2->dim[0] : 0;
             if ( d1!=d2 ) {
                 if ( d1 && d2 ) {
                     return d1==-1 ? -1 : 1;

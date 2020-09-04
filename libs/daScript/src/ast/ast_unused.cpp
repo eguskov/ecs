@@ -110,6 +110,15 @@ namespace das {
             }
         }
     protected:
+        void propagateAt ( ExprAt * at ) {
+            if ( at->subexpr->type->isHandle() && at->subexpr->type->annotation->isIndexMutable(at->index->type.get()) ) {
+                propagateWrite(at->subexpr.get());
+            } else {
+                propagateRead(at->subexpr.get());
+                // propagateWrite(at->subexpr.get()); // note: this makes it so a[foo] modifies itself
+            }
+            propagateRead(at->index.get());
+        }
         void propagateRead ( Expression * expr ) {
             if ( expr->rtti_isVar() ) {
                 auto var = (ExprVar *) expr;
@@ -130,8 +139,7 @@ namespace das {
             } else if ( expr->rtti_isAt() ) {
                 auto at = (ExprAt *) expr;
                 at->r2cr = true;
-                propagateRead(at->subexpr.get());
-                propagateRead(at->index.get());
+                propagateAt(at);
             } else if ( expr->rtti_isSafeAt() ) {
                 auto at = (ExprSafeAt *) expr;
                 at->r2cr = true;
@@ -275,12 +283,12 @@ namespace das {
     // ExprField
         virtual void preVisit ( ExprField * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->value.get());
+            propagateRead(expr->value.get());
         }
     // ExprSafeField
         virtual void preVisit ( ExprSafeField * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->value.get());
+            propagateRead(expr->value.get());
         }
     // ExprIsVariant
         virtual void preVisit ( ExprIsVariant * expr ) override {
@@ -290,22 +298,22 @@ namespace das {
     // ExprAsVariant
         virtual void preVisit ( ExprAsVariant * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->value.get());
+            propagateRead(expr->value.get());
         }
     // ExprSafeAsVariant
         virtual void preVisit ( ExprSafeAsVariant * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->value.get());
+            propagateRead(expr->value.get());
         }
     // ExprAt
         virtual void preVisit ( ExprAt * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->subexpr.get());
+            propagateAt(expr);
         }
     // ExprSafeAt
         virtual void preVisit ( ExprSafeAt * expr ) override {
             Visitor::preVisit(expr);
-            if ( expr->r2v ) propagateRead(expr->subexpr.get());
+            propagateRead(expr->subexpr.get());
         }
     // ExprMove
         virtual void preVisit ( ExprMove * expr ) override {
@@ -337,11 +345,11 @@ namespace das {
             auto sef = getSideEffects(expr->func);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto leftT = expr->left->type;
-                if ( leftT->isRef() && !leftT->isConst() ) {
+                if ( leftT->isRefOrPointer() && !leftT->isConst() ) {
                     propagateWrite(expr->left.get());
                 }
                 auto rightT = expr->right->type;
-                if ( rightT->isRef() && !rightT->isConst() ) {
+                if ( rightT->isRefOrPointer() && !rightT->isConst() ) {
                     propagateWrite(expr->right.get());
                 }
             }
@@ -352,15 +360,15 @@ namespace das {
             auto sef = expr->func ? getSideEffects(expr->func) : 0;
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto condT = expr->subexpr->type;
-                if ( condT->isRef() && !condT->isConst() ) {
+                if ( condT->isRefOrPointer() && !condT->isConst() ) {
                     propagateWrite(expr->subexpr.get());
                 }
                 auto leftT = expr->left->type;
-                if ( leftT->isRef() && !leftT->isConst() ) {
+                if ( leftT->isRefOrPointer() && !leftT->isConst() ) {
                     propagateWrite(expr->left.get());
                 }
                 auto rightT = expr->right->type;
-                if ( rightT->isRef() && !rightT->isConst() ) {
+                if ( rightT->isRefOrPointer() && !rightT->isConst() ) {
                     propagateWrite(expr->right.get());
                 }
             }
@@ -389,7 +397,7 @@ namespace das {
                 if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                     for ( size_t ai=0; ai != expr->arguments.size(); ++ai ) {
                         const auto & argT = expr->func->arguments[ai]->type;
-                        if ( argT->isRef() && !argT->isConst() ) {
+                        if ( argT->isRefOrPointer() && !argT->isConst() ) {
                             if ( expr->func->knownSideEffects && !expr->func->builtIn ) {
                                 if ( expr->func->arguments[ai]->access_ref ) {
                                     propagateWrite(expr->arguments[ai].get());
@@ -425,7 +433,7 @@ namespace das {
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 for ( size_t ai=0; ai != expr->arguments.size(); ++ai ) {
                     const auto & argT = expr->func->arguments[ai]->type;
-                    if ( (argT->isRef() || argT->baseType==anyArgument) && !argT->isConst() ) {
+                    if ( (argT->isRefOrPointer() || argT->baseType==anyArgument) && !argT->isConst() ) {
                         if ( expr->func->knownSideEffects && !expr->func->builtIn ) {
                             if ( expr->func->arguments[ai]->access_ref ) {
                                 propagateWrite(expr->arguments[ai].get());
@@ -442,7 +450,7 @@ namespace das {
             Visitor::preVisit(expr);
             for ( size_t ai=0; ai != expr->arguments.size(); ++ai ) {
                 const auto & argT = expr->arguments[ai]->type;
-                if ( argT->isRef() && !argT->isConst() ) {  // should we propagate const?
+                if ( argT->isRefOrPointer() && !argT->isConst() ) {  // should we propagate const?
                     propagateWrite(expr->arguments[ai].get());
                 }
             }
@@ -455,7 +463,7 @@ namespace das {
             }
             for ( size_t ai=0; ai != expr->arguments.size(); ++ai ) {
                 const auto & argT = expr->arguments[ai]->type;
-                if ( argT->isRef() && !argT->isConst() ) {  // should we propagate const?
+                if ( argT->isRefOrPointer() && !argT->isConst() ) {  // should we propagate const?
                     propagateWrite(expr->arguments[ai].get());
                 }
             }

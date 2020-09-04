@@ -186,7 +186,7 @@ namespace das
     public:
         string                          name;
         vector<FieldDeclaration>        fields;
-        das_hash_map<string,int32_t>    filedLookup;
+        das_hash_map<string,int32_t>    fieldLookup;
         LineInfo                        at;
         Module *                        module = nullptr;
         Structure *                     parent = nullptr;
@@ -326,6 +326,7 @@ namespace das
         virtual bool needDelete() const { return canDelete(); }
         virtual bool canDeletePtr() const { return false; }
         virtual bool isIndexable ( const TypeDeclPtr & ) const { return false; }
+        virtual bool isIndexMutable ( const TypeDeclPtr & ) const { return false; }
         virtual bool isIterable ( ) const { return false; }
         virtual bool isShareable ( ) const { return true; }
         virtual bool isSmart() const { return false; }
@@ -955,6 +956,7 @@ namespace das
         bool no_unused_function_arguments = false;
         bool smart_pointer_by_value_unsafe = false;     // is passing smart_ptr by value unsafe?
         bool allow_block_variable_shadowing = false;
+        bool allow_shared_lambda = false;
     // environment
         bool no_optimizations = false;                  // disable optimizations, regardless of settings
         bool fail_on_no_aot = true;                     // AOT link failure is error

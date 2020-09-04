@@ -68,9 +68,21 @@ By default capture by copy will be generated. If copy is not available, unsafe w
 			push(a3,1)
 		invoke(lam)
 
+.. _lambdas_finalizer:
+
 Lambda can be deleted, which will cause finalizers on all captured data  (see :ref:`Finalizers <finalizers>`)::
 
     delete lam
+
+Lambda can specify custom finalizer which would be invoked before the default finalizer::
+
+    var CNT = 0
+    var counter <- @ <| (extra:int) : int
+        return CNT++ + extra
+    finally
+        print("CNT = {CNT}\n")
+    var x = invoke(counter,13)
+    delete counter                  // this is when the finalizer is called
 
 .. _lambdas_iterator:
 

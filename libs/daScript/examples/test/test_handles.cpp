@@ -124,7 +124,7 @@ struct CheckRange : StructureAnnotation {
         if (args.getBoolOption("dummy",false) && !st->findField("dummy")) {
             st->fields.emplace_back("dummy", make_smart<TypeDecl>(Type::tInt),
                 nullptr /*init*/, AnnotationArgumentList(), false /*move_to_init*/, LineInfo());
-            st->filedLookup.clear();
+            st->fieldLookup.clear();
         }
         return true;
     }
@@ -511,6 +511,14 @@ void tableMojo ( TTable<char *,int> & in, const TBlock<void,TTable<char *,int>> 
     context->invoke(block, args, nullptr);
 }
 
+class Point3ArrayAnnotation : public ManagedVectorAnnotation<Point3Array> {
+public:
+    Point3ArrayAnnotation(ModuleLibrary & lib)
+        : ManagedVectorAnnotation<Point3Array>("Point3Array",lib) {
+    }
+    virtual bool isIndexMutable ( const TypeDeclPtr & ) const override { return true; }
+};
+
 Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     ModuleLibrary lib;
     lib.addModule(this);
@@ -537,7 +545,7 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     // test
     addAnnotation(make_smart<TestFunctionAnnotation>());
     // point3 array
-    addAnnotation(make_smart<ManagedVectorAnnotation<Point3Array>>("Point3Array",lib));
+    addAnnotation(make_smart<Point3ArrayAnnotation>(lib));
     addExtern<DAS_BIND_FUN(testPoint3Array)>(*this, lib, "testPoint3Array",
         SideEffects::modifyExternal, "testPoint3Array");
     // foo array
