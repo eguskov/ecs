@@ -4,6 +4,17 @@
     "files.associations": {
         "*.das_project": "dascript",
         "xiosbase": "cpp",
-        "*.gen": "cpp"
+        "*.gen": "cpp",
+        "iostream": "cpp",
+        "list": "cpp",
+        "xstring": "cpp",
+        "future": "cpp",
+        "istream": "cpp",
+        "memory": "cpp",
+        "type_traits": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp"
     }
 }

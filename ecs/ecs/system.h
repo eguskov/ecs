@@ -142,6 +142,12 @@ struct EntityManager;
 #define GET_COMPONENT_INDEX(q, c) static constexpr int compIdx_##c = index_of_component<_countof(q##_components)>::get(HASH(#c), q##_components)
 #define GET_COMPONENT(q, i, t, c) i.get<t>(INDEX_OF_COMPONENT(q, c))
 
+struct SystemId : Handle_8_24
+{
+  SystemId(uint32_t h = 0) : Handle_8_24(h) {}
+  explicit SystemId(uint32_t gen, uint32_t idx) : Handle_8_24(gen, idx) {}
+};
+
 struct RawArg
 {
   int size = 0;
@@ -161,8 +167,8 @@ struct SystemDescription final
   enum class Mode { FROM_INTERNAL_QUERY, FROM_EXTERNAL_QUERY };
   using SystemCallback = void (*)(const RawArg &stage_or_event, Query&);
 
-  ConstHashedString name;
-  ConstHashedString stageName;
+  HashedString name;
+  HashedString stageName;
 
   int id = -1;
 
@@ -181,7 +187,9 @@ struct SystemDescription final
   eastl::string before;
   eastl::string after;
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, const char *_before, const char *_after, filter_t &&f = nullptr):
+  bool isDynamic = false;
+
+  SystemDescription(const HashedString &_name, SystemCallback _sys, const HashedString &stage_name, const ConstQueryDescription &query_desc, const char *_before, const char *_after, filter_t &&f = nullptr):
     name(_name),
     stageName(stage_name),
     id(SystemDescription::count),
@@ -196,19 +204,19 @@ struct SystemDescription final
     ++SystemDescription::count;
   }
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const char *_before, const char *_after):
+  SystemDescription(const HashedString &_name, SystemCallback _sys, const HashedString &stage_name, const char *_before, const char *_after):
     SystemDescription(_name, _sys, stage_name, empty_query_desc, _before, _after)
   {
     mode = Mode::FROM_EXTERNAL_QUERY;
   }
 
-  SystemDescription(const ConstHashedString &_name, SystemCallback _sys, const ConstHashedString &stage_name, const ConstQueryDescription &query_desc, const char *_before, const char *_after, Mode _mode):
+  SystemDescription(const HashedString &_name, SystemCallback _sys, const HashedString &stage_name, const ConstQueryDescription &query_desc, const char *_before, const char *_after, Mode _mode):
     SystemDescription(_name, _sys, stage_name, query_desc, _before, _after)
   {
     mode = _mode;
   }
 
-  SystemDescription(const ConstHashedString &_name, const char *_before, const char *_after):
+  SystemDescription(const HashedString &_name, const char *_before, const char *_after):
     SystemDescription(_name, nullptr, HASH(""), empty_query_desc, _before, _after)
   {
   }
@@ -216,4 +224,4 @@ struct SystemDescription final
   bool hasCompontent(int id, const char *name) const;
 };
 
-const SystemDescription *find_system(const ConstHashedString &name);
+const SystemDescription *find_system(const HashedString &name);

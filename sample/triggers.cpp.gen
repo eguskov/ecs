@@ -891,4 +891,7 @@ static void update_player_spawner_run(const RawArg &stage_or_event, Query &query
 static SystemDescription _reg_sys_update_player_spawner(HASH("update_player_spawner"), &update_player_spawner_run, HASH("EventUpdate"), update_player_spawner_query_desc, "*", "*", nullptr);
 
 
+
+uint32_t triggers_cpp_pull = HASH("triggers.cpp").hash;
+
 #endif // __CODEGEN__

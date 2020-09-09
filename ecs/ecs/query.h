@@ -4,6 +4,7 @@
 #include "hash.h"
 
 #include <EASTL/functional.h>
+#include <EASTL/unique_ptr.h>
 
 struct Archetype;
 
@@ -82,6 +83,8 @@ constexpr ConstQueryDescription empty_query_desc
   empty_desc_array,
   empty_desc_array
 };
+
+struct ComponentDescription;
 
 struct Component
 {
@@ -298,6 +301,11 @@ struct QueryIterator
   }
 };
 
+struct QueryUserData
+{
+  virtual ~QueryUserData() {}
+};
+
 // TODO: Query unittest
 // TODO: Rename to QueryResult
 struct Query
@@ -482,6 +490,7 @@ struct Query
     entitiesCount = 0;
     entitiesInChunk.clear();
     chunks.clear();
+    userData.reset();
   }
 
   Query() = default;
@@ -500,6 +509,8 @@ struct Query
   int entitiesCount = 0;
   eastl::vector<int> entitiesInChunk;
   eastl::vector<uint8_t * __restrict> chunks;
+
+  eastl::unique_ptr<QueryUserData> userData;
 };
 
 template <typename T, int I>

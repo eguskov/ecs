@@ -13,6 +13,7 @@
 #include "index.h"
 
 #include "event.h"
+#include "ecs-events.h"
 
 #include "components/core.h"
 
@@ -23,67 +24,17 @@
 #include "debug.h"
 
 #define PULL_ESC_CORE \
-  extern const uint32_t ecs_pull_core; \
-  uint32_t ecs_pull = 0 + ecs_pull_core;
+  extern uint32_t ecs_pull_core; \
+  extern uint32_t ecs_events_h_pull; \
+  uint32_t ecs_pull = 0 + ecs_pull_core + ecs_events_h_pull;
 
 using FrameSnapshot = eastl::vector<uint8_t*, FrameMemAllocator>;
-
-struct EventUpdate
-{
-  float dt;
-  double total;
-};
-
-ECS_EVENT(EventUpdate);
-
-struct EventRender
-{
-};
-
-ECS_EVENT(EventRender);
-
-struct EventRenderDebug
-{
-};
-
-ECS_EVENT(EventRenderDebug);
-
-struct EventRenderHUD
-{
-};
-
-ECS_EVENT(EventRenderHUD);
-
-struct EventOnEntityCreate
-{
-};
-
-ECS_EVENT(EventOnEntityCreate);
-
-struct EventOnEntityDelete
-{
-};
-
-ECS_EVENT(EventOnEntityDelete);
-
-struct EventOnEntityReady
-{
-};
-
-ECS_EVENT(EventOnEntityReady);
-
-struct EventOnChangeDetected
-{
-};
-
-ECS_EVENT(EventOnChangeDetected);
 
 template <typename T>
 struct CleanupType
 {
   using Type = typename eastl::remove_const<typename eastl::remove_reference<T>::type>::type;
 };
-
 
 struct ComponentsMap
 {
@@ -220,7 +171,12 @@ struct System
   SystemDescription::SystemCallback sys;
   const SystemDescription *desc;
 
+  HashedString name;
+
+  SystemId id;
   QueryId queryId;
+
+  void reset();
 };
 
 struct EventStream
@@ -305,6 +261,7 @@ struct Archetype
     {
       totalSize = new_count * itemSize;
 
+      // TODO: What about alignment ???
       uint8_t *newItems = new uint8_t[totalSize];
       ::memset(newItems, 0, totalSize);
 
@@ -468,10 +425,12 @@ struct EntityManager
   HandleFactory<EntityId, 1024> eidFactory;
   eastl::vector<Entity> entities;
   eastl::hash_map<HashedString, const ComponentDescription*> componentDescByNames;
+  HandleFactory<SystemId, 1024> sidFactory;
   eastl::vector<System> systems;
-  eastl::hash_multimap<uint32_t, int> systemsByStage;
-  eastl::vector<const SystemDescription*> systemDescs;
-  eastl::vector<eastl::vector<int>> systemDependencies;
+  eastl::vector<SystemId> systemsSorted;
+  eastl::hash_map<uint32_t, eastl::vector<SystemId>> systemsByStage;
+  eastl::hash_map<HashedString, SystemId> systemsByName;
+  eastl::vector<eastl::vector<SystemId>> systemDependencies;
   eastl::vector<jobmanager::JobId> systemJobs;
   eastl::vector<AsyncValue> asyncValues;
   eastl::vector<Index> namedIndices;
@@ -490,6 +449,8 @@ struct EntityManager
   int currentEventStream = 0;
   eastl::array<EventStream, 2> events;
 
+  bool isDirtySystems = false;
+
   static void create();
   static void release();
 
@@ -497,10 +458,12 @@ struct EntityManager
   ~EntityManager();
 
   void init();
+  void sortSystems();
+  void buildSystemsDependencies();
 
-  int getSystemId(const ConstHashedString &name) const;
-  jobmanager::DependencyList getSystemDependencyList(int id) const;
-  void waitSystemDependencies(int id) const;
+  SystemId getSystemId(const ConstHashedString &name) const;
+  jobmanager::DependencyList getSystemDependencyList(SystemId sid) const;
+  void waitSystemDependencies(SystemId sid) const;
 
   const ComponentDescription* getComponentDescByName(const char *name) const;
   const ComponentDescription* getComponentDescByName(const HashedString &name) const;
@@ -543,11 +506,11 @@ struct EntityManager
   void sendEventBroadcastSync(uint32_t event_id, const RawArg &ev);
   void invokeEventBroadcast(uint32_t event_id, const RawArg &ev);
 
-  void registerSystem(const ConstHashedString &name, SystemDescription::SystemCallback callback);
-  void unregisterSystem(const ConstHashedString &name);
+  SystemId createSystem(const HashedString &name, const SystemDescription *desc, const QueryDescription *query_desc = nullptr);
+  void deleteSystem(const SystemId &sid);
 
-  QueryId createQuery(const ConstHashedString &name, const QueryDescription &desc, const filter_t &filter = nullptr);
-  QueryId createQuery(const ConstHashedString &name, const ConstQueryDescription &desc, const filter_t &filter = nullptr);
+  QueryId createQuery(const HashedString &name, const QueryDescription &desc, const filter_t &filter = nullptr);
+  QueryId createQuery(const HashedString &name, const ConstQueryDescription &desc, const filter_t &filter = nullptr);
   void deleteQuery(const QueryId &qid);
 
   template <typename E>
@@ -626,11 +589,15 @@ namespace ecs
 
   inline Index* find_index(const ConstHashedString &name) { return g_mgr->findIndex(name); }
 
-  inline int get_system_id(const ConstHashedString &name) { return g_mgr->getSystemId(name); }
-  inline jobmanager::DependencyList get_system_dependency_list(int id)  { return g_mgr->getSystemDependencyList(id); }
+  inline SystemId get_system_id(const ConstHashedString &name) { return g_mgr->getSystemId(name); }
+  inline jobmanager::DependencyList get_system_dependency_list(SystemId sid)  { return g_mgr->getSystemDependencyList(sid); }
 
   inline void wait_system_dependencies(const ConstHashedString &name) { g_mgr->waitSystemDependencies(ecs::get_system_id(name)); }
-  inline void wait_system_dependencies(int system_id) { g_mgr->waitSystemDependencies(system_id); }
+  inline void wait_system_dependencies(SystemId sid) { g_mgr->waitSystemDependencies(sid); }
 
-  inline void set_system_job(int system_id, const jobmanager::JobId &jid) { g_mgr->systemJobs[system_id] = jid; }
+  inline void set_system_job(SystemId sid, const jobmanager::JobId &jid)
+  {
+    if (g_mgr->sidFactory.isValid(sid))
+      g_mgr->systemJobs[sid.index] = jid;
+  }
 } //ecs

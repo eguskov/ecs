@@ -175,6 +175,10 @@ EntityManager::EntityManager()
 
 EntityManager::~EntityManager()
 {
+  for (auto &s : systems)
+    s.reset();
+  for (auto &q : queries)
+    q.reset();
   for (auto &t : archetypes)
     t.clear();
 }
@@ -267,16 +271,47 @@ void EntityManager::init()
 
   // No more data/templates.json! daScript only!
 
-  systemDescs.resize(SystemDescription::count);
-
   for (const auto *sys = SystemDescription::head; sys; sys = sys->next)
   {
     // Not valid since we have Barriers
     // ASSERT(sys->sys != nullptr);
-    systemDescs[sys->id] = sys;
-    systems.push_back({ sys->sys, sys });
+    SystemId sid = createSystem(sys->name, sys);
+    auto res = systemsByName.insert(sys->name);
+    ASSERT(res.second); // Check for duplicates
+    res.first->second = sid;
   }
 
+  sortSystems();
+  buildSystemsDependencies();
+
+  isDirtySystems = false;
+
+  for (const auto *query = PersistentQueryDescription::head; query; query = query->next)
+  {
+    const_cast<PersistentQueryDescription*>(query)->queryId = createQuery(query->name, query->desc, query->filter);
+    for (const auto &c : query->desc.trackComponents)
+      enableChangeDetection(c.name);
+  }
+
+  namedIndices.resize(IndexDescription::count);
+  int indexIdx = 0;
+  for (const auto *index = IndexDescription::head; index; index = index->next, ++indexIdx)
+  {
+    ASSERT(findIndex(index->name) == nullptr);
+    namedIndices[indexIdx].name = index->name;
+    namedIndices[indexIdx].componentName = index->componentName;
+    namedIndices[indexIdx].desc = index->desc;
+    namedIndices[indexIdx].desc.filter = index->filter;
+    findArchetypes(namedIndices[indexIdx].desc);
+    enableChangeDetection(index->componentName);
+  }
+
+  dirtyQueries.reserve(queries.size());
+  dirtyNamedIndices.reserve(namedIndices.size());
+}
+
+void EntityManager::sortSystems()
+{
   eastl::hash_map<eastl::string_view, int, eastl::hash<eastl::string_view>, eastl::equal_to<eastl::string_view>, FrameMemAllocator> nameESMap;
 
   eastl::vector<int> esToGraphNodeMap;//ES to graph vertex map
@@ -317,7 +352,10 @@ void EntityManager::init()
 
   for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    eastl::string_view name(systems[i].desc->name.str);
+    if (!sidFactory.isValid(systems[i].id))
+      continue;
+
+    eastl::string_view name(systems[i].name.str);
     auto insResult = nameESMap.emplace(name, graphNodesCount);
     const int graphNode = insResult.first->second;
     if (!insResult.second)
@@ -339,11 +377,14 @@ void EntityManager::init()
 
   for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    auto it = nameESMap.find(eastl::string_view(systems[i].desc->name.str));
+    if (!sidFactory.isValid(systems[i].id))
+      continue;
+
+    auto it = nameESMap.find(eastl::string_view(systems[i].name.str));
     ASSERT(it != nameESMap.end());
     const int graphNode = it->second;
-    insertEdges(systems[i].desc->name.str, graphNode, systems[i].desc->before.c_str(), true);
-    insertEdges(systems[i].desc->name.str, graphNode, systems[i].desc->after.c_str(), false);
+    insertEdges(systems[i].name.str, graphNode, systems[i].desc->before.c_str(), true);
+    insertEdges(systems[i].name.str, graphNode, systems[i].desc->after.c_str(), false);
   }
 
   eastl::vector<int, FrameMemAllocator> sortedList;
@@ -366,52 +407,63 @@ void EntityManager::init()
 
   struct SystemWithWeight
   {
-    int id;
+    SystemId sid;
     int weight;
-    SystemWithWeight(int _id, int _weight) : id(_id), weight(_weight) {}
+    SystemWithWeight(SystemId _sid, int _weight) : sid(_sid), weight(_weight) {}
   };
   eastl::vector<SystemWithWeight, FrameMemAllocator> weights;
   weights.reserve(systems.size());
 
   for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    const System &sys = systems[i];
+    if (!sidFactory.isValid(systems[i].id))
+      continue;
 
     const uint32_t graphNode = i < int(esToGraphNodeMap.size()) ? esToGraphNodeMap[i] : ~0u;
     const int weight = (uint32_t(graphNode) < sortedWeights.size()) ? sortedWeights[graphNode] : lowestWeight;
 
-    weights.push_back({i, weight});
+    weights.push_back({systems[i].id, weight});
   }
 
   eastl::sort(weights.begin(), weights.end(), [](const SystemWithWeight &a, const SystemWithWeight&b) {return a.weight < b.weight;});
-  eastl::vector<System> systemsSorted;
-  systemsSorted.resize(systems.size());
+  eastl::vector<SystemId> tmpSystemsSorted;
+  tmpSystemsSorted.reserve(systems.size());
   for (int i = 0, sz = weights.size(); i < sz; ++i)
   {
-    systemsSorted[i] = systems[weights[i].id];
-    const bool isBarrier = systemsSorted[i].sys == nullptr;
-    DEBUG_LOG((!isBarrier ? "  " : "") << systemsSorted[i].desc->name.str);
+    SystemId sid = weights[i].sid;
+    tmpSystemsSorted.push_back(sid);
+    const bool isBarrier = systems[sid.index].sys == nullptr;
+    DEBUG_LOG((!isBarrier ? "  " : "") << systems[sid.index].name.str);
   }
-  eastl::swap(systemsSorted, systems);
+  eastl::swap(tmpSystemsSorted, systemsSorted);
 
-  for (int i = 0, sz = systems.size(); i < sz; ++i)
-    systemsByStage.insert(eastl::pair<uint32_t, int>(systems[i].desc->stageName.hash, i));
-
-  for (auto &sys : systems)
-    sys.queryId = createQuery(sys.desc->name, sys.desc->queryDesc, sys.desc->filter);
-
-  systemJobs.resize(systems.size());
-  systemDependencies.resize(systems.size());
-
-  // TODO: Check this. The code might be broken. archetypes are empty by this moment.
-  for (int i = SystemDescription::count - 1; i >= 0; --i)
+  systemsByStage.clear();
+  for (int i = 0, sz = systemsSorted.size(); i < sz; ++i)
   {
+    SystemId sid = systemsSorted[i];
+    uint32_t stageHash = systems[sid.index].desc->stageName.hash;
+    auto res = systemsByStage.insert(stageHash);
+    res.first->second.push_back(sid);
+  }
+}
+
+void EntityManager::buildSystemsDependencies()
+{
+  // TODO: Check this. The code might be broken. archetypes are empty by this moment.
+  for (int i = (int)systems.size() - 1; i >= 0; --i)
+  {
+    if (!sidFactory.isValid(systems[i].id))
+      continue;
+
     const auto &qI = queryDescriptions[systems[i].queryId.index];
     const auto &compsI = systems[i].desc->queryDesc.components;
-    auto &deps = systemDependencies[systems[i].desc->id];
+    auto &deps = systemDependencies[systems[i].id];
 
     for (int j = i - 1; j >= 0; --j)
     {
+      if (!sidFactory.isValid(systems[j].id))
+        continue;
+
       const auto &qJ = queryDescriptions[systems[j].queryId.index];
 
       // TODO: abort loop normaly instead of dry runs
@@ -435,7 +487,7 @@ void EntityManager::init()
           {
             // TODO: Check query intersection!!!
             found = true;
-            deps.push_back(systems[j].desc->id);
+            deps.push_back(systems[j].id);
             break;
           }
     }
@@ -443,87 +495,44 @@ void EntityManager::init()
 
   for (int i = 0, sz = systems.size(); i < sz; ++i)
   {
-    DEBUG_LOG(systems[i].desc->name.str);
-    if (systemDependencies[systems[i].desc->id].empty())
+    if (!sidFactory.isValid(systems[i].id))
+      continue;
+
+    DEBUG_LOG(systems[i].name.str);
+    if (systemDependencies[systems[i].id].empty())
     {
       DEBUG_LOG("  []");
     }
     else
     {
-      for (int dep : systemDependencies[systems[i].desc->id])
-        DEBUG_LOG("  " << systemDescs[dep]->name.str);
+      for (SystemId depSid : systemDependencies[systems[i].id.index])
+        DEBUG_LOG("  " << systems[depSid.index].name.str);
     }
   }
-
-  for (auto &sys : systems)
-    if (sys.desc->mode == SystemDescription::Mode::FROM_EXTERNAL_QUERY)
-    {
-      deleteQuery(sys.queryId);
-      sys.queryId = QueryId();
-    }
-
-  for (const auto &sys : systems)
-  {
-    for (const auto &c : sys.desc->queryDesc.trackComponents)
-      enableChangeDetection(c.name);
-  }
-
-  int queryIdx = 0;
-  for (const auto *query = PersistentQueryDescription::head; query; query = query->next, ++queryIdx)
-  {
-    const_cast<PersistentQueryDescription*>(query)->queryId = createQuery(query->name, query->desc, query->filter);
-    for (const auto &c : query->desc.trackComponents)
-      enableChangeDetection(c.name);
-  }
-
-  namedIndices.resize(IndexDescription::count);
-  int indexIdx = 0;
-  for (const auto *index = IndexDescription::head; index; index = index->next, ++indexIdx)
-  {
-    ASSERT(findIndex(index->name) == nullptr);
-    namedIndices[indexIdx].name = index->name;
-    namedIndices[indexIdx].componentName = index->componentName;
-    namedIndices[indexIdx].desc = index->desc;
-    namedIndices[indexIdx].desc.filter = index->filter;
-    findArchetypes(namedIndices[indexIdx].desc);
-    enableChangeDetection(index->componentName);
-  }
-
-  dirtyQueries.reserve(queries.size());
-  dirtyNamedIndices.reserve(namedIndices.size());
 }
 
-void EntityManager::registerSystem(const ConstHashedString &name, SystemDescription::SystemCallback callback)
+SystemId EntityManager::getSystemId(const ConstHashedString &name) const
 {
-  // Insert to systems
-  // Sort systems
-  // Insert to systemsByStage
-  // Insert to queries
-
-  // Do not shrik systems array. id only move forward.
+  const auto res = systemsByName.find(name);
+  return res == systemsByName.end() ? SystemId() : res->second;
 }
 
-int EntityManager::getSystemId(const ConstHashedString &name) const
-{
-  for (int i = 0, sz = systemDescs.size(); i < sz; ++i)
-    if (systemDescs[i]->name == name)
-      return systemDescs[i]->id;
-  return -1;
-}
-
-jobmanager::DependencyList EntityManager::getSystemDependencyList(int id) const
+jobmanager::DependencyList EntityManager::getSystemDependencyList(SystemId sid) const
 {
   jobmanager::DependencyList deps;
-  for (int d : systemDependencies[id])
-    if (systemJobs[d])
-      deps.push_back(systemJobs[d]);
-  return eastl::move(deps);
+  if (sidFactory.isValid(sid))
+    for (SystemId depSid : systemDependencies[sid.index])
+      if (sidFactory.isValid(depSid) && systemJobs[depSid.index])
+        deps.push_back(systemJobs[depSid.index]);
+  return deps;
 }
 
-void EntityManager::waitSystemDependencies(int id) const
+void EntityManager::waitSystemDependencies(SystemId sid) const
 {
-  for (int d : systemDependencies[id])
-    jobmanager::wait(systemJobs[d]);
+  if (sidFactory.isValid(sid))
+    for (SystemId depSid : systemDependencies[sid.index])
+      if (sidFactory.isValid(depSid))
+        jobmanager::wait(systemJobs[depSid.index]);
 }
 
 const ComponentDescription* EntityManager::getComponentDescByName(const char *name) const
@@ -678,6 +687,17 @@ void EntityManager::tick()
 
   bool shouldInvalidateQueries = false;
 
+  if (isDirtySystems)
+  {
+    DEBUG_LOG("[ecs]: Sort systems");
+  
+    sortSystems();
+    buildSystemsDependencies();
+
+    isDirtySystems = false;
+    shouldInvalidateQueries = true;
+  }
+
   while (!deleteQueue.empty())
   {
     EntityId eid = deleteQueue.front();
@@ -732,10 +752,8 @@ void EntityManager::tick()
   if (!asyncValues.empty())
     asyncValues.erase(eastl::remove_if(asyncValues.begin(), asyncValues.end(), [](const AsyncValue &v) { return v.isReady(); }), asyncValues.end());
 
-  bool queriesInvalidated = false;
   if (shouldInvalidateQueries)
   {
-    queriesInvalidated = true;
     for (auto &q : queries)
       performQuery(queryDescriptions[q.id.index], q);
     for (auto &i : namedIndices)
@@ -743,7 +761,6 @@ void EntityManager::tick()
   }
   else
   {
-    queriesInvalidated = !dirtyQueries.empty();
     for (QueryId queryId : dirtyQueries)
       performQuery(queryId);
     for (int indexIdx : dirtyNamedIndices)
@@ -752,11 +769,6 @@ void EntityManager::tick()
     dirtyQueries.clear();
     dirtyNamedIndices.clear();
   }
-
-  // TODO: Perform only queries are depent on changed component
-  // if (queriesInvalidated)
-  if (shouldInvalidateQueries)
-    sendEventBroadcastSync(EventOnChangeDetected{});
 
   const int streamIndex = currentEventStream;
   currentEventStream = (currentEventStream + 1) % events.size();
@@ -1020,27 +1032,32 @@ void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg 
   auto &e = entities[eid.index];
   auto &type = archetypes[e.archetypeId];
 
-  for (const auto &sys : systems)
-    if (sys.desc->stageName.hash == event_id)
-    {
-      // TODO: Add checks for isTrue, isFalse, have, notHave
-      bool ok = true;
-      for (const auto &c : sys.desc->queryDesc.components)
-        if (!type.hasCompontent(c.name))
-        {
-          ok = false;
-          break;
-        }
+  auto res = systemsByStage.find(event_id);
+  if (res == systemsByStage.end())
+    return;
 
-      if (ok)
+  for (SystemId sid : res->second)
+  {
+    System &sys = systems[sid.index];
+
+    // TODO: Add checks for isTrue, isFalse, have, notHave
+    bool ok = true;
+    for (const auto &c : sys.desc->queryDesc.components)
+      if (!type.hasCompontent(c.name))
       {
-        Query query;
-        query.componentsCount = sys.desc->queryDesc.components.size();
-        query.addChunks(sys.desc->queryDesc, type, e.indexInArchetype, 1);
-
-        sys.desc->sys(ev, query);
+        ok = false;
+        break;
       }
+
+    if (ok)
+    {
+      Query query;
+      query.componentsCount = sys.desc->queryDesc.components.size();
+      query.addChunks(sys.desc->queryDesc, type, e.indexInArchetype, 1);
+
+      sys.desc->sys(ev, query);
     }
+  }
 }
 
 void EntityManager::sendEventBroadcast(uint32_t event_id, const RawArg &ev)
@@ -1050,9 +1067,10 @@ void EntityManager::sendEventBroadcast(uint32_t event_id, const RawArg &ev)
 
 void EntityManager::sendEventBroadcastSync(uint32_t event_id, const RawArg &ev)
 {
-  auto res = systemsByStage.equal_range(event_id);
-  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
-    systems[sysIt->second].sys(ev, queries[systems[sysIt->second].queryId.index]);
+  auto res = systemsByStage.find(event_id);
+  if (res != systemsByStage.end())
+    for (SystemId sid : res->second)
+      systems[sid.index].sys(ev, queries[systems[sid.index].queryId.index]);
 }
 
 void EntityManager::invokeEventBroadcast(uint32_t event_id, const RawArg &ev)
@@ -1060,9 +1078,7 @@ void EntityManager::invokeEventBroadcast(uint32_t event_id, const RawArg &ev)
   FrameSnapshot snapshot;
   fillFrameSnapshot(snapshot);
 
-  auto res = systemsByStage.equal_range(event_id);
-  for (auto sysIt = res.first; sysIt != res.second; ++sysIt)
-    systems[sysIt->second].sys(ev, queries[systems[sysIt->second].queryId.index]);
+  sendEventBroadcastSync(event_id, ev);
 
   checkFrameSnapshot(snapshot);
 }
@@ -1081,7 +1097,65 @@ void EntityManager::disableChangeDetection(const HashedString &name)
   trackComponents.erase(name);
 }
 
-QueryId EntityManager::createQuery(const ConstHashedString &name, const QueryDescription &desc, const filter_t &filter)
+void System::reset()
+{
+  sys = nullptr;
+  if (desc && desc->isDynamic)
+    delete desc;
+  desc = nullptr;
+  g_mgr->deleteQuery(queryId);
+  queryId = QueryId();
+}
+
+SystemId EntityManager::createSystem(const HashedString &name, const SystemDescription *desc, const QueryDescription *query_desc)
+{
+  SystemId sid = sidFactory.allocate();
+  if (sid.index >= systems.size())
+  {
+    systems.resize(sid.index + 1);
+    systemDependencies.resize(sid.index + 1);
+    systemJobs.resize(sid.index + 1);
+  }
+
+  ASSERT(desc != nullptr);
+
+  systems[sid.index].reset();
+  systemDependencies[sid.index].clear();
+  systemJobs[sid.index] = jobmanager::JobId();
+
+  systems[sid.index].id = sid;
+  systems[sid.index].name = name;
+  systems[sid.index].desc = desc;
+  systems[sid.index].sys = desc->sys;
+
+  if (query_desc)
+    systems[sid.index].queryId = createQuery(desc->name, *query_desc, desc->filter);
+  else if (desc->mode != SystemDescription::Mode::FROM_EXTERNAL_QUERY)
+    systems[sid.index].queryId = createQuery(desc->name, desc->queryDesc, desc->filter);
+
+  for (const auto &c : desc->queryDesc.trackComponents)
+    enableChangeDetection(c.name);
+
+  isDirtySystems = true;
+
+  return sid;
+}
+
+void EntityManager::deleteSystem(const SystemId &sid)
+{
+  if (!sidFactory.isValid(sid))
+    return;
+  systems[sid.index].reset();
+  systemDependencies[sid.index].clear();
+  jobmanager::wait(systemJobs[sid.index]);
+  systemJobs[sid.index] = jobmanager::JobId();
+
+  sidFactory.free(sid);
+
+  isDirtySystems = true;
+}
+
+QueryId EntityManager::createQuery(const HashedString &name, const QueryDescription &desc, const filter_t &filter)
 {
   QueryId qid = qidFactory.allocate();
   if (qid.index >= queries.size())
@@ -1100,7 +1174,7 @@ QueryId EntityManager::createQuery(const ConstHashedString &name, const QueryDes
   return qid;
 }
 
-QueryId EntityManager::createQuery(const ConstHashedString &name, const ConstQueryDescription &desc, const filter_t &filter)
+QueryId EntityManager::createQuery(const HashedString &name, const ConstQueryDescription &desc, const filter_t &filter)
 {
   return createQuery(name, QueryDescription(desc), filter);
 }

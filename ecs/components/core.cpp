@@ -10,4 +10,4 @@ ECS_COMPONENT_TYPE_DETAILS_ALIAS(glm::vec4, vec4);
 ECS_COMPONENT_TYPE_DETAILS_ALIAS(eastl::string, string);
 ECS_COMPONENT_TYPE_DETAILS(Tag);
 
-extern const uint32_t ecs_pull_core = HASH("core").hash;
+uint32_t ecs_pull_core = HASH("core").hash;

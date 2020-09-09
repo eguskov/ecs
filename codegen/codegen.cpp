@@ -22,7 +22,7 @@
 
 eastl::string escape_name(const eastl::string name)
 {
-  return std::regex_replace(name.c_str(), std::regex("::"), "_").c_str();
+  return std::regex_replace(name.c_str(), std::regex("[^a-zA-Z0-9_]"), "_").c_str();
 }
 
 void makeCharArray(const eastl::string &filename, const eastl::string &arr_name)
@@ -797,7 +797,7 @@ int main(int argc, char* argv[])
     {
       out << fmt::format("static void {system}_add_jobs(const RawArg &stage_or_event, Query &query)\n", fmt::arg("system", sys.name));
       out << "{\n";
-      out << "  const int systemId = ecs::get_system_id(HASH(\"" << sys.name << "\"));\n";
+      out << "  const auto sid = ecs::get_system_id(HASH(\"" << sys.name << "\"));\n";
       out << "  auto stage = *(" << sys.parameters[0].pureType << "*)stage_or_event.mem;\n";
       out << "  jobmanager::callback_t task = [&query, stage](int from, int count)\n";
       out << "  {\n";
@@ -812,7 +812,7 @@ int main(int argc, char* argv[])
       }
       out << ");\n";
       out << "  };\n";
-      out << "  ecs::set_system_job(systemId, " << sys.name << "::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));\n";
+      out << "  ecs::set_system_job(sid, " << sys.name << "::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));\n";
       out << "  jobmanager::start_jobs();\n";
       out << "}\n";
 
@@ -911,6 +911,8 @@ int main(int argc, char* argv[])
       out << fmt::vformat("\nstatic AutoBindDescription _reg_auto_bind_{module}(HASH(\"{module}\"), &{module}_auto_bind);", args);
     }
 
+    out << "\n\nuint32_t " << escape_name(basename) << "_pull = HASH(\"" << basename << "\").hash;\n";
+  
     out << "\n#endif // __CODEGEN__" << std::endl;
   }
 

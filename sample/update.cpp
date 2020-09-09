@@ -225,18 +225,6 @@ struct apply_jump
   }
 };
 
-struct apply_gravity
-{
-  ECS_AFTER(apply_controls);
-
-  QL_WHERE(is_alive == true);
-
-  ECS_RUN(const EventUpdate &evt, const Gravity &gravity, glm::vec2 &vel)
-  {
-    vel.y += gravity.mass * 9.8f * evt.dt;
-  }
-};
-
 static void set_anim_node(const AnimGraph &anim_graph, AnimState &anim_state, const char *node, double start_time)
 {
   if (anim_graph.nodesMap.find_as(node) == anim_graph.nodesMap.end())

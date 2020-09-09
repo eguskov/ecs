@@ -18,12 +18,12 @@ require daslib/json_boost
 // TODO: convert level_1.json to scene
 
 // def custom_cond
-//   print(">>>> in the cond\n")
+//   print(">>>> in the cond")
 //   return true
 
 // [es (cond="custom_cond")]
 // def test
-//   print(">>>> TEST ES\n")
+//   print(">>>> TEST ES")
 
 def get_float2(obj, key)
   unsafe
@@ -32,16 +32,15 @@ def get_float2(obj, key)
 
 [init]
 def init()
-  print("[init]\n")
+  print("[init]")
 
   create_entity("physics_world")
   create_entity("enemy_spawner")
   create_entity("player_spawner")
-  // TODO: Load level_1.json
 
   fopen("C:/projects/ecs/sample/data/level_1.json", "r") <| $(f)
     fmap(f) <| $(data)
-      print("[load]: level_1.json\n")
+      print("[load]: level_1.json")
       var error = ""
       let json = read_json(data, error)
       unsafe
@@ -51,7 +50,7 @@ def init()
           let templ  & = (*entity?["$template"]).value as _string
           let comps  & = (*entity?["$components"]).value as _object
 
-          print("[load]: {templ}\n")
+          print("[load]: {templ}")
 
           create_entity(templ) <| $(var cm: ComponentsMap)
             for key, refComp in keys(comps), values(comps)

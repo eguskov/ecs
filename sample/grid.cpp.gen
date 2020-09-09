@@ -30,4 +30,7 @@ static void update_grid_cell_run(const RawArg &stage_or_event, Query &query)
 static SystemDescription _reg_sys_update_grid_cell(HASH("update_grid_cell"), &update_grid_cell_run, HASH("EventUpdate"), update_grid_cell_query_desc, "*", "update_position", nullptr);
 
 
+
+uint32_t grid_cpp_pull = HASH("grid.cpp").hash;
+
 #endif // __CODEGEN__

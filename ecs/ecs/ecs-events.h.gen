@@ -1,0 +1,84 @@
+//! GENERATED FILE
+
+
+#ifndef __CODEGEN__
+
+#include "ecs-events.h"
+
+
+
+
+
+struct EventUpdateAnnotation final : das::ManagedStructureAnnotation<EventUpdate, false>
+{
+  EventUpdateAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventUpdate, false>("EventUpdate", lib)
+  {
+    cppName = " ::EventUpdate";
+    addField<DAS_BIND_MANAGED_FIELD(dt)>("dt");
+    addField<DAS_BIND_MANAGED_FIELD(total)>("total");
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventRenderAnnotation final : das::ManagedStructureAnnotation<EventRender, false>
+{
+  EventRenderAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventRender, false>("EventRender", lib)
+  {
+    cppName = " ::EventRender";
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventRenderDebugAnnotation final : das::ManagedStructureAnnotation<EventRenderDebug, false>
+{
+  EventRenderDebugAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventRenderDebug, false>("EventRenderDebug", lib)
+  {
+    cppName = " ::EventRenderDebug";
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventRenderHUDAnnotation final : das::ManagedStructureAnnotation<EventRenderHUD, false>
+{
+  EventRenderHUDAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventRenderHUD, false>("EventRenderHUD", lib)
+  {
+    cppName = " ::EventRenderHUD";
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventOnEntityCreateAnnotation final : das::ManagedStructureAnnotation<EventOnEntityCreate, false>
+{
+  EventOnEntityCreateAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventOnEntityCreate, false>("EventOnEntityCreate", lib)
+  {
+    cppName = " ::EventOnEntityCreate";
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventOnEntityDeleteAnnotation final : das::ManagedStructureAnnotation<EventOnEntityDelete, false>
+{
+  EventOnEntityDeleteAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventOnEntityDelete, false>("EventOnEntityDelete", lib)
+  {
+    cppName = " ::EventOnEntityDelete";
+  }
+  bool isLocal() const override { return true; }
+};
+struct EventOnEntityReadyAnnotation final : das::ManagedStructureAnnotation<EventOnEntityReady, false>
+{
+  EventOnEntityReadyAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<EventOnEntityReady, false>("EventOnEntityReady", lib)
+  {
+    cppName = " ::EventOnEntityReady";
+  }
+  bool isLocal() const override { return true; }
+};
+static void ecs_auto_bind(das::Module &module, das::ModuleLibrary &lib)
+{
+  module.addAnnotation(das::make_smart<EventUpdateAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventRenderAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventRenderDebugAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventRenderHUDAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventOnEntityCreateAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventOnEntityDeleteAnnotation>(lib));
+  module.addAnnotation(das::make_smart<EventOnEntityReadyAnnotation>(lib));
+}
+static AutoBindDescription _reg_auto_bind_ecs(HASH("ecs"), &ecs_auto_bind);
+
+uint32_t ecs_events_h_pull = HASH("ecs-events.h").hash;
+
+#endif // __CODEGEN__

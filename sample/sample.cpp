@@ -1,6 +1,8 @@
 #include <random>
 #include <ctime>
 
+#include <sys/stat.h>
+
 #include <ecs/ecs.h>
 #include <ecs/hash.h>
 #include <ecs/perf.h>
@@ -129,13 +131,111 @@ struct SampleModule final : public das::Module
 
 REGISTER_MODULE(SampleModule);
 
+using DasContextPtr = eastl::unique_ptr<EcsContext>;
+DasContextPtr dasCtx;
+
+static constexpr char *dasRoot = "C:/projects/ecs/libs/daScript";
+static constexpr char *dasProject = "C:/projects/ecs/sample/scripts/project.das_project";
+static constexpr char *dasInitScript = "C:/projects/ecs/sample/scripts/sample.das";
+static constexpr char *dasMainScript = "C:/projects/ecs/sample/scripts/main.das";
+static eastl::hash_map<eastl::string, SystemId> dasMainSystems;
+static eastl::vector<QueryId> dasMainQueries;
+static time_t dasMainLastModified = 0;
+static bool isDasInitScriptLoaded = false;
+
+template <typename TFileAccess>
+static bool compile_and_simulate_script(DasContextPtr &ctx, const char *path, das::ModuleGroup &libGroup, const TFileAccess &file_access)
+{
+  das::TextPrinter tout;
+  auto program = das::compileDaScript(path, file_access, tout, libGroup);
+  if (!program)
+    return false;
+  
+  if (program->failed())
+  {
+    for (auto &err : program->errors)
+      tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+    std::cout.flush();
+    return false;
+  }
+
+  DasContextPtr tmpCtx = eastl::make_unique<EcsContext>(program->getContextStackSize());
+    
+  if (!program->simulate(*tmpCtx, tout))
+  {
+    for (auto &err : program->errors)
+      tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+    std::cout.flush();
+    return false;
+  }
+
+  ctx = eastl::move(tmpCtx);
+
+  return true;
+}
+
+static bool reload_scripts()
+{
+  if (!isDasInitScriptLoaded)
+  {
+    auto fAccess = das::make_smart<das::FsFileAccess>(dasProject, das::make_smart<das::FsFileAccess>());
+    DasContextPtr ctx;
+    das::ModuleGroup libGroup;
+    isDasInitScriptLoaded = compile_and_simulate_script(ctx, dasInitScript, libGroup, fAccess);
+  }
+
+  if (!isDasInitScriptLoaded)
+    return false;
+
+  struct stat st;
+  if (::stat(dasMainScript, &st) == 0)
+  {
+    if (st.st_mtime == dasMainLastModified)
+      return true;
+    dasMainLastModified = st.st_mtime;
+  }
+  else
+  {
+    ASSERT(false);
+    return false;
+  }
+
+  auto fAccess = das::make_smart<das::FsFileAccess>(dasProject, das::make_smart<das::FsFileAccess>());
+  das::ModuleGroup libGroup;
+  libGroup.setUserData(new EcsModuleGroupData);
+  const bool res = compile_and_simulate_script(dasCtx, dasMainScript, libGroup, fAccess);
+  if (res)
+  {
+    for (auto kv : dasMainSystems)
+      g_mgr->deleteSystem(kv.second);
+
+    for (QueryId qid : dasMainQueries)
+      g_mgr->deleteQuery(qid);
+
+    dasMainSystems.clear();
+    dasMainQueries.clear();
+
+    dasMainSystems = ((EcsModuleGroupData*)libGroup.getUserData("ecs"))->dasSystems;
+    dasMainQueries = ((EcsModuleGroupData*)libGroup.getUserData("ecs"))->dasQueries;
+
+    for (auto kv : dasMainSystems)
+    {
+      SystemId sid = kv.second;
+      DasQueryData *queryData = (DasQueryData*)g_mgr->queries[g_mgr->systems[sid.index].queryId.index].userData.get();
+      queryData->ctx = dasCtx.get();
+      queryData->fn  = dasCtx->findFunction(kv.first.c_str());
+    }
+  }
+  return res;
+}
+
 bool init_sample()
 {
   extern int das_def_tab_size;
   das_def_tab_size = 2;
 
   // TODO: Pass from command line
-  das::setDasRoot("C:/projects/ecs/libs/daScript");
+  das::setDasRoot(dasRoot);
 
   NEED_MODULE(Module_BuiltIn);
   NEED_MODULE(Module_Strings);
@@ -149,29 +249,7 @@ bool init_sample()
   NEED_MODULE(PhysModule);
   NEED_MODULE(SampleModule);
 
-  eastl::unique_ptr<das::Context> ctx;
-
-  {
-    auto fAccess = das::make_smart<das::FsFileAccess>("C:/projects/ecs/sample/scripts/project.das_project", das::make_smart<das::FsFileAccess>());
-
-    das::TextPrinter tout;
-    das::ModuleGroup dummyLibGroup;
-    auto program = das::compileDaScript("C:/projects/ecs/sample/scripts/sample.das", fAccess, tout, dummyLibGroup);
-
-    ctx.reset(new das::Context(program->getContextStackSize()));
-    if (!program->simulate(*ctx, tout))
-    {
-      for (auto & err : program->errors)
-        tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
-
-      return false;
-    }
-  }
-
-  ctx->restart();
-  ctx->restartHeaps();
-
-  return true;
+  return reload_scripts();
 }
 
 int main(int argc, char *argv[])
@@ -255,6 +333,14 @@ int main(int argc, char *argv[])
       minRenderDelta = 1000.f;
     }
 
+    if (dasCtx)
+    {
+      dasCtx->restart();
+      dasCtx->restartHeaps(); 
+    }
+
+    reload_scripts();
+
     double t = GetTime();
     ecs::tick();
     // Clear FrameMem here because it might be used for Jobs
@@ -274,19 +360,15 @@ int main(int argc, char *argv[])
 
     ClearBackground(RAYWHITE);
 
+    BeginMode2D(camera);
     t = GetTime();
-    BeginMode2D(camera);
     ecs::invoke_event_broadcast(EventRender{});
-    EndMode2D();
-
     #ifdef _DEBUG
-    BeginMode2D(camera);
     ecs::invoke_event_broadcast(EventRenderDebug{});
-    EndMode2D();
     #endif
-
     const float renderDelta = (float)((GetTime() - t) * 1e3);
     minRenderDelta = eastl::min(minRenderDelta, renderDelta);
+    EndMode2D();
 
     DrawText(FormatText("ECS time: %2.2f ms (%2.2f ms)", /* delta */minDelta, /* renderDelta */ minRenderDelta), 10, 30, 20, LIME);
     DrawText(FormatText("ECS count: %d", g_mgr->entities.size()), 10, 50, 20, LIME);

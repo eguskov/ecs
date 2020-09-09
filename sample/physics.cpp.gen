@@ -598,4 +598,7 @@ static void phys_auto_bind(das::Module &module, das::ModuleLibrary &lib)
   das::addExtern<DAS_BIND_FUN(PhysicsBody::create_phys_body), das::SimNode_ExtFuncCallAndCopyOrMove>(module, lib, "create_phys_body", das::SideEffects::none, "PhysicsBody::create_phys_body");
 }
 static AutoBindDescription _reg_auto_bind_phys(HASH("phys"), &phys_auto_bind);
+
+uint32_t physics_cpp_pull = HASH("physics.cpp").hash;
+
 #endif // __CODEGEN__

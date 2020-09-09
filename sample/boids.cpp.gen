@@ -513,7 +513,7 @@ static SystemDescription _reg_sys_copy_boid_state(HASH("copy_boid_state"), &copy
 
 static void update_boid_position_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_position"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_position"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -524,14 +524,14 @@ static void update_boid_position_add_jobs(const RawArg &stage_or_event, Query &q
         GET_COMPONENT(update_boid_position, q, glm::vec2, vel),
         GET_COMPONENT(update_boid_position, q, glm::vec2, pos));
   };
-  ecs::set_system_job(systemId, update_boid_position::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_position::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_position(HASH("update_boid_position"), &update_boid_position_add_jobs, HASH("EventUpdate"), update_boid_position_query_desc, "*", "*", nullptr);
 
 static void update_boid_rotation_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_rotation"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_rotation"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -542,14 +542,14 @@ static void update_boid_rotation_add_jobs(const RawArg &stage_or_event, Query &q
         GET_COMPONENT(update_boid_rotation, q, glm::vec2, vel),
         GET_COMPONENT(update_boid_rotation, q, float, rotation));
   };
-  ecs::set_system_job(systemId, update_boid_rotation::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_rotation::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_rotation(HASH("update_boid_rotation"), &update_boid_rotation_add_jobs, HASH("EventUpdate"), update_boid_rotation_query_desc, "*", "*", nullptr);
 
 static void update_boid_avoid_walls_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_avoid_walls"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_avoid_walls"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -563,14 +563,14 @@ static void update_boid_avoid_walls_add_jobs(const RawArg &stage_or_event, Query
         GET_COMPONENT(update_boid_avoid_walls, q, float, move_to_center_timer),
         GET_COMPONENT(update_boid_avoid_walls, q, glm::vec2, force));
   };
-  ecs::set_system_job(systemId, update_boid_avoid_walls::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_avoid_walls::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_avoid_walls(HASH("update_boid_avoid_walls"), &update_boid_avoid_walls_add_jobs, HASH("EventUpdate"), update_boid_avoid_walls_query_desc, "*", "*", nullptr);
 
 static void update_boid_avoid_obstacle_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_avoid_obstacle"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_avoid_obstacle"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -581,14 +581,14 @@ static void update_boid_avoid_obstacle_add_jobs(const RawArg &stage_or_event, Qu
         GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, pos),
         GET_COMPONENT(update_boid_avoid_obstacle, q, glm::vec2, force));
   };
-  ecs::set_system_job(systemId, update_boid_avoid_obstacle::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_avoid_obstacle::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_avoid_obstacle(HASH("update_boid_avoid_obstacle"), &update_boid_avoid_obstacle_add_jobs, HASH("EventUpdate"), update_boid_avoid_obstacle_query_desc, "*", "*", nullptr);
 
 static void update_boid_move_to_center_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_move_to_center"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_move_to_center"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -600,14 +600,14 @@ static void update_boid_move_to_center_add_jobs(const RawArg &stage_or_event, Qu
         GET_COMPONENT(update_boid_move_to_center, q, float, move_to_center_timer),
         GET_COMPONENT(update_boid_move_to_center, q, glm::vec2, force));
   };
-  ecs::set_system_job(systemId, update_boid_move_to_center::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_move_to_center::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_move_to_center(HASH("update_boid_move_to_center"), &update_boid_move_to_center_add_jobs, HASH("EventUpdate"), update_boid_move_to_center_query_desc, "*", "*", nullptr);
 
 static void update_boid_wander_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("update_boid_wander"));
+  const auto sid = ecs::get_system_id(HASH("update_boid_wander"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -620,14 +620,14 @@ static void update_boid_wander_add_jobs(const RawArg &stage_or_event, Query &que
         GET_COMPONENT(update_boid_wander, q, glm::vec2, wander_vel),
         GET_COMPONENT(update_boid_wander, q, float, wander_timer));
   };
-  ecs::set_system_job(systemId, update_boid_wander::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, update_boid_wander::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_update_boid_wander(HASH("update_boid_wander"), &update_boid_wander_add_jobs, HASH("EventUpdate"), update_boid_wander_query_desc, "*", "*", nullptr);
 
 static void control_boid_velocity_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("control_boid_velocity"));
+  const auto sid = ecs::get_system_id(HASH("control_boid_velocity"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -638,14 +638,14 @@ static void control_boid_velocity_add_jobs(const RawArg &stage_or_event, Query &
         GET_COMPONENT(control_boid_velocity, q, float, max_vel),
         GET_COMPONENT(control_boid_velocity, q, glm::vec2, vel));
   };
-  ecs::set_system_job(systemId, control_boid_velocity::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, control_boid_velocity::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_control_boid_velocity(HASH("control_boid_velocity"), &control_boid_velocity_add_jobs, HASH("EventUpdate"), control_boid_velocity_query_desc, "*", "*", nullptr);
 
 static void apply_boid_force_add_jobs(const RawArg &stage_or_event, Query &query)
 {
-  const int systemId = ecs::get_system_id(HASH("apply_boid_force"));
+  const auto sid = ecs::get_system_id(HASH("apply_boid_force"));
   auto stage = *(EventUpdate*)stage_or_event.mem;
   jobmanager::callback_t task = [&query, stage](int from, int count)
   {
@@ -657,10 +657,13 @@ static void apply_boid_force_add_jobs(const RawArg &stage_or_event, Query &query
         GET_COMPONENT(apply_boid_force, q, glm::vec2, force),
         GET_COMPONENT(apply_boid_force, q, glm::vec2, vel));
   };
-  ecs::set_system_job(systemId, apply_boid_force::addJobs(eastl::move(ecs::get_system_dependency_list(systemId)), eastl::move(task), query.entitiesCount));
+  ecs::set_system_job(sid, apply_boid_force::addJobs(eastl::move(ecs::get_system_dependency_list(sid)), eastl::move(task), query.entitiesCount));
   jobmanager::start_jobs();
 }
 static SystemDescription _reg_sys_apply_boid_force(HASH("apply_boid_force"), &apply_boid_force_add_jobs, HASH("EventUpdate"), apply_boid_force_query_desc, "*", "*", nullptr);
 
+
+
+uint32_t boids_cpp_pull = HASH("boids.cpp").hash;
 
 #endif // __CODEGEN__

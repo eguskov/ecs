@@ -11,10 +11,14 @@ set(builtin_files
 
 make_char_array("${builtin_files}" gen_files)
 
-message("${gen_files}")
+set(codegen_source_files
+  "ecs/ecs-events.h"
+)
 
-add_library(ecs ${ecs_src} ${gen_files})
-add_dependencies(ecs EASTL libDaScript)
+ecs_add_codegen("${codegen_source_files}" cpp_gen_files)
+
+add_library(ecs ${ecs_src} ${gen_files} ${cpp_gen_files})
+add_dependencies(ecs EASTL libDaScript codegen)
 
 target_include_directories(ecs PUBLIC
                           "${PROJECT_BINARY_DIR}"

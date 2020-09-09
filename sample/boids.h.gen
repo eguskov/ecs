@@ -9,4 +9,7 @@
 
 
 
+
+uint32_t boids_h_pull = HASH("boids.h").hash;
+
 #endif // __CODEGEN__

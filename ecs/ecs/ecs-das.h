@@ -37,8 +37,43 @@ struct EASTLStringAnnotation : das::TypeAnnotation
   }
 };
 
+struct EcsContext final : das::Context
+{
+  EcsContext(uint32_t stack_size) : das::Context(stack_size) {}
+
+  void to_out(const char *message) override
+  {
+    if (message)
+      std::cout << "[das]: " << message << std::endl;
+  }
+
+  void to_err(const char *message) override
+  {
+    if (message)
+      std::cerr << "[dasError]: "  << message << std::endl;
+  }
+};
+
+struct EcsModuleGroupData final : das::ModuleGroupUserData
+{
+  eastl::hash_map<eastl::string, SystemId> dasSystems;
+  eastl::vector<QueryId> dasQueries;
+
+  EcsModuleGroupData() : das::ModuleGroupUserData("ecs") {}
+};
+
+struct DasQueryData : QueryUserData
+{
+  das::Context *ctx = nullptr;
+  das::SimFunction *fn = nullptr;
+  QueryId queryId;
+  eastl::vector<bool> isComponentPointer;
+  eastl::vector<int> stride;
+};
+
 MAKE_TYPE_FACTORY(eastl_string, eastl::string);
 MAKE_TYPE_FACTORY(ComponentsMap, ::ComponentsMap);
+MAKE_TYPE_FACTORY(Query, ::Query);
 
 MAKE_EXTERNAL_TYPE_FACTORY(EntityId, ::EntityId);
 
@@ -63,4 +98,33 @@ namespace das
     static __forceinline bool NotEqu  ( EntityId a, EntityId b, Context & ) { return a != b; }
     static __forceinline bool BoolNot ( EntityId a, Context & ) { return !a; }
   };
+
+  #define MAKE_TYPE_FACTORY_ALIAS(TYPE, DAS_DECL_TYPE, DAS_TYPE)\
+    template <> struct typeFactory<TYPE>\
+    {\
+      static TypeDeclPtr make(const ModuleLibrary &)\
+      {\
+        auto t = make_smart<TypeDecl>(Type::DAS_DECL_TYPE);\
+        t->alias = #TYPE;\
+        t->aotAlias = true;\
+        return t;\
+      }\
+    };\
+    template <> struct typeName<TYPE> { static string name() { return #TYPE; } };\
+    template <> struct das_alias<TYPE> : das::das_alias_vec<TYPE, DAS_TYPE> {};\
+
+  MAKE_TYPE_FACTORY_ALIAS(glm::vec4, tFloat4, float4)
+  MAKE_TYPE_FACTORY_ALIAS(glm::vec3, tFloat3, float3)
+  MAKE_TYPE_FACTORY_ALIAS(glm::vec2, tFloat2, float2)
+
+  #undef MAKE_TYPE_FACTORY_ALIAS
+
+  template<> struct ToBasicType<glm::vec4>        { enum { type = Type::tFloat4 }; };
+  template<> struct cast <glm::vec4>  : cast_fVec<glm::vec4> {};
+
+  template<> struct ToBasicType<glm::vec3>        { enum { type = Type::tFloat3 }; };
+  template<> struct cast <glm::vec3>  : cast_fVec<glm::vec3> {};
+
+  template<> struct ToBasicType<glm::vec2>        { enum { type = Type::tFloat2 }; };
+  template<> struct cast <glm::vec2>  : cast_fVec_half<glm::vec2> {};
 };

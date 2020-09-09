@@ -135,4 +135,7 @@ static void render_auto_bind(das::Module &module, das::ModuleLibrary &lib)
   module.addAnnotation(das::make_smart<TextureAtlasAnnotation>(lib));
 }
 static AutoBindDescription _reg_auto_bind_render(HASH("render"), &render_auto_bind);
+
+uint32_t update_h_pull = HASH("update.h").hash;
+
 #endif // __CODEGEN__
