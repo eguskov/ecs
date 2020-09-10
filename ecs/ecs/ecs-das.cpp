@@ -205,63 +205,6 @@ struct SystemRegistrator final : das::FunctionAnnotation
 
   virtual bool apply(das::ExprBlock *block, das::ModuleGroup &mg, const das::AnnotationArgumentList &args, das::string &err) override
   {
-    ASSERT(!block->arguments.empty());
-
-    DasQueryData *d = new DasQueryData;
-    d->isComponentPointer.resize((int)block->arguments.size());
-    d->stride.resize((int)block->arguments.size());
-
-    QueryDescription queryDesc;
-
-    for (int i = 0; i < (int)block->arguments.size(); ++i)
-    {
-      const auto &arg = block->arguments[i];
-
-      das::string argTypeName;
-      das::Type argType;
-      get_underlying_ecs_type(*arg->type, argTypeName, argType);
-
-      Component comp;
-      comp.name = hash_str(arg->name.c_str());
-      comp.desc = find_component(argTypeName.c_str());
-      ASSERT(comp.desc != nullptr);
-      comp.size = comp.desc->size;
-
-      d->isComponentPointer[i] = arg->type->isRefOrPointer();
-      d->stride[i] = comp.size;
-  
-      queryDesc.components.push_back(comp);
-    }
-
-    for (const auto &arg : args)
-      if (arg.type == das::Type::tString && (arg.name == "have" || arg.name == "notHave"))
-      {
-        const auto *compDesc = g_mgr->getComponentDescByName(arg.sValue.c_str());
-        ASSERT(compDesc != nullptr);
-  
-        Component comp;
-        comp.name = hash_str(arg.sValue.c_str());
-        comp.desc = compDesc;
-        ASSERT(comp.desc != nullptr);
-        comp.size = comp.desc->size;
-    
-        (arg.name == "have" ? queryDesc.haveComponents : queryDesc.notHaveComponents).push_back(comp);
-      }
-
-    auto mangledName = block->getMangledName(true, true);
-    for (auto &ann : block->annotations)
-      if (ann->annotation.get() == this)
-        mangledName += " " + ann->getMangledName();
-
-    // TODO: Mark as lazy query ?
-    d->queryId = g_mgr->createQuery(hash_str(mangledName.c_str()), queryDesc);
-    g_mgr->queries[d->queryId.index].userData.reset(d);
-
-    block->annotationDataSid = das::hash_blockz32((uint8_t *)mangledName.c_str());
-    block->annotationData = (uintptr_t)d;
-
-    ((EcsModuleGroupData*)mg.getUserData("ecs"))->dasQueries.push_back(d->queryId);
-
     return true;
   }
 
@@ -395,8 +338,65 @@ struct SystemRegistrator final : das::FunctionAnnotation
   {
     return true;
   }
-  virtual bool finalize(das::ExprBlock *block, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args, const das::AnnotationArgumentList &progArgs, das::string &err) override
+  virtual bool finalize(das::ExprBlock *block, das::ModuleGroup &mg, const das::AnnotationArgumentList &args, const das::AnnotationArgumentList &progArgs, das::string &err) override
   {
+    ASSERT(!block->arguments.empty());
+
+    DasQueryData *d = new DasQueryData;
+    d->isComponentPointer.resize((int)block->arguments.size());
+    d->stride.resize((int)block->arguments.size());
+
+    QueryDescription queryDesc;
+
+    for (int i = 0; i < (int)block->arguments.size(); ++i)
+    {
+      const auto &arg = block->arguments[i];
+
+      das::string argTypeName;
+      das::Type argType;
+      get_underlying_ecs_type(*arg->type, argTypeName, argType);
+
+      Component comp;
+      comp.name = hash_str(arg->name.c_str());
+      comp.desc = find_component(argTypeName.c_str());
+      ASSERT(comp.desc != nullptr);
+      comp.size = comp.desc->size;
+
+      d->isComponentPointer[i] = arg->type->isRefOrPointer();
+      d->stride[i] = comp.size;
+  
+      queryDesc.components.push_back(comp);
+    }
+
+    for (const auto &arg : args)
+      if (arg.type == das::Type::tString && (arg.name == "have" || arg.name == "notHave"))
+      {
+        const auto *compDesc = g_mgr->getComponentDescByName(arg.sValue.c_str());
+        ASSERT(compDesc != nullptr);
+  
+        Component comp;
+        comp.name = hash_str(arg.sValue.c_str());
+        comp.desc = compDesc;
+        ASSERT(comp.desc != nullptr);
+        comp.size = comp.desc->size;
+    
+        (arg.name == "have" ? queryDesc.haveComponents : queryDesc.notHaveComponents).push_back(comp);
+      }
+
+    auto mangledName = block->getMangledName(true, true);
+    for (auto &ann : block->annotations)
+      if (ann->annotation.get() == this)
+        mangledName += " " + ann->getMangledName();
+
+    // TODO: Mark as lazy query ?
+    d->queryId = g_mgr->createQuery(hash_str(mangledName.c_str()), queryDesc);
+    g_mgr->queries[d->queryId.index].userData.reset(d);
+
+    block->annotationDataSid = das::hash_blockz32((uint8_t *)mangledName.c_str());
+    block->annotationData = (uintptr_t)d;
+
+    ((EcsModuleGroupData*)mg.getUserData("ecs"))->dasQueries.push_back(d->queryId);
+
     return true;
   }
   virtual bool simulate(das::Context *ctx, das::SimFunction *fn)
