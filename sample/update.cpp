@@ -369,7 +369,7 @@ struct update_always_active_auto_move
 
 struct on_enenmy_kill_handler
 {
-  QL_HAVE(enemy);
+  QL_HAVE(user_input);
 
   ECS_RUN(const EventOnKillEnemy &ev)
   {

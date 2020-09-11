@@ -245,7 +245,7 @@ static constexpr ConstQueryDescription update_always_active_auto_move_query_desc
   make_const_array(update_always_active_auto_move_track_components),
 };
 static constexpr ConstComponentDescription on_enenmy_kill_handler_have_components[] = {
-  {HASH("enemy"), 0},
+  {HASH("user_input"), 0},
 };
 static constexpr ConstQueryDescription on_enenmy_kill_handler_query_desc = {
   empty_desc_array,
