@@ -38,7 +38,7 @@ def init()
   create_entity("enemy_spawner")
   create_entity("player_spawner")
 
-  fopen("C:/projects/ecs/sample/data/level_1.json", "r") <| $(f)
+  fopen("data/level_1.json", "r") <| $(f)
     fmap(f) <| $(data)
       print("[load]: level_1.json")
       var error = ""

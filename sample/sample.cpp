@@ -134,10 +134,10 @@ REGISTER_MODULE(SampleModule);
 using DasContextPtr = eastl::unique_ptr<EcsContext>;
 DasContextPtr dasCtx;
 
-static constexpr char *dasRoot = "C:/projects/ecs/libs/daScript";
-static constexpr char *dasProject = "C:/projects/ecs/sample/scripts/project.das_project";
-static constexpr char *dasInitScript = "C:/projects/ecs/sample/scripts/sample.das";
-static constexpr char *dasMainScript = "C:/projects/ecs/sample/scripts/main.das";
+static constexpr char *dasRoot = "../libs/daScript";
+static constexpr char *dasProject = "scripts/project.das_project";
+static constexpr char *dasInitScript = "scripts/sample.das";
+static constexpr char *dasMainScript = "scripts/main.das";
 static eastl::hash_map<eastl::string, SystemId> dasMainSystems;
 static eastl::vector<QueryId> dasMainQueries;
 static time_t dasMainLastModified = 0;
