@@ -54,14 +54,6 @@ struct EcsContext final : das::Context
   }
 };
 
-struct EcsModuleGroupData final : das::ModuleGroupUserData
-{
-  eastl::hash_map<eastl::string, SystemId> dasSystems;
-  eastl::vector<QueryId> dasQueries;
-
-  EcsModuleGroupData() : das::ModuleGroupUserData("ecs") {}
-};
-
 struct DasQueryData : QueryUserData
 {
   das::Context *ctx = nullptr;
@@ -69,6 +61,21 @@ struct DasQueryData : QueryUserData
   QueryId queryId;
   eastl::vector<bool> isComponentPointer;
   eastl::vector<int> stride;
+};
+
+struct EcsModuleGroupData final : das::ModuleGroupUserData
+{
+  struct UnresolvedSystem
+  {
+    QueryDescription queryDesc;
+    eastl::unique_ptr<DasQueryData> queryData;
+    eastl::unique_ptr<SystemDescription> systemDesc;
+  };
+
+  eastl::vector<QueryId> dasQueries;
+  eastl::hash_map<eastl::string, UnresolvedSystem> unresolvedSystems;
+
+  EcsModuleGroupData() : das::ModuleGroupUserData("ecs") {}
 };
 
 MAKE_TYPE_FACTORY(eastl_string, eastl::string);

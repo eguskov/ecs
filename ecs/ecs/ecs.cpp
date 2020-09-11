@@ -770,6 +770,9 @@ void EntityManager::tick()
     dirtyNamedIndices.clear();
   }
 
+  // Use double buffer for events because events might me sent
+  // during current events quere sendeing.
+  // So, change the buffer to write before processing current events
   const int streamIndex = currentEventStream;
   currentEventStream = (currentEventStream + 1) % events.size();
   ASSERT(currentEventStream != streamIndex);
@@ -1038,25 +1041,25 @@ void EntityManager::sendEventSync(EntityId eid, uint32_t event_id, const RawArg 
 
   for (SystemId sid : res->second)
   {
-    System &sys = systems[sid.index];
-
-    // TODO: Add checks for isTrue, isFalse, have, notHave
-    bool ok = true;
-    for (const auto &c : sys.desc->queryDesc.components)
-      if (!type.hasCompontent(c.name))
+    const System &sys = systems[sid.index];
+    
+    bool found = false;
+    const QueryDescription &desc = queryDescriptions[sys.queryId.index];
+    for (int archetypeId : desc.archetypes)
+      if (e.archetypeId == archetypeId)
       {
-        ok = false;
+        found = true;
         break;
       }
 
-    if (ok)
-    {
-      Query query;
-      query.componentsCount = sys.desc->queryDesc.components.size();
-      query.addChunks(sys.desc->queryDesc, type, e.indexInArchetype, 1);
+    if (!found)
+      continue;
 
-      sys.desc->sys(ev, query);
-    }
+    Query query;
+    query.componentsCount = desc.components.size();
+    query.addChunks(desc, type, e.indexInArchetype, 1);
+
+    sys.sys(ev, query);
   }
 }
 

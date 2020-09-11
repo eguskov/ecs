@@ -199,6 +199,64 @@ static inline void tags_from_list(const das::AnnotationArgumentList &args, const
       str.append_sprintf("%s%s", str.length() > 0 ? "," : "", arg.sValue.c_str());
 }
 
+template<typename T>
+bool create_query_data(T first, T last, const das::AnnotationArgumentList &args, QueryDescription &query_desc, eastl::unique_ptr<DasQueryData> &query_data)
+{
+  query_data.reset(new DasQueryData);
+
+  const int argumentsCount = std::distance(first, last);
+
+  query_data->isComponentPointer.resize(argumentsCount);
+  query_data->stride.resize(argumentsCount);
+
+  int i = 0;
+  for (auto it = first; it != last; ++it, ++i)
+  {
+    const auto &arg = *it;
+
+    das::string argTypeName;
+    das::Type argType;
+    get_underlying_ecs_type(*arg->type, argTypeName, argType);
+
+    const auto *compDesc = find_component(argTypeName.c_str());
+    if (compDesc == nullptr)
+    {
+      DEBUG_LOG("Unknown component: " << argTypeName.c_str());
+      return false;
+    }
+
+    Component comp;
+    comp.name = hash_str(arg->name.c_str());
+    comp.desc = compDesc;
+    comp.size = comp.desc->size;
+
+    query_data->isComponentPointer[i] = arg->type->isRefOrPointer();
+    query_data->stride[i] = comp.size;
+
+    query_desc.components.push_back(comp);
+  }
+
+  for (const auto &arg : args)
+    if (arg.type == das::Type::tString && (arg.name == "have" || arg.name == "notHave"))
+    {
+      const auto *compDesc = g_mgr->getComponentDescByName(arg.sValue.c_str());
+      if (compDesc == nullptr)
+      {
+        DEBUG_LOG("Unknown component: " << arg.sValue.c_str());
+        return false;
+      }
+
+      Component comp;
+      comp.name = hash_str(arg.sValue.c_str());
+      comp.desc = compDesc;
+      comp.size = comp.desc->size;
+  
+      (arg.name == "have" ? query_desc.haveComponents : query_desc.notHaveComponents).push_back(comp);
+    }
+
+  return true;
+}
+
 struct SystemRegistrator final : das::FunctionAnnotation
 {
   SystemRegistrator() : das::FunctionAnnotation("es") {}
@@ -212,8 +270,6 @@ struct SystemRegistrator final : das::FunctionAnnotation
   {
     ASSERT(!func->arguments.empty());
 
-    func->exports = true;
-
     das::string eventName;
     das::Type eventType;
     get_underlying_ecs_type(*func->arguments[0]->type, eventName, eventType);
@@ -223,63 +279,27 @@ struct SystemRegistrator final : das::FunctionAnnotation
     tags_from_list(args, "before", beforeStr);
     tags_from_list(args, "after",  afterStr);
 
-    DasQueryData *d = new DasQueryData;
-    d->isComponentPointer.resize((int)func->arguments.size() - 1);
-    d->stride.resize((int)func->arguments.size() - 1);
-
-    QueryDescription queryDesc;
-
-    for (int i = 1; i < (int)func->arguments.size(); ++i)
+    EcsModuleGroupData::UnresolvedSystem sys;
+    if (!create_query_data(func->arguments.begin() + 1, func->arguments.end(), args, sys.queryDesc, sys.queryData))
     {
-      const auto &arg = func->arguments[i];
-
-      das::string argTypeName;
-      das::Type argType;
-      get_underlying_ecs_type(*arg->type, argTypeName, argType);
-
-      Component comp;
-      comp.name = hash_str(arg->name.c_str());
-      comp.desc = find_component(argTypeName.c_str());
-      ASSERT(comp.desc != nullptr);
-      comp.size = comp.desc->size;
-
-      d->isComponentPointer[i - 1] = arg->type->isRefOrPointer();
-      d->stride[i - 1] = comp.size;
-  
-      queryDesc.components.push_back(comp);
+      DEBUG_LOG("Cannot create system: " << func->name);
+      return false;
     }
 
-    for (const auto &arg : args)
-      if (arg.type == das::Type::tString && (arg.name == "have" || arg.name == "notHave"))
-      {
-        const auto *compDesc = g_mgr->getComponentDescByName(arg.sValue.c_str());
-        ASSERT(compDesc != nullptr);
-  
-        Component comp;
-        comp.name = hash_str(arg.sValue.c_str());
-        comp.desc = compDesc;
-        ASSERT(comp.desc != nullptr);
-        comp.size = comp.desc->size;
-    
-        (arg.name == "have" ? queryDesc.haveComponents : queryDesc.notHaveComponents).push_back(comp);
-      }
+    func->exports = true;
 
-    auto sysDesc = new SystemDescription(
+    sys.systemDesc.reset(new SystemDescription(
       hash_str(func->name.c_str()),
       func->arguments.size() > 1 ? &das_system : &das_system_empty,
       hash_str(eventName.c_str()),
       beforeStr.empty() ? "*" : beforeStr.c_str(),
-      afterStr.empty()  ? "*" : afterStr.c_str());
+      afterStr.empty()  ? "*" : afterStr.c_str()));
     // TODO: isDynamic as template argument
-    sysDesc->isDynamic = true;
+    sys.systemDesc->isDynamic = true;
 
     auto *moduleData = ((EcsModuleGroupData*)mg.getUserData("ecs"));
-
-    auto res = moduleData->dasSystems.insert(sysDesc->name.str);
-    SystemId sid = g_mgr->createSystem(sysDesc->name, sysDesc, &queryDesc);
-    res.first->second = sid;
-
-    g_mgr->queries[g_mgr->systems[sid.index].queryId.index].userData.reset(d);
+    auto res = moduleData->unresolvedSystems.insert(func->name.c_str());
+    res.first->second = eastl::move(sys);
 
     if (func->arguments.size() > 1)
     {
@@ -342,60 +362,29 @@ struct SystemRegistrator final : das::FunctionAnnotation
   {
     ASSERT(!block->arguments.empty());
 
-    DasQueryData *d = new DasQueryData;
-    d->isComponentPointer.resize((int)block->arguments.size());
-    d->stride.resize((int)block->arguments.size());
-
-    QueryDescription queryDesc;
-
-    for (int i = 0; i < (int)block->arguments.size(); ++i)
-    {
-      const auto &arg = block->arguments[i];
-
-      das::string argTypeName;
-      das::Type argType;
-      get_underlying_ecs_type(*arg->type, argTypeName, argType);
-
-      Component comp;
-      comp.name = hash_str(arg->name.c_str());
-      comp.desc = find_component(argTypeName.c_str());
-      ASSERT(comp.desc != nullptr);
-      comp.size = comp.desc->size;
-
-      d->isComponentPointer[i] = arg->type->isRefOrPointer();
-      d->stride[i] = comp.size;
-  
-      queryDesc.components.push_back(comp);
-    }
-
-    for (const auto &arg : args)
-      if (arg.type == das::Type::tString && (arg.name == "have" || arg.name == "notHave"))
-      {
-        const auto *compDesc = g_mgr->getComponentDescByName(arg.sValue.c_str());
-        ASSERT(compDesc != nullptr);
-  
-        Component comp;
-        comp.name = hash_str(arg.sValue.c_str());
-        comp.desc = compDesc;
-        ASSERT(comp.desc != nullptr);
-        comp.size = comp.desc->size;
-    
-        (arg.name == "have" ? queryDesc.haveComponents : queryDesc.notHaveComponents).push_back(comp);
-      }
-
     auto mangledName = block->getMangledName(true, true);
     for (auto &ann : block->annotations)
       if (ann->annotation.get() == this)
         mangledName += " " + ann->getMangledName();
 
+    QueryDescription queryDesc;
+    eastl::unique_ptr<DasQueryData> queryData;
+    if (!create_query_data(block->arguments.begin(), block->arguments.end(), args, queryDesc, queryData))
+    {
+      DEBUG_LOG("Cannot create query: " << mangledName.c_str());
+      return false;
+    }
+
     // TODO: Mark as lazy query ?
-    d->queryId = g_mgr->createQuery(hash_str(mangledName.c_str()), queryDesc);
-    g_mgr->queries[d->queryId.index].userData.reset(d);
+    QueryId qid = g_mgr->createQuery(hash_str(mangledName.c_str()), queryDesc);
+    queryData->queryId = qid;
+
+    g_mgr->queries[qid.index].userData = eastl::move(queryData);
 
     block->annotationDataSid = das::hash_blockz32((uint8_t *)mangledName.c_str());
-    block->annotationData = (uintptr_t)d;
+    block->annotationData = (uintptr_t)g_mgr->queries[qid.index].userData.get();
 
-    ((EcsModuleGroupData*)mg.getUserData("ecs"))->dasQueries.push_back(d->queryId);
+    ((EcsModuleGroupData*)mg.getUserData("ecs"))->dasQueries.push_back(qid);
 
     return true;
   }

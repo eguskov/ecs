@@ -215,8 +215,18 @@ static bool reload_scripts()
     dasMainSystems.clear();
     dasMainQueries.clear();
 
-    dasMainSystems = ((EcsModuleGroupData*)libGroup.getUserData("ecs"))->dasSystems;
-    dasMainQueries = ((EcsModuleGroupData*)libGroup.getUserData("ecs"))->dasQueries;
+    auto *moduleData = ((EcsModuleGroupData*)libGroup.getUserData("ecs"));
+    dasMainQueries = moduleData->dasQueries;
+
+    for (auto &s : moduleData->unresolvedSystems)
+    {
+      auto res = dasMainSystems.insert(s.first);
+
+      SystemId sid = g_mgr->createSystem(s.first.c_str(), s.second.systemDesc.release(), &s.second.queryDesc);
+      res.first->second = sid;
+
+      g_mgr->queries[g_mgr->systems[sid.index].queryId.index].userData = eastl::move(s.second.queryData);
+    }
 
     for (auto kv : dasMainSystems)
     {
