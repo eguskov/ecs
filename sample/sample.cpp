@@ -262,6 +262,474 @@ bool init_sample()
   return reload_scripts();
 }
 
+struct RecordDescription
+{
+  using offset_t = uint16_t;
+  using hash_t   = uint32_t;
+  using type_t   = uint32_t;
+  using index_t  = int16_t;
+  using ctor_t   = void(*)(uint8_t*);
+  using dtor_t   = void(*)(uint8_t*);
+
+  struct Field
+  {
+    hash_t hash;
+    offset_t size;
+    offset_t id;
+  };
+
+  // TODO: Use ska::flash_hash_map<> instead of eastl::hash_map
+  using OffsetMap  = eastl::hash_map<hash_t, eastl::pair<offset_t, index_t>>;
+  using FieldsList = eastl::vector<Field>;
+  using NamesList  = eastl::vector<eastl::string>;
+  using TypesList  = eastl::vector<type_t>;
+  using CtorsList  = eastl::vector<ctor_t>;
+  using DtorsList  = eastl::vector<dtor_t>;
+
+  // This is for debug only
+  NamesList names;
+
+  FieldsList fields;
+
+  OffsetMap offsets;
+  TypesList types;
+  CtorsList ctors;
+  DtorsList dtors;
+
+  offset_t totalSize = 0;
+
+  static void noop(uint8_t*) {}
+
+  void addField(const char *name, const offset_t size, const type_t type, const ctor_t ctor = &noop, const dtor_t dtor = &noop)
+  {
+    const hash_t h = hash::str(name);
+    ASSERT(offsets.find(h) == offsets.end());
+
+    offsets.insert(h).first->second = eastl::make_pair(offset_t(0), index_t(0));
+
+    fields.push_back({h, size, (offset_t)fields.size()});
+    names.push_back(name);
+    types.push_back(type);
+    ctors.push_back(ctor);
+    dtors.push_back(dtor);
+  }
+
+  void build()
+  {
+    eastl::sort(fields.begin(), fields.end(),
+      [](const Field &a, const Field &b)
+      {
+        return a.size == b.size ? (a.id < b.id) : (a.size > b.size);
+      });
+    
+    for (const Field &f : fields)
+    {
+      offsets[f.hash] = eastl::make_pair(totalSize, f.id);
+      totalSize += f.size;
+    }
+  }
+
+  void clear()
+  {
+    offsets.clear();
+    fields.clear();
+    types.clear();
+    ctors.clear();
+    dtors.clear();
+    totalSize = 0;
+  }
+
+  template <typename T>
+  inline T& getRW(char *buffer, const ConstHashedString &name)
+  {
+    const auto findRes = offsets.find(name.hash);
+    ASSERT(findRes != offsets.end() && ComponentType<T>::type == types[findRes->second.second]);
+    return *(T*)(buffer + findRes->second.first);
+  }
+
+  template <typename T>
+  inline void set(char *buffer, const ConstHashedString &name, T&& value)
+  {
+    getRW<T>(buffer, name) = value;
+  }
+
+  template <typename T>
+  inline const T& get(char *buffer, const ConstHashedString &name)
+  {
+    return (const T&)getRW<T>(buffer, name);
+  }
+
+  inline void construct(char *buffer)
+  {
+    // TODO: Fill with zeroes. 0xBA for debug only
+    ::memset(buffer, 0xBA, totalSize);
+
+    for (const auto &kv : offsets)
+    {
+      const RecordDescription::offset_t offset = kv.second.first;
+      const RecordDescription::index_t index   = kv.second.second;
+      ctors[index]((uint8_t*)(buffer + offset));
+    }
+  }
+
+  inline void desctruct(char *buffer)
+  {
+    for (const auto &kv : offsets)
+    {
+      const RecordDescription::offset_t offset = kv.second.first;
+      const RecordDescription::index_t index   = kv.second.second;
+      dtors[index]((uint8_t*)(buffer + offset));
+    }
+
+    // TODO: 0xBA for debug only. Do nothing
+    ::memset(buffer, 0xBA, totalSize);
+  }
+};
+
+
+struct RecordView
+{
+  RecordDescription &desc;
+  char *ptr;
+
+  RecordView(RecordDescription &_desc, char *_ptr) : desc(_desc), ptr(_ptr) {}
+
+  template <typename T>
+  inline T& getRW(const ConstHashedString &name)
+  {
+    return desc.getRW<T>(ptr, name);
+  }
+
+  template <typename T>
+  inline void set(const ConstHashedString &name, T&& value)
+  {
+    desc.set<T>(ptr, name, eastl::forward<T>(value));
+  }
+
+  template <typename T>
+  inline const T& get(const ConstHashedString &name) const
+  {
+    return desc.get<T>(ptr, name);
+  }
+};
+
+template<typename T>
+struct MallocDeleter
+{
+  void operator()(T* p) const
+  {
+    ::_aligned_free(p);
+  }
+};
+
+static inline char *allocate(size_t bytes, size_t alignment = 16)
+{
+  return (char*)::_aligned_malloc(bytes, alignment);
+}
+
+static inline char *reallocate(char* ptr, size_t bytes, size_t alignment = 16)
+{
+  return (char*)::_aligned_realloc(ptr, bytes, alignment);
+}
+
+struct Record
+{
+  RecordDescription desc;
+
+  eastl::unique_ptr<char, MallocDeleter<char>> buffer;
+
+  Record() = default;
+
+  Record(const RecordDescription &_desc)
+  {
+    build(_desc);
+  }
+
+  Record(const Record &rhs) : desc(rhs.desc)
+  {
+    if (rhs.buffer)
+    {
+      buffer.reset(allocate(desc.totalSize));
+      ::memcpy(buffer.get(), rhs.buffer.get(), desc.totalSize);
+    }
+  }
+
+  ~Record()
+  {
+    clear();
+  }
+
+  void build(const RecordDescription &_desc)
+  {
+    ASSERT(!buffer);
+
+    desc = _desc;
+
+    buffer.reset(allocate(desc.totalSize));
+    desc.construct(buffer.get());
+  }
+
+  void clear()
+  {
+    if (buffer)
+    {
+      desc.desctruct(buffer.get());
+      buffer.reset();
+    }
+
+    desc.clear();
+  }
+
+  inline RecordView getView()
+  {
+    return RecordView(desc, buffer.get());
+  }
+};
+
+struct RecordsList
+{
+  struct Iterator
+  {
+    RecordDescription &desc;
+    char *ptr;
+
+    Iterator(RecordDescription &_desc, char *_ptr) : desc(_desc), ptr(_ptr) {}
+
+    inline const bool operator==(const Iterator &rhs) const
+    {
+      return ptr == rhs.ptr;
+    }
+
+    inline const bool operator!=(const Iterator &rhs) const
+    {
+      return ptr != rhs.ptr;
+    }
+
+    inline Iterator operator+(const int32_t &add) const
+    {
+      return Iterator(desc, ptr + add * desc.totalSize);
+    }
+
+    inline int32_t operator-(const Iterator &rhs) const
+    {
+      return int32_t((intptr_t(ptr) - intptr_t(rhs.ptr)) / intptr_t(desc.totalSize));
+    }
+
+    inline void operator++()
+    {
+      ptr += desc.totalSize;
+    }
+
+    inline RecordView operator*()
+    {
+      return RecordView(desc, ptr);
+    }
+  };
+
+  RecordDescription desc;
+
+  size_t length = 0;
+  eastl::unique_ptr<char, MallocDeleter<char>> buffer;
+
+  RecordsList() = default;
+
+  RecordsList(const RecordDescription &_desc)
+  {
+    build(_desc);
+  }
+
+  RecordsList(const RecordsList &rhs) : desc(rhs.desc), length(rhs.length)
+  {
+    if (rhs.buffer)
+    {
+      buffer.reset(allocate(desc.totalSize * length));
+      ::memcpy(buffer.get(), rhs.buffer.get(), desc.totalSize * length);
+    }
+  }
+
+  ~RecordsList()
+  {
+    clear();
+  }
+
+  void build(const RecordDescription &_desc)
+  {
+    ASSERT(!buffer);
+    desc = _desc;
+  }
+
+  void clear()
+  {
+    if (buffer)
+    {
+      for (auto item : *this)
+        desc.desctruct(item.ptr);
+      buffer.reset();
+    }
+
+    length = 0;
+    desc.clear();
+  }
+
+  size_t append(size_t count = 1)
+  {
+    if (buffer)
+    {
+      const size_t newLength = length + count;
+      char *oldMem = buffer.release();
+      buffer.reset(reallocate(oldMem, desc.totalSize * newLength));
+
+      if (buffer.get() != oldMem)
+      {
+        // DEBUG
+        ::memset(oldMem, 0xBA, desc.totalSize * length);
+      }
+
+      for (Iterator first = begin() + length, last = first + count; first != last; ++first)
+        desc.construct(first.ptr);
+
+      const size_t oldLength = length;
+      length = newLength;
+      return oldLength;
+    }
+
+    length = count;
+    buffer.reset(allocate(desc.totalSize * length));
+
+    for (auto item : *this)
+      desc.construct(item.ptr);
+
+    return 0;
+  }
+
+  // Need this? Do not preserve order
+  void eraseFast(size_t at, size_t count = 1)
+  {
+    if (length == 0)
+      return;
+
+    char *tmp = (char*)::_alloca(desc.totalSize);
+    char *toErase = back().ptr;
+    for (Iterator first = begin() + at, last = (at + count <= length ? first + count : end()); first != last; ++first, --length)
+    {
+      ::memcpy(tmp, toErase, desc.totalSize);
+      ::memmove(toErase, first.ptr, desc.totalSize);
+      desc.desctruct(toErase);
+      ::memcpy(first.ptr, tmp, desc.totalSize);
+    }
+  }
+
+  void erase(size_t at, size_t count = 1)
+  {
+    if (length == 0)
+      return;
+
+    const Iterator curEnd = end();
+    const Iterator first  = begin() + at;
+    const Iterator last   = (at + count <= length ? first + count : curEnd);
+    for (Iterator i = first; i != last; ++i, --length)
+      desc.desctruct(i.ptr);
+
+    if (last != curEnd)
+      ::memmove(first.ptr, last.ptr, desc.totalSize * (curEnd - last));
+  }
+
+  void insert(size_t at, size_t count = 1)
+  {
+    // TODO: ...
+  }
+
+  inline RecordView operator[](size_t i)
+  {
+    return RecordView(desc, buffer.get() + i * desc.totalSize);
+  }
+
+  inline Iterator begin()
+  {
+    return Iterator(desc, buffer.get());
+  }
+
+  inline Iterator end()
+  {
+    return begin() + length;
+  }
+
+  inline RecordView back()
+  {
+    return RecordView(desc, buffer.get() + (length - 1) * desc.totalSize);
+  }
+};
+
+template<typename T>
+struct Init
+{
+  static void ctor(uint8_t *mem)
+  {
+    new (mem) T();
+  }
+
+  static void dtor(uint8_t *mem)
+  {
+    ((T*)mem)->~T();
+  }
+};
+
+void test_struct()
+{
+  RecordDescription desc;
+  desc.addField("i", sizeof(int), ComponentType<int>::type);
+  desc.addField("b0", sizeof(bool), ComponentType<bool>::type);
+  desc.addField("f", sizeof(float), ComponentType<float>::type);
+  desc.addField("b1", sizeof(bool), ComponentType<bool>::type);
+  desc.addField("s", sizeof(eastl::string), ComponentType<eastl::string>::type, &Init<eastl::string>::ctor, &Init<eastl::string>::dtor);
+  desc.build();
+
+  Record rec(desc);
+  RecordView view = rec.getView();
+  view.set(HASH("b0"), true);
+  view.set(HASH("b1"), false);
+  view.set(HASH("f"), 3.141592f);
+  view.set(HASH("i"), 10);
+  view.set(HASH("s"), eastl::string("mysso"));
+
+  Record copy = rec;
+  rec.clear();
+
+  RecordView copyView    = copy.getView();
+  const bool b0          = copyView.get<bool>(HASH("b0"));
+  const bool b1          = copyView.get<bool>(HASH("b1"));
+  const float f          = copyView.get<float>(HASH("f"));
+  const int i            = copyView.get<int>(HASH("i"));
+  const eastl::string &s = copyView.get<eastl::string>(HASH("s"));
+
+  const float *ptr = &copyView.getRW<float>(HASH("f"));
+
+  RecordsList recs(desc);
+  recs.append();
+  recs[0].set(HASH("s"), eastl::string("RecordsList[0]"));
+  recs.append();
+  recs[1].set(HASH("s"), eastl::string("RecordsList[1]"));
+  recs.append();
+  recs[2].set(HASH("s"), eastl::string("RecordsList[2]"));
+  recs.append(2);
+  recs[3].set(HASH("s"), eastl::string("RecordsList[3]"));
+  recs[4].set(HASH("s"), eastl::string("RecordsList[4]"));
+
+  recs.erase(1, 2);
+
+  const size_t at = recs.append(2);
+  recs[at + 0].set(HASH("s"), eastl::string("RecordsList[5]"));
+  recs[at + 1].set(HASH("s"), eastl::string("RecordsList[6]"));
+
+  for (auto item : recs)
+  {
+    const eastl::string &itemStr = item.get<eastl::string>(HASH("s"));
+    DEBUG_LOG(itemStr.c_str());
+  }
+
+  return;
+}
+
 int main(int argc, char *argv[])
 {
   stacktrace::init();
@@ -270,6 +738,8 @@ int main(int argc, char *argv[])
 
   // TODO: Update queries after templates registratina has been done
   ecs::init();
+
+  test_struct();
 
   init_sample();
 
