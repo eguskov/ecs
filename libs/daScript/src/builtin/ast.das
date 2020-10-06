@@ -25,6 +25,10 @@ def describe ( decl : smart_ptr<TypeDecl>; extra, contracts, modules : bool = tr
     return describe_typedecl(decl,extra,contracts,modules)
 
 [generic]
+def describe_cpp ( decl : smart_ptr<TypeDecl>; substitureRef, skipRef, skipConst : bool = false; redundantConst : bool = true )
+    return describe_typedecl_cpp(decl,substitureRef,skipRef,skipConst,redundantConst)
+
+[generic]
 def describe ( expr : smart_ptr<Expression> )
     return describe_expression(expr)
 
@@ -45,7 +49,7 @@ def FunctionPtr ( fun : Function? ) : FunctionPtr
         return reinterpret<FunctionPtr> fun
 
 class AstFunctionAnnotation
-    def abstract transform ( var call : smart_ptr<ExprCall>; var errors : das_string ) : ExpressionPtr
+    def abstract transform ( var call : smart_ptr<ExprCallFunc>; var errors : das_string ) : ExpressionPtr
     def abstract apply ( var func:FunctionPtr; var group:ModuleGroup; args:AnnotationArgumentList; var errors : das_string ) : bool
     def abstract finish ( var func:FunctionPtr; var group:ModuleGroup; args,progArgs:AnnotationArgumentList; var errors : das_string ) : bool
 
@@ -531,3 +535,4 @@ def find_module(name:string) : Module?
             rm = mod
     verify(rm!=null,"module not found")
     return rm
+

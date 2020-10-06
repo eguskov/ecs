@@ -1,13 +1,8 @@
-def r_true(a:int)
-	print("{a} - true\n")
-	return true
-
-def r_false(a:int)
-	print("{a} - false\n")
-	return false
-
+// options log_infer_passes = true
+// options log_generics = true
 
 [export]
 def test
-	let t = r_false(1) && r_true(2)
-	return true
+    print("{range(1)} {range(2.0)}\n")
+    return true
+

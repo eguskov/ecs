@@ -218,6 +218,10 @@ def each ( rng : range ) : iterator<int>
     _builtin_make_range_iterator(it,rng)
     return <- it
 
+def iter_range ( foo )
+    concept_assert(typeinfo(is_iterable foo),"requires iterable")
+    return range(length(foo)) // assuming length(foo) exists
+
 [generic,unsafe_operation]
 def each ( str : string ) : iterator<int>
     var it : iterator<int>
@@ -365,25 +369,25 @@ def sort ( var a : array<auto(TT)>; cmp : block<(x,y:TT):bool> )
     __builtin_array_unlock(a)
 
 def find_index ( arr : array<auto(TT)> implicit; key : TT )
-    for i in range(0,length(arr))
+    for i in range(length(arr))
         if arr[i]==key
             return i
     return -1
 
 def find_index ( arr : auto(TT)[] implicit; key : TT )
-    for i in range(0,length(arr))
+    for i in range(length(arr))
         if arr[i]==key
             return i
     return -1
 
 def find_index_if ( arr : array<auto(TT)> implicit; blk : block<(key:TT):bool> )
-    for i in range(0,length(arr))
+    for i in range(length(arr))
         if invoke(blk,arr[i])
             return i
     return -1
 
 def find_index_if ( arr : auto(TT)[] implicit; blk : block<(key:TT):bool> )
-    for i in range(0,length(arr))
+    for i in range(length(arr))
         if invoke(blk,arr[i])
             return i
     return -1

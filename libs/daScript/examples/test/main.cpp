@@ -394,6 +394,7 @@ int main( int argc, char * argv[] ) {
     NEED_MODULE(Module_UnitTest);
     NEED_MODULE(Module_Rtti);
     NEED_MODULE(Module_Ast);
+    NEED_MODULE(Module_Debugger);
     NEED_MODULE(Module_FIO);
     NEED_MODULE(Module_Random);
     NEED_MODULE(Module_Network);
@@ -405,11 +406,14 @@ int main( int argc, char * argv[] ) {
     return 0;
 #endif
 #if 0 // Debug this one test
+// generators
+    // #define TEST_NAME   "/dasgen/gen_bind.das"
     // #define TEST_NAME   "/doc/reflections/das2rst.das"
+// examples
     // #define TEST_NAME   "/examples/test/dict_pg.das"
     // #define TEST_NAME   "/examples/test/hello_world.das"
     // #define TEST_NAME   "/examples/test/regex_lite.das"
-    #define TEST_NAME   "/examples/test/hello_world.das"
+    // #define TEST_NAME   "/examples/test/hello_world.das"
     // #define TEST_NAME   "/examples/test/json_example.das"
     // #define TEST_NAME   "/examples/test/ast_print.das"
     // #define TEST_NAME   "/examples/test/unit_tests/hint_macros_example.das"

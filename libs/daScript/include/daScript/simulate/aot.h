@@ -641,6 +641,7 @@ namespace das {
     template <typename TT>
     struct TArray : Array {
         using THIS_TYPE = TArray<TT>;
+        enum { stride = sizeof(TT) };
         TArray()  {}
         TArray(TArray & arr) { moveA(arr); }
         TArray(TArray && arr ) { moveA(arr); }
@@ -1709,6 +1710,10 @@ namespace das {
         }
         BlockFn blockFunction;
     };
+
+    __forceinline Func getDasClassMethod ( void * self, int offset ) {
+        return *(Func *)(((char *)self) + offset);
+    }
 
     template <typename ResType>
     struct das_invoke {

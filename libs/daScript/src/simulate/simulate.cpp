@@ -12,6 +12,8 @@
 // this is here for the default implementation of to_out and to_err
 #include <setjmp.h>
 
+#include <mutex>
+
 namespace das
 {
     bool PointerDimIterator::first ( Context &, char * _value ) {
@@ -328,6 +330,18 @@ namespace das
         return v_zero();
     }
 
+    vec4f SimNodeDebug_Block::eval ( Context & context ) {
+        DAS_PROFILE_NODE
+        SimNode ** __restrict tail = list + total;
+        for (SimNode ** __restrict body = list; body!=tail; ++body) {
+            DAS_SINGLE_STEP(context,(*body)->debugInfo,false);
+            (*body)->eval(context);
+            if ( context.stopFlags ) break;
+        }
+        evalFinal(context);
+        return v_zero();
+    }
+
     vec4f SimNode_BlockNF::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -338,10 +352,39 @@ namespace das
         return v_zero();
     }
 
+    vec4f SimNodeDebug_BlockNF::eval ( Context & context ) {
+        DAS_PROFILE_NODE
+        SimNode ** __restrict tail = list + total;
+        for (SimNode ** __restrict body = list; body!=tail; ++body) {
+            DAS_SINGLE_STEP(context,(*body)->debugInfo,false);
+            (*body)->eval(context);
+            if ( context.stopFlags ) break;
+        }
+        return v_zero();
+    }
+
     vec4f SimNode_ClosureBlock::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
         for (SimNode ** __restrict body = list; body!=tail; ++body) {
+            (*body)->eval(context);
+            if ( context.stopFlags ) break;
+        }
+        evalFinal(context);
+        if ( context.stopFlags & EvalFlags::stopForReturn ) {
+            context.stopFlags &= ~EvalFlags::stopForReturn;
+            return context.abiResult();
+        } else {
+            if ( needResult ) context.throw_error_at(debugInfo,"end of block without return");
+            return v_zero();
+        }
+    }
+
+    vec4f SimNodeDebug_ClosureBlock::eval ( Context & context ) {
+        DAS_PROFILE_NODE
+        SimNode ** __restrict tail = list + total;
+        for (SimNode ** __restrict body = list; body!=tail; ++body) {
+            DAS_SINGLE_STEP(context,(*body)->debugInfo,false);
             (*body)->eval(context);
             if ( context.stopFlags ) break;
         }
@@ -382,6 +425,32 @@ namespace das
         return v_zero();
     }
 
+    vec4f SimNodeDebug_BlockWithLabels::eval ( Context & context ) {
+        DAS_PROFILE_NODE
+        SimNode ** __restrict tail = list + total;
+        SimNode ** __restrict body = list;
+    loopbegin:;
+        for (; body!=tail; ++body) {
+            DAS_SINGLE_STEP(context,(*body)->debugInfo,false);
+            (*body)->eval(context);
+            { if ( context.stopFlags ) {
+                if (context.stopFlags&EvalFlags::jumpToLabel && context.gotoLabel<totalLabels) {
+                    body=list+labels[context.gotoLabel];
+                    if ( body>=list && body<tail ) {
+                        context.stopFlags &= ~EvalFlags::jumpToLabel;
+                        goto loopbegin;
+                    } else {
+                        context.throw_error_at(debugInfo, "jump to label %i failed", context.gotoLabel);
+                    }
+                }
+                goto loopend;
+            } }
+        }
+    loopend:;
+        evalFinal(context);
+        return v_zero();
+    }
+
     // SimNode_Let
 
     vec4f SimNode_Let::eval ( Context & context ) {
@@ -401,6 +470,24 @@ namespace das
             SimNode ** __restrict body = list;
         loopbegin:;
             for (; body!=tail; ++body) {
+                (*body)->eval(context);
+                DAS_PROCESS_LOOP_FLAGS(break);
+            }
+        }
+    loopend:;
+        evalFinal(context);
+        context.stopFlags &= ~EvalFlags::stopForBreak;
+        return v_zero();
+    }
+
+    vec4f SimNodeDebug_While::eval ( Context & context ) {
+        DAS_PROFILE_NODE
+        SimNode ** __restrict tail = list + total;
+        while ( cond->evalBool(context) && !context.stopFlags ) {
+            SimNode ** __restrict body = list;
+        loopbegin:;
+            for (; body!=tail; ++body) {
+                DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
                 (*body)->eval(context);
                 DAS_PROCESS_LOOP_FLAGS(break);
             }
@@ -558,12 +645,19 @@ namespace das
 
     // Context
 
+    static std::mutex g_DebugAgentMutex;
+    static DebugAgentPtr g_DebugAgent;
+    static unique_ptr<Context>   g_DebugAgentContext;
+
     Context::Context(uint32_t stackSize, bool ph) : stack(stackSize) {
         code = make_smart<NodeAllocator>();
         constStringHeap = make_smart<ConstStringAllocator>();
         debugInfo = make_smart<DebugInfoAllocator>();
         ownStack = (stackSize != 0);
         persistent = ph;
+        // register
+        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+        if ( g_DebugAgent ) g_DebugAgent->onCreateContext(this);
     }
 
     Context::Context(const Context & ctx): stack(ctx.stack.size()) {
@@ -609,6 +703,9 @@ namespace das
         tabAdLookup = ctx.tabAdLookup;
         tabAdMask = ctx.tabAdMask;
         tabAdRot = ctx.tabAdRot;
+        // register
+        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+        if ( g_DebugAgent ) g_DebugAgent->onCreateContext(this);
         // now, make it good to go
         restart();
         runInitScript();
@@ -616,6 +713,12 @@ namespace das
     }
 
     Context::~Context() {
+        // unregister
+        {
+            std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+            if ( g_DebugAgent ) g_DebugAgent->onDestroyContext(this);
+        }
+        // and free memory
         if ( globals ) {
             das_aligned_free16(globals);
         }
@@ -820,7 +923,82 @@ namespace das
         to_out(str.c_str());
     }
 
-    string Context::getStackWalk ( const LineInfo * at, bool showArguments, bool showLocalVariables, bool showOutOfScope ) {
+    class StackWalkerTextWriter : public StackWalker {
+    public:
+        StackWalkerTextWriter ( TextWriter & tw, Context * ctx ) : ssw(tw), context(ctx) {}
+        virtual bool canWalkArguments () override {
+            return showArguments;
+        }
+        virtual bool canWalkVariables () override {
+            return showLocalVariables;
+        }
+        virtual bool canWalkOutOfScopeVariables() override {
+            return showOutOfScope;
+        }
+        virtual void onCallAOT ( Prologue *, const char * fileName ) override {
+            ssw << fileName << ", AOT";
+        }
+        virtual void onCallAt ( Prologue *, FuncInfo * info, LineInfo * at ) override {
+            ssw << info->name << " from " << at->describe();
+        }
+        virtual void onCall ( Prologue *, FuncInfo * info ) override {
+            ssw << info->name;
+        }
+        virtual void onAfterPrologue ( Prologue * pp, char * SP ) override {
+            ssw << "(sp=" << (context->stack.top() - SP)
+                << ",sptr=0x" << HEX  << intptr_t(SP) << DEC;
+            if ( pp->cmres ) {
+                ssw << ",cmres=0x" << HEX << intptr_t(pp->cmres) << DEC;
+            }
+            ssw << ")\n";
+        }
+        virtual void onArgument ( FuncInfo * info, int i, VarInfo * field, vec4f arg ) override {
+            ssw << "\t" << info->fields[i]->name
+                << " : " << debug_type(field)
+                << " = \t" << debug_value(arg, field, PrintFlags::stackwalker) << "\n";
+        }
+        virtual void onBeforeVariables ( ) override {
+            ssw << "--> local variables\n";
+        }
+        virtual void onVariable ( FuncInfo *, LocalVariableInfo * lv, void * addr, bool inScope ) override {
+            ssw << "\t" << lv->name
+                << " : " << debug_type(lv);
+            string location;
+            if ( !inScope ) {
+            } else if ( lv->cmres ) {
+                location = "CMRES";
+            } else if ( lv->isRefValue( ) ) {
+                location = "ref *(sp + " + to_string(lv->stackTop) + ")";
+            } else {
+                location = "sp + " + to_string(lv->stackTop);
+            }
+            if ( addr ) {
+                ssw << " = \t" << debug_value(addr, lv, PrintFlags::stackwalker)
+                    << " at " << location
+                    << " 0x" << HEX << intptr_t(addr) << DEC
+                    << "\n";
+            } else {
+                if ( !inScope ) {
+                    ssw << "\t// variable out of scope\n";
+                } else {
+                    ssw << "\t// variable was optimized out\n";
+                }
+            }
+        }
+        virtual bool onAfterCall ( Prologue * ) override {
+            return !stackTopOnly;
+         }
+    public:
+        bool showArguments = true;
+        bool showLocalVariables = true;
+        bool showOutOfScope = true;
+        bool stackTopOnly = false;
+    protected:
+        TextWriter & ssw;
+        Context * context;
+    };
+
+    string Context::getStackWalk ( const LineInfo * at, bool showArguments, bool showLocalVariables, bool showOutOfScope, bool stackTopOnly ) {
         FPE_DISABLE;
         TextWriter ssw;
     #if DAS_ENABLE_STACK_WALK
@@ -831,86 +1009,12 @@ namespace das
         char * sp = stack.ap();
         ssw << "CALL STACK (sp=" << (stack.top() - stack.ap())
             << ",sptr=0x" << HEX  << intptr_t(sp) << DEC << "):\n";
-        const LineInfo * lineAt = at;
-        while (  sp < stack.top() ) {
-            Prologue * pp = (Prologue *) sp;
-            // ssw << HEX << "pp at " << intptr_t(pp) << DEC << "\n";
-            Block * block = nullptr;
-            FuncInfo * info = nullptr;
-            char * SP = sp;
-            if ( pp->info ) {
-                intptr_t iblock = intptr_t(pp->block);
-                if ( iblock & 1 ) {
-                    block = (Block *) (iblock & ~1);
-                    info = block->info;
-                    SP = stack.bottom() + block->stackOffset;
-                } else {
-                    info = pp->info;
-                }
-            }
-            if ( !info ) {
-                ssw << pp->fileName << ", AOT";
-            } else if ( pp->line ) {
-                ssw << info->name << " from " << pp->line->describe();
-            } else {
-                ssw << info->name;
-            }
-            ssw << "(sp=" << (stack.top() - SP)
-                << ",sptr=0x" << HEX  << intptr_t(SP) << DEC;
-            if ( pp->cmres ) {
-                ssw << ",cmres=0x" << HEX << intptr_t(pp->cmres) << DEC;
-            }
-            ssw << ")\n";
-            if ( showArguments && info ) {
-                for ( uint32_t i = 0; i != info->count; ++i ) {
-                    ssw << "\t" << info->fields[i]->name
-                        << " : " << debug_type(info->fields[i])
-                        << " = \t" << debug_value(pp->arguments[i], info->fields[i], PrintFlags::stackwalker) << "\n";
-                }
-            }
-            if ( showLocalVariables && info && info->locals ) {
-                bool first = true;
-                for ( uint32_t i = 0; i != info->localCount; ++i ) {
-                    auto lv = info->locals[i];
-                    bool inScope = lineAt ? lineAt->inside(lv->visibility) : false;
-                    if ( !showOutOfScope && !inScope ) continue;
-                    if ( first ) {
-                        ssw << "--> local variables\n";
-                        first = false;
-                    }
-                    ssw << "\t" << lv->name
-                        << " : " << debug_type(lv);
-                    char * addr = nullptr;
-                    string location;
-                    if ( !inScope ) {
-                        addr = nullptr;
-                    } else if ( lv->cmres ) {
-                        location = "CMRES";
-                        addr = (char *)pp->cmres;
-                    } else if ( lv->isRefValue( ) ) {
-                        location = "ref *(sp + " + to_string(lv->stackTop) + ")";
-                        addr = SP + lv->stackTop;
-                    } else {
-                        location = "sp + " + to_string(lv->stackTop);
-                        addr = SP + lv->stackTop;
-                    }
-                    if ( addr ) {
-                        ssw << " = \t" << debug_value(addr, lv, PrintFlags::stackwalker)
-                            << " at " << location
-                            << " 0x" << HEX << intptr_t(addr) << DEC
-                            << "\n";
-                    } else {
-                        if ( !inScope ) {
-                            ssw << "\t// variable out of scope\n";
-                        } else {
-                            ssw << "\t// variable was optimized out\n";
-                        }
-                    }
-                }
-            }
-            lineAt = info ? pp->line : nullptr;
-            sp += info ? info->stackSize : pp->stackSize;
-        }
+        auto walker = make_smart<StackWalkerTextWriter> ( ssw, this );
+        walker->showArguments = showArguments;
+        walker->showLocalVariables =  showLocalVariables;
+        walker->showOutOfScope = showOutOfScope;
+        walker->stackTopOnly = stackTopOnly;
+        dapiStackWalk ( walker, *this, *at );
         ssw << "\n";
     #else
         ssw << "\nCALL STACK TRACKING DISABLED:\n\n";
@@ -918,7 +1022,40 @@ namespace das
         return ssw.str();
     }
 
-    void Context::breakPoint(const LineInfo &) const {
+    void tickDebugAgent ( ) {
+        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+        if ( g_DebugAgent ) g_DebugAgent->onTick();
+    }
+
+    void installDebugAgent ( DebugAgentPtr newAgent ) {
+        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+        if ( g_DebugAgent ) g_DebugAgent->onUninstall(g_DebugAgent.get());
+        g_DebugAgent = newAgent;
+        if ( g_DebugAgent ) g_DebugAgent->onInstall(g_DebugAgent.get());
+    }
+
+    void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo ) {
+        unique_ptr<Context> forkContext = make_unique<Context>(*context);
+        vec4f args[1];
+        args[0] = cast<Context *>::from(context);
+        SimFunction * fun = forkContext->getFunction(exFn.index-1);
+        forkContext->callOrFastcall(fun, args, lineinfo);
+        swap ( g_DebugAgentContext, forkContext );
+    }
+
+    void shutdownDebugAgent() {
+        installDebugAgent(nullptr);
+        g_DebugAgentContext.reset();
+    }
+
+    void Context::breakPoint(const LineInfo & at) {
+        if ( debugger ) {
+            std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+            if ( g_DebugAgent ) {
+                g_DebugAgent->onBreakpoint(this, at);
+                return;
+            }
+        }
         os_debug_break();
     }
 
@@ -1195,6 +1332,39 @@ namespace das
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    string getLinesAroundCode ( const char* st, int ROW, int TAB ) {
+        TextWriter text;
+        int col=0, row=1;
+        auto it = st;
+        while ( *it ) {
+            auto CH = *it++;
+            if ( CH=='\t' ) {
+                int tcol = (col + TAB) & ~(TAB-1);
+                while ( col < tcol ) {
+                    if ( row>=ROW-3 && row<=ROW+3 ) text << " ";
+                    col ++;
+                }
+                continue;
+            } else if ( CH=='\n' ) {
+                row++;
+                col=0;
+                if ( row>=ROW-3 && row<=ROW+3 ) {
+                    text << ((row==ROW) ? "\n->  " : "\n    ");
+                }
+            } else {
+                if ( row>=ROW-3 && row<=ROW+3 ) text << CH;
+            }
+            col ++;
+        }
+        return text.str();
+    }
+
+    void Context::bpcallback( const LineInfo & at ) {
+        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
+        if ( g_DebugAgent ) g_DebugAgent->onSingleStep(this, at);
+    }
+
 }
 
 //workaround compiler bug in MSVC 32 bit

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.9)
 project (DAS)
 
 INCLUDE(./CMakeCommon.txt)
@@ -105,8 +105,11 @@ src/builtin/module_builtin_string.cpp
 src/builtin/module_builtin_rtti.h
 src/builtin/module_builtin_rtti.cpp
 src/builtin/module_builtin_ast.cpp
+src/builtin/ast_gen.inc
 src/builtin/module_builtin_fio.cpp
 src/builtin/module_builtin_network.cpp
+src/builtin/module_builtin_debugger.cpp
+src/builtin/debugapi_gen.inc
 src/builtin/module_file_access.cpp
 src/builtin/builtin.das.inc
 src/builtin/builtin.das
@@ -118,6 +121,8 @@ src/builtin/ast.das.inc
 src/builtin/ast.das
 src/builtin/network.das.inc
 src/builtin/network.das
+src/builtin/debugger.das.inc
+src/builtin/debugger.das
 )
 list(SORT BUILTIN_SRC)
 SOURCE_GROUP_FILES("module builtin" BUILTIN_SRC)
@@ -126,6 +131,7 @@ XXD(src/builtin/fio.das)
 XXD(src/builtin/rtti.das)
 XXD(src/builtin/ast.das)
 XXD(src/builtin/network.das)
+XXD(src/builtin/debugger.das)
 
 SET(MISC_SRC
 include/daScript/misc/enums.h
@@ -249,6 +255,7 @@ include/daScript/simulate/aot_builtin_string.h
 include/daScript/simulate/aot_builtin_fio.h
 include/daScript/simulate/aot_builtin_rtti.h
 include/daScript/simulate/aot_builtin_ast.h
+include/daScript/simulate/aot_builtin_debugger.h
 include/daScript/simulate/fs_file_info.h
 src/simulate/fs_file_info.cpp
 )
@@ -296,6 +303,7 @@ add_executable(dasAot ${DASAOT_MAIN_SRC} )
 TARGET_LINK_LIBRARIES(dasAot libDaScript libPathTracerHelper libDaScriptProfile libDaScriptTest libDasModuleUriparser libUriParser)
 ADD_DEPENDENCIES(dasAot libDaScript libPathTracerHelper libDaScriptProfile libDaScriptTest libDasModuleUriparser libUriParser)
 SETUP_CPP11(dasAot)
+SETUP_LTO(dasAot)
 
 MACRO(DAS_AOT input genList mainTarget)
     get_filename_component(input_src ${input} ABSOLUTE)
@@ -336,7 +344,8 @@ DAS_AOT("daslib/json_boost.das" AOT_GENERATED_SRC dasAotStub)
 DAS_AOT("daslib/regex.das" AOT_GENERATED_SRC dasAotStub)
 DAS_AOT("daslib/regex_boost.das" AOT_GENERATED_SRC dasAotStub)
 DAS_AOT("daslib/strings_boost.das" AOT_GENERATED_SRC dasAotStub)
-DAS_AOT("daslib/rst.das" AOT_GENERATED_SRC dasAotStub)
+# DAS_AOT("daslib/rst.das" AOT_GENERATED_SRC dasAotStub)
+# DAS_AOT("daslib/cpp_bind.das" AOT_GENERATED_SRC dasAotStub)
 SOURCE_GROUP_FILES("aot stub" AOT_GENERATED_SRC)
 
 # libUriParser
@@ -393,6 +402,7 @@ TARGET_LINK_LIBRARIES(dasContDev libDaScript libPathTracerHelper libDaScriptTest
 ADD_DEPENDENCIES(dasContDev libDaScript libPathTracerHelper libDaScriptTest libDaScriptProfile libDasModuleUriparser libUriParser)
 SETUP_CPP11(dasContDev)
 add_dependencies(dasContDev dasAotStub)
+SETUP_LTO(dasContDev)
 
 # PathTracer helper
 
@@ -441,6 +451,7 @@ TARGET_LINK_LIBRARIES(daScript libDaScript libPathTracerHelper libDaScriptTest l
 ADD_DEPENDENCIES(daScript libDaScript libPathTracerHelper libDaScriptTest libDaScriptProfile libDasModuleUriparser libUriParser)
 SETUP_CPP11(daScript)
 add_dependencies(daScript dasAotStub)
+SETUP_LTO(daScript)
 
 # Test module
 
@@ -518,6 +529,7 @@ ADD_DEPENDENCIES(daScriptTest libDaScript libDaScriptTest libDaScriptProfile lib
 TARGET_INCLUDE_DIRECTORIES(daScriptTest PUBLIC examples/test)
 SETUP_CPP11(daScriptTest)
 add_dependencies(daScriptTest daScriptTestAot dasAotStub)
+SETUP_LTO(daScriptTest)
 
 # Profile module
 
