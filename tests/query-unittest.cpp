@@ -1,4 +1,3 @@
-#ifdef _DEBUG
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
@@ -308,4 +307,3 @@ TEST_F(QueryTest, Index_ChangeDetection)
     EXPECT_EQ(testSystem.errorsCount, 0);
   }
 }
-#endif

@@ -1,0 +1,7 @@
+# ninja log v5
+16	1739	6285464441474843	CMakeFiles/gtest_main.dir/src/gtest_main.cc.obj	cceecb9271489805
+0	7325	6285464492178396	CMakeFiles/gtest.dir/src/gtest-all.cc.obj	b9639db05047de25
+3	1235	6285467132520524	CMakeFiles/gtest_main.dir/src/gtest_main.cc.obj	a99a7f039d22c6bd
+0	3003	6285467149920888	CMakeFiles/gtest.dir/src/gtest-all.cc.obj	36fd83acd5a19894
+3004	3368	6285467152641123	lib/gtestd.lib	a552678a93a40d69
+3369	3694	6285467156283247	lib/gtest_maind.lib	3ea828fb7c4f0db9

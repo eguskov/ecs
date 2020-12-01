@@ -1,4 +1,3 @@
-#ifdef _DEBUG
 #include <gtest/gtest.h>
 
 #include <ecs/ecs.h>
@@ -82,4 +81,3 @@ TEST(JobManager, Dependencies)
     else
       EXPECT_EQ((count - i) * 2, data[i]);
 }
-#endif
