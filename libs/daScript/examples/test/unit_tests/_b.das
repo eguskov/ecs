@@ -1,3 +1,6 @@
+options remove_unused_symbols = false
+module _b
+
 require _c
 
 [sideeffects]

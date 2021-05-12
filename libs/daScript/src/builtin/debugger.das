@@ -1,3 +1,7 @@
+options indenting = 4
+options remove_unused_symbols = false
+options no_aot = true
+
 require debugapi
 
 require rtti public
@@ -11,11 +15,11 @@ class DapiDebugAgent
     def abstract onBreakpoint ( var ctx:Context; at:LineInfo ) : void
     def abstract onTick : void
 
-def install_new_debug_agent ( agentPtr )
+def install_new_debug_agent ( agentPtr; category:string )
     static_if typeinfo(is_class *agentPtr)
         let agentInfo = class_info(*agentPtr)
         var agentAdapter <- make_debug_agent(agentPtr,agentInfo)
-        install_debug_agent(agentAdapter)
+        install_debug_agent(agentAdapter,category)
         unsafe
             delete agentAdapter
     else

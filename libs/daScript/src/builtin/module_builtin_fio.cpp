@@ -64,6 +64,11 @@ namespace das {
         addFunctionOrdered<Time>(*this,lib);
         addFunction( make_smart<BuiltInFn<Sim_Sub<Time>,float,Time,Time>>("-",lib,"Sub"));
         addExtern<DAS_BIND_FUN(builtin_clock)>(*this, lib, "get_clock", SideEffects::modifyExternal, "builtin_clock");
+        // TODO: move to upstream das
+        addExtern<DAS_BIND_FUN(ref_time_ticks)>(*this, lib, "ref_time_ticks",
+            SideEffects::accessExternal, "ref_time_ticks");
+        addExtern<DAS_BIND_FUN(get_time_usec)>(*this, lib, "get_time_usec",
+            SideEffects::accessExternal, "get_time_usec");
     }
 }
 
@@ -91,16 +96,16 @@ namespace das {
         bool        is_valid;
         uint64_t size() const   { return stats.st_size; }
 #if defined(_MSC_VER)
-        Time     atime() const  { return stats.st_atime; }
-        Time     ctime() const  { return stats.st_ctime; }
-        Time     mtime() const  { return stats.st_mtime; }
+        Time     atime() const  { return { stats.st_atime }; }
+        Time     ctime() const  { return { stats.st_ctime }; }
+        Time     mtime() const  { return { stats.st_mtime }; }
         bool     is_reg() const { return stats.st_mode & _S_IFREG; }
         bool     is_dir() const { return stats.st_mode & _S_IFDIR; }
 
 #else
-        Time     atime() const  { return stats.st_atime; }
-        Time     ctime() const  { return stats.st_ctime; }
-        Time     mtime() const  { return stats.st_mtime; }
+        Time     atime() const  { return { stats.st_atime }; }
+        Time     ctime() const  { return { stats.st_ctime }; }
+        Time     mtime() const  { return { stats.st_mtime }; }
         bool     is_reg() const { return S_ISREG(stats.st_mode); }
         bool     is_dir() const { return S_ISDIR(stats.st_mode); }
 
@@ -125,6 +130,7 @@ namespace das {
 
     struct FStatAnnotation : ManagedStructureAnnotation <FStat,true> {
         FStatAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("FStat", ml) {
+            validationNeverFails = true;
             addField<DAS_BIND_MANAGED_FIELD(is_valid)>("is_valid");
             addProperty<DAS_BIND_MANAGED_PROP(size)>("size");
             addProperty<DAS_BIND_MANAGED_PROP(atime)>("atime");
@@ -229,9 +235,9 @@ namespace das {
 #pragma warning(disable:4100)
 #endif
 
-    vec4f builtin_read ( Context & context, SimNode_CallBase * call, vec4f * args )
-    {
-        DAS_ASSERT ( call->types[1]->isRef() || call->types[1]->isRefType() || call->types[1]->type==Type::tString);
+    vec4f builtin_read ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        DAS_ASSERT ( call->types[1]->isRef() || call->types[1]->isRefType()
+            || call->types[1]->type==Type::tString || call->types[1]->type==Type::tPointer);
         auto fp = cast<FILE *>::to(args[0]);
         if ( !fp ) context.throw_error("can't read NULL");
         auto buf = cast<void *>::to(args[1]);
@@ -240,9 +246,9 @@ namespace das {
         return cast<int32_t>::from(res);
     }
 
-    vec4f builtin_write ( Context & context, SimNode_CallBase * call, vec4f * args )
-    {
-        DAS_ASSERT ( call->types[1]->isRef() || call->types[1]->isRefType() || call->types[1]->type==Type::tString);
+    vec4f builtin_write ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        DAS_ASSERT ( call->types[1]->isRef() || call->types[1]->isRefType()
+            || call->types[1]->type==Type::tString || call->types[1]->type==Type::tPointer);
         auto fp = cast<FILE *>::to(args[0]);
         if ( !fp ) context.throw_error("can't write NULL");
         auto buf = cast<void *>::to(args[1]);
@@ -271,7 +277,12 @@ namespace das {
             context.invoke(*block, bargs, nullptr);
         }  else {
             buf[rlen] = 0;
-            bargs[0] = cast<char *>::from(buf);
+            das::Array arr;
+            arr.data = buf;
+            arr.size = rlen;
+            arr.capacity = rlen;
+            arr.lock = 1;
+            bargs[0] = cast<das::Array*>::from(&arr);
             context.invoke(*block, bargs, nullptr);
         }
         free(buf);
@@ -329,7 +340,8 @@ namespace das {
         }
     }
 
-    bool builtin_fstat ( const FILE * f, FStat & fs ) {
+    bool builtin_fstat ( const FILE * f, FStat & fs, Context * context, LineInfoArg * at ) {
+        if ( !f ) context->throw_error_at(*at, "fstat of null");
         return fstat(fileno((FILE *)f), &fs.stats) == 0;
     }
 
@@ -437,6 +449,7 @@ REGISTER_MODULE_IN_NAMESPACE(Module_FIO,das);
 
 #if _WIN32
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 void * mmap (void* start, size_t length, int /*prot*/, int /*flags*/, int fd, off_t offset) {

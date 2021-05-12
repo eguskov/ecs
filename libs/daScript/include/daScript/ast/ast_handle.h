@@ -63,8 +63,10 @@ namespace das
     template <typename OT>
     struct ManagedStructureAlignofAuto<OT, true> {static constexpr size_t alignment = sizeof(void*); } ;//we use due to MSVC inability to work with abstarct classes
 
-    template <typename OT, bool canNew = true, bool canDelete = canNew>
-    struct ManagedStructureAnnotation ;
+    template <typename OT,
+        bool canNew = is_default_constructible<OT>::value,
+        bool canDelete = canNew && is_destructible<OT>::value
+    > struct ManagedStructureAnnotation ;
 
     struct BasicStructureAnnotation : TypeAnnotation {
         enum class FactoryNodeType {
@@ -78,19 +80,24 @@ namespace das
         struct StructureField {
             string      name;
             string      cppName;
+            string      aotPrefix;
+            string      aotPostfix;
             TypeDeclPtr decl;
+            TypeDeclPtr constDecl;
             uint32_t    offset;
             function<SimNode * (FactoryNodeType,Context &,const LineInfo &, const ExpressionPtr &)>   factory;
+            __forceinline void adjustAot ( const char * pref, const char * postf ) { aotPrefix=pref; aotPostfix=postf; }
         };
         BasicStructureAnnotation(const string & n, const string & cpn, ModuleLibrary * l)
             : TypeAnnotation(n,cpn), mlib(l) {
         }
+        virtual string getSmartAnnotationCloneFunction() const override { return "smart_ptr_clone"; }
         virtual void seal(Module * m) override;
         virtual bool rtti_isHandledTypeAnnotation() const override { return true; }
         virtual bool rtti_isBasicStructureAnnotation() const override { return true; }
         virtual bool isRefType() const override { return true; }
-        virtual TypeDeclPtr makeFieldType(const string & na) const override;
-        virtual TypeDeclPtr makeSafeFieldType(const string & na) const override;
+        virtual TypeDeclPtr makeFieldType(const string & na, bool isConst) const override;
+        virtual TypeDeclPtr makeSafeFieldType(const string & na, bool isConst) const override;
         virtual SimNode * simulateGetField(const string & na, Context & context,
             const LineInfo & at, const ExpressionPtr & value) const override;
         virtual SimNode * simulateGetFieldR2V(const string & na, Context & context,
@@ -99,15 +106,38 @@ namespace das
             const LineInfo & at, const ExpressionPtr & value) const override;
         virtual SimNode * simulateSafeGetFieldPtr(const string & na, Context & context,
             const LineInfo & at, const ExpressionPtr & value) const override;
+        virtual void aotPreVisitGetField ( TextWriter &, const string & ) override;
+        virtual void aotPreVisitGetFieldPtr ( TextWriter &, const string & ) override;
         virtual void aotVisitGetField(TextWriter & ss, const string & fieldName) override;
         virtual void aotVisitGetFieldPtr(TextWriter & ss, const string & fieldName) override;
-        void addFieldEx(const string & na, const string & cppNa, off_t offset, TypeDeclPtr pT);
+        StructureField & addFieldEx(const string & na, const string & cppNa, off_t offset, TypeDeclPtr pT);
         virtual void walk(DataWalker & walker, void * data) override;
         int32_t fieldCount() const { return int32_t(fields.size()); }
+        void from(const char* parentName);
         das_map<string,StructureField> fields;
+        vector<string>                 fieldsInOrder;
         DebugInfoHelper            helpA;
         StructInfo *               sti = nullptr;
         ModuleLibrary *            mlib = nullptr;
+        vector<TypeAnnotation*> parents;
+        bool validationNeverFails = false;
+    };
+
+    template <typename TT, bool canCopy = isCloneable<TT>::value>
+    struct GenCloneNode;
+
+    template <typename TT>
+    struct GenCloneNode<TT,true> {
+        static __forceinline SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) {
+            return context.code->makeNode<SimNode_CloneRefValueT<TT>>(at, l, r);
+        }
+    };
+
+    template <typename TT>
+    struct GenCloneNode<TT,false> {
+        static __forceinline SimNode * simulateClone ( Context &, const LineInfo &, SimNode *, SimNode * ) {
+            return nullptr;
+        }
     };
 
     template <typename OT>
@@ -118,9 +148,25 @@ namespace das
         virtual size_t getSizeOf() const override { return sizeof(ManagedType); }
         virtual size_t getAlignOf() const override { return ManagedStructureAlignofAuto<ManagedType, is_abstract<ManagedType>::value>::alignment; }
         virtual bool isSmart() const override { return is_base_of<ptr_ref_count,OT>::value; }
-        virtual bool canMove() const override { return false; }
-        virtual bool canCopy() const override { return false; }
-        virtual bool isLocal() const override { return false; }
+        virtual bool hasNonTrivialCtor() const override {
+            return !is_trivially_constructible<OT>::value;
+        }
+        virtual bool hasNonTrivialDtor() const override {
+            return !is_trivially_destructible<OT>::value;
+        }
+        virtual bool hasNonTrivialCopy() const override {
+            return  !is_trivially_copyable<OT>::value
+                ||  !is_trivially_copy_constructible<OT>::value;
+        }
+        virtual bool isPod() const override {
+            return is_pod<OT>::value;
+        }
+        virtual bool isRawPod() const override {
+            return false;   // can we detect this?
+        }
+        virtual bool canClone() const override {
+            return isCloneable<OT>::value;
+        }
         template <typename FunT, FunT PROP>
         void addProperty ( const string & na, const string & cppNa="" ) {
             auto & field = fields[na];
@@ -133,15 +179,69 @@ namespace das
             field.decl = makeType<resultType>(*mlib);
             DAS_ASSERTF ( !(field.decl->isRefType() && !field.decl->ref), "property can't be CMRES, in %s", field.decl->describe().c_str() );
             field.offset = -1U;
-            field.factory = [](FactoryNodeType nt,Context & context,const LineInfo & at, const ExpressionPtr & value) -> SimNode * {
+            auto sft = make_smart<TypeDecl>(*field.decl);
+            field.factory = [sft](FactoryNodeType nt,Context & context,const LineInfo & at, const ExpressionPtr & value) -> SimNode * {
                 switch ( nt ) {
                     case FactoryNodeType::getField:
                         return context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,false>>(at, value->simulate(context));
                     case FactoryNodeType::getFieldPtr:
                         return context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,true>>(at, value->simulate(context));
+                    case FactoryNodeType::getFieldR2V: {
+                        auto getFieldNode = context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,true>>(at, value->simulate(context));
+                        return ExprRef2Value::GetR2V(context, at, sft, getFieldNode);
+                    }
                     case FactoryNodeType::safeGetField:
                     case FactoryNodeType::safeGetFieldPtr:
+                    case FactoryNodeType::getFieldPtrR2V:
+                        DAS_ASSERTF(0, "property requested property type, which is meaningless for the non-ref"
+                                    "we should not be here, since property can't have ref type"
+                                    "daScript compiler will later report missing node error");
+                    default:
+                        return nullptr;
+                }
+            };
+        }
+        template <typename FunT, FunT PROP, typename FunTConst, FunTConst PROP_CONST>
+        void addPropertyExtConst ( const string & na, const string & cppNa="" ) {
+            auto & field = fields[na];
+            if ( field.decl ) {
+                DAS_FATAL_LOG("structure field %s already exist in structure %s\n", na.c_str(), name.c_str() );
+                DAS_FATAL_ERROR;
+            }
+            using resultType = decltype((((ManagedType *)0)->*PROP)());
+            field.cppName = (cppNa.empty() ? na : cppNa) + "()";
+            field.decl = makeType<resultType>(*mlib);
+            DAS_ASSERTF ( !(field.decl->isRefType() && !field.decl->ref), "property can't be CMRES, in %s", field.decl->describe().c_str() );
+            using constResultType = decltype((((ManagedType *)0)->*PROP_CONST)());
+            field.constDecl = makeType<constResultType>(*mlib);
+            DAS_ASSERTF ( !(field.constDecl->isRefType() && !field.constDecl->ref), "property can't be CMRES, in %s", field.constDecl->describe().c_str() );
+            field.offset = -1U;
+            auto sft = make_smart<TypeDecl>(*field.decl);
+            auto sftc = make_smart<TypeDecl>(*field.constDecl);
+            field.factory = [sft,sftc](FactoryNodeType nt,Context & context,const LineInfo & at, const ExpressionPtr & value) -> SimNode * {
+                switch ( nt ) {
+                    case FactoryNodeType::getField:
+                        if ( value->type->constant ) {
+                            return context.code->makeNode<SimNode_Property<ManagedType,FunTConst,PROP_CONST,false>>(at, value->simulate(context));
+                        } else {
+                            return context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,false>>(at, value->simulate(context));
+                        }
+                    case FactoryNodeType::getFieldPtr:
+                        if ( value->type->constant ) {
+                            return context.code->makeNode<SimNode_Property<ManagedType,FunTConst,PROP_CONST,true>>(at, value->simulate(context));
+                        } else {
+                            return context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,true>>(at, value->simulate(context));
+                        }
                     case FactoryNodeType::getFieldR2V:
+                        if ( value->type->constant ) {
+                            auto getFieldNode =  context.code->makeNode<SimNode_Property<ManagedType,FunTConst,PROP_CONST,false>>(at, value->simulate(context));
+                            return ExprRef2Value::GetR2V(context, at, sftc, getFieldNode);
+                        } else {
+                            auto getFieldNode =  context.code->makeNode<SimNode_Property<ManagedType,FunT,PROP,false>>(at, value->simulate(context));
+                            return ExprRef2Value::GetR2V(context, at, sft, getFieldNode);
+                        }
+                    case FactoryNodeType::safeGetField:
+                    case FactoryNodeType::safeGetFieldPtr:
                     case FactoryNodeType::getFieldPtrR2V:
                         DAS_ASSERTF(0, "property requested property type, which is meaningless for the non-ref"
                                     "we should not be here, since property can't have ref type"
@@ -152,8 +252,14 @@ namespace das
             };
         }
         template <typename TT, off_t off>
-        __forceinline void addField ( const string & na, const string & cppNa = "" ) {
-            addFieldEx ( na, cppNa.empty() ? na : cppNa, off, makeType<TT>(*mlib) );
+        __forceinline StructureField & addField ( const string & na, const string & cppNa = "" ) {
+            return addFieldEx ( na, cppNa.empty() ? na : cppNa, off, makeType<TT>(*mlib) );
+        }
+        virtual SimNode * simulateCopy ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
+            return context.code->makeNode<SimNode_CopyRefValue>(at, l, r, uint32_t(sizeof(OT)));
+        }
+        virtual SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
+            return GenCloneNode<OT>::simulateClone(context,at,l,r);
         }
     };
 
@@ -164,7 +270,6 @@ namespace das
         ManagedStructureAnnotation(const string& n, ModuleLibrary& ml, const string& cpn = "")
             : ManagedStructureAnnotation<OT, false,false>(n, ml, cpn) { }
         virtual bool canNew() const override { return true; }
-        virtual string getSmartAnnotationCloneFunction() const override { return "smart_ptr_clone"; }
         virtual SimNode* simulateGetNew(Context& context, const LineInfo& at) const override {
             return context.code->makeNode<SimNode_NewHandle<ManagedType, is_smart>>(at);
         }
@@ -177,7 +282,6 @@ namespace das
         ManagedStructureAnnotation(const string& n, ModuleLibrary& ml, const string& cpn = "")
             : ManagedStructureAnnotation<OT, false,false>(n, ml, cpn) { }
         virtual bool canDeletePtr() const override { return true; }
-        virtual string getSmartAnnotationCloneFunction() const override { return "smart_ptr_clone"; }
         virtual SimNode* simulateDeletePtr(Context& context, const LineInfo& at, SimNode* sube, uint32_t count) const override {
             return context.code->makeNode<SimNode_DeleteHandlePtr<ManagedType, is_smart>>(at, sube, count);
         }
@@ -191,7 +295,6 @@ namespace das
             : ManagedStructureAnnotation<OT,false,false>(n,ml,cpn) { }
         virtual bool canNew() const override { return true; }
         virtual bool canDeletePtr() const override { return true; }
-        virtual string getSmartAnnotationCloneFunction () const override { return "smart_ptr_clone"; }
         virtual SimNode * simulateGetNew ( Context & context, const LineInfo & at ) const override {
             return context.code->makeNode<SimNode_NewHandle<ManagedType,is_smart>>(at);
         }
@@ -200,11 +303,8 @@ namespace das
         }
     };
 
-    template <typename OT, bool r2v=has_cast<typename OT::value_type>::value>
-    struct ManagedVectorAnnotation;
-
     template <typename VectorType>
-    struct ManagedVectorAnnotation<VectorType,false> : TypeAnnotation {
+    struct ManagedVectorAnnotation : TypeAnnotation {
         using OT = typename VectorType::value_type;
         struct SimNode_VectorLength : SimNode {
             using TT = OT;
@@ -239,11 +339,11 @@ namespace das
                 V_ARG_THIS(range);
                 V_END();
             }
-            __forceinline char * compute ( Context & context ) {
+            ___noinline char * compute ( Context & context ) {
                 DAS_PROFILE_NODE
                 auto pValue = (VectorType *) value->evalPtr(context);
                 uint32_t idx = cast<uint32_t>::to(index->eval(context));
-                if ( idx >= pValue->size() ) {
+                if ( idx >= uint32_t(pValue->size()) ) {
                     context.throw_error_at(debugInfo,"std::vector index out of range, %u of %u", idx, uint32_t(pValue->size()));
                     return nullptr;
                 } else {
@@ -267,44 +367,16 @@ namespace das
                 V_END();
             }
             virtual vec4f eval ( Context & context ) override {
-                DAS_PROFILE_NODE
                 OOT * pR = (OOT *) SimNode_AtStdVector::compute(context);
                 DAS_ASSERT(pR);
                 return cast<OOT>::from(*pR);
             }
 #define EVAL_NODE(TYPE,CTYPE)                                           \
             virtual CTYPE eval##TYPE ( Context & context ) override {   \
-                DAS_PROFILE_NODE \
                 return *(CTYPE *) SimNode_AtStdVector::compute(context);    \
             }
             DAS_EVAL_NODE
 #undef EVAL_NODE
-        };
-        struct VectorIterator : Iterator {
-            VectorIterator  ( VectorType * ar ) : array(ar) {}
-            virtual bool first ( Context &, char * _value ) override {
-                char ** value = (char **) _value;
-                char * data     = (char *) array->data();
-                uint32_t size   = (uint32_t) array->size();
-                *value          = data;
-                array_end       = data + size * sizeof(OT);
-                return (bool) size;
-            }
-            virtual bool next  ( Context &, char * _value ) override {
-                char ** value = (char **) _value;
-                char * data = *value + sizeof(OT);
-                *value = data;
-                return data != array_end;
-            }
-            virtual void close ( Context & context, char * _value ) override {
-                if ( _value ) {
-                    char ** value = (char **) _value;
-                    *value = nullptr;
-                }
-                context.heap->free((char *)this, sizeof(VectorIterator));
-            }
-            VectorType * array;
-            char * array_end = nullptr;
         };
         ManagedVectorAnnotation(const string & n, ModuleLibrary & lib)
             : TypeAnnotation(n) {
@@ -320,7 +392,7 @@ namespace das
         virtual bool canMove() const override { return false; }
         virtual bool canCopy() const override { return false; }
         virtual bool isLocal() const override { return false; }
-        virtual TypeDeclPtr makeFieldType ( const string & na ) const override {
+        virtual TypeDeclPtr makeFieldType ( const string & na, bool ) const override {
             if ( na=="length" ) return make_smart<TypeDecl>(Type::tInt);
             return nullptr;
         }
@@ -370,7 +442,7 @@ namespace das
 
         virtual SimNode * simulateGetIterator ( Context & context, const LineInfo & at, const ExpressionPtr & src ) const override {
             auto rv = src->simulate(context);
-            return context.code->makeNode<SimNode_AnyIterator<VectorType,VectorIterator>>(at, rv);
+            return context.code->makeNode<SimNode_AnyIterator<VectorType,StdVectorIterator<VectorType>>>(at, rv);
         }
         virtual SimNode * simulateGetField ( const string & na, Context & context,
                                             const LineInfo & at, const ExpressionPtr & value ) const override {
@@ -393,58 +465,74 @@ namespace das
         TypeInfo *                 ati = nullptr;
     };
 
-    template <typename VectorType>
-    struct ManagedVectorAnnotation<VectorType,true> : ManagedVectorAnnotation<VectorType,false> {
-        using OT = typename VectorType::value_type;
-        using BT = ManagedVectorAnnotation<VectorType, false>;
-        using BTT = typename BT::template SimNode_AtStdVectorR2V<OT>;
-        ManagedVectorAnnotation(const string & n, ModuleLibrary & lib) :
-            ManagedVectorAnnotation<VectorType, false>(n, lib) {
-        }
-        virtual SimNode * simulateGetAtR2V ( Context & context, const LineInfo & at, const TypeDeclPtr &,
-                                            const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
-            return context.code->makeNode<BTT>(at,
-                                               rv->simulate(context),
-                                               idx->simulate(context),
-                                               ofs);
-        }
-    };
-
     template <typename TT>
     struct typeName<vector<TT>> {
         static string name() {
-            return "dasvector`" + typeName<TT>::name();
+            return string("dasvector`") + typeName<TT>::name(); // TODO: compilation time concat
         }
     };
 
     template <typename TT, bool byValue = has_cast<TT>::value >
     struct registerVectorFunctions;
 
+
     template <typename TT>
     struct registerVectorFunctions<TT,false> {
-        static void init ( Module * mod, const ModuleLibrary & lib ) {
-            addExtern<DAS_BIND_FUN((das_vector_push<TT,TT>))>(*mod, lib, "push",
-                SideEffects::modifyArgument, "das_vector_push")->generated = true;
+        static void init ( Module * mod, const ModuleLibrary & lib, bool canCopy, bool canMove ) {
+            if ( canMove ) {
+                addExtern<DAS_BIND_FUN((das_vector_emplace<TT,TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                    SideEffects::modifyArgument, "das_vector_emplace")->generated = true;
+                addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT,TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                    SideEffects::modifyArgument, "das_vector_emplace_back")->generated = true;
+            }
+            if ( canCopy ) {
+                addExtern<DAS_BIND_FUN((das_vector_push<TT,TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push",
+                    SideEffects::modifyArgument, "das_vector_push")->generated = true;
+                addExtern<DAS_BIND_FUN((das_vector_push_back<TT,TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push",
+                    SideEffects::modifyArgument, "das_vector_push_back")->generated = true;
+            }
             addExtern<DAS_BIND_FUN(das_vector_pop<TT>)>(*mod, lib, "pop",
                 SideEffects::modifyArgument, "das_vector_pop")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_clear<TT>)>(*mod, lib, "clear",
                 SideEffects::modifyArgument, "das_vector_clear")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_resize<TT>)>(*mod, lib, "resize",
                 SideEffects::modifyArgument, "das_vector_resize")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_erase<TT>)>(*mod, lib, "erase",
+                SideEffects::modifyArgument, "das_vector_erase")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_each<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
+                SideEffects::none, "das_vector_each")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_each_const<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
+                SideEffects::none, "das_vector_each_const")->generated = true;
         }
     };
 
     template <typename TT>
     struct registerVectorFunctions<TT,true> {
-        static void init ( Module * mod, const ModuleLibrary & lib ) {
-            addExtern<DAS_BIND_FUN((das_vector_push_value<TT,TT>))>(*mod, lib, "push",
-                SideEffects::modifyArgument, "das_vector_push_value")->generated = true;
+        static void init ( Module * mod, const ModuleLibrary & lib, bool canCopy, bool canMove ) {
+            if ( canMove ) {
+                addExtern<DAS_BIND_FUN((das_vector_emplace<TT,TT>))>(*mod, lib, "emplace",
+                    SideEffects::modifyArgument, "das_vector_emplace")->generated = true;
+                addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT,TT>))>(*mod, lib, "emplace",
+                    SideEffects::modifyArgument, "das_vector_emplace_back")->generated = true;
+            }
+            if ( canCopy ) {
+                addExtern<DAS_BIND_FUN((das_vector_push_value<TT,TT>))>(*mod, lib, "push",
+                    SideEffects::modifyArgument, "das_vector_push_value")->generated = true;
+                addExtern<DAS_BIND_FUN((das_vector_push_back_value<TT,TT>))>(*mod, lib, "push",
+                    SideEffects::modifyArgument, "das_vector_push_back_value")->generated = true;
+            }
             addExtern<DAS_BIND_FUN(das_vector_pop<TT>)>(*mod, lib, "pop",
                 SideEffects::modifyArgument, "das_vector_pop")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_clear<TT>)>(*mod, lib, "clear",
                 SideEffects::modifyArgument, "das_vector_clear")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_resize<TT>)>(*mod, lib, "resize",
                 SideEffects::modifyArgument, "das_vector_resize")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_erase<TT>)>(*mod, lib, "erase",
+                SideEffects::modifyArgument, "das_vector_erase")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_each<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
+                SideEffects::none, "das_vector_each")->generated = true;
+            addExtern<DAS_BIND_FUN(das_vector_each_const<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
+                SideEffects::none, "das_vector_each_const")->generated = true;
         }
     };
 
@@ -452,14 +540,17 @@ namespace das
     struct typeFactory<vector<TT>> {
         using VT = vector<TT>;
         static TypeDeclPtr make(const ModuleLibrary & library ) {
-            auto declN = typeName<VT>::name();
+            string declN = typeName<VT>::name();
             if ( library.findAnnotation(declN,nullptr).size()==0 ) {
                 auto declT = makeType<TT>(library);
                 auto ann = make_smart<ManagedVectorAnnotation<VT>>(declN,const_cast<ModuleLibrary &>(library));
                 ann->cppName = "das::vector<" + describeCppType(declT) + ">";
                 auto mod = library.front();
                 mod->addAnnotation(ann);
-                registerVectorFunctions<TT>::init(mod,library);
+                registerVectorFunctions<TT>::init(mod,library,
+                    declT->canCopy(),
+                    declT->canMove()
+                );
             }
             return makeHandleType(library,declN.c_str());
         }
@@ -473,6 +564,16 @@ namespace das
         virtual bool canMove() const override { return true; }
         virtual bool canCopy() const override { return true; }
         virtual bool isLocal() const override { return true; }
+        virtual bool hasNonTrivialCtor() const override {
+            return !is_trivially_constructible<OT>::value;
+        }
+        virtual bool hasNonTrivialDtor() const override {
+            return !is_trivially_destructible<OT>::value;
+        }
+        virtual bool hasNonTrivialCopy() const override {
+            return  !is_trivially_copyable<OT>::value
+                ||  !is_trivially_copy_constructible<OT>::value;
+        }
         virtual bool isPod() const override { return true; }
         virtual bool isRawPod() const override { return true; }
         virtual size_t getSizeOf() const override { return sizeof(OT); }
@@ -501,6 +602,22 @@ namespace das
             DAS_FATAL_ERROR;
         }
     }
+    __forceinline void addConstant ( Module & mod, const string & name, const string & value ) {
+        VariablePtr pVar = make_smart<Variable>();
+        pVar->name = name;
+        pVar->type = make_smart<TypeDecl>(Type::tString);
+        pVar->type->constant = true;
+        pVar->init = make_smart<ExprConstString>(LineInfo(),value);
+        pVar->init->type = make_smart<TypeDecl>(*pVar->type);
+        pVar->init->constexpression = true;
+        pVar->initStackSize = sizeof(Prologue);
+        if ( !mod.addVariable(pVar) ) {
+            DAS_FATAL_LOG("addVariable(%s) failed in module %s\n", name.c_str(), mod.name.c_str());
+            DAS_FATAL_ERROR;
+        }
+    }
+    __forceinline void addConstant ( Module & mod, const string & name, const char * value ) { addConstant(mod, name, string(value)); }
+    __forceinline void addConstant ( Module & mod, const string & name, char * value ) { addConstant(mod, name, string(value)); }
 
     template <typename TT>
     void addEquNeq(Module & mod, const ModuleLibrary & lib) {

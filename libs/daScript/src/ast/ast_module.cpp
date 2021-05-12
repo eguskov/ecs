@@ -82,7 +82,18 @@ namespace das {
 
     void resetFusionEngine();
 
+    void Module::Initialize() {
+        bool all = false;
+        while ( !all ) {
+            all = true;
+            for ( auto m = modules; m ; m = m->next ) {
+                all &= m->initDependencies();
+            }
+        }
+    }
+
     void Module::Shutdown() {
+        ReuseGuard<TypeDecl> rguard;
         shutdownDebugAgent();
         auto m = modules;
         while ( m ) {
@@ -91,9 +102,10 @@ namespace das {
             delete pM;
         }
         resetFusionEngine();
+        ReuseAllocator<TypeDecl>::canHold = false;
     }
 
-    void Module::foreach ( function<bool (Module * module)> && func ) {
+    void Module::foreach ( const callable<bool (Module * module)> & func ) {
         for (auto m = modules; m != nullptr; m = m->next) {
             if (!func(m)) break;
         }
@@ -103,6 +115,17 @@ namespace das {
         for ( auto m = modules; m != nullptr; m = m->next ) {
             if ( m->name == name ) {
                 return m;
+            }
+        }
+        return nullptr;
+    }
+
+    Module * Module::requireEx ( const string & name, bool allowPromoted ) {
+        for ( auto m = modules; m != nullptr; m = m->next ) {
+            if ( allowPromoted || !m->promoted ) {
+                if ( m->name == name ) {
+                    return m;
+                }
             }
         }
         return nullptr;
@@ -131,6 +154,15 @@ namespace das {
         } else {
             requireModule[this] = false;
         }
+    }
+
+    void Module::promoteToBuiltin(const FileAccessPtr & access) {
+        DAS_ASSERTF(!builtIn, "failed to promote. already builtin");
+        next = modules;
+        modules = this;
+        builtIn = true;
+        promoted = true;
+        promotedAccess = access;
     }
 
     Module::~Module() {
@@ -266,6 +298,8 @@ namespace das {
             for ( const auto & arg : fn->arguments ) {
                 if ( arg->type->isRef() && !arg->type->isConst() ) {
                     anyRW = true;
+                } else if ( arg->type->isPointer() && arg->type->firstType && !arg->type->firstType->isConst() ) {
+                    anyRW = true;
                 }
             }
             if ( !anyRW ) {
@@ -314,6 +348,13 @@ namespace das {
     FunctionPtr Module::findFunction ( const string & mangledName ) const {
         auto it = functions.find(mangledName);
         return it != functions.end() ? it->second : FunctionPtr();
+    }
+
+    FunctionPtr Module::findUniqueFunction ( const string & mangledName ) const {
+        auto it = functionsByName.find(mangledName);
+        if ( it==functionsByName.end() ) return nullptr;
+        if ( it->second.size()!=1 ) return nullptr;
+        return it->second[0];
     }
 
     StructurePtr Module::findStructure ( const string & na ) const {
@@ -535,22 +576,34 @@ namespace das {
         addModule(Module::require("$"));
     }
 
-    void ModuleLibrary::addModule ( Module * module ) {
+    bool ModuleLibrary::addModule ( Module * module ) {
         DAS_ASSERTF(module, "module not found? or you have forgotten to NEED_MODULE(Module_BuiltIn) be called first");
         if ( module ) {
             if ( find(modules.begin(),modules.end(),module)==modules.end() ) {
                 modules.push_back(module);
                 module->addPrerequisits(*this);
+                return true;
             }
         }
+        return false;
     }
 
-    void ModuleLibrary::foreach ( function<bool (Module * module)> && func, const string & moduleName ) const {
+    void ModuleLibrary::foreach ( const callable<bool (Module * module)> & func, const string & moduleName ) const {
         bool any = moduleName=="*";
         for ( auto pm : modules ) {
             if ( !any && pm->name!=moduleName ) continue;
             if ( !func(pm) ) break;
         }
+    }
+
+    void ModuleLibrary::foreach_in_order ( const callable<bool (Module * module)> & func, Module * thisM ) const {
+        DAS_ASSERT(modules.size());
+        // {builtin} {THIS_MODULE} {require1} {require2} ...
+        for ( auto m = modules.begin(); m!=modules.end(); ++m ) {
+            if ( *m==thisM ) continue;
+            if ( !func(*m) ) return;
+        }
+        func(thisM);
     }
 
     Module * ModuleLibrary::findModule ( const string & mn ) const {

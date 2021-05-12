@@ -132,12 +132,39 @@ namespace das
         }
     };
 
+    struct FinalizeFunctionAnnotation : MarkFunctionAnnotation {
+        FinalizeFunctionAnnotation() : MarkFunctionAnnotation("finalize") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            func->shutdown = true;
+            return true;
+        };
+        virtual bool finalize(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & errors) override {
+            if ( func->arguments.size() ) {
+                errors += "[finalize] function can't have any arguments";
+                return false;
+            }
+            if ( !func->result->isVoid() ) {
+                errors += "[finalize] function can't return value";
+                return false;
+            }
+            return true;
+        }
+    };
+
     struct MarkUsedFunctionAnnotation : MarkFunctionAnnotation {
         MarkUsedFunctionAnnotation() : MarkFunctionAnnotation("unused_argument") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList & args, string &) override {
             for ( auto & fnArg : func->arguments ) {
                 if ( auto optArg = args.find(fnArg->name, Type::tBool) ) {
                     fnArg->marked_used = optArg->bValue;
+                }
+            }
+            return true;
+        };
+        virtual bool apply(ExprBlock * block, ModuleGroup &, const AnnotationArgumentList & args, string &) override {
+            for ( auto & bArg : block->arguments ) {
+                if ( auto optArg = args.find(bArg->name, Type::tBool) ) {
+                    bArg->marked_used = optArg->bValue;
                 }
             }
             return true;
@@ -292,8 +319,8 @@ namespace das
         return v_zero();
     }
 
-    void builtin_stackwalk ( Context * context, LineInfoArg * lineInfo ) {
-        context->stackWalk(lineInfo, true, true);
+    void builtin_stackwalk ( bool args, bool vars, Context * context, LineInfoArg * lineInfo ) {
+        context->stackWalk(lineInfo, args, vars);
     }
 
     void builtin_terminate ( Context * context ) {
@@ -422,7 +449,7 @@ namespace das
     void builtin_make_range_iterator ( Sequence & result, range rng, Context * context ) {
         char * iter = context->heap->allocate(sizeof(RangeIterator));
         context->heap->mark_comment(iter, "range iterator");
-        new (iter) RangeIterator(rng);
+        new (iter) RangeIterator(rng, true);
         result = { (Iterator *) iter };
     }
 
@@ -795,6 +822,21 @@ namespace das
         return context->stringHeap->allocateString(str, strLen);
     }
 
+    void builtin_temp_array ( void * data, int size, const Block & block, Context * context ) {
+        Array arr;
+        arr.data = (char *) data;
+        arr.size = arr.capacity = size;
+        arr.lock = 1;
+        arr.flags = 0;
+        vec4f args[1];
+        args[0] = cast<Array &>::from(arr);
+        context->invoke(block, args, nullptr);
+    }
+
+    bool g_isInAot = false;
+    bool is_in_aot ( ) {
+        return g_isInAot;
+    }
 
     void Module_BuiltIn::addRuntime(ModuleLibrary & lib) {
         // printer flags
@@ -813,6 +855,7 @@ namespace das
         addAnnotation(make_smart<UnsafeOpFunctionAnnotation>());
         addAnnotation(make_smart<NoAotFunctionAnnotation>());
         addAnnotation(make_smart<InitFunctionAnnotation>());
+        addAnnotation(make_smart<FinalizeFunctionAnnotation>());
         addAnnotation(make_smart<HybridFunctionAnnotation>());
         addAnnotation(make_smart<UnsafeDerefFunctionAnnotation>());
         addAnnotation(make_smart<MarkUsedFunctionAnnotation>());
@@ -865,8 +908,11 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_print)>(*this, lib, "print", SideEffects::modifyExternal, "builtin_print");
         addInterop<builtin_sprint,char *,vec4f,PrintFlags>(*this, lib, "sprint", SideEffects::modifyExternal, "builtin_sprint");
         addExtern<DAS_BIND_FUN(builtin_terminate)>(*this, lib, "terminate", SideEffects::modifyExternal, "terminate");
-        addExtern<DAS_BIND_FUN(builtin_stackwalk)>(*this, lib, "stackwalk", SideEffects::modifyExternal, "builtin_stackwalk");
         addInterop<builtin_breakpoint,void>(*this, lib, "breakpoint", SideEffects::modifyExternal, "breakpoint");
+        // stackwalk
+        auto fnsw = addExtern<DAS_BIND_FUN(builtin_stackwalk)>(*this, lib, "stackwalk", SideEffects::modifyExternal, "builtin_stackwalk");
+        fnsw->arguments[0]->init = make_smart<ExprConstBool>(true);
+        fnsw->arguments[1]->init = make_smart<ExprConstBool>(true);
         // profiler
         addExtern<DAS_BIND_FUN(resetProfiler)>(*this, lib, "reset_profiler", SideEffects::modifyExternal, "resetProfiler");
         addExtern<DAS_BIND_FUN(dumpProfileInfo)>(*this, lib, "dump_profile_info", SideEffects::modifyExternal, "dumpProfileInfo");
@@ -946,25 +992,32 @@ namespace das
         addExtern<DAS_BIND_FUN(gc0_restore_smart_ptr)>(*this, lib, "gc0_restore_smart_ptr", SideEffects::accessExternal, "gc0_restore_smart_ptr");
         addExtern<DAS_BIND_FUN(gc0_reset)>(*this, lib, "gc0_reset", SideEffects::modifyExternal, "gc0_reset");
         // pointer ari
+        addExtern<DAS_BIND_FUN(das_memcpy)>(*this, lib, "memcpy", SideEffects::modifyArgumentAndExternal, "das_memcpy")->unsafeOperation = true;
         addExtern<DAS_BIND_FUN(das_memcmp)>(*this, lib, "memcmp", SideEffects::none, "das_memcmp")->unsafeOperation = true;
         auto idpi = addExtern<DAS_BIND_FUN(i_das_ptr_inc)>(*this, lib, "i_das_ptr_inc", SideEffects::modifyArgument, "das_ptr_inc");
         idpi->unsafeOperation = true;
         idpi->firstArgReturnType = true;
+        idpi->noPointerCast = true;
         auto idpd = addExtern<DAS_BIND_FUN(i_das_ptr_dec)>(*this, lib, "i_das_ptr_dec", SideEffects::modifyArgument, "das_ptr_dec");
         idpd->unsafeOperation = true;
         idpd->firstArgReturnType = true;
+        idpd->noPointerCast = true;
         auto idpa = addExtern<DAS_BIND_FUN(i_das_ptr_add)>(*this, lib, "i_das_ptr_add", SideEffects::none, "das_ptr_add");
         idpa->unsafeOperation = true;
         idpa->firstArgReturnType = true;
+        idpa->noPointerCast = true;
         auto idps = addExtern<DAS_BIND_FUN(i_das_ptr_sub)>(*this, lib, "i_das_ptr_sub", SideEffects::none, "das_ptr_sub");
         idps->unsafeOperation = true;
         idps->firstArgReturnType = true;
+        idps->noPointerCast = true;
         auto idpsa = addExtern<DAS_BIND_FUN(i_das_ptr_set_add)>(*this, lib, "i_das_ptr_set_add", SideEffects::modifyArgument, "das_ptr_set_add");
         idpsa->unsafeOperation = true;
         idpsa->firstArgReturnType = true;
+        idpsa->noPointerCast = true;
         auto idpss = addExtern<DAS_BIND_FUN(i_das_ptr_set_sub)>(*this, lib, "i_das_ptr_set_sub", SideEffects::modifyArgument, "das_ptr_set_sub");
         idpss->unsafeOperation = true;
         idpss->firstArgReturnType = true;
+        idpss->noPointerCast = true;
         addExtern<DAS_BIND_FUN(i_das_ptr_diff)>(*this, lib, "i_das_ptr_diff", SideEffects::none, "i_das_ptr_diff");
         // profile
         addExtern<DAS_BIND_FUN(builtin_profile)>(*this,lib,"profile", SideEffects::modifyExternal, "builtin_profile");
@@ -975,5 +1028,13 @@ namespace das
         addExtern<DAS_BIND_FUN(peek_das_string)>(*this, lib, "peek",
             SideEffects::modifyExternal,"peek_das_string_T")->setAotTemplate();
         addExtern<DAS_BIND_FUN(builtin_string_clone)>(*this, lib, "clone_string", SideEffects::none, "builtin_string_clone");
+        addExtern<DAS_BIND_FUN(das_str_equ)>(*this, lib, "==", SideEffects::none, "das_str_equ");
+        addExtern<DAS_BIND_FUN(das_str_nequ)>(*this, lib, "!=", SideEffects::none, "das_str_nequ");
+        // temp array out of mem
+        auto bta = addExtern<DAS_BIND_FUN(builtin_temp_array)>(*this, lib, "_builtin_temp_array", SideEffects::invoke, "builtin_temp_array");
+        bta->unsafeOperation = true;
+        bta->privateFunction = true;
+        // migrate data
+        addExtern<DAS_BIND_FUN(is_in_aot)>(*this, lib, "is_in_aot", SideEffects::worstDefault, "is_in_aot");
     }
 }

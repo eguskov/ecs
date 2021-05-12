@@ -40,7 +40,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
 
 #undef MATCH_ANY_OP1_NODE
 #define MATCH_ANY_OP1_NODE(CTYPE,NODENAME,COMPUTE) \
-    else if ( is(info,node_x,NODENAME,(typeName<CTYPE>::name())) ) { return context->code->makeNode<SimNode_Op1##COMPUTE>(); }
+    else if ( is(info,node_x,NODENAME,(typeName<CTYPE>::name())) ) { return ccode.makeNode<SimNode_Op1##COMPUTE>(); }
 
 #undef IMPLEMENT_ANY_OP1_NODE
 #define IMPLEMENT_ANY_OP1_NODE(INLINE,OPNAME,TYPE,CTYPE,RCTYPE,COMPUTE) \
@@ -80,7 +80,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
 
 #undef REGISTER_OP1_FUSION_POINT
 #define REGISTER_OP1_FUSION_POINT(OPNAME,TYPE,CTYPE) \
-    (*g_fusionEngine)[#OPNAME].push_back(make_unique<Op1FusionPoint_##OPNAME##_##CTYPE>());
+    (*g_fusionEngine)[#OPNAME].emplace_back(new Op1FusionPoint_##OPNAME##_##CTYPE());
 
 #include "daScript/simulate/simulate_fusion_op1_reg.h"
 
@@ -88,7 +88,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
     {
         REGISTER_OP1_WORKHORSE_FUSION_POINT(Return);
         REGISTER_OP1_NUMERIC_VEC(Return);
-        (*g_fusionEngine)["Return"].push_back(make_unique<Op1FusionPoint_Return_vec4f>());
+        (*g_fusionEngine)["Return"].emplace_back(new Op1FusionPoint_Return_vec4f());
     }
 }
 

@@ -125,7 +125,14 @@ namespace das {
     // at
         virtual void preVisit ( ExprAt * expr ) override {
             Visitor::preVisit(expr);
-            expr->noSideEffects = true; // !expr->write;
+            if ( expr->subexpr->type->isHandle() && expr->subexpr->type->annotation->isIndexMutable(expr->index->type.get()) ) {
+                expr->noSideEffects = false;
+            } else if ( expr->subexpr->type->isGoodTableType() ) {
+                expr->noSideEffects = false;
+            } else {
+                expr->noSideEffects = true;
+            }
+            // expr->noSideEffects = true; // !expr->write;
             expr->noNativeSideEffects = true;
         }
     // at
@@ -138,14 +145,14 @@ namespace das {
         virtual ExpressionPtr visit ( ExprOp1 * expr ) override {
             expr->noSideEffects = expr->subexpr->noSideEffects && (expr->func->sideEffectFlags==0);
             expr->noNativeSideEffects = expr->subexpr->noNativeSideEffects
-                && ((expr->func->sideEffectFlags & uint32_t(SideEffects::inferedSideEffects))==0);
+                && ((expr->func->sideEffectFlags & uint32_t(SideEffects::inferredSideEffects))==0);
             return Visitor::visit(expr);
         }
     // op2
         virtual ExpressionPtr visit ( ExprOp2 * expr ) override {
             expr->noSideEffects = expr->left->noSideEffects && expr->right->noSideEffects && (expr->func->sideEffectFlags==0);
             expr->noNativeSideEffects = expr->left->noNativeSideEffects && expr->right->noNativeSideEffects
-                && ((expr->func->sideEffectFlags & uint32_t(SideEffects::inferedSideEffects))==0);
+                && ((expr->func->sideEffectFlags & uint32_t(SideEffects::inferredSideEffects))==0);
             return Visitor::visit(expr);
         }
     // op3
@@ -158,7 +165,7 @@ namespace das {
     // call
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
             expr->noSideEffects = (expr->func->sideEffectFlags==0);
-            expr->noNativeSideEffects = (expr->func->sideEffectFlags & uint32_t(SideEffects::inferedSideEffects))==0;
+            expr->noNativeSideEffects = (expr->func->sideEffectFlags & uint32_t(SideEffects::inferredSideEffects))==0;
             if ( expr->noSideEffects ) {
                 for ( auto & arg : expr->arguments ) {
                     expr->noSideEffects &= arg->noSideEffects;
@@ -337,6 +344,50 @@ namespace das {
         }
     }
 
+    ExpressionPtr FoldingVisitor::cloneWithType ( const ExpressionPtr & expr ) {
+        auto rexpr = expr->clone();
+        if ( expr->type ) rexpr->type = make_smart<TypeDecl>(*expr->type);
+        return rexpr;
+    }
+
+    ExpressionPtr FoldingVisitor::evalAndFoldStringBuilder ( ExprStringBuilder * expr )  {
+        // concatinate all constant strings, which are close together
+        smart_ptr<ExprConstString> str;
+        for ( auto it = expr->elements.begin(); it != expr->elements.end(); ) {
+            auto & elem = *it;
+            if ( elem->rtti_isStringConstant() ) {
+                auto selem = static_pointer_cast<ExprConstString>(elem);
+                if ( str ) {
+                    str->text += selem->text;
+                    it = expr->elements.erase(it);
+                    reportFolding();
+                } else {
+                    str = static_pointer_cast<ExprConstString>(cloneWithType(selem));
+                    elem = str;
+                    ++ it;
+                }
+            } else {
+                str.reset();
+                ++ it;
+            }
+        }
+        // check if we are no longer a builder
+        if ( expr->elements.size()==0 ) {
+            // empty string builder is "" string
+            auto estr = make_smart<ExprConstString>(expr->at,"");
+            estr->type = make_smart<TypeDecl>(Type::tString);
+            estr->constexpression = true;
+            reportFolding();
+            return estr;
+        } else if ( expr->elements.size()==1 && expr->elements[0]->rtti_isStringConstant() ) {
+            // string builder with one string constant is that constant
+            reportFolding();
+            return expr->elements[0];
+        } else {
+            return expr;
+        }
+    }
+
     /*
         op1 constexpr = op1(constexpr)
         op2 constexpr,constexpr = op2(constexpr,constexpr)
@@ -361,11 +412,6 @@ namespace das {
     protected:
         bool runMe = false;
     protected:
-        ExpressionPtr cloneWithType ( const ExpressionPtr & expr ) {
-            auto rexpr = expr->clone();
-            rexpr->type = make_smart<TypeDecl>(*expr->type);
-            return rexpr;
-        }
         // function which is fully a nop
         bool isNop ( const FunctionPtr & func ) {
             if ( func->builtIn ) return false;
@@ -412,13 +458,30 @@ namespace das {
                 if ( variable && variable->init && variable->type->isConst() && variable->type->isFoldable() ) {
                     if ( !var->local && !var->argument && !var->block ) {
                         if ( variable->init->rtti_isConstant() ) {
-                            return variable->init;
+                            reportFolding();
+                            return cloneWithType(variable->init);
                         }
                     }
                 }
             }
             return Visitor::visit(var);
         }
+        virtual ExpressionPtr visitLetInit ( ExprLet * expr, const VariablePtr & var, Expression * init ) override {
+            if ( init->rtti_isVar() ) {
+                auto evar = static_cast<ExprVar *>(init);
+                auto variable = evar->variable;
+                if ( variable && variable->init && variable->type->isConst() && variable->type->isFoldable() ) {
+                    if ( !evar->local && !evar->argument && !evar->block ) {
+                        if ( variable->init->rtti_isConstant() ) {
+                            reportFolding();
+                            return cloneWithType(variable->init);
+                        }
+                    }
+                }
+            }
+            return Visitor::visitLetInit(expr,var,init);
+        }
+
     // op1
         virtual ExpressionPtr visit ( ExprOp1 * expr ) override {
             if (expr->func->sideEffectFlags) {
@@ -642,39 +705,7 @@ namespace das {
             return Visitor::visitStringBuilderElement(sb, expr, last);
         }
         virtual ExpressionPtr visit ( ExprStringBuilder * expr ) override {
-            // concatinate all constant strings, which are close together
-            smart_ptr<ExprConstString> str;
-            for ( auto it = expr->elements.begin(); it != expr->elements.end(); ) {
-                auto & elem = *it;
-                if ( elem->rtti_isStringConstant() ) {
-                    auto selem = static_pointer_cast<ExprConstString>(elem);
-                    if ( str ) {
-                        str->text += selem->text;
-                        it = expr->elements.erase(it);
-                        reportFolding();
-                    } else {
-                        str = static_pointer_cast<ExprConstString>(cloneWithType(selem));
-                        elem = str;
-                        ++ it;
-                    }
-                } else {
-                    str.reset();
-                    ++ it;
-                }
-            }
-            // check if we are no longer a builder
-            if ( expr->elements.size()==0 ) {
-                // empty string builder is "" string
-                auto estr = make_smart<ExprConstString>(expr->at,"");
-                estr->type = make_smart<TypeDecl>(Type::tString);
-                estr->constexpression = true;
-                return estr;
-            } else if ( expr->elements.size()==1 && expr->elements[0]->rtti_isStringConstant() ) {
-                // string builder with one string constant is that constant
-                return expr->elements[0];
-            } else {
-                return Visitor::visit(expr);
-            }
+            return evalAndFoldStringBuilder(expr);
         }
     };
 
@@ -765,12 +796,14 @@ namespace das {
     public:
         RunFolding( const ProgramPtr & prog ) : FoldingVisitor(prog) {
             TextWriter dummy;
+            prog->folding = true;
             prog->markOrRemoveUnusedSymbols(true);
             DAS_ASSERTF ( !prog->failed(), "internal error while folding (remove unused)?" );
             prog->allocateStack(dummy);
             DAS_ASSERTF ( !prog->failed(), "internal error while folding (allocate stack)?" );
             prog->simulate(ctx, dummy);
             DAS_ASSERTF ( !prog->failed(), "internal error while folding (simulate)?" );
+            prog->folding = false;
         }
     protected:
         // ExprCall

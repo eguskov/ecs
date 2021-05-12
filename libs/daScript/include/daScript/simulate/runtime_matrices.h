@@ -10,7 +10,6 @@ namespace das {
     template <typename VecT, int rowC>
     struct Matrix {
         VecT    m[rowC];
-        Matrix() { memset(this, 0, sizeof(Matrix<VecT,rowC>) ); }
     };
 
     typedef Matrix<float4,4> float4x4;
@@ -19,7 +18,7 @@ namespace das {
     template <typename VecT, int rowC>
     struct typeName<Matrix<VecT,rowC>> {
         static string name() {
-            return "Matrix<" + typeName<VecT>::name() + "," + to_string(rowC) + ">";
+            return string("Matrix<") + typeName<VecT>::name() + "," + to_string(rowC) + ">";
         }
     };
 }

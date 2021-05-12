@@ -39,6 +39,12 @@ namespace das {
       IMPLEMENT_OP2_EVAL_FUNCTION_POLICY(fun, int3);     \
       IMPLEMENT_OP2_EVAL_FUNCTION_POLICY(fun, int4);
 
+#define MATH_FUN_OP3I(fun)\
+      IMPLEMENT_OP3_FUNCTION_POLICY(fun,Int,int32_t);\
+      IMPLEMENT_OP3_EVAL_FUNCTION_POLICY(fun, int2);     \
+      IMPLEMENT_OP3_EVAL_FUNCTION_POLICY(fun, int3);     \
+      IMPLEMENT_OP3_EVAL_FUNCTION_POLICY(fun, int4);
+
 #define MATH_FUN_OP3(fun)\
       DEFINE_POLICY(fun);\
       IMPLEMENT_OP3_FUNCTION_POLICY(fun,Float,float);\
@@ -54,9 +60,18 @@ namespace das {
     IMPLEMENT_OP2_FUNCTION_POLICY(fun,UInt64,uint64_t); \
     IMPLEMENT_OP2_FUNCTION_POLICY(fun,Double,double);
 
+#define MATH_FUN_OP3A(fun)                              \
+    MATH_FUN_OP3(fun);                                  \
+    MATH_FUN_OP3I(fun);                                 \
+    IMPLEMENT_OP3_FUNCTION_POLICY(fun,UInt,uint32_t);   \
+    IMPLEMENT_OP3_FUNCTION_POLICY(fun,Int64,int64_t);   \
+    IMPLEMENT_OP3_FUNCTION_POLICY(fun,UInt64,uint64_t); \
+    IMPLEMENT_OP3_FUNCTION_POLICY(fun,Double,double);
+
     // everything
     MATH_FUN_OP2A(Min)
     MATH_FUN_OP2A(Max)
+    MATH_FUN_OP3A(Clamp)
 
     //common
     MATH_FUN_OP1(Abs)
@@ -66,7 +81,6 @@ namespace das {
     MATH_FUN_OP1(RSqrt)
     MATH_FUN_OP1(RSqrtEst)
     MATH_FUN_OP1(Sat)
-    MATH_FUN_OP3(Clamp)
     MATH_FUN_OP3(Mad)
     MATH_FUN_OP3(Lerp)
 
@@ -116,8 +130,9 @@ namespace das {
 
     template <typename TT>
     void addFunctionCommonTyped(Module & mod, const ModuleLibrary & lib) {
-        mod.addFunction( make_smart<BuiltInFn<Sim_Min <TT>, TT,   TT,   TT>   >("min", lib, "Min")->args({"x","y"}) );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Max <TT>, TT,   TT,   TT>   >("max", lib, "Max")->args({"x","y"}) );
+        mod.addFunction( make_smart<BuiltInFn<Sim_Min <TT>, TT,   TT,   TT>      >("min",   lib, "Min")->args({"x","y"}) );
+        mod.addFunction( make_smart<BuiltInFn<Sim_Max <TT>, TT,   TT,   TT>      >("max",   lib, "Max")->args({"x","y"}) );
+        mod.addFunction( make_smart<BuiltInFn<Sim_Clamp<TT>,TT,   TT,   TT,  TT> >("clamp", lib, "Clamp")->args({"t","a","b"}) );
     }
 
     template <typename TT>
@@ -155,9 +170,8 @@ namespace das {
     template <typename TT>
     void addFunctionOp3(Module & mod, const ModuleLibrary & lib) {
         //                                     policy         ret arg1 arg2 arg3   name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Lerp<TT>,  TT, TT,  TT,  TT> >("lerp",  lib, "Lerp")->args({"a","b","t"}) );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Clamp<TT>, TT, TT,  TT,  TT> >("clamp", lib, "Clamp")->args({"t","a","b"}) );
         mod.addFunction( make_smart<BuiltInFn<Sim_Mad<TT>,   TT, TT,  TT,  TT> >("mad",   lib, "Mad")->args({"a","b","c"}) );
+        mod.addFunction( make_smart<BuiltInFn<Sim_Lerp<TT>,  TT, TT,  TT,  TT> >("lerp",  lib, "Lerp")->args({"a","b","t"}) );
     }
 
     template <typename VecT, int RowC>
@@ -194,6 +208,9 @@ namespace das {
         }
         virtual bool isRefType() const override { return true; }
         virtual bool isLocal() const override { return true; }
+        virtual bool canBePlacedInContainer() const override { return true; }
+        virtual bool hasNonTrivialCtor() const override { return false; }
+        virtual bool hasNonTrivialDtor() const override { return false; }
         virtual bool canMove() const override { return true; }
         virtual bool canCopy() const override { return true; }
         virtual bool canClone() const override { return true; }
@@ -209,15 +226,15 @@ namespace das {
         virtual size_t getSizeOf() const override {
             return sizeof(ThisMatrix);
         }
-        virtual TypeDeclPtr makeFieldType ( const string & na ) const override {
-            if ( auto ft = makeSafeFieldType(na) ) {
+        virtual TypeDeclPtr makeFieldType ( const string & na, bool isConst ) const override {
+            if ( auto ft = makeSafeFieldType(na, isConst) ) {
                 ft->ref = true;
                 return ft;
             } else {
                 return nullptr;
             }
         }
-        virtual TypeDeclPtr makeSafeFieldType ( const string & na ) const override {
+        virtual TypeDeclPtr makeSafeFieldType ( const string & na, bool ) const override {
             int field = GetField(na);
             if ( field<0  )
                 return nullptr;
@@ -251,7 +268,7 @@ namespace das {
             int field = GetField(na);
             if ( field!=-1 ) {
                 if ( !value->type->isPointer() ) {
-                    auto tnode = value->trySimulate(context, field*sizeof(VecT), Type::none);
+                    auto tnode = value->trySimulate(context, field*sizeof(VecT), make_smart<TypeDecl>(Type::none));
                     if ( tnode ) {
                         return tnode;
                     }
@@ -269,7 +286,7 @@ namespace das {
             if ( field!=-1 ) {
                 auto bt = TypeDecl::getVectorType(Type::tFloat, ColC);
                 if ( !value->type->isPointer() ) {
-                    auto tnode = value->trySimulate(context, field*sizeof(VecT), bt);
+                    auto tnode = value->trySimulate(context, field*sizeof(VecT), make_smart<TypeDecl>(bt));
                     if ( tnode ) {
                         return tnode;
                     }
@@ -312,7 +329,7 @@ namespace das {
             }
         };
         SimNode * trySimulate ( Context & context, const ExpressionPtr & subexpr, const ExpressionPtr & index,
-                               Type r2vType, uint32_t ofs ) const {
+                               const TypeDeclPtr & r2vType, uint32_t ofs ) const {
             if ( index->rtti_isConstant() ) {
                 // if its constant index, like a[3]..., we try to let node bellow simulate
                 auto idxCE = static_pointer_cast<ExprConst>(index);
@@ -332,7 +349,7 @@ namespace das {
         }
         virtual SimNode * simulateGetAt ( Context & context, const LineInfo & at, const TypeDeclPtr &,
                                          const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
-            if ( auto tnode = trySimulate(context, rv, idx, Type::none, ofs) ) {
+            if ( auto tnode = trySimulate(context, rv, idx, make_smart<TypeDecl>(Type::none), ofs) ) {
                 return tnode;
             } else {
                 return context.code->makeNode<SimNode_At>(at,
@@ -344,7 +361,7 @@ namespace das {
         virtual SimNode * simulateGetAtR2V ( Context & context, const LineInfo & at, const TypeDeclPtr &,
                                             const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
             Type r2vType = (Type) ToBasicType<VecT>::type;
-            if ( auto tnode = trySimulate(context, rv, idx, r2vType, ofs) ) {
+            if ( auto tnode = trySimulate(context, rv, idx, make_smart<TypeDecl>(r2vType), ofs) ) {
                 return tnode;
             } else {
                 return context.code->makeValueNode<SimNode_AtR2V>(  r2vType, at,
@@ -436,6 +453,82 @@ namespace das {
         alignas(16) float3x4 ret;
         v_mat_43ca_from_mat44(&ret.m[0].x, invMat);
         return ret;
+    }
+
+    float4x4 float4x4_inverse( const float4x4 & src) {
+        mat44f mat, invMat;
+        memcpy(&mat, &src, sizeof(float4x4));
+        v_mat44_inverse(invMat, mat);
+        return reinterpret_cast<float4x4&>(invMat);;
+    }
+
+    float4x4 float4x4_orthonormal_inverse( const float4x4 & src) {
+        mat44f mat, invMat;
+        memcpy(&mat, &src, sizeof(float4x4));
+        v_mat44_orthonormal_inverse43(invMat, mat);
+        return reinterpret_cast<float4x4&>(invMat);;
+    }
+
+    float4x4 float4x4_persp_forward(float wk, float hk, float zn, float zf) {
+        mat44f mat;
+        v_mat44_make_persp_forward(mat, wk, hk, zn, zf);
+        return reinterpret_cast<float4x4&>(mat);;
+    }
+
+    float4x4 float4x4_persp_reverse(float wk, float hk, float zn, float zf) {
+        mat44f mat;
+        v_mat44_make_persp_reverse(mat, wk, hk, zn, zf);
+        return reinterpret_cast<float4x4&>(mat);;
+    }
+
+    float4x4 float4x4_look_at(float4 eye, float4 at, float4 up) {
+        mat44f mat;
+        v_mat44_make_look_at(mat, eye, at, up);
+        return reinterpret_cast<float4x4&>(mat);;
+    }
+
+    float4x4 float4x4_compose(float4 pos, float4 rot, float4 scale) {
+        mat44f mat;
+        v_mat44_compose(mat, pos, rot, scale);
+        return reinterpret_cast<float4x4&>(mat);;
+    }
+
+    void float4x4_decompose(const float4x4 & mat, float3 & pos, float4 & rot, float4 & scale) {
+        mat44f gmat;
+        memcpy(&gmat, &mat, sizeof(float4x4));
+        vec3f gpos;
+        quat4f grot;
+        vec4f gscale;
+        v_mat4_decompose(gmat, gpos, grot, gscale);
+        pos = gpos;
+        rot = grot;
+        scale = gscale;
+    }
+
+    float4 un_quat_from_unit_arc(float3 v0, float3 v1) {
+        return v_un_quat_from_unit_arc(v_ldu(&v0.x), v_ldu(&v1.x));
+    }
+
+    float4 un_quat_from_unit_vec_ang(float3 v, float ang) {
+        return v_un_quat_from_unit_vec_ang(v_ldu(&v.x), v_splats(ang));
+    }
+
+    float4 un_quat(const float4x4 & m) {
+        mat44f vm;
+        memcpy(&vm, &m, sizeof(float4x4));
+        return v_un_quat_from_mat4(vm);
+    }
+
+    float4 quat_mul(float4 q1, float4 q2) {
+        return v_quat_mul_quat(q1, q2);
+    }
+
+    float3 quat_mul_vec(float4 q, float3 v) {
+        return v_quat_mul_vec3(q, v);
+    }
+
+    float4 quat_conjugate(float4 q) {
+        return v_quat_conjugate(q);
     }
 
     class Module_Math : public Module {
@@ -558,8 +651,18 @@ namespace das {
                  SideEffects::none, "float_4x4_translation")->arg("xyz");
             addExtern<DAS_BIND_FUN(float4x4_transpose), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "transpose",
                 SideEffects::none, "float4x4_transpose")->arg("x");
+            addExtern<DAS_BIND_FUN(float4x4_persp_forward), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "persp_forward",
+                SideEffects::none, "float4x4_persp_forward")->args({"wk", "hk", "zn", "zf"});
+            addExtern<DAS_BIND_FUN(float4x4_persp_reverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "persp_reverse",
+                SideEffects::none, "float4x4_persp_reverse")->args({"wk", "hk", "zn", "zf"});
+            addExtern<DAS_BIND_FUN(float4x4_look_at), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "look_at",
+                SideEffects::none, "float4x4_look_at")->args({"eye", "at", "up"});
+            addExtern<DAS_BIND_FUN(float4x4_compose), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "compose",
+                SideEffects::none, "float4x4_compose")->args({"pos", "rot", "scale"});
             addExtern<DAS_BIND_FUN(float4x4_mul), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "*",
                 SideEffects::none,"float4x4_mul")->args({"x", "y"});
+            addExtern<DAS_BIND_FUN(float4x4_decompose)>(*this, lib, "decompose",
+                SideEffects::modifyArgument, "float4x4_decompose")->args({"mat","pos","rot","scale"});
             addExtern<DAS_BIND_FUN(float4x4_equ)>(*this, lib, "==",
                 SideEffects::none, "float4x4_equ")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float4x4_nequ)>(*this, lib, "!=",
@@ -571,10 +674,33 @@ namespace das {
                 SideEffects::none,"float3x4_mul")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float3x4_mul_vec3p), SimNode_ExtFuncCall>(*this, lib, "*",
                 SideEffects::none,"float3x4_mul_vec3p")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(float4x4_mul_vec4), SimNode_ExtFuncCall>(*this, lib, "*",
+                SideEffects::none,"float4x4_mul_vec4")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float3x4_inverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
                 "inverse", SideEffects::none, "float3x4_inverse")->arg("x");
+            addExtern<DAS_BIND_FUN(float4x4_inverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+                "inverse", SideEffects::none, "float4x4_inverse")->arg("m");
+            addExtern<DAS_BIND_FUN(float4x4_orthonormal_inverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+                "orthonormal_inverse", SideEffects::none, "float4x4_orthonormal_inverse")->arg("m");
             addExtern<DAS_BIND_FUN(rotate)>(*this, lib, "rotate",
                 SideEffects::none, "rotate")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(un_quat_from_unit_arc)>(*this, lib, "un_quat_from_unit_arc",
+                SideEffects::none, "un_quat_from_unit_arc")->args({"v0","v1"});
+            addExtern<DAS_BIND_FUN(un_quat_from_unit_vec_ang)>(*this, lib, "un_quat_from_unit_vec_ang",
+                SideEffects::none, "un_quat_from_unit_vec_ang")->args({"v","ang"});
+            addExtern<DAS_BIND_FUN(un_quat)>(*this, lib, "un_quat",
+                SideEffects::none, "un_quat")->arg("m");
+            addExtern<DAS_BIND_FUN(quat_mul)>(*this, lib, "quat_mul",
+                SideEffects::none, "quat_mul")->args({"q1","q2"});
+            addExtern<DAS_BIND_FUN(quat_mul_vec)>(*this, lib, "quat_mul_vec",
+                SideEffects::none, "quat_mul_vec")->args({"q","v"});
+            addExtern<DAS_BIND_FUN(quat_conjugate)>(*this, lib, "quat_conjugate",
+                SideEffects::none, "quat_conjugate")->arg("q");
+            // packing
+            addExtern<DAS_BIND_FUN(pack_float_to_byte)>(*this, lib, "pack_float_to_byte",
+                SideEffects::none,"pack_float_to_byte")->arg("x");
+            addExtern<DAS_BIND_FUN(unpack_byte_to_float)>(*this, lib, "unpack_byte_to_float",
+                SideEffects::none,"unpack_byte_to_float")->arg("x");
             // lets make sure its all aot ready
             verifyAotReady();
         }

@@ -283,7 +283,7 @@ namespace das {
         varB->name = "b";
         varB->type = make_smart<TypeDecl>(str);
         varB->type->constant = true;
-        varA->type->isExplicit = true;
+        varB->type->implicit = true;
         varB->at = str->at;
         auto fn = make_smart<Function>();
         fn->name = "clone";
@@ -319,6 +319,7 @@ namespace das {
 
     FunctionPtr generatePointerFinalizer ( const TypeDeclPtr & ptrType, const LineInfo & at ) {
         auto pFunc = make_smart<Function>();
+        pFunc->privateFunction = true;
         pFunc->generated = true;
         pFunc->at = pFunc->atDecl = at;
         pFunc->name = "finalize";
@@ -377,6 +378,7 @@ namespace das {
 
     FunctionPtr generateStructureFinalizer ( const StructurePtr & ls ) {
         auto pFunc = make_smart<Function>();
+        pFunc->privateFunction = true;
         pFunc->generated = true;
         pFunc->at = pFunc->atDecl = ls->at;
         pFunc->name = "finalize";
@@ -421,6 +423,7 @@ namespace das {
                                         const StructurePtr & ls ) {
         auto lfn = lambdaName + "`finazlier";
         auto pFunc = make_smart<Function>();
+        pFunc->privateFunction = true;
         pFunc->generated = true;
         pFunc->at = pFunc->atDecl = block->at;
         pFunc->name = lfn;
@@ -531,6 +534,7 @@ namespace das {
         cTHIS->at = block->at;
         cTHIS->name = "__this";
         cTHIS->type = make_smart<TypeDecl>(ls);
+        cTHIS->type->isExplicit = true;
         pFunc->arguments.push_back(cTHIS);
         for ( auto & arg : block->arguments ) {
             auto cA = arg->clone();
@@ -711,7 +715,7 @@ namespace das {
         }
     protected:
         vector<ExprBlock *> scopes;
-        das_map<string,string> rename;
+        das_hash_map<string,string> rename;
     };
 
     void giveBlockVariablesUniqueNames  ( const ExpressionPtr & expr ) {
@@ -846,6 +850,7 @@ namespace das {
                 cfr->alwaysSafe = true;
             }
             auto cpy = make_smart<ExprCopy>(expr->at, cto, cfr);
+            cpy->allowCopyTemp = true;  // this is for generators which return temp# values
             blk->list.push_back(cpy);
         }
         // yield = X
@@ -1220,6 +1225,7 @@ namespace das {
         arg1->type = make_smart<TypeDecl>(*tupleType);
         arg1->type->constant = true;
         arg1->type->ref = false;
+        arg1->type->implicit = true;
         fn->arguments.push_back(arg1);
         auto block = make_smart<ExprBlock>();
         block->at = at;
@@ -1240,6 +1246,7 @@ namespace das {
     FunctionPtr generateTupleFinalizer ( const LineInfo & at, const TypeDeclPtr & tupleType ) {
         DAS_ASSERT(tupleType->isTuple() && "can only finalize tuple");
         auto fn = make_smart<Function>();
+        fn->privateFunction = true;
         fn->generated = true;
         fn->name = "finalize";
         fn->at = fn->atDecl = at;
@@ -1300,6 +1307,7 @@ namespace das {
         arg1->type = make_smart<TypeDecl>(*variantType);
         arg1->type->constant = true;
         arg1->type->ref = false;
+        arg1->type->implicit = true;
         fn->arguments.push_back(arg1);
         auto block = make_smart<ExprBlock>();
         block->at = at;
@@ -1343,6 +1351,7 @@ namespace das {
     FunctionPtr generateVariantFinalizer ( const LineInfo & at, const TypeDeclPtr & variantType ) {
         DAS_ASSERT(variantType->isVariant() && "can only finalize variant");
         auto fn = make_smart<Function>();
+        fn->privateFunction = true;
         fn->generated = true;
         fn->name = "finalize";
         fn->at = fn->atDecl = at;
@@ -1419,12 +1428,14 @@ namespace das {
         arg1->type = make_smart<TypeDecl>(*right);
         arg1->type->constant = true;
         arg1->type->ref = false;
+        arg1->type->implicit = true;
         fn->arguments.push_back(arg1);
         auto block = make_smart<ExprBlock>();
         block->at = at;
         auto lv = make_smart<ExprVar>(at, "dest");
         auto rv = make_smart<ExprVar>(at, "src");
         auto cl = make_smart<ExprCall>(at, left->firstType->annotation->getSmartAnnotationCloneFunction());
+        DAS_ASSERT(cl->name.length() && "expecting clone name");
         cl->arguments.push_back(lv);
         cl->arguments.push_back(rv);
         block->list.push_back(cl);

@@ -97,6 +97,8 @@ namespace das {
         __forceinline static bool noBracket ( Expression * expr ) {
             return expr->topLevel || expr->bottomLevel || expr->argLevel;
         }
+    // can we see inside quote
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return true; }
     // TYPE
         bool ET = false;
         virtual void preVisit ( TypeDecl * td ) override {
@@ -202,7 +204,10 @@ namespace das {
     // global
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
             Visitor::preVisitGlobalLet(var);
-            ss << (var->type->constant ? "let" : "var") << (var->global_shared ? " shared" : "") << "\n\t";
+            ss  << (var->type->constant ? "let" : "var")
+                << (var->global_shared ? " shared" : "")
+                << (var->private_variable ? " private" : "")
+                << "\n\t";
             if ( var->isAccessUnused() ) ss << " /*unused*/ ";
             if ( printVarAccess && !var->access_ref ) ss << "$";
             if ( printVarAccess && !var->access_pass ) ss << "%";
@@ -246,6 +251,8 @@ namespace das {
             }
             if ( fn->fastCall ) { ss << "[fastcall]\n"; }
             if ( fn->exports ) { ss << "[export]\n"; }
+            if ( fn->init ) { ss << "[init]\n"; }
+            if ( fn->shutdown ) { ss << "[finalize]\n"; }
             if ( fn->privateFunction ) { ss << "[private]\n"; }
             if ( fn->unsafeDeref ) { ss << "[unsafe_deref]\n"; }
             if ( fn->unsafeOperation ) { ss << "[unsafe_operation]\n"; }
@@ -561,10 +568,16 @@ namespace das {
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstPtr * c ) override {
+            if ( c->ptrType ) {
+                ss << "const_pointer<" << c->ptrType->describe() << ">(";
+            }
             if ( c->getValue() ) {
                 ss << "*0x" << HEX << intptr_t(c->getValue()) << DEC;
             } else {
                 ss << "null";
+            }
+            if ( c->ptrType ) {
+                ss << ")";
             }
             return Visitor::visit(c);
         }
@@ -933,6 +946,11 @@ namespace das {
         virtual void preVisit ( ExprContinue * that ) override {
             Visitor::preVisit(that);
             ss << "continue";
+        }
+    // typedecl
+        virtual void preVisit ( ExprTypeDecl * expr ) override {
+            Visitor::preVisit(expr);
+            ss << "type<" << *expr->typeexpr << ">";
         }
     // typeinfo
         virtual void preVisit ( ExprTypeInfo * expr ) override {

@@ -3,15 +3,6 @@
 #include "daScript/simulate/runtime_matrices.h"
 
 namespace das {
-
-    __forceinline void das_clone(float3x4 & a, const float3x4 & b) {
-        a = b;
-    }
-
-    __forceinline void das_clone(float4x4 & a, const float4x4 & b) {
-        a = b;
-    }
-
     void float4x4_identity ( float4x4 & mat );
     void float3x4_identity ( float3x4 & mat );
     float4x4 float4x4_translation(float3 xyz);
@@ -25,6 +16,13 @@ namespace das {
         v_mat44_make_from_43cu(va, &a.m[0].x);
         return v_mat44_mul_vec3p(va, v_ldu(&b.x));
     }
+
+    inline float4 float4x4_mul_vec4(const float4x4 &a, float4 b) {
+        mat44f va;
+        memcpy(&va,&a,sizeof(float4x4));
+        return v_mat44_mul_vec4(va, b);
+    }
+
     inline float3 rotate(const float3x4 &a, float3 b) {
         mat44f va;
         v_mat44_make_from_43cu(va, &a.m[0].x);

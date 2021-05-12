@@ -61,82 +61,10 @@ namespace das {
         V_END();
     }
 
-    template <int argCount>
-    SimNode * SimNode_FastCall<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(FastCall);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_Call<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(Call);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_CallAndCopyOrMove<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(CallAndCopyOrMove);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_Invoke<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(Invoke);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_InvokeAndCopyOrMove<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(InvokeAndCopyOrMove);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_InvokeFn<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(InvokeFn);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_InvokeLambda<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(InvokeLambda);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_InvokeAndCopyOrMoveFn<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(InvokeAndCopyOrMoveFn);
-        V_CALL();
-        V_END();
-    }
-
-    template <int argCount>
-    SimNode * SimNode_InvokeAndCopyOrMoveLambda<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(InvokeAndCopyOrMoveLambda);
-        V_CALL();
-        V_END();
-    }
-
     template <typename CastTo, typename CastFrom>
     SimNode * SimNode_Cast<CastTo,CastFrom>::visit ( SimVisitor & vis ) {
         V_BEGIN();
-        string opName = "Cast_to_" + typeName<CastTo>::name();
+        string opName = string("Cast_to_") + typeName<CastTo>::name();
         vis.op(opName.c_str(), sizeof(CastFrom), typeName<CastFrom>::name());
         V_SUB(arguments[0]);
         V_END();
@@ -261,16 +189,6 @@ namespace das {
         V_END();
     }
 
-    template <int argCount>
-    SimNode * SimNode_NewWithInitializer<argCount>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP(NewWithInitializer);
-        V_CALL();
-        V_ARG(bytes);
-        V_ARG(persistent);
-        V_END();
-    }
-
     template <typename TT>
     SimNode * SimNode_Set<TT>::visit ( SimVisitor & vis ) {
         V_BEGIN();
@@ -283,7 +201,7 @@ namespace das {
     template <typename TT>
     SimNode * SimNode_CloneRefValueT<TT>::visit ( SimVisitor & vis ) {
         V_BEGIN();
-        V_OP_TT(CopyRefValue);
+        V_OP_TT(CloneRefValue);
         V_SUB(l);
         V_SUB(r);
         V_END();
@@ -335,12 +253,11 @@ namespace das {
         V_END();
     }
 
-    template <int size>
-    SimNode * SimNode_InitLocalCMResN<size>::visit ( SimVisitor & vis ) {
+    template <typename TT>
+    SimNode * SimNode_ReturnAndMoveR2V<TT>::visit ( SimVisitor & vis ) {
         V_BEGIN();
-        V_OP(InitLocalCMResN);
-        V_SP(offset);
-        V_ARG(size);
+        V_OP_TT(ReturnAndMoveR2V);
+        V_SUB(subexpr);
         V_END();
     }
 }

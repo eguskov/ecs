@@ -16,6 +16,11 @@
 #include <initializer_list>
 #include <functional>
 #include <algorithm>
+#include <functional>
+#include <climits>
+
+#include <limits.h>
+#include <setjmp.h>
 
 namespace das {using namespace std;}
 
@@ -59,4 +64,8 @@ using das_safe_set = std::set<K,C>;
 
 #ifndef DAS_FUSION
   #define DAS_FUSION  0
+#endif
+
+#ifndef DAS_DEBUGGER
+  #define DAS_DEBUGGER  1
 #endif

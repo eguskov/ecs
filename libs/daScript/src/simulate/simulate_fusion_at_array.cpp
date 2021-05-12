@@ -85,7 +85,7 @@ namespace das {
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             auto rr = uint32_t(r.subexpr->evalInt(context)); \
             if ( rr >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %u of %u", rr, pl->size); \
-            return v_ldu((const float *)(pl + rr*stride + offset)); \
+            return v_ldu((const float *)(pl->data + rr*stride + offset)); \
         } \
     };
 
@@ -150,7 +150,7 @@ namespace das {
     void createFusionEngine_at_array() {
         REGISTER_SETOP_SCALAR(ArrayAtR2V);
         REGISTER_SETOP_NUMERIC_VEC(ArrayAtR2V);
-        (*g_fusionEngine)["ArrayAt"].push_back(make_unique<FusionPoint_Set_ArrayAt_StringPtr>());
+        (*g_fusionEngine)["ArrayAt"].emplace_back(new FusionPoint_Set_ArrayAt_StringPtr());
     }
 }
 

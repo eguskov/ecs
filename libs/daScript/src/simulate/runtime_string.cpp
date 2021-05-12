@@ -54,6 +54,18 @@ namespace das
 
     const char * rts_null = "";
 
+    int hexChar ( char ch ) {
+        if ( ch>='a' && ch<='f' ) {
+            return ch - 'a' + 10;
+        } else if ( ch>='A' && ch<='F' ) {
+            return ch - 'A' + 10;
+        } else if ( ch>='0' && ch<='9' ) {
+            return ch - '0';
+        } else {
+            return -1;
+        }
+    }
+
     string unescapeString ( const string & input, bool * error, bool ) {
         if ( error ) *error = false;
         const char* str = input.c_str();
@@ -81,6 +93,21 @@ namespace das
                     case '{':   result += '{';    break;
                     case '}':   result += '}';    break;
                     case '\r':  if ( str+1!=strEnd && str[1]=='\n' ) str++; break;  // skip CR LF or just CR
+                    case 'x':   // \xA1 -> hex(A1)
+                        if ( str+1!=strEnd && str+2!=strEnd ) {
+                            int c0 = hexChar(str[1]);
+                            int c1 = hexChar(str[2]);
+                            if ( (c0<0 || c1<0) && error ) {
+                                *error = true;
+                                break;
+                            }
+                            result += (char)(c0*16 + c1);
+                            str += 2;
+                        } else {
+                            if ( error ) *error = true;    // expecting \x12
+                            break;
+                        }
+                        break;
                     default:    result += *str; if ( error ) *error = true; break;  // invalid escape character
                 }
             } else
@@ -197,16 +224,6 @@ namespace das
                 message, extra, fixme, erc );
     }
 
-    string reportErrorJson(const struct LineInfo & at, const string & message,
-        const string & extra, const string & fixme, CompilationError erc) {
-        return reportErrorJson(
-            at.fileInfo ? at.fileInfo->source : nullptr,
-            at.fileInfo ? at.fileInfo->name.c_str() : nullptr,
-            at.line, at.column, at.last_line, at.last_column,
-            at.fileInfo ? at.fileInfo->tabSize : 4,
-            message, extra,fixme, erc );
-    }
-
     string reportError ( const char * st, const char * fileName,
         int row, int col, int lrow, int lcol, int tabSize, const string & message,
         const string & extra, const string & fixme, CompilationError erc ) {
@@ -222,50 +239,6 @@ namespace das
         }
         if (!extra.empty()) ssw << extra << "\n";
         if (!fixme.empty()) ssw << "\t" << fixme << "\n";
-        return ssw.str();
-    }
-
-    string reportErrorJson ( const char *, const char * fileName,
-    int row, int col, int lrow, int lcol, int tabSize, const string & message,
-        const string & extra, const string & fixme, CompilationError erc ) {
-        TextWriter ssw;
-        ssw <<  "{\n"
-            <<  " \"uri\": \"" << escapeString(fileName ? fileName : "") << "\",\n"
-            <<  " \"tab\" : " << tabSize << ",\n"
-            <<  " \"range\": {\n"
-            <<  "  \"start\": {\n"
-            <<  "   \"line\": " << row << ",\n"
-            <<  "   \"character\": " << col << "\n"
-            <<  "  },\n"
-            <<  "  \"end\": {\n"
-            <<  "   \"line\": " << lrow << ",\n"
-            <<  "   \"character\": " << lcol << "\n"
-            <<  "  }\n"
-            <<  " },\n"
-            <<  " \"message\" : \"" << escapeString(message) << "\",\n"
-            <<  " \"severity\" : 1,\n"
-            <<  " \"code\" : " << int(erc);
-        if (!extra.empty() || !fixme.empty())
-            ssw <<  ",\n"
-                <<  " \"relatedInformation\" : [\n"
-                <<  "  {\n"
-                <<  "   \"location\" : {\n"
-                <<  "    \"uri\" : \"" << escapeString(fileName ? fileName : "") << "\",\n"
-                <<  "    \"range\": {\n"
-                <<  "     \"start\": {\n"
-                <<  "      \"line\": " << row << ",\n"
-                <<  "      \"character\": " << col << "\n"
-                <<  "     },\n"
-                <<  "     \"end\": {\n"
-                <<  "      \"line\": " << lrow << ",\n"
-                <<  "      \"character\": " << lcol << "\n"
-                <<  "     }\n"
-                <<  "    }\n"
-                <<  "   },\n"
-                <<  "   \"message\" : \"" << escapeString(extra) << (fixme.empty() ? "" : "\\n") << escapeString(fixme) <<  "\"\n"
-                <<  "  }\n"
-                <<  " ]\n";
-        ssw <<  "}\n";
         return ssw.str();
     }
 

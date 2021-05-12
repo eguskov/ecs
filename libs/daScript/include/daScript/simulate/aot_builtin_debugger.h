@@ -11,4 +11,10 @@ namespace das {
     void dapiWalkDataV ( DataWalkerPtr walker, float4 data, const TypeInfo & info );
 
     StackWalkerPtr makeStackWalker ( const void * pClass, const StructInfo * info, Context * context );
+
+    __forceinline Context  & thisContext ( Context * context ) { return *context; }
+
+    vec4f pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args );
+    vec4f pinvoke_impl2 ( Context & context, SimNode_CallBase * call, vec4f * args );
+    vec4f pinvoke_impl3 ( Context & context, SimNode_CallBase * call, vec4f * args );
 }

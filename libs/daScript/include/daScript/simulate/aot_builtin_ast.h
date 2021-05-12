@@ -104,6 +104,7 @@ namespace das {
         Func FN_PREVISIT(ExprArrayComprehensionSubexpr);
         Func FN_PREVISIT(ExprArrayComprehensionWhere);
         DECL_VISIT(ExprTypeInfo);
+        DECL_VISIT(ExprTypeDecl);
         DECL_VISIT(ExprLabel);
         DECL_VISIT(ExprGoto);
         DECL_VISIT(ExprRef2Value);
@@ -112,6 +113,7 @@ namespace das {
         DECL_VISIT(ExprAddr);
         DECL_VISIT(ExprAssert);
         DECL_VISIT(ExprStaticAssert);
+        DECL_VISIT(ExprQuote);
         DECL_VISIT(ExprDebug);
         DECL_VISIT(ExprInvoke);
         DECL_VISIT(ExprErase);
@@ -327,6 +329,7 @@ namespace das {
         IMPL_BIND_EXPR(ExprAddr);
         IMPL_BIND_EXPR(ExprAssert);
         IMPL_BIND_EXPR(ExprStaticAssert);
+        IMPL_BIND_EXPR(ExprQuote);
         IMPL_BIND_EXPR(ExprDebug);
         IMPL_BIND_EXPR(ExprInvoke);
         IMPL_BIND_EXPR(ExprErase);
@@ -382,6 +385,7 @@ namespace das {
         IMPL_BIND_EXPR(ExprReader);
         IMPL_BIND_EXPR(ExprUnsafe);
         IMPL_BIND_EXPR(ExprCallMacro);
+        IMPL_BIND_EXPR(ExprTypeDecl);
     };
 
 #undef FN_PREVISIT
@@ -396,35 +400,63 @@ namespace das {
     char * ast_das_to_string ( Type bt, Context * context );
     char * ast_find_bitfield_name ( smart_ptr_raw<TypeDecl> bft, Bitfield value, Context * context );
 
+    int32_t any_array_size ( void * _arr );
+    int32_t any_table_size ( void * _tab );
+    void any_array_foreach ( void * _arr, int stride, const TBlock<void,void *> & blk, Context * context );
+    void any_table_foreach ( void * _tab, int keyStride, int valueStride, const TBlock<void,void *,void *> & blk, Context * context );
+
+    int32_t get_variant_field_offset ( smart_ptr_raw<TypeDecl> td, int32_t index );
+    int32_t get_tuple_field_offset ( smart_ptr_raw<TypeDecl> td, int32_t index );
+
+    __forceinline void mks_vector_emplace ( MakeStruct & vec, MakeFieldDeclPtr & value ) {
+        vec.emplace_back(move(value));
+    }
+    __forceinline void mks_vector_pop ( MakeStruct & vec ) {
+        vec.pop_back();
+    }
+    __forceinline void mks_vector_clear ( MakeStruct & vec ) {
+        vec.clear();
+    }
+    __forceinline void mks_vector_resize ( MakeStruct & vec, int32_t newSize ) {
+        vec.resize(newSize);
+    }
+
     Module * compileModule ( Context * context );
     smart_ptr_raw<Program> compileProgram ( Context * context );
 
     DebugAgentPtr makeDebugAgent ( const void * pClass, const StructInfo * info, Context * context );
     Module * thisModule ( Context * context, LineInfoArg * lineinfo );
     smart_ptr_raw<Program> thisProgram ( Context * context );
-    void astVisit ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter );
-    void astVisitFunction ( smart_ptr_raw<Function> func, smart_ptr_raw<VisitorAdapter> adapter );
+    void astVisit ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info );
+    void astVisitFunction ( smart_ptr_raw<Function> func, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info);
+    void astVisitExpression ( smart_ptr_raw<Expression> expr, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info);
     PassMacroPtr makePassMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
     smart_ptr<VisitorAdapter> makeVisitor ( const void * pClass, const StructInfo * info, Context * context );
-    void addModuleInferDirtyMacro ( Module * module, PassMacroPtr newM, Context * context );
+    void addModuleInferDirtyMacro ( Module * module, PassMacroPtr & newM, Context * context );
     VariantMacroPtr makeVariantMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
-    void addModuleVariantMacro ( Module * module, VariantMacroPtr newM, Context * context );
-    void addModuleFunctionAnnotation ( Module * module, FunctionAnnotationPtr ann, Context * context );
+    void addModuleVariantMacro ( Module * module, VariantMacroPtr & newM, Context * context );
+    void addModuleFunctionAnnotation ( Module * module, FunctionAnnotationPtr & ann, Context * context );
     FunctionAnnotationPtr makeFunctionAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context );
     StructureAnnotationPtr makeStructureAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context );
-    void addModuleStructureAnnotation ( Module * module, StructureAnnotationPtr ann, Context * context );
+    void addModuleStructureAnnotation ( Module * module, StructureAnnotationPtr & ann, Context * context );
     void forEachFunction ( Module * module, const char * name, const TBlock<void,FunctionPtr> & block, Context * context, LineInfoArg * lineInfo );
     void forEachGenericFunction ( Module * module, const char * name, const TBlock<void,FunctionPtr> & block, Context * context, LineInfoArg * lineInfo );
-    bool addModuleFunction ( Module * module, FunctionPtr func, Context * context );
-    void ast_error ( ProgramPtr prog, const LineInfo & at, const char * message );
-    void addModuleReaderMacro ( Module * module, ReaderMacroPtr newM, Context * context );
+    bool addModuleFunction ( Module * module, FunctionPtr & func, Context * context );
+    bool addModuleVariable ( Module * module, VariablePtr & var, Context * );
+    bool addModuleStructure ( Module * module, StructurePtr & stru, Context * );
+    void ast_error ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo );
+    void addModuleReaderMacro ( Module * module, ReaderMacroPtr & newM, Context * context );
     ReaderMacroPtr makeReaderMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
-    void addModuleCallMacro ( Module * module, CallMacroPtr newM, Context * context );
+    void addModuleCallMacro ( Module * module, CallMacroPtr & newM, Context * context );
     CallMacroPtr makeCallMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context );
-    void addFunctionFunctionAnnotation(smart_ptr_raw<Function> func, FunctionAnnotationPtr ann, Context* context);
+    void addFunctionFunctionAnnotation(smart_ptr_raw<Function> func, FunctionAnnotationPtr & ann, Context* context);
     __forceinline ExpressionPtr clone_expression ( ExpressionPtr value ) { return value->clone(); }
     __forceinline FunctionPtr clone_function ( FunctionPtr value ) { return value->clone(); }
     __forceinline TypeDeclPtr clone_type ( TypeDeclPtr value ) { return make_smart<TypeDecl>(*value); }
+    __forceinline StructurePtr clone_structure ( const Structure * value ) { return value->clone(); }
+    __forceinline VariablePtr clone_variable ( VariablePtr value ) { return value->clone(); }
+    void forceAtRaw ( const smart_ptr_raw<Expression> & expr, const LineInfo & at );
+    void getAstContext ( smart_ptr_raw<Program> prog, smart_ptr_raw<Expression> expr, const TBlock<void,bool,AstContext> & block, Context * context );
 
     template <>
     struct das_iterator <AnnotationArgumentList> : das_iterator<vector<AnnotationArgument>> {

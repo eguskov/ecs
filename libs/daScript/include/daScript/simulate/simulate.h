@@ -1,6 +1,5 @@
 #pragma once
 
-#include <setjmp.h>
 #include "daScript/misc/vectypes.h"
 #include "daScript/misc/type_name.h"
 #include "daScript/misc/arraytype.h"
@@ -14,11 +13,15 @@
 namespace das
 {
     #define DAS_BIND_FUN(a)                     decltype(&a), a
+    #define DAS_BIND_MEMBER_FUN(a)              decltype(&a), &a
     #define DAS_BIND_PROP(BIGTYPE,FIELDNAME)    decltype(&BIGTYPE::FIELDNAME), &BIGTYPE::FIELDNAME
+    #define DAS_BIND_FIELD(BIGTYPE,FIELDNAME)   decltype(das::declval<BIGTYPE>().FIELDNAME), offsetof(BIGTYPE,FIELDNAME)
 
-    template <class T, class M> M get_member_type(M T:: *);
-    #define GET_TYPE_OF(mem) decltype(das::get_member_type(mem))
-    #define DAS_BIND_FIELD(BIGTYPE,FIELDNAME)   GET_TYPE_OF(&BIGTYPE::FIELDNAME),offsetof(BIGTYPE,FIELDNAME)
+    #define DAS_CALL_METHOD(mname)              DAS_BIND_FUN(mname::invoke)
+
+    #ifndef DAS_ENABLE_SMART_PTR_TRACKING
+    #define DAS_ENABLE_SMART_PTR_TRACKING   0
+    #endif
 
     #ifndef DAS_ENABLE_STACK_WALK
     #define DAS_ENABLE_STACK_WALK   1
@@ -28,7 +31,7 @@ namespace das
     #define DAS_ENABLE_EXCEPTIONS   0
     #endif
 
-    #define MAX_FOR_ITERATORS   32
+    #define MAX_FOR_ITERATORS   8
 
     #if DAS_ENABLE_PROFILER
         #define DAS_PROFILE_NODE    profileNode(this);
@@ -47,6 +50,7 @@ namespace das
         SimNode *       init;
         uint32_t        size;
         uint32_t        offset;
+        uint32_t        mangledNameHash;
         union {
             struct {
                 bool    shared : 1;
@@ -207,11 +211,11 @@ namespace das
     typedef smart_ptr<StackWalker> StackWalkerPtr;
 
     void dapiStackWalk ( StackWalkerPtr walker, Context & context, const LineInfo & at );
+    void dumpTrackingLeaks();
 
-    void installDebugAgent ( DebugAgentPtr );
-    void tickDebugAgent ( );
+    typedef shared_ptr<Context> ContextPtr;
 
-    class Context {
+    class Context : public enable_shared_from_this<Context> {
         template <typename TT> friend struct SimNode_GetGlobalR2V;
         friend struct SimNode_GetGlobal;
         template <typename TT> friend struct SimNode_GetSharedR2V;
@@ -274,7 +278,7 @@ namespace das
             return insideContext ++;
         }
 
-        __forceinline uint32_t unlock() {
+        virtual uint32_t unlock() {
             return insideContext --;
         }
 
@@ -284,11 +288,12 @@ namespace das
 
         vec4f evalWithCatch ( SimFunction * fnPtr, vec4f * args = nullptr, void * res = nullptr );
         vec4f evalWithCatch ( SimNode * node );
-        bool  runWithCatch ( const function<void()> & subexpr );
+        bool  runWithCatch ( const callable<void()> & subexpr );
 
         DAS_NORETURN_PREFIX void throw_error ( const char * message ) DAS_NORETURN_SUFFIX;
         DAS_NORETURN_PREFIX void throw_error_ex ( const char * message, ... ) DAS_NORETURN_SUFFIX;
         DAS_NORETURN_PREFIX void throw_error_at ( const LineInfo & at, const char * message, ... ) DAS_NORETURN_SUFFIX;
+        DAS_NORETURN_PREFIX void rethrow () DAS_NORETURN_SUFFIX;
 
         __forceinline SimFunction * getFunction ( int index ) const {
             return (index>=0 && index<totalFunctions) ? functions + index : nullptr;
@@ -300,6 +305,10 @@ namespace das
             return totalVariables;
         }
 
+        __forceinline uint32_t globalOffsetByMangledName ( uint32_t mnh ) const {
+            uint32_t idx = rotl_c(mnh, tabGMnRot) & tabGMnMask;
+            return tabGMnLookup[idx];
+        }
         __forceinline uint64_t adBySid ( uint32_t sid ) const {
             uint32_t idx = rotl_c(sid, tabAdRot) & tabAdMask;
             return tabAdLookup[idx];
@@ -325,6 +334,7 @@ namespace das
         void stackWalk ( const LineInfo * at, bool showArguments, bool showLocalVariables );
         string getStackWalk ( const LineInfo * at, bool showArguments, bool showLocalVariables, bool showOutOfScope = false, bool stackTopOnly = false );
         void runInitScript ();
+        bool runShutdownScript ();
 
         virtual void to_out ( const char * message );           // output to stdout or equivalent
         virtual void to_err ( const char * message );           // output to stderr or equivalent
@@ -580,12 +590,13 @@ namespace das
         bool                            persistent = false;
         char *                          globals = nullptr;
         char *                          shared = nullptr;
-        smart_ptr<ConstStringAllocator> constStringHeap;
-        smart_ptr<NodeAllocator>        code;
-        smart_ptr<DebugInfoAllocator>   debugInfo;
+        shared_ptr<ConstStringAllocator> constStringHeap;
+        shared_ptr<NodeAllocator>       code;
+        shared_ptr<DebugInfoAllocator>  debugInfo;
         StackAllocator                  stack;
         uint32_t                        insideContext = 0;
         bool                            ownStack = false;
+        bool                            shutdown = false;
     public:
         vec4f *         abiThisBlockArg;
         vec4f *         abiArg;
@@ -616,6 +627,11 @@ namespace das
         uint32_t    tabMnRot = 0;
         uint32_t    tabMnSize = 0;
     public:
+        uint32_t *  tabGMnLookup = nullptr;
+        uint32_t    tabGMnMask = 0;
+        uint32_t    tabGMnRot = 0;
+        uint32_t    tabGMnSize = 0;
+    public:
         uint64_t *  tabAdLookup = nullptr;
         uint32_t    tabAdMask = 0;
         uint32_t    tabAdRot = 0;
@@ -627,12 +643,19 @@ namespace das
         uint32_t stopFlags = 0;
         uint32_t gotoLabel = 0;
         vec4f result;
+    public:
+#if DAS_ENABLE_SMART_PTR_TRACKING
+        static vector<smart_ptr<ptr_ref_count>> sptrAllocations;
+#endif
     };
 
     void tickDebugAgent ( );
-    void installDebugAgent ( DebugAgentPtr newAgent );
+    void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context );
     void shutdownDebugAgent();
     void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo );
+    bool isInDebugAgentCreation();
+    bool hasDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
+    Context & getDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
 
     class SharedStackGuard {
     public:
@@ -757,9 +780,9 @@ __forceinline void profileNode ( SimNode * node ) {
                 argValues[i] = arguments[i]->eval(context);
             }
         }
-        SimNode * visitOp1 ( SimVisitor & vis, const char * op, int typeSize, const string & typeName );
-        SimNode * visitOp2 ( SimVisitor & vis, const char * op, int typeSize, const string & typeName );
-        SimNode * visitOp3 ( SimVisitor & vis, const char * op, int typeSize, const string & typeName );
+        SimNode * visitOp1 ( SimVisitor & vis, const char * op, int typeSize, const char * typeName );
+        SimNode * visitOp2 ( SimVisitor & vis, const char * op, int typeSize, const char * typeName );
+        SimNode * visitOp3 ( SimVisitor & vis, const char * op, int typeSize, const char * typeName );
 #define EVAL_NODE(TYPE,CTYPE)\
         virtual CTYPE eval##TYPE ( Context & context ) override {   \
             return cast<CTYPE>::to(eval(context));                  \

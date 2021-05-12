@@ -1,4 +1,5 @@
 options indenting = 4
+options no_aot = true
 
 module cpp_bind
 
@@ -7,9 +8,10 @@ require rtti
 require ast
 require daslib/ast_boost
 
-[export]
 def log_cpp_class_method ( cpp_file:file; name:string; fntype:TypeDeclPtr )
-    let rettd = describe_cpp(fntype.firstType)
+    var cft <- clone_type(fntype.firstType)
+    cft.flags |= TypeDeclFlags smartPtrNative
+    let rettd = describe_cpp(cft)
     fwrite(cpp_file, "{rettd} {name} ( Context * __context__, Func __funcCall__")
     for argN,argT,argI in fntype.argNames,fntype.argTypes,range(100500)
         fwrite(cpp_file, ", ")
@@ -23,7 +25,6 @@ def log_cpp_class_method ( cpp_file:file; name:string; fntype:TypeDeclPtr )
         fwrite(cpp_file, "{argN}")
     fwrite(cpp_file, " )")
 
-[export]
 def log_cpp_class_method_call ( cpp_file:file; name:string; fntype:TypeDeclPtr )
     let rettd = describe_cpp(fntype.firstType)
     fwrite(cpp_file, "das_invoke_function<{rettd}>::invoke\n      <")
@@ -43,8 +44,9 @@ def log_cpp_class_method_call ( cpp_file:file; name:string; fntype:TypeDeclPtr )
             fwrite(cpp_file, ",")
         fwrite(cpp_file, "{argN}")
     fwrite(cpp_file, ")")
+    if fntype.firstType.flags.smartPtr
+        fwrite(cpp_file,".marshal()")
 
-[export]
 def log_cpp_class_adapter ( cpp_file:file; name:string; cinfo:TypeDeclPtr )
     assert(cinfo.isClass,"can only make adapter out of a class")
     var methods : array<string>

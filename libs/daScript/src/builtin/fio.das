@@ -37,6 +37,9 @@ struct df_header
     magic:uint
     size:int
 
+def fload(file:file; size: int; blk: block<(data: array<uint8>): void>): void
+    _builtin_load(file, size, blk)
+
 def fload(f:file;buf:auto(BufType) -const)
     var dfh:df_header
     let r1 = _builtin_read(f,dfh,typeinfo(sizeof type<df_header>))
@@ -57,10 +60,21 @@ def fsave(f:file;buf:auto(BufType)const)
         let len = length(data)
         let dfh = [[df_header magic=df_magic, size=len]]
         r1 = _builtin_write(f,dfh,typeinfo(sizeof type<df_header>))
-        r2 = _builtin_write(f,data,len)
+        unsafe
+            r2 = _builtin_write(f,addr(data[0]),len)
     if r1<0
         return r1
     if r2<0
         return r2
     return (r1+r2)
+
+def fwrite(f:file;buf:auto(BufType) const implicit )
+    concept_assert(typeinfo(is_raw buf),"can only save raw pod")
+    unsafe
+        _builtin_write(f, addr(buf), typeinfo(sizeof buf))
+
+def fwrite(f:file;buf:array<auto(BufType)> const implicit )
+    concept_assert(typeinfo(is_raw type<BufType>),"can only save raw pod array")
+    unsafe
+        _builtin_write(f, addr(buf[0]), length(buf) *( typeinfo(sizeof type<BufType>)))
 

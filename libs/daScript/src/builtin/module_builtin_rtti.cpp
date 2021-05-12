@@ -34,6 +34,7 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(Module,Module)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Error,Error)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(FileAccess,FileAccess)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Context,Context)
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(CodeOfPolicies,CodeOfPolicies)
 
 DAS_BASE_BIND_ENUM(das::CompilationError, CompilationError,
         unspecified
@@ -206,12 +207,12 @@ namespace das {
         }
     };
 
-    struct FileAccessAnnotation : ManagedStructureAnnotation<FileAccess> {
+    struct FileAccessAnnotation : ManagedStructureAnnotation<FileAccess,false,true> {
         FileAccessAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("FileAccess", ml) {
         }
     };
 
-    struct ErrorAnnotation : ManagedStructureAnnotation<Error,false> {
+    struct ErrorAnnotation : ManagedStructureAnnotation<Error> {
         ErrorAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("Error", ml) {
             addField<DAS_BIND_MANAGED_FIELD(what)>("what");
             addField<DAS_BIND_MANAGED_FIELD(extra)>("extra");
@@ -233,6 +234,17 @@ namespace das {
     struct ContextAnnotation : ManagedStructureAnnotation<Context,false> {
         ContextAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("Context", ml) {
         }
+        virtual void walk ( das::DataWalker & walker, void * data ) override {
+            if ( !walker.reading ) {
+                if ( sizeof(intptr_t)==4 ) {
+                    uint32_t T = uint32_t(intptr_t(data));
+                    walker.UInt(T);
+                } else {
+                    uint64_t T = uint64_t(intptr_t(data));
+                    walker.UInt64(T);
+                }
+            }
+        }
     };
 
     struct LineInfoAnnotation : ManagedStructureAnnotation<LineInfo,false> {
@@ -243,11 +255,7 @@ namespace das {
             this->addField<DAS_BIND_MANAGED_FIELD(last_column)>("last_column");
             this->addField<DAS_BIND_MANAGED_FIELD(last_line)>("last_line");
         }
-        virtual bool canCopy() const override { return true; }
         virtual bool isLocal() const override { return true; }
-        virtual SimNode * simulateCopy ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
-            return context.code->makeNode<SimNode_CopyRefValue>(at, l, r, uint32_t(sizeof(LineInfo)));
-        }
     };
 
     TypeDeclPtr makeProgramFlags() {
@@ -495,6 +503,39 @@ namespace das {
         }
     };
 
+    struct CodeOfPoliciesAnnotation : ManagedStructureAnnotation<CodeOfPolicies,false,false> {
+        CodeOfPoliciesAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("CodeOfPolicies", ml) {
+        // memory
+            addField<DAS_BIND_MANAGED_FIELD(stack)>("stack");
+            addField<DAS_BIND_MANAGED_FIELD(intern_strings)>("intern_strings");
+            addField<DAS_BIND_MANAGED_FIELD(persistent_heap)>("persistent_heap");
+            addField<DAS_BIND_MANAGED_FIELD(heap_size_hint)>("heap_size_hint");
+            addField<DAS_BIND_MANAGED_FIELD(string_heap_size_hint)>("string_heap_size_hint");
+        // rtti
+            addField<DAS_BIND_MANAGED_FIELD(rtti)>("rtti");
+        // language
+            addField<DAS_BIND_MANAGED_FIELD(no_unsafe)>("no_unsafe");
+            addField<DAS_BIND_MANAGED_FIELD(no_global_variables)>("no_global_variables");
+            addField<DAS_BIND_MANAGED_FIELD(no_global_variables_at_all)>("no_global_variables_at_all");
+            addField<DAS_BIND_MANAGED_FIELD(no_global_heap)>("no_global_heap");
+            addField<DAS_BIND_MANAGED_FIELD(only_fast_aot)>("only_fast_aot");
+            addField<DAS_BIND_MANAGED_FIELD(aot_order_side_effects)>("aot_order_side_effects");
+            addField<DAS_BIND_MANAGED_FIELD(no_unused_function_arguments)>("no_unused_function_arguments");
+            addField<DAS_BIND_MANAGED_FIELD(no_unused_block_arguments)>("no_unused_block_arguments");
+            addField<DAS_BIND_MANAGED_FIELD(smart_pointer_by_value_unsafe)>("smart_pointer_by_value_unsafe");
+            addField<DAS_BIND_MANAGED_FIELD(allow_block_variable_shadowing)>("allow_block_variable_shadowing");
+            addField<DAS_BIND_MANAGED_FIELD(allow_shared_lambda)>("allow_shared_lambda");
+            addField<DAS_BIND_MANAGED_FIELD(ignore_shared_modules)>("ignore_shared_modules");
+        // environment
+            addField<DAS_BIND_MANAGED_FIELD(no_optimizations)>("no_optimizations");
+            addField<DAS_BIND_MANAGED_FIELD(fail_on_no_aot)>("fail_on_no_aot");
+            addField<DAS_BIND_MANAGED_FIELD(fail_on_lack_of_aot_export)>("fail_on_lack_of_aot_export");
+        // debugger
+            addField<DAS_BIND_MANAGED_FIELD(debugger)>("debugger");
+        }
+        virtual bool isLocal() const override { return true; }
+    };
+
     template <typename TT>
     int32_t rtti_getDim ( const TT & ti, int32_t _index, Context * context ) {
         uint32_t index = _index;
@@ -542,14 +583,15 @@ namespace das {
         return cast<VarInfo *>::from(context.getVariableInfo(index));
     }
 
-    void rtti_builtin_compile ( char * modName, char * str, const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context ) {
+    void rtti_builtin_compile ( char * modName, char * str, const CodeOfPolicies & cop,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context ) {
         TextWriter issues;
         uint32_t str_len = stringLengthSafe(*context, str);
         auto access = make_smart<FileAccess>();
         auto fileInfo = make_unique<FileInfo>((char *) str, uint32_t(str_len));
         access->setFileInfo(modName, move(fileInfo));
         ModuleGroup dummyLibGroup;
-        auto program = parseDaScript(modName, access, issues, dummyLibGroup, true);
+        auto program = parseDaScript(modName, access, issues, dummyLibGroup, true, false, cop);
         if ( program ) {
             if (program->failed()) {
                 for (auto & err : program->errors) {
@@ -767,11 +809,12 @@ namespace das {
 
 #if !DAS_NO_FILEIO
 
-    void rtti_builtin_compile_file ( char * modName, smart_ptr<FileAccess> access, const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context ) {
+    void rtti_builtin_compile_file ( char * modName, smart_ptr<FileAccess> access, const CodeOfPolicies & cop,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context ) {
         TextWriter issues;
         if ( !access ) access = make_smart<FsFileAccess>();
         ModuleGroup dummyLibGroup;
-        auto program = compileDaScript(modName, access, issues, dummyLibGroup, true);
+        auto program = compileDaScript(modName, access, issues, dummyLibGroup, true, cop);
         if ( program ) {
             if (program->failed()) {
                 for (auto & err : program->errors) {
@@ -815,7 +858,8 @@ namespace das {
         return nullptr;
     }
 
-    void rtti_builtin_compile_file(  char *, smart_ptr<FileAccess>, const TBlock<void, bool, smart_ptr<Program>, const string> &, Context * context) {
+    void rtti_builtin_compile_file(  char *, smart_ptr<FileAccess>, const CodeOfPolicies & cop,
+            const TBlock<void, bool, smart_ptr<Program>, const string> &, Context * context) {
         context->throw_error("not supported with DAS_NO_FILEIO");
     }
 
@@ -885,6 +929,8 @@ namespace das {
             // type annotations
             addAnnotation(make_smart<FileInfoAnnotation>(lib));
             addAnnotation(make_smart<LineInfoAnnotation>(lib));
+                addCtor<LineInfo>(*this,lib,"LineInfo","LineInfo");
+                addCtor<LineInfo,FileInfo *,int,int,int,int>(*this,lib,"LineInfo","LineInfo");
             addAnnotation(make_smart<ContextAnnotation>(lib));
             addAnnotation(make_smart<ErrorAnnotation>(lib));
             addAnnotation(make_smart<FileAccessAnnotation>(lib));
@@ -911,16 +957,21 @@ namespace das {
             addRecAnnotation<LocalVariableInfoAnnotation>(lib);
             initRecAnnotation(sia, lib);
             addAnnotation(make_smart<FuncInfoAnnotation>(lib));
+            // CodeOfPolicies
+            addAnnotation(make_smart<CodeOfPoliciesAnnotation>(lib));
+            addCtorAndUsing<CodeOfPolicies>(*this,lib,"CodeOfPolicies","CodeOfPolicies");
             // RttiValue
             addAlias(typeFactory<RttiValue>::make(lib));
             // func info flags
             addConstant<uint32_t>(*this, "FUNCINFO_INIT", uint32_t(FuncInfo::flag_init));
             addConstant<uint32_t>(*this, "FUNCINFO_BUILTIN", uint32_t(FuncInfo::flag_builtin));
+            addConstant<uint32_t>(*this, "FUNCINFO_PRIVATE", uint32_t(FuncInfo::flag_private));
+            addConstant<uint32_t>(*this, "FUNCINFO_SHUTDOWN", uint32_t(FuncInfo::flag_shutdown));
             // macros
             addTypeInfoMacro(make_smart<RttiTypeInfoMacro>());
             // functions
             //      all the stuff is only resolved after debug info is built
-            //      hence SideEffects::modifyExternal is essencial for it to not be optimized out
+            //      hence SideEffects::modifyExternal is essential for it to not be optimized out
             addExtern<DAS_BIND_FUN(rtti_getDimTypeInfo)>(*this, lib, "get_dim",
                 SideEffects::modifyExternal, "rtti_getDimTypeInfo");
             addExtern<DAS_BIND_FUN(rtti_getDimVarInfo)>(*this, lib, "get_dim",
@@ -978,6 +1029,8 @@ namespace das {
             // current line info
             addExtern<DAS_BIND_FUN(getCurrentLineInfo), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
                 "get_line_info", SideEffects::none, "getCurrentLineInfo");
+            // extras
+            registerVectorFunctions<AnnotationDeclarationPtr>::init(this,lib,false,false);
             // add builtin module
             compileBuiltinModule("rtti.das",rtti_das, sizeof(rtti_das));
             // lets make sure its all aot ready

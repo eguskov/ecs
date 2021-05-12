@@ -67,24 +67,34 @@ __forceinline void project_to_nearest_navmesh_point(Point3 & a, float t) { a = P
 
 struct TestObjectFoo {
     Point3 hit;
-    int fooData;
+    int32_t fooData;
     SomeEnum_16 e16;
-    TestObjectFoo * foo_loop = nullptr;
+    TestObjectFoo * foo_loop;
+    int32_t fooArray[3];
     int propAdd13() {
         return fooData + 13;
     }
     __forceinline Point3 hitPos() const { return hit; }
+    __forceinline const Point3 & hitPosRef() const { return hit; }
     __forceinline bool operator == ( const TestObjectFoo & obj ) const {
         return fooData == obj.fooData;
     }
     __forceinline bool operator != ( const TestObjectFoo & obj ) const {
         return fooData != obj.fooData;
     }
+    __forceinline bool isReadOnly() { return false; }
+    __forceinline bool isReadOnly() const { return true; }
+    __forceinline TestObjectFoo * getLoop() { return foo_loop; }
+    __forceinline const TestObjectFoo * getLoop() const { return foo_loop; }
+    void hitMe ( int a, int b ) { fooData = a + b; }
 };
+static_assert ( std::is_trivially_constructible<TestObjectFoo>::value, "this one needs to remain trivially constructable" );
 
 typedef das::vector<TestObjectFoo> FooArray;
 
 void testFooArray(const das::TBlock<void, const FooArray> & blk, das::Context * context);
+
+__forceinline void set_foo_data (TestObjectFoo * obj, int32_t data ) { obj->fooData = data; }
 
 struct TestObjectSmart : public das::ptr_ref_count {
      int fooData = 1234;
@@ -112,6 +122,11 @@ struct TestObjectBar {
 struct TestObjectNotLocal {
     int fooData;
 };
+
+struct TestObjectNotNullPtr {
+    int fooData;
+};
+
 
 int *getPtr();
 
@@ -158,6 +173,10 @@ bool tempArrayExample(const das::TArray<char *> & arr,
     const das::TBlock<void, das::TTemporary<const das::TArray<char *>>> & blk,
     das::Context * context);
 
+void tempArrayAliasExample(const das::TArray<Point3> & arr,
+    const das::TBlock<void, das::TTemporary<const das::TArray<Point3>>> & blk,
+    das::Context * context);
+
 __forceinline TestObjectFoo & fooPtr2Ref(TestObjectFoo * pMat) {
     return *pMat;
 }
@@ -198,3 +217,38 @@ __forceinline SampleVariant makeSampleS() {
 __forceinline int32_t testCallLine ( das::LineInfoArg * arg ) { return arg ? arg->line : 0; }
 
 void tableMojo ( das::TTable<char *,int> & in, const das::TBlock<void,das::TTable<char *,int>> & block, das::Context * context );
+
+struct EntityId {
+    int32_t value;
+    EntityId() : value(0) {}
+    EntityId( const EntityId & t ) : value(t.value) {}
+    EntityId( int32_t t ) : value(t) {}
+    EntityId & operator = ( const EntityId & t ) { value = t.value; return * this; }
+    operator int32_t () const { return value; }
+};
+
+namespace das {
+    template <>
+    struct cast<EntityId> {
+        static __forceinline EntityId to ( vec4f x )            { return EntityId(v_extract_xi(v_cast_vec4i(x))); }
+        static __forceinline vec4f from ( EntityId x )          { return v_cast_vec4f(v_splatsi(x.value)); }
+    };
+}
+__forceinline EntityId make_invalid_id() {
+    return EntityId(-1);
+}
+
+__forceinline EntityId intToEid(int value) {
+    return EntityId(value);
+}
+
+__forceinline int32_t eidToInt(EntityId id) {
+    return id.value;
+}
+
+struct FancyClass {
+    int32_t value;
+    das::string hidden; // hidden property which makes it non-trivial
+    FancyClass () : value(13) {}
+    FancyClass ( int32_t a, int32_t b ) : value(a+b) {}
+};

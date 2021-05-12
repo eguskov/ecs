@@ -61,12 +61,29 @@ namespace das {
         return false;
     }
 
+    bool needAvoidNullPtr ( const TypeDeclPtr & type, bool allowDim ) {
+        if ( !type ) {
+            return false;
+        }
+        if ( !allowDim && type->dim.size() ) {
+            return false;
+        }
+        if ( auto * ann = (TypeAnnotation *) type->isPointerToAnnotation() ) {
+            if ( ann->avoidNullPtr() ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     class LintVisitor : public Visitor {
         bool checkOnlyFastAot;
         bool checkAotSideEffects;
         bool checkNoGlobalHeap;
         bool checkNoGlobalVariables;
+        bool checkNoGlobalVariablesAtAll;
         bool checkUnusedArgument;
+        bool checkUnusedBlockArgument;
         bool checkUnsafe;
     public:
         LintVisitor ( const ProgramPtr & prog ) : program(prog) {
@@ -74,7 +91,9 @@ namespace das {
             checkAotSideEffects = program->options.getBoolOption("aot_order_side_effects", program->policies.aot_order_side_effects);
             checkNoGlobalHeap = program->options.getBoolOption("no_global_heap", program->policies.no_global_heap);
             checkNoGlobalVariables = program->options.getBoolOption("no_global_variables", program->policies.no_global_variables);
+            checkNoGlobalVariablesAtAll = program->options.getBoolOption("no_global_variables_at_all", program->policies.no_global_variables_at_all);
             checkUnusedArgument = program->options.getBoolOption("no_unused_function_arguments", program->policies.no_unused_function_arguments);
+            checkUnusedBlockArgument = program->options.getBoolOption("no_unused_block_arguments", program->policies.no_unused_block_arguments);
             checkUnsafe = program->policies.no_unsafe;
         }
     protected:
@@ -149,10 +168,44 @@ namespace das {
                 program->error("invalid variable name " + var->name, "", "",
                     var->at, CompilationError::invalid_name );
             }
+            if ( checkNoGlobalVariables && !var->generated ) {
+                if ( checkNoGlobalVariablesAtAll ) {
+                    program->error("variable " + var->name + " is disabled via option no_global_variables_at_all", "", "",
+                        var->at, CompilationError::no_global_variables );
+                } else if ( !var->type->isConst() ) {
+                    program->error("variable " + var->name + " is not a constant, which is disabled via option no_global_variables", "", "",
+                        var->at, CompilationError::no_global_variables );
+                }
+            }
+            if ( checkNoGlobalHeap ) {
+                if ( !var->type->isNoHeapType() ) { // note: this is too dangerous to allow even with generated
+                    program->error("variable " + var->name + " uses heap, which is disabled via option no_global_heap", "", "",
+                        var->at, CompilationError::no_global_heap );
+                }
+            }
+            if ( !var->init ) {
+                if ( needAvoidNullPtr(var->type,true) ) {
+                    program->error("global variable of type " + var->type->describe() + " needs to be initialized to avoid null pointer", "", "",
+                        var->at, CompilationError::cant_be_null);
+                }
+            } else {
+                if ( needAvoidNullPtr(var->type,false) && var->init->rtti_isNullPtr() ) {
+                    program->error("global variable of type " + var->type->describe() + " can't be initialized with null", "", "",
+                        var->init->at, CompilationError::cant_be_null);
+                }
+            }
         }
         virtual void preVisit(ExprFor * expr) override {
             Visitor::preVisit(expr);
             DAS_ASSERT(expr->visibility.line);
+        }
+        virtual void preVisit(ExprDelete * expr) override {
+            Visitor::preVisit(expr);
+            if ( needAvoidNullPtr(expr->subexpr->type,true) ) {
+                program->error("can't delete " + expr->subexpr->type->describe() + ", it will create null pointer", "", "",
+                    expr->subexpr->at, CompilationError::cant_be_null);
+            }
+
         }
         virtual void preVisit(ExprLet * expr) override {
             Visitor::preVisit(expr);
@@ -162,22 +215,25 @@ namespace das {
                     program->error("invalid variable name " + var->name, "", "",
                         var->at, CompilationError::invalid_name );
                 }
+                if ( !var->init ) {
+                    if ( needAvoidNullPtr(var->type,true) ) {
+                        program->error("local variable of type " + var->type->describe() + " needs to be initialized to avoid null pointer", "", "",
+                            var->at, CompilationError::cant_be_null);
+                    }
+                } else {
+                    if ( needAvoidNullPtr(var->type,false) && var->init->rtti_isNullPtr() ) {
+                        program->error("local variable of type " + var->type->describe() + " can't be initialized with null", "", "",
+                            var->init->at, CompilationError::cant_be_null);
+                    }
+                }
             }
         }
-        virtual ExpressionPtr visitGlobalLetInit ( const VariablePtr & var, Expression * init ) override {
-            if ( checkNoGlobalHeap ) {
-                if ( !init->type->isNoHeapType() ) {
-                    program->error("variable " + var->name + " uses heap, which is disabled via option no_global_heap", "", "",
-                        var->at, CompilationError::no_global_heap );
-                }
+        virtual void preVisit ( ExprReturn * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->returnType && needAvoidNullPtr(expr->returnType,false) && expr->subexpr->rtti_isNullPtr() ) {
+                program->error("can't return null", "", "",
+                    expr->subexpr->at, CompilationError::cant_be_null);
             }
-            if ( checkNoGlobalVariables ) {
-                if ( !var->type->isConst() ) {
-                    program->error("variable " + var->name + " is not a constant, which is disabled via option no_global_variables", "", "",
-                        var->at, CompilationError::no_global_variables );
-                }
-            }
-            return Visitor::visitGlobalLetInit(var, init);
         }
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
@@ -202,6 +258,15 @@ namespace das {
                             break;
                         }
                     }
+                }
+            }
+            for ( size_t i=0; i!=expr->arguments.size(); ++i ) {
+                const auto & arg = expr->arguments[i];
+                const auto & funArg = expr->func->arguments[i];
+                const auto & argType = funArg->type;
+                if ( needAvoidNullPtr(argType,false) && arg->rtti_isNullPtr() ) {
+                    program->error("can't pass null to function " + expr->func->describeName() + " argument " + funArg->name , "", "",
+                        arg->at, CompilationError::cant_be_null);
                 }
             }
         }
@@ -241,6 +306,10 @@ namespace das {
                 }
             }
             */
+            if ( needAvoidNullPtr(expr->left->type,false) && expr->right->rtti_isNullPtr() ) {
+                program->error("can't assign null pointer to " + expr->left->type->describe(), "", "",
+                    expr->right->at, CompilationError::cant_be_null);
+            }
         }
         virtual void preVisit ( ExprMove * expr ) override {
             Visitor::preVisit(expr);
@@ -250,6 +319,10 @@ namespace das {
                     program->error("side effects may affect move evaluation order", "", "",
                         expr->at, CompilationError::aot_side_effects );
                 }
+            }
+            if ( needAvoidNullPtr(expr->left->type,false) && expr->right->rtti_isNullPtr() ) {
+                program->error("can't assign null pointer to " + expr->left->type->describe(), "", "",
+                    expr->right->at, CompilationError::cant_be_null);
             }
         }
         virtual void preVisit ( ExprClone * expr ) override {
@@ -270,7 +343,8 @@ namespace das {
             }
         }
         virtual void preVisit ( ExprUnsafe * expr ) override {
-            auto fnMod = func->fromGeneric ? func->fromGeneric->module : func->module;
+            auto origin = func->getOrigin();
+            auto fnMod = origin ? origin->module : func->module;
             if ( fnMod == program->thisModule.get() ) {
                 anyUnsafe = true;
                 if ( checkUnsafe ) {
@@ -288,6 +362,12 @@ namespace das {
             if (!isValidFunctionName(fn->name)) {
                 program->error("invalid function name " + fn->name, "", "",
                     fn->at, CompilationError::invalid_name );
+            }
+            if ( !fn->result->isVoid() && !fn->result->isAuto() ) {
+                if ( !exprReturns(fn->body) ) {
+                    program->error("not all control paths return value",  "", "",
+                        fn->at, CompilationError::not_all_paths_return_value);
+                }
             }
         }
         virtual FunctionPtr visit ( Function * fn ) override {
@@ -308,11 +388,29 @@ namespace das {
                 }
             }
         }
+        virtual void preVisit ( ExprBlock * block ) override {
+            Visitor::preVisit(block);
+            if ( block->isClosure ) {
+                if (  !block->returnType->isVoid() && !block->returnType->isAuto() ) {
+                    if ( !exprReturns(block) ) {
+                        program->error("not all control paths of the block return value",  "", "",
+                            block->at, CompilationError::not_all_paths_return_value);
+                    }
+                }
+            }
+        }
         virtual void preVisitBlockArgument ( ExprBlock * block, const VariablePtr & var, bool lastArg ) override {
             Visitor::preVisitBlockArgument(block, var, lastArg);
             if (!isValidVarName(var->name)) {
                 program->error("invalid block argument variable name " + var->name, "", "",
                     var->at, CompilationError::invalid_name );
+            }
+            if ( checkUnusedBlockArgument ) {
+                if ( !var->marked_used && var->isAccessUnused() ) {
+                    program->error("unused block argument " + var->name, "",
+                          "use [unused_argument(" + var->name + ")] if intentional",
+                        var->at, CompilationError::unused_block_argument);
+                }
             }
         }
     public:
@@ -331,10 +429,13 @@ namespace das {
         "aot_order_side_effects",       Type::tBool,
         "no_global_heap",               Type::tBool,
         "no_global_variables",          Type::tBool,
+        "no_global_variables_at_all",   Type::tBool,
         "no_unused_function_arguments", Type::tBool,
+        "no_unused_block_arguments",    Type::tBool,
     // memory
         "stack",                        Type::tInt,
         "intern_strings",               Type::tBool,
+        "multiple_contexts",            Type::tBool,
         "persistent_heap",              Type::tBool,
         "persistent_string_heap",       Type::tBool,
         "heap_size_hint",               Type::tInt,
@@ -342,9 +443,6 @@ namespace das {
     // aot
         "no_aot",                       Type::tBool,
         "aot_prologue",                 Type::tBool,
-    // plotting
-        "plot",                         Type::tBool,
-        "plot_read_write",              Type::tBool,
     // logging
         "log",                          Type::tBool,
         "log_optimization_passes",      Type::tBool,
@@ -359,6 +457,7 @@ namespace das {
         "log_compile_time",             Type::tBool,
         "log_generics",                 Type::tBool,
         "log_mn_hash",                  Type::tBool,
+        "log_gmn_hash",                 Type::tBool,
         "log_ad_hash",                  Type::tBool,
         "print_ref",                    Type::tBool,
         "print_var_access",             Type::tBool,
@@ -401,16 +500,6 @@ namespace das {
         LintVisitor lintV(this);
         visit(lintV);
         unsafe = lintV.anyUnsafe;
-        // all control paths return something
-        for ( auto & fnT : thisModule->functions ) {
-            auto fn = fnT.second;
-            if ( !fn->result->isVoid() && !fn->result->isAuto() ) {
-                if ( !exprReturns(fn->body) ) {
-                    error("not all control paths return value",  "", "",
-                        fn->at, CompilationError::not_all_paths_return_value);
-                }
-            }
-        }
         // check for invalid options
         das_map<string,Type> ao;
         for ( const auto & opt : g_allOptions ) {

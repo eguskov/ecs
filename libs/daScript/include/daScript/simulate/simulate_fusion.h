@@ -23,23 +23,14 @@ namespace das {
     struct FusionPoint {
         FusionPoint () {}
         virtual ~FusionPoint() {}
-        virtual SimNode * fuse ( const SimNodeInfoLookup &, SimNode * node, Context * ) {
-            return node;
-        }
-        static bool is ( const SimNodeInfoLookup & info, SimNode * node, const char * name ) {
-            auto it = info.find(node);
-            if ( it==info.end() ) return false;
-            return it->second.name == name;
-        }
-        static bool is ( const SimNodeInfoLookup & info, SimNode * node, const char * name, const string & typeName ) {
-            auto it = info.find(node);
-            if ( it==info.end() ) return false;
-            return (it->second.name == name) && (it->second.typeName==typeName);
-        }
+        virtual SimNode * fuse ( const SimNodeInfoLookup &, SimNode * node, Context * ) { return node; }
+        static bool is ( const SimNodeInfoLookup & info, SimNode * node, const char * name );
+        static bool is2 ( const SimNodeInfoLookup & info, SimNode * lnode, SimNode * rnode, const char * lname, const char * rname );
+        static bool is ( const SimNodeInfoLookup & info, SimNode * node, const char * name, const char * typeName );
     };
     typedef unique_ptr<FusionPoint> FusionPointPtr;
 
-    typedef das_map<string,vector<FusionPointPtr>> FusionEngine;
+    typedef das_hash_map<string,vector<FusionPointPtr>> FusionEngine;
     extern unique_ptr<FusionEngine> g_fusionEngine;
 
     const char * getSimSourceName(SimSourceType st);
@@ -88,6 +79,7 @@ namespace das {
     string fuseName ( const string & name, const string & typeName );
     void resetFusionEngine();
     void createFusionEngine();
+    void registerFusion ( const char * OpName, const char * CTypeName, FusionPoint * node );
 
 #if DAS_FUSION
     // fusion engine subsections

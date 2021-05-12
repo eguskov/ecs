@@ -1,6 +1,6 @@
 /*
  * Dagor Engine 5
- * Copyright (C) 2003-2020  Gaijin Entertainment Corp.  All rights reserved
+ * Copyright (C) 2003-2021  Gaijin Entertainment.  All rights reserved
  *
  * (for conditions of distribution and use, see License)
 */
@@ -24,12 +24,12 @@ VECMATH_FINLINE vec4f VECTORCALL v_msbit();
 VECMATH_FINLINE vec4f VECTORCALL v_splat4(const float *a);
 //! load vector from 16-byte aligned memory
 NO_ASAN_INLINE vec4f v_ld(const float *m);
-NO_ASAN_INLINE vec4i v_ld_w(const int *m);
+NO_ASAN_INLINE vec4i v_ldi(const int *m);
 //! load vector from unaligned memory
 NO_ASAN_INLINE vec4f v_ldu(const float *m);
-NO_ASAN_INLINE vec4i v_ldu_w(const int *m);
+NO_ASAN_INLINE vec4i v_ldui(const int *m);
 //! load one 32 bit element, zero others
-NO_ASAN_INLINE vec4f v_ld_x(const float *m);
+NO_ASAN_INLINE vec4f v_ldu_x(const float *m);
 //! load unaligned memory and unpacks vector from 4 signed short ints
 VECMATH_FINLINE vec4i VECTORCALL v_ldush(const signed short *m);
 //! load unaligned memory and unpacks vector from 4 unsigned short ints
@@ -121,6 +121,8 @@ VECMATH_FINLINE vec4f VECTORCALL v_cvt_vec4f(vec4i a);
 VECMATH_FINLINE vec4i VECTORCALL v_cvt_ush_vec4i(vec4i a);
 //! unpacks 4 signed shorts (in low 64 bits of vector, .xy) to 4 ints
 VECMATH_FINLINE vec4i VECTORCALL v_cvt_ssh_vec4i(vec4i a);
+//! unpacks 8 unsigned bytes (in low 64 bits of vector, .xy) to 4 shorts
+VECMATH_FINLINE vec4i VECTORCALL v_cvt_byte_vec4i(vec4i a);
 
 //! converts float vector to 4 halfs and stores(unaligned)
 VECMATH_FINLINE void VECTORCALL v_float_to_half(uint16_t* __restrict m, const vec4f v);
@@ -130,6 +132,11 @@ VECMATH_FINLINE vec4f VECTORCALL v_half_to_float(const uint16_t* __restrict m);
 //! converts float vector to 4 halfs (lower 16 bits of vec4i)
 VECMATH_FINLINE vec4i VECTORCALL v_float_to_half(vec4f v);
 
+//! pack float vector to 4 bytes with saturation
+VECMATH_FINLINE uint32_t v_float_to_byte ( vec4f x );
+
+//! unpacks 4 bytes to float vector
+VECMATH_FINLINE vec4f v_byte_to_float ( uint32_t x );
 
 //! round to biggest integer (result remains fp)
 VECMATH_FINLINE vec4f VECTORCALL v_ceil(vec4f a);
@@ -295,6 +302,10 @@ VECMATH_FINLINE vec4i VECTORCALL v_packs(vec4i a);
 VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a, vec4i b);
 //! pack 8x 32-bit ints (value being duplicated) into 8x unsigned 16-bit ints
 VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a);
+//! pack 16x 16-bit ints into 16x unsigned 8-bit ints
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a, vec4i b);
+//! pack 16x 16-bit ints into 16x unsigned 8-bit ints
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a);
 
 //! compute sine and cosine for all components: for C={xyzw}  s.C = sin(a.C); c.C = cos(a.C);
 VECMATH_FINLINE void VECTORCALL v_sincos4(vec4f a, vec4f& s, vec4f& c);
@@ -312,7 +323,7 @@ VECMATH_FINLINE void VECTORCALL v_sincos_x(vec4f a, vec4f& s, vec4f& c);
 VECMATH_FINLINE vec4f VECTORCALL v_dot3(vec4f a, vec4f b);
 //! dot product: .xyzw = (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w)
 VECMATH_FINLINE vec4f VECTORCALL v_dot4(vec4f a, vec4f b);
-//! dot product: .x = (a.x * b.x + a.y * b.y + a.z * b.z); a.w,b.w could not be NAN
+//! dot product: .x = (a.x * b.x + a.y * b.y + a.z * b.z); a.w, b.w could be anything (even NAN)
 VECMATH_FINLINE vec4f VECTORCALL v_dot3_x(vec4f a, vec4f b);
 //! dot product: .x = (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w)
 VECMATH_FINLINE vec4f VECTORCALL v_dot4_x(vec4f a, vec4f b);

@@ -4,6 +4,7 @@
 
 #include "daScript/simulate/simulate_nodes.h"
 #include "daScript/simulate/sim_policy.h"
+#include "daScript/simulate/aot.h"
 
 #include "daScript/ast/ast_interop.h"
 #include "daScript/ast/ast_policy_types.h"
@@ -35,9 +36,9 @@ namespace das
         }
     };
 
-    template <> struct typeName<EnumStub>    { static string name() { return "enum"; } };
-    template <> struct typeName<EnumStub8>   { static string name() { return "enum8"; } };
-    template <> struct typeName<EnumStub16>  { static string name() { return "enum16"; } };
+    template <> struct typeName<EnumStub>    { constexpr static const char * name() { return "enum"; } };
+    template <> struct typeName<EnumStub8>   { constexpr static const char * name() { return "enum8"; } };
+    template <> struct typeName<EnumStub16>  { constexpr static const char * name() { return "enum16"; } };
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub);
@@ -47,11 +48,6 @@ namespace das
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub16);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub16);
-
-
-    __forceinline int32_t enum_to_int   ( EnumStub stub )   { return stub.value; }
-    __forceinline int32_t enum8_to_int  ( EnumStub8 stub )  { return stub.value; }
-    __forceinline int32_t enum16_to_int ( EnumStub16 stub ) { return stub.value; }
 
     template <>
     struct SimPolicy<Func> {
@@ -128,13 +124,16 @@ namespace das
     void Module_BuiltIn::addMiscTypes(ModuleLibrary & lib) {
         // enum
         addFunctionBasic<EnumStub>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum_to_int)>(*this, lib, "int", SideEffects::none, "int");
+        addExtern<DAS_BIND_FUN(enum_to_int)>(*this, lib, "int", SideEffects::none, "int32_t");
+        addExtern<DAS_BIND_FUN(enum_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t");
         // enum8
         addFunctionBasic<EnumStub8>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum8_to_int)>(*this, lib, "int", SideEffects::none, "int");
+        addExtern<DAS_BIND_FUN(enum8_to_int)>(*this, lib, "int", SideEffects::none, "int32_t");
+        addExtern<DAS_BIND_FUN(enum8_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t");
         // enum16
         addFunctionBasic<EnumStub16>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum16_to_int)>(*this, lib, "int", SideEffects::none, "int");
+        addExtern<DAS_BIND_FUN(enum16_to_int)>(*this, lib, "int", SideEffects::none, "int32_t");
+        addExtern<DAS_BIND_FUN(enum16_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t");
         // function
         addFunctionBasic<Func>(*this,lib);
         addFunction( make_smart<BuiltInFn<Sim_EqFunPtr, bool,const Func,const void *>>("==",lib,"==",false) );

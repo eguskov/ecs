@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daScript/ast/ast_typefactory.h"
+#include "daScript/misc/free_list.h"
 
 namespace das {
 
@@ -30,7 +31,7 @@ namespace das {
     class ModuleLibrary;
     class ModuleGroup;
 
-    struct TypeDecl : ptr_ref_count {
+    struct TypeDecl : ptr_ref_count, ReuseAllocator<TypeDecl> {
         enum {
             dimAuto = -1,
             dimConst = -2,
@@ -50,7 +51,7 @@ namespace das {
         bool canAot() const;
         bool canAot( das_set<Structure *> & recAot ) const;
         bool isSameType ( const TypeDecl & decl, RefMatters refMatters, ConstMatters constMatters,
-            TemporaryMatters temporaryMatters, AllowSubstitute allowSubstitute = AllowSubstitute::no, bool topLevel = true ) const;
+            TemporaryMatters temporaryMatters, AllowSubstitute allowSubstitute = AllowSubstitute::no, bool topLevel = true, bool isPassType = false ) const;
         void sanitize();
         bool isExprType() const;
         bool isSimpleType () const;
@@ -68,9 +69,12 @@ namespace das {
         bool isRef() const;
         bool isRefType() const;
         bool isRefOrPointer() const { return isRef() || isPointer(); }
+        bool canWrite() const;
         bool isTemp( bool topLevel = true, bool refMatters = true) const;
         bool isTemp(bool topLevel, bool refMatters, das_set<Structure*> & dep) const;
         bool isTempType(bool refMatters = true) const;
+        bool isFullyInferred(das_set<Structure*> & dep) const;
+        bool isFullyInferred() const;
         bool isShareable(das_set<Structure*> & dep) const;
         bool isShareable() const;
         bool isIndex() const;
@@ -78,6 +82,7 @@ namespace das {
         bool isNumeric() const;
         bool isNumericComparable() const;
         bool isPointer() const;
+        bool isVoidPointer() const;
         bool isIterator() const;
         bool isEnum() const;
         bool isEnumT() const;
@@ -98,10 +103,14 @@ namespace das {
         int getVariantSize() const;
         int getVariantAlign() const;
         int getVariantFieldOffset ( int index ) const;
+        int getVariantUniqueFieldIndex ( const TypeDeclPtr & uniqueType ) const;
         string describe ( DescribeExtra extra = DescribeExtra::yes, DescribeContracts contracts = DescribeContracts::yes, DescribeModule module = DescribeModule::yes) const;
-        bool canCopy() const;
+        __forceinline bool canCopy() const { return canCopy(false); }
+        bool canCopy(bool tempMatters) const;
         bool canMove() const;
         bool canClone() const;
+        bool canNew() const;
+        bool canDeletePtr() const;
         bool canDelete() const;
         bool needDelete() const;
         bool isPod() const;
@@ -116,17 +125,28 @@ namespace das {
         bool isString() const;
         bool isConst() const;
         bool isFoldable() const;
-        bool isAlias() const;
         void collectAliasList(vector<string> & aliases) const;
         bool isAutoArrayResolved() const;
         bool isAuto() const;
         bool isAutoOrAlias() const;
+        bool isAotAlias () const;
+        bool isAlias() const;
+        bool isAliasOrExpr() const;
         bool isVectorType() const;
         bool isBitfield() const;
         bool isLocal() const;
         bool isLocal( das_set<Structure*> & dep ) const;
         bool hasClasses() const;
         bool hasClasses( das_set<Structure*> & dep ) const;
+        bool hasNonTrivialCtor() const;
+        bool hasNonTrivialCtor( das_set<Structure*> & dep ) const;
+        bool hasNonTrivialDtor() const;
+        bool hasNonTrivialDtor( das_set<Structure*> & dep ) const;
+        bool hasNonTrivialCopy() const;
+        bool hasNonTrivialCopy( das_set<Structure*> & dep ) const;
+        bool canBePlacedInContainer() const;
+        bool canBePlacedInContainer( das_set<Structure*> & dep ) const;
+        Annotation * isPointerToAnnotation() const;
         Type getVectorBaseType() const;
         int getVectorDim() const;
         bool canInitWithZero() const;
@@ -168,6 +188,7 @@ namespace das {
                 bool    smartPtr : 1;
                 bool    smartPtrNative : 1;
                 bool    isExplicit : 1;
+                bool    isNativeDim : 1;
             };
             uint32_t flags = 0;
         };
@@ -196,6 +217,11 @@ namespace das {
     template<> struct ToBasicType<uint32_t>     { enum { type = Type::tUInt }; };
     template<> struct ToBasicType<float>        { enum { type = Type::tFloat }; };
     template<> struct ToBasicType<void>         { enum { type = Type::tVoid }; };
+    template<> struct ToBasicType<char>         { enum { type = Type::tInt8 }; };
+#if defined(__APPLE__)
+    // note - under MSVC size_t is unsigned __int64 (or 32) accordingly
+    template<> struct ToBasicType<size_t>       { enum { type = sizeof(size_t)==8 ? Type::tUInt64 : Type::tUInt }; };
+#endif
     template<> struct ToBasicType<float2>       { enum { type = Type::tFloat2 }; };
     template<> struct ToBasicType<float3>       { enum { type = Type::tFloat3 }; };
     template<> struct ToBasicType<float4>       { enum { type = Type::tFloat4 }; };
@@ -223,7 +249,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>();
             t->baseType = Type( ToBasicType<TT>::type );
             t->constant = is_const<TT>::value;
@@ -233,7 +259,7 @@ namespace das {
 
     template <>
     struct typeFactory<char *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tString);
             return t;
         }
@@ -241,7 +267,7 @@ namespace das {
 
     template <>
     struct typeFactory<const char *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tString);
             t->constant = true;
             return t;
@@ -250,7 +276,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<smart_ptr<TT>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tPointer);
             t->firstType = typeFactory<TT>::make(lib);
             t->smartPtr = true;
@@ -261,7 +287,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<smart_ptr_raw<TT>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tPointer);
             t->firstType = typeFactory<TT>::make(lib);
             t->smartPtr = true;
@@ -271,7 +297,7 @@ namespace das {
 
     template <>
     struct typeFactory<Array *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tArray);
             return t;
         }
@@ -279,7 +305,7 @@ namespace das {
 
     template <>
     struct typeFactory<Iterator *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tIterator);
             return t;
         }
@@ -287,7 +313,7 @@ namespace das {
 
     template <>
     struct typeFactory<const Iterator *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tIterator);
             t->constant = true;
             return t;
@@ -296,7 +322,7 @@ namespace das {
 
     template <>
     struct typeFactory<Table *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             auto t = make_smart<TypeDecl>(Type::tTable);
             return t;
         }
@@ -304,21 +330,21 @@ namespace das {
 
     template <>
     struct typeFactory<Context *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             return make_smart<TypeDecl>(Type::fakeContext);
         }
     };
 
     template <>
     struct typeFactory<LineInfoArg *> {
-        static TypeDeclPtr make(const ModuleLibrary &) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
             return make_smart<TypeDecl>(Type::fakeLineInfo);
         }
     };
 
     template <typename ResultType, typename ...Args>
     struct typeFactory<TBlock<ResultType,Args...>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tBlock);
             t->firstType = typeFactory<ResultType>::make(lib);
             t->argTypes = { typeFactory<Args>::make(lib)... };
@@ -327,8 +353,18 @@ namespace das {
     };
     template <typename ResultType, typename ...Args>
     struct typeFactory<TFunc<ResultType,Args...>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tFunction);
+            t->firstType = typeFactory<ResultType>::make(lib);
+            t->argTypes = { typeFactory<Args>::make(lib)... };
+            return t;
+        }
+    };
+
+    template <typename ResultType, typename ...Args>
+    struct typeFactory<TLambda<ResultType,Args...>> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
+            auto t = make_smart<TypeDecl>(Type::tLambda);
             t->firstType = typeFactory<ResultType>::make(lib);
             t->argTypes = { typeFactory<Args>::make(lib)... };
             return t;
@@ -337,9 +373,18 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<TTemporary<TT>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->temporary = true;
+            return t;
+        }
+    };
+
+    template <typename TT>
+    struct typeFactory<TExplicit<TT>> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
+            auto t = typeFactory<TT>::make(lib);
+            t->isExplicit = true;
             return t;
         }
     };
@@ -349,7 +394,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<TImplicit<TT>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->implicit = true;
             return t;
@@ -361,7 +406,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<TArray<TT>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tArray);
             t->firstType = typeFactory<TT>::make(lib);
             return t;
@@ -373,7 +418,7 @@ namespace das {
 
     template <typename TT, uint32_t size>
     struct typeFactory<TDim<TT,size>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->dim.push_back(size);
             return t;
@@ -385,7 +430,7 @@ namespace das {
 
     template <typename TK, typename TV>
     struct typeFactory<TTable<TK,TV>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tTable);
             t->firstType = typeFactory<TK>::make(lib);
             t->secondType = typeFactory<TV>::make(lib);
@@ -393,19 +438,33 @@ namespace das {
         }
     };
 
+    template <typename TT>
+    struct TSequence;
+
+    template <typename TT>
+    struct typeFactory<TSequence<TT>> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
+            auto t = make_smart<TypeDecl>(Type::tIterator);
+            t->firstType = typeFactory<TT>::make(lib);
+            return t;
+        }
+    };
+
+
     template <typename TT, int dim>
     struct typeFactory<TT[dim]> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->dim.push_back(dim);
             t->ref = false;
+            t->isNativeDim = true;
             return t;
         }
     };
 
     template <typename TT>
     struct typeFactory<TT *> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto pt = make_smart<TypeDecl>(Type::tPointer);
             if ( !is_void<TT>::value ) {
                 pt->firstType = typeFactory<TT>::make(lib);
@@ -416,7 +475,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<const TT *> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto pt = make_smart<TypeDecl>(Type::tPointer);
             if ( !is_void<TT>::value ) {
                 pt->firstType = typeFactory<TT>::make(lib);
@@ -429,7 +488,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<TT &> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->ref = true;
             return t;
@@ -438,7 +497,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<const TT &> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->ref = true;
             t->constant = true;
@@ -448,7 +507,7 @@ namespace das {
 
     template <typename TT>
     struct typeFactory<const TT> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = typeFactory<TT>::make(lib);
             t->constant = true;
             return t;
@@ -457,7 +516,7 @@ namespace das {
 
     template <typename FT, typename ST>
     struct typeFactory<pair<FT,ST>> {
-        static TypeDeclPtr make(const ModuleLibrary & lib) {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
             auto t = make_smart<TypeDecl>(Type::tTuple);
             t->argTypes.push_back(typeFactory<FT>::make(lib));
             t->argTypes.push_back(typeFactory<ST>::make(lib));
@@ -466,12 +525,12 @@ namespace das {
     };
 
     template <typename TT>
-    inline TypeDeclPtr makeType(const ModuleLibrary & ctx) {
+    __forceinline TypeDeclPtr makeType(const ModuleLibrary & ctx) {
         return typeFactory<TT>::make(ctx);
     }
 
     template <typename TT>
-    inline TypeDeclPtr makeArgumentType(const ModuleLibrary & ctx) {
+    ___noinline TypeDeclPtr makeArgumentType(const ModuleLibrary & ctx) {
         auto tt = typeFactory<TT>::make(ctx);
         if (tt->isRefType()) {
             tt->ref = false;

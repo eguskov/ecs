@@ -190,10 +190,15 @@ namespace das
 
 
     unsigned string_to_uint ( const char *str, Context * context ) {
+        const uint32_t strLen = stringLengthSafe(*context, str);
+        if (strLen == 0)
+        {
+            context->throw_error("string-to-uint conversion failed. String is not an uint number");
+            return 0;
+        }
         char *endptr;
         unsigned long int ret = strtoul(str, &endptr, 10);
-        const uint32_t strLen = stringLengthSafe ( *context, str );
-        if (endptr != str + strLen || strLen == 0)
+        if (endptr == str)
         {
             context->throw_error("string-to-uint conversion failed. String is not an uint number");
             return 0;
@@ -202,10 +207,15 @@ namespace das
     }
 
     int string_to_int ( const char *str, Context * context ) {
+        const uint32_t strLen = stringLengthSafe(*context, str);
+        if (strLen == 0)
+        {
+            context->throw_error("string-to-int conversion failed. String is not an integer number");
+            return 0;
+        }
         char *endptr;
         long int ret = strtol(str, &endptr, 10);
-        const uint32_t strLen = stringLengthSafe ( *context, str );
-        if (endptr != str + strLen || strLen == 0)
+        if (endptr == str)
         {
             context->throw_error("string-to-int conversion failed. String is not an integer number");
             return 0;
@@ -214,10 +224,15 @@ namespace das
     }
 
     float string_to_float ( const char *str, Context * context ) {
+        const uint32_t strLen = stringLengthSafe(*context, str);
+        if (strLen == 0)
+        {
+            context->throw_error("string-to-float conversion failed. String is not an float number");
+            return 0.f;
+        }
         char *endptr;
         float ret = strtof(str, &endptr);
-        const uint32_t strLen = stringLengthSafe ( *context, str );
-        if (endptr != str + strLen || strLen == 0)
+        if (endptr == str)
         {
             context->throw_error("string-to-float conversion failed. String is not an float number");
             return 0.f;
@@ -226,13 +241,18 @@ namespace das
     }
 
     double string_to_double ( const char *str, Context * context ) {
+        const uint32_t strLen = stringLengthSafe(*context, str);
+        if (strLen == 0)
+        {
+            context->throw_error("string-to-float conversion failed. String is not an double number");
+            return 0.0;
+        }
         char *endptr;
         double ret = strtod(str, &endptr);
-        const uint32_t strLen = stringLengthSafe ( *context, str );
-        if (endptr != str + strLen || strLen == 0)
+        if (endptr == str)
         {
-            context->throw_error("string-to-dobule conversion failed. String is not an dobule number");
-            return 0.f;
+            context->throw_error("string-to-dobule conversion failed. String is not an double number");
+            return 0.0;
         }
         return ret;
     }
@@ -448,13 +468,44 @@ namespace das
         return memcmp ( str.data() + sz - slen, substr, slen )==0;
     }
 
-    int32_t builtin_ext_string_length(string & str) {
-        return int32_t(str.size());
+    int32_t builtin_ext_string_length(const string & str) {
+        return int32_t(str.length());
     }
+
     void builtin_resize_string(string & str, int32_t newLength) {
         str.resize(newLength);
     }
 
+    // TODO: do we need a coresponding delete?
+    char * builtin_reserve_string_buffer ( const char * str, int32_t length, Context * context ) {
+        auto buf = context->heap->allocate(length);
+        if ( str ) {
+            auto slen = min ( int32_t(strlen(str)), length-1 );
+            memcpy ( buf, str, slen );
+            buf[slen] = 0;
+        } else {
+            buf[0] = 0;
+        }
+        return buf;
+    }
+
+    char * builtin_string_rtrim ( char* s, Context * context ) {
+        if ( !s ) return nullptr;
+        char * str_end_o = s + strlen(s);
+        char * str_end = str_end_o;
+        while ( str_end > s && is_white_space(str_end[-1]) ) str_end--;
+        if ( str_end==s ) {
+            return nullptr;
+        } else if ( str_end!=str_end_o ) {
+            auto len = str_end - s;
+            char * res = context->stringHeap->allocateString(nullptr, int32_t(len));
+            memcpy ( res, s, len );
+            res[len] = 0;
+            return res;
+        } else {
+            return s;
+        }
+    }
     class Module_Strings : public Module {
     public:
         Module_Strings() : Module("strings") {
@@ -560,6 +611,7 @@ namespace das
             addExtern<DAS_BIND_FUN(builtin_string_escape)>(*this, lib, "escape", SideEffects::none, "builtin_string_escape");
             addExtern<DAS_BIND_FUN(builtin_string_unescape)>(*this, lib, "unescape", SideEffects::none, "builtin_string_unescape");
             addExtern<DAS_BIND_FUN(builtin_string_replace)>(*this, lib, "replace", SideEffects::none, "builtin_string_replace");
+            addExtern<DAS_BIND_FUN(builtin_string_rtrim)>(*this, lib, "rtrim", SideEffects::none, "builtin_string_rtrim");
             // format
             addExtern<DAS_BIND_FUN(format<int32_t>)> (*this, lib, "format", SideEffects::none, "format<int32_t>");
             addExtern<DAS_BIND_FUN(format<uint32_t>)>(*this, lib, "format", SideEffects::none, "format<uint32_t>");
@@ -575,6 +627,9 @@ namespace das
             // bitset helpers
             addExtern<DAS_BIND_FUN(is_char_in_set)>(*this, lib, "is_char_in_set",
                 SideEffects::none,"is_char_in_set");
+            // string buffer
+            addExtern<DAS_BIND_FUN(builtin_reserve_string_buffer)>(*this, lib, "reserve_string_buffer",
+                SideEffects::none,"builtin_reserve_string_buffer");
             // lets make sure its all aot ready
             verifyAotReady();
         }

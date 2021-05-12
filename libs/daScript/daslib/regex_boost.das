@@ -1,6 +1,7 @@
 options indenting = 4
+options remove_unused_symbols = false
 
-module regex_boost
+module regex_boost shared
 
 require ast
 require strings
@@ -26,8 +27,8 @@ class RegexReader : AstReaderMacro
             macro_error(prog,expr.at,"regular expression did not compile")
             return [[ExpressionPtr]]
         // TODO: turn into AOT?
-        let re_data <- convert_to_expression(regex,expr.at)
+        var re_data <- convert_to_expression(regex,expr.at)
         delete regex
         var creg <- new [[ExprCall() at=expr.at, name:="regex::regex_compile"]]
-        push(creg.arguments,re_data)
+        emplace(creg.arguments,re_data)
         return creg

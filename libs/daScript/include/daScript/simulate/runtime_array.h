@@ -1,6 +1,5 @@
 #pragma once
 
-#include <climits>
 #include "daScript/simulate/simulate.h"
 #include "daScript/misc/arraytype.h"
 
@@ -309,6 +308,8 @@ namespace das
     // FOR GOOD ARRAY DEBUG
     ///////////////////////
 
+#if DAS_DEBUGGER
+
     template <int totalCount>
     struct SimNodeDebug_ForGoodArray : public SimNode_ForGoodArray<totalCount> {
         SimNodeDebug_ForGoodArray ( const LineInfo & at ) : SimNode_ForGoodArray<totalCount>(at) {}
@@ -462,6 +463,8 @@ namespace das
             return v_zero();
         }
     };
+
+#endif
 
     //////////////////
     // FOR FIXED ARRAY
@@ -627,6 +630,8 @@ namespace das
     // FOR FIXED ARRAY DEBUG
     ////////////////////////
 
+#if DAS_DEBUGGER
+
     // FOR
     template <int totalCount>
     struct SimNodeDebug_ForFixedArray : SimNode_ForFixedArray<totalCount> {
@@ -752,6 +757,9 @@ namespace das
             return v_zero();
         }
     };
+
+#endif
+
 }
 
 #include "daScript/simulate/simulate_visit_op_undef.h"

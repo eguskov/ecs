@@ -115,7 +115,7 @@ namespace das
         ExprAt ( const LineInfo & a, const ExpressionPtr & s, const ExpressionPtr & i )
             : Expression(a), subexpr(s), index(i) { __rtti = "ExprAt"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isAt() const override { return true; }
@@ -135,7 +135,7 @@ namespace das
         ExprSafeAt ( const LineInfo & a, const ExpressionPtr & s, const ExpressionPtr & i )
             : ExprAt(a,s,i) { __rtti = "ExprSafeAt"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isAt() const override { return false; }
@@ -190,6 +190,8 @@ namespace das
             };
             uint32_t            blockFlags = 0;
         };
+        Function *              inFunction = nullptr;       // moving this to the last position of a class
+                                                            // is a workaround of a compiler bug in 32-bit MVSC 2015
     };
 
     struct ExprVar : Expression {
@@ -198,7 +200,7 @@ namespace das
             : Expression(a), name(n) { __rtti = "ExprVar"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         virtual SimNode * simulate (Context & context) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isVar() const override { return true; }
         bool isGlobalVariable() const { return !local && !argument && !block; }
@@ -228,7 +230,7 @@ namespace das
             : Expression(a), value(val), name(n), atField(af) { __rtti = "ExprField"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         virtual SimNode * simulate (Context & context) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isField() const override { return true; }
         int tupleFieldIndex() const;
@@ -297,7 +299,7 @@ namespace das
             : Expression(a), value(val), mask(n) { __rtti = "ExprSwizzle"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         virtual SimNode * simulate (Context & context) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isSwizzle() const override { return true; }
         ExpressionPtr   value;
@@ -321,7 +323,7 @@ namespace das
             : ExprField(a,af,val,n) { __rtti = "ExprField"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         virtual SimNode * simulate (Context & context) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isField() const override { return false; }
         virtual bool rtti_isSafeField() const override { return true; }
@@ -341,6 +343,7 @@ namespace das
         string                  name;
         vector<ExpressionPtr>   arguments;
         bool                    argumentsFailedToInfer = false;
+        TypeDeclPtr             aliasSubstitution;  // only used during infer
     };
 
     struct ExprCallMacro : ExprLooksLikeCall {
@@ -379,6 +382,7 @@ namespace das
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual Expression * tail() override { return subexpr->tail(); }
+        virtual bool swap_tail ( Expression * expr, Expression * swapExpr ) override;
         virtual bool rtti_isOp1() const override { return true; }
         virtual string describe() const override;
         ExpressionPtr   subexpr;
@@ -393,6 +397,7 @@ namespace das
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual Expression * tail() override { return right->tail(); }
+        virtual bool swap_tail ( Expression * expr, Expression * swapExpr ) override;
         virtual bool rtti_isOp2() const override { return true; }
         virtual string describe() const override;
         ExpressionPtr   left, right;
@@ -407,6 +412,7 @@ namespace das
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         bool        takeOverRightStack = false;
+        bool        allowCopyTemp = false;
     };
 
     // this moves one object to the other
@@ -446,6 +452,7 @@ namespace das
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         virtual SimNode * simulate (Context & context) const override;
         virtual Expression * tail() override { return right->tail(); }
+        virtual bool swap_tail ( Expression * expr, Expression * swapExpr ) override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isOp3() const override { return true; }
         virtual string describe() const override;
@@ -493,6 +500,7 @@ namespace das
         uint32_t                refStackTop = 0;
         Function *              returnFunc = nullptr;
         ExprBlock *             block = nullptr;
+        TypeDeclPtr             returnType;
     };
 
     struct ExprBreak : Expression {
@@ -535,6 +543,9 @@ namespace das
         ExprConstPtr(const LineInfo & a, void * ptr = nullptr)
             : ExprConstT(a,ptr,Type::tPointer) { __rtti = "ExprConstPtr"; }
         bool isSmartPtr = false;
+        TypeDeclPtr ptrType;
+        virtual ExpressionPtr clone( const ExpressionPtr & expr ) const override;
+        virtual bool rtti_isNullPtr() const override { return true; }
     };
 
     struct ExprConstInt : ExprConstT<int32_t,ExprConstInt> {
@@ -545,6 +556,12 @@ namespace das
     };
 
     struct ExprConstEnumeration : ExprConst {
+        ExprConstEnumeration(int val, const TypeDeclPtr & td)
+            : ExprConst(Type::tEnumeration) {
+            __rtti = "ExprConstEnumeration";
+            enumType = td->enumType;
+            text = td->enumType->find(int64_t(val),"");
+        }
         ExprConstEnumeration(const string & name = string(), const TypeDeclPtr & td = nullptr)
             : ExprConst(Type::tEnumeration), text(name) {
             __rtti = "ExprConstEnumeration";
@@ -688,6 +705,10 @@ namespace das
     struct ExprConstFloat : ExprConstT<float,ExprConstFloat> {
         ExprConstFloat(float i = 0.0f)
             : ExprConstT(i,Type::tFloat) { __rtti = "ExprConstFloat"; }
+        ExprConstFloat(int i)
+            : ExprConstT(float(i),Type::tFloat) { __rtti = "ExprConstFloat"; }
+        ExprConstFloat(double i)
+            : ExprConstT(float(i),Type::tFloat) { __rtti = "ExprConstFloat"; }
         ExprConstFloat(const LineInfo & a, float i = 0.0f)
             : ExprConstT(a,i,Type::tFloat) { __rtti = "ExprConstFloat"; }
     };
@@ -908,6 +929,15 @@ namespace das
         bool isVerify = false;
     };
 
+    struct ExprQuote : ExprLikeCall<ExprQuote> {
+        ExprQuote ( ) { __rtti = "ExprQuote"; };
+        ExprQuote ( const LineInfo & a, const string & name )
+            : ExprLikeCall<ExprQuote>(a,name) { __rtti = "ExprQuote"; }
+        virtual ExpressionPtr visit(Visitor & vis) override;
+        virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
+        virtual SimNode * simulate (Context & context) const override;
+    };
+
     struct ExprStaticAssert : ExprLikeCall<ExprStaticAssert> {
         ExprStaticAssert () { __rtti = "ExprStaticAssert"; };
         ExprStaticAssert ( const LineInfo & a, const string & name )
@@ -1050,7 +1080,7 @@ namespace das
         ExprCast( const LineInfo & a, const ExpressionPtr & se, const TypeDeclPtr & ct )
             : Expression(a), subexpr(se), castType(ct) { __rtti = "ExprCast"; }
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
-        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, Type r2vType ) const override;
+        virtual SimNode * trySimulate (Context & context, uint32_t extraOffset, const TypeDeclPtr & r2vType ) const override;
         virtual SimNode * simulate (Context & context) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isCast() const override { return true; }
@@ -1194,6 +1224,7 @@ namespace das
         virtual vector<SimNode *> simulateLocal ( Context & context ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off ) override;
+        virtual bool rtti_isMakeVariant() const override { return true; }
         vector<MakeFieldDeclPtr>    variants;
     };
 
@@ -1234,6 +1265,17 @@ namespace das
         ExpressionPtr   exprWhere;
         ExpressionPtr   subexpr;
         bool            generatorSyntax = false;
+    };
+
+    struct ExprTypeDecl : Expression {
+        ExprTypeDecl () { __rtti = "ExprTypeDecl"; };
+        ExprTypeDecl ( const LineInfo & a, const TypeDeclPtr & d )
+            : Expression(a), typeexpr(d) { __rtti = "ExprTypeDecl"; }
+        virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
+        virtual ExpressionPtr visit(Visitor & vis) override;
+        virtual SimNode * simulate (Context & context) const override;
+        virtual bool rtti_isTypeDecl() const override { return true; }
+        TypeDeclPtr         typeexpr;
     };
 }
 

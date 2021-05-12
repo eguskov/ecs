@@ -3,6 +3,7 @@
 #include "daScript/misc/sysos.h"
 
 #if defined(_WIN32)
+    #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
     namespace das {
         size_t getExecutablePathName(char* pathName, size_t pathNameCapacity) {
@@ -88,8 +89,11 @@ namespace das {
                 if ( suffix != "bin" ) {
                     ep = get_prefix(ep);            // remove debug
                 }
-                DAS_ASSERT(get_suffix(ep)=="bin");
-                g_dasRoot = get_prefix(ep);         // remove bin
+                if ( get_suffix(ep)!="bin" ) {
+                    g_dasRoot = ".";
+                } else {
+                    g_dasRoot = get_prefix(ep);     // remove bin
+                }
             } else {
                 g_dasRoot = ".";
             }

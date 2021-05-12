@@ -1,4 +1,5 @@
 // options log = true // , log_infer_passes=true
+require UnitTest
 
 struct Foo
     a : int
@@ -55,7 +56,7 @@ def test_clone_array
     for t in range(3)
         x[t] = t + 1
     for t in range(3)
-        assert(y[t]==t)
+        verify(y[t]==t)
 
 [sideeffects]
 def test_clone_table
@@ -67,7 +68,7 @@ def test_clone_table
         x[t] = string(t+1)
     assert(length(y)==3)
     for t in range(3)
-        assert(y[t]==string(t))
+        verify(y[t]==string(t))
 
 [export]
 def test
@@ -77,3 +78,6 @@ def test
     test_clone_complex()
     return true
 
+[export]
+def test_if_compiles ( var a : dasvector`TestObjectFoo; b : TestObjectFoo# )
+    push_clone(a,b)

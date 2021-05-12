@@ -25,26 +25,56 @@ def resize(var Arr:array<auto(numT)>;newSize:int)
 def reserve(var Arr:array<auto(numT)>;newSize:int)
     __builtin_array_reserve(Arr,newSize,typeinfo(sizeof type<numT>))
 
-def push(var Arr:array<auto(numT)>;value:numT const;at:int=-1)
+def pop(var Arr:array<auto(numT)>)
+    resize(Arr, length(Arr)-1)  // resize will throw if negative
+
+def push(var Arr:array<auto(numT)>;value:numT const;at:int)
     static_if typeinfo(can_copy value)
         Arr[__builtin_array_push(Arr,at,typeinfo(sizeof type<numT>))] = value
     else
         concept_assert(false,"can't push value, which can't be copied")
 
-def pop(var Arr:array<auto(numT)>)
-    resize(Arr, length(Arr)-1)  // resize will throw if negative
+def push(var Arr:array<auto(numT)>;value:numT const)
+    static_if typeinfo(can_copy value)
+        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof type<numT>))] = value
+    else
+        concept_assert(false,"can't push value, which can't be copied")
 
-def emplace(var Arr:array<auto(numT)>;var value:numT;at:int=-1)
+def emplace(var Arr:array<auto(numT)>;var value:numT;at:int)
     static_if typeinfo(can_move value)
         Arr[__builtin_array_push(Arr,at,typeinfo(sizeof type<numT>))] <- value
     else
         concept_assert(false,"can't emplace value, which can't be moved")
 
-def push_clone(var Arr:array<auto(numT)>;value:numT;at:int=-1)
+def emplace(var Arr:array<auto(numT)>;var value:numT)
+    static_if typeinfo(can_move value)
+        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof type<numT>))] <- value
+    else
+        concept_assert(false,"can't emplace value, which can't be moved")
+
+def push_clone(var Arr:array<auto(numT)>;value:numT implicit;at:int)
     static_if typeinfo(can_clone value)
         Arr[__builtin_array_push_zero(Arr,at,typeinfo(sizeof type<numT>))] := value
     else
         concept_assert(false,"can't push-clone value, which can't be moved")
+
+def push_clone(var Arr:array<auto(numT)>;value:numT implicit)
+    static_if typeinfo(can_clone value)
+        Arr[__builtin_array_push_back_zero(Arr,typeinfo(sizeof type<numT>))] := value
+    else
+        concept_assert(false,"can't push-clone value, which can't be moved")
+
+def push_clone ( var A : auto(CT) -# -const; b : auto(TT) implicit )
+    static_if !typeinfo(can_clone type<TT>)
+        concept_assert(false,"can't push_clone type which can't be cloned")
+    static_elif !typeinfo(can_be_placed_in_container type<TT>)
+        concept_assert(false,"can't push_clone type which can't be placed in a container")
+    static_elif !typeinfo(builtin_function_exists @@ <(var a:CT -# -const;var b:TT -# -const):void> _::emplace)
+        concept_assert(false,"can't push_clone, missing emplace")
+    else
+        unsafe
+            var cb : TT -# -const := b
+            _::emplace(A, cb)
 
 def erase(var Arr:array<auto(numT)>;at:int)
     __builtin_array_erase(Arr,at,typeinfo(sizeof type<numT>))
@@ -52,6 +82,9 @@ def erase(var Arr:array<auto(numT)>;at:int)
 [unused_argument(a)]
 def length(a:auto[]):int
     return typeinfo(dim a)
+
+def empty(a:array<auto>) : bool
+    return length(a)==0
 
 // table
 
@@ -111,9 +144,10 @@ def binary_load(var obj; data:array<uint8>)
     _builtin_binary_load(obj,data)
 
 def clone_to_move(clone_src:auto(TT) implicit) : TT -const -#
-    var clone_dest : TT - #
-    clone_dest := clone_src
-    return <- clone_dest
+    unsafe
+        var clone_dest : TT - #
+        clone_dest := clone_src
+        return <- clone_dest
 
 def clone_dim(var a;b:auto implicit)
     static_if typeinfo(is_dim a) && typeinfo(is_dim b) && typeinfo(dim a)==typeinfo(dim b)
@@ -140,19 +174,20 @@ def clone(var a:table<auto(KT);auto(VT)>;b:table<KT;VT>)
 def clone(var a:table<auto(KT);auto(VT)>;b:table<KT;VT>#)
     clear(a)
     for k,v in keys(b),values(b)
-        a[k] := v
+        let kk := k
+        a[kk] := v
 
-def keys(a:table<auto(keyT);auto(valT)>) : iterator<keyT & const>
+def keys(a:table<auto(keyT);auto(valT)> implicit) : iterator<keyT & const>
     var it : iterator<keyT & const>
     __builtin_table_keys(it,a,typeinfo(sizeof type<keyT>))
     return <- it
 
-def values(a:table<auto(keyT);auto(valT)> =const) : iterator<valT & const>
+def values(a:table<auto(keyT);auto(valT)> =const implicit) : iterator<valT & const>
     var it : iterator<valT & const>
     __builtin_table_values(it,a,typeinfo(sizeof type<valT>))
     return <- it
 
-def values(var a:table<auto(keyT);auto(valT)> =const) : iterator<valT &>
+def values(var a:table<auto(keyT);auto(valT)> =const implicit) : iterator<valT &>
     var it : iterator<valT &>
     __builtin_table_values(it,a,typeinfo(sizeof type<valT>))
     return <- it
@@ -220,7 +255,7 @@ def each ( rng : range ) : iterator<int>
 
 def iter_range ( foo )
     concept_assert(typeinfo(is_iterable foo),"requires iterable")
-    return range(length(foo)) // assuming length(foo) exists
+    return range(_::length(foo)) // assuming length(foo) exists
 
 [generic,unsafe_operation]
 def each ( str : string ) : iterator<int>
@@ -246,18 +281,22 @@ def each ( lam : lambda<(var arg:auto(argT)):bool> ) : iterator<argT -&>
     concept_assert(typeinfo(is_ref type<argT>),"lamda-to-iterator argument has to be reference; expecting value& or reference type")
     var it : iterator<argT -&>
     _builtin_make_lambda_iterator(it,lam)
-    return <- it
+    unsafe
+        return <- it
 
 def each_ref ( lam : lambda<(var arg:auto(argT)?):bool> ) : iterator<argT &>
     var it : iterator<argT &>
     _builtin_make_lambda_iterator(it, lam)
-    return <- it
+    unsafe
+        return <- it
 
+[unused_argument(tt)]
 def each_enum(tt:auto(TT)) : iterator<TT -const -&>
     concept_assert(typeinfo(is_enum tt),"expecting each_enum(any enum value)")
     var iter : iterator<TT -const -&>
     _builtin_make_enum_iterator(iter)
-    return <- iter
+    unsafe
+        return <- iter
 
 def nothing( var it : iterator<auto(TT)> ) : iterator<TT>
     _builtin_make_nil_iterator(it)
@@ -319,8 +358,12 @@ def sort ( var a : auto(TT)[] )
             __builtin_sort_string ( addr(a[0]), length(a) )     // there is string specialization
     else
         unsafe
-            __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
-                return x < y
+            static_if typeinfo(is_ref_type type<TT>)
+                __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
+                    return x < y
+            else
+                __builtin_sort_any_ref_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
+                    return x < y
 
 def sort ( var a : array<auto(TT)> )
     __builtin_array_lock(a)
@@ -334,8 +377,12 @@ def sort ( var a : array<auto(TT)> )
             __builtin_sort_string ( addr(a[0]), length(a) )     // there is string specialization
     else
         unsafe
-            __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
-                return x < y
+            static_if typeinfo(is_ref_type type<TT>)
+                __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
+                    return x < y
+            else
+                __builtin_sort_any_ref_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a) ) <| $ ( x, y  : TT ) : bool
+                    return x < y
     __builtin_array_unlock(a)
 
 def sort ( var a : auto(TT)[]; cmp : block<(x,y:TT):bool> )
@@ -350,7 +397,10 @@ def sort ( var a : auto(TT)[]; cmp : block<(x,y:TT):bool> )
             __builtin_sort_cblock ( addr(a[0]), length(a), cmp )
     else
         unsafe
-            __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
+            static_if typeinfo(is_ref_type type<TT>)
+                __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
+            else
+                __builtin_sort_any_ref_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
 
 def sort ( var a : array<auto(TT)>; cmp : block<(x,y:TT):bool> )
     __builtin_array_lock(a)
@@ -365,8 +415,42 @@ def sort ( var a : array<auto(TT)>; cmp : block<(x,y:TT):bool> )
             __builtin_sort_cblock ( addr(a[0]), length(a), cmp )
     else
         unsafe
-            __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
+            static_if typeinfo(is_ref_type type<TT>)
+                __builtin_sort_any_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
+            else
+                __builtin_sort_any_ref_cblock ( addr(a[0]), typeinfo(sizeof type<TT>), length(a), cmp )
     __builtin_array_unlock(a)
+
+def lock ( var a : array<auto(TT)> = const; blk : block<(var x : array<TT># implicit)> )
+    __builtin_array_lock(a)
+    invoke(blk, a)
+    __builtin_array_unlock(a)
+
+def lock ( a : array<auto(TT)> = const; blk : block<(x : array<TT># implicit)> )
+    __builtin_array_lock(a)
+    invoke(blk, a)
+    __builtin_array_unlock(a)
+
+def lock_data ( var a : array<auto(TT)> = const; blk : block<(var p:TT?# implicit;s:int)> )
+    let len = length(a)
+    if len != 0
+        __builtin_array_lock(a)
+        unsafe
+            invoke(blk, addr(a[0]), len)
+        __builtin_array_unlock(a)
+    else
+        var nullT : TT?
+        invoke(blk, nullT, 0)
+
+def lock_data ( a : array<auto(TT)> = const; blk : block<(p:TT const?# implicit;s:int)> )
+    let len = length(a)
+    if len != 0
+        __builtin_array_lock(a)
+        unsafe
+            invoke(blk, addr(a[0]), len)
+        __builtin_array_unlock(a)
+    else
+        invoke(blk, null, 0)
 
 def find_index ( arr : array<auto(TT)> implicit; key : TT )
     for i in range(length(arr))
@@ -380,6 +464,12 @@ def find_index ( arr : auto(TT)[] implicit; key : TT )
             return i
     return -1
 
+def find_index ( arr : iterator<auto(TT)>; key : TT - & )
+    for o,i in arr,range(INT_MAX)
+        if o == key
+            return i
+    return -1
+
 def find_index_if ( arr : array<auto(TT)> implicit; blk : block<(key:TT):bool> )
     for i in range(length(arr))
         if invoke(blk,arr[i])
@@ -389,6 +479,12 @@ def find_index_if ( arr : array<auto(TT)> implicit; blk : block<(key:TT):bool> )
 def find_index_if ( arr : auto(TT)[] implicit; blk : block<(key:TT):bool> )
     for i in range(length(arr))
         if invoke(blk,arr[i])
+            return i
+    return -1
+
+def find_index_if ( arr : iterator<auto(TT)>; blk : block<(key:TT - &):bool> )
+    for o,i in arr,range(INT_MAX)
+        if invoke(blk,o)
             return i
     return -1
 
@@ -406,7 +502,26 @@ def get_ptr ( src : smart_ptr<auto(TT)> ) : TT?
     unsafe
         return reinterpret<TT?> src
 
+[generic]
 def get_command_line_arguments : array<string>
     var args : array<string>
     builtin_get_command_line_arguments(args)
     return <- args
+
+[unsafe_operation]
+def map_to_array ( data:void?; len:int; blk:block<(var arg:array<auto(TT)>#)> )
+    assert(data != null,"expecting data")
+    assert(len > 0,"at least 1 element")
+    let elem_size = typeinfo(sizeof type<TT>)
+    let num_elem = len / elem_size
+    unsafe
+        _builtin_temp_array(data, num_elem, blk)
+
+[unsafe_operation]
+def map_to_ro_array ( data:void?; len:int; blk:block<(arg:array<auto(TT)>#)> )
+    assert(data != null,"expecting data")
+    assert(len > 0,"at least 1 element")
+    let elem_size = typeinfo(sizeof type<TT>)
+    let num_elem = len / elem_size
+    unsafe
+        _builtin_temp_array(data, num_elem, blk)

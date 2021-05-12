@@ -3,6 +3,11 @@
 
 using namespace das;
 
+namespace das {
+    extern bool g_isInAot;
+    extern ProgramPtr g_Program;
+}
+
 void require_project_specific_modules();//link time resolved dependencies
 das::FileAccessPtr get_file_access( char * pak );//link time resolved dependencies
 
@@ -20,11 +25,8 @@ void operator delete(void * p) throw()
 #endif
 
 static bool quiet = false;
-static bool json = false;
 
-static int cursor_x = 0;
-static int cursor_y = 0;
-static bool cursor = false;
+static bool paranoid_validation = false;
 
 TextPrinter tout;
 
@@ -41,57 +43,33 @@ bool saveToFile ( const string & fname, const string & str ) {
     return true;
 }
 
-bool compile ( const string & fn, const string & cppFn ) {
+bool compile ( const string & fn, const string & cppFn, const string &mainFnName ) {
     auto access = get_file_access(nullptr);
     ModuleGroup dummyGroup;
-    bool firstError = true;
     CodeOfPolicies policies;
-    policies.no_optimizations = cursor;
-    if ( auto program = compileDaScript(fn,access,tout,dummyGroup,cursor,policies) ) {
-        if ( cursor ) {
-            auto fi = access->getFileInfo(fn);
-            auto cinfo = program->cursor(LineInfo(fi,cursor_x,cursor_y,cursor_x,cursor_y));
-            tout << cinfo.reportJson();
-            return true;
-        }
+    policies.fail_on_lack_of_aot_export = true;
+    if ( auto program = compileDaScript(fn,access,tout,dummyGroup,false,policies) ) {
         if ( program->failed() ) {
-            if (json)
-                tout << "{ \"result\": \"failed to compile\",\n\"diagnostics\": [\n";
-            else
-                tout << "failed to compile\n";
+            tout << "failed to compile\n";
             for ( auto & err : program->errors ) {
-                if (json) {
-                    if (!firstError)
-                        tout << ",\n";
-                    firstError = false;
-                    tout << reportErrorJson(err.at, err.what, err.extra, err.fixme, err.cerr);
-                } else {
-                    tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
-                }
+                tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
             }
-            if (json)
-                tout << "]\n}";
             return false;
         } else {
             Context ctx(program->getContextStackSize());
             if ( !program->simulate(ctx, tout) ) {
-                if (json)
-                    tout << "{ \"result\": \"failed to simulate\",\n\"diagnostics\": [\n";
-                else
-                    tout << "failed to simulate\n";
+                tout << "failed to simulate\n";
                 for ( auto & err : program->errors ) {
-                    if (json) {
-                        if (!firstError)
-                            tout << ",\n";
-                        firstError = false;
-                        tout << reportErrorJson(err.at, err.what, err.extra, err.fixme, err.cerr);
-                    } else {
-                        tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
-                    }
+                    tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
                 }
-                if (json)
-                    tout << "]\n}";
                 return false;
+            }
+            if (!mainFnName.empty()) {
+                if ( auto fnTest = ctx.findFunction(mainFnName.c_str()) ) {
+                    ctx.restart();
+                    ctx.eval(fnTest, nullptr);
+                }
+                return true;
             }
             // AOT time
             TextWriter tw;
@@ -144,6 +122,8 @@ bool compile ( const string & fn, const string & cppFn ) {
                 tw << "#pragma warning(disable:4244)   // conversion from 'int32_t' to 'float', possible loss of data\n";
                 tw << "#pragma warning(disable:4114)   // same qualifier more than once\n";
                 tw << "#pragma warning(disable:4623)   // default constructor was implicitly defined as deleted\n";
+                tw << "#pragma warning(disable:4946)   // reinterpret_cast used between related classes\n";
+                tw << "#pragma warning(disable:4269)   // 'const' automatic data initialized with compiler generated default constructor produces unreliable results\n";
                 tw << "#endif\n";
                 tw << "#if defined(__GNUC__) && !defined(__clang__)\n";
                 tw << "#pragma GCC diagnostic push\n";
@@ -154,6 +134,7 @@ bool compile ( const string & fn, const string & cppFn ) {
                 tw << "#pragma GCC diagnostic ignored \"-Wreturn-local-addr\"\n";
                 tw << "#pragma GCC diagnostic ignored \"-Wignored-qualifiers\"\n";
                 tw << "#pragma GCC diagnostic ignored \"-Wsign-compare\"\n";
+                tw << "#pragma GCC diagnostic ignored \"-Wsubobject-linkage\"\n";
                 tw << "#endif\n";
                 tw << "#if defined(__clang__)\n";
                 tw << "#pragma clang diagnostic push\n";
@@ -165,15 +146,22 @@ bool compile ( const string & fn, const string & cppFn ) {
                 tw << "#endif\n";
                 tw << "\n";
                 tw << "namespace das {\n";
-                tw << "namespace {\n"; // anonymous
+                tw << "namespace " << program->thisNamespace << " {\n"; // anonymous
+                g_Program = program;
                 program->aotCpp(ctx, tw);
+                g_Program.reset();
                 // list STUFF
-                tw << "struct AotList_impl : AotListBase {\n";
-                tw << "\tvirtual void registerAotFunctions ( AotLibrary & aotLib ) override {\n";
+                tw << "\tstatic void registerAotFunctions ( AotLibrary & aotLib ) {\n";
                 program->registerAotCpp(tw, ctx, false);
                 tw << "\t};\n";
-                tw << "};\n";
-                tw << "AotList_impl impl;\n";
+                tw << "\n";
+                tw << "AotListBase impl(registerAotFunctions);\n";
+                // validation stuff
+                if ( paranoid_validation ) {
+                    program->validateAotCpp(tw,ctx);
+                    tw << "\n";
+                }
+                // footter
                 tw << "}\n";
                 tw << "}\n";
                 tw << "#if defined(_MSC_VER)\n";
@@ -199,6 +187,7 @@ bool compile ( const string & fn, const string & cppFn ) {
 #endif
 
 int MAIN_FUNC_NAME(int argc, char * argv[]) {
+    g_isInAot = true;
     setCommandLineArguments(argc, argv);
     #ifdef _MSC_VER
     _CrtSetReportMode(_CRT_ASSERT, 0);
@@ -208,23 +197,22 @@ int MAIN_FUNC_NAME(int argc, char * argv[]) {
         tout << "dasAot <in_script.das> <out_script.das.cpp> [-q] [-j]\n";
         return -1;
     }
+    string mainName;
     if ( argc>3  ) {
         bool scriptArgs = false;
-        for (int ai = 3; ai != argc; ++ai) {
-            if ( strcmp(argv[ai],"-q")==0 ) {
-                quiet = true;
-            } else if ( strcmp(argv[ai],"-j")==0 ) {
-                json = true;
-            } else if ( strcmp(argv[ai],"-cursor")==0 ) {
-                if ( ai+2 < argc ) {
-                    cursor = true;
-                    cursor_x = atoi(argv[ai+1]);
-                    cursor_y = atoi(argv[ai+2]);
-                    ai += 2;
-                } else {
-                    tout << "-cursor requires X and Y\n";
+        for (int ai = 3; ai != argc; ++ai) {\
+            if ( strcmp(argv[ai],"-main")==0  ) {
+                if (ai+1 > argc)
+                {
+                    tout << "dasAot <in_script.das> <out_script.das.cpp> [-q] [-j]\n";
                     return -1;
                 }
+                mainName = argv[ai+1];
+                ai += 1;
+            } else if ( strcmp(argv[ai],"-q")==0 ) {
+                quiet = true;
+            } else if ( strcmp(argv[ai],"-p")==0 ) {
+                paranoid_validation = true;
             } else if ( strcmp(argv[ai],"--")==0 ) {
                 scriptArgs = true;
             } else if ( !scriptArgs ) {
@@ -233,17 +221,22 @@ int MAIN_FUNC_NAME(int argc, char * argv[]) {
             }
         }
     }
+    // register modules
     NEED_MODULE(Module_BuiltIn);
     NEED_MODULE(Module_Math);
     NEED_MODULE(Module_Strings);
+    NEED_MODULE(Module_Random);
     NEED_MODULE(Module_Rtti);
     NEED_MODULE(Module_Ast);
     NEED_MODULE(Module_Debugger);
-    NEED_MODULE(Module_Random);
     NEED_MODULE(Module_Network);
     NEED_MODULE(Module_UriParser);
+    NEED_MODULE(Module_JobQue);
+    NEED_MODULE(Module_FIO);
     require_project_specific_modules();
-    bool compiled = compile(argv[1], argv[2]);
+    #include "modules/external_need.inc"
+    Module::Initialize();
+    bool compiled = compile(argv[1], argv[2], mainName);
     Module::Shutdown();
     return compiled ? 0 : -1;
 }

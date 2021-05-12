@@ -43,7 +43,7 @@ namespace das {
     int fast_to_int ( const char *str );
     void builtin_append_char_to_string(string & str, int32_t Ch);
     bool builtin_string_ends_with(const string &str, char * substr, Context * context);
-    int32_t builtin_ext_string_length(string & str);
+    int32_t builtin_ext_string_length(const string & str);
     void builtin_resize_string(string & str, int32_t newLength);
     char * string_repeat ( const char * str, int count, Context * context );
     char * to_string_char(int ch, Context * context);
@@ -54,9 +54,12 @@ namespace das {
     void builtin_string_split ( const char * str, const char * delim, const Block & sblk, Context * context );
     char * builtin_string_from_array ( const TArray<uint8_t> & bytes, Context * context );
     char * builtin_string_replace ( const char * str, const char * toSearch, const char * replaceStr, Context * context );
+    char * builtin_string_rtrim ( char* s, Context * context );
 
     __forceinline bool builtin_empty(const char* str) { return !str || str[0] == 0; }
     __forceinline bool builtin_empty_das_string(const string & str) { return str.empty(); }
+
+     char * builtin_reserve_string_buffer ( const char * str, int32_t length, Context * context );
 
     template <typename TT>
     __forceinline char * format ( const char * fmt, TT value, Context * context ) {

@@ -1,6 +1,10 @@
 #pragma once
 
-#include <functional> // std::hash
+#ifndef DAS_SMART_PTR_ID
+#define DAS_SMART_PTR_ID    0
+#endif
+
+void os_debug_break();
 
 namespace das {
 
@@ -16,8 +20,8 @@ namespace das {
         smart_ptr_raw ( T * p ) : ptr(p) {}
         template <typename Y>
         __forceinline smart_ptr_raw ( const smart_ptr_raw<Y> & p ) {
-            static_assert( is_base_of<T,Y>::value, "can only cast if inherited" );
-            ptr = p.get();
+            static_assert( is_base_of<T,Y>::value || is_base_of<Y,T>::value, "can only cast if inherited" );
+            ptr = (T *) p.get();
         }
         __forceinline T * get() const {
             return ptr;
@@ -33,11 +37,36 @@ namespace das {
         __forceinline operator smart_ptr_raw<void> & () const {
             return *((smart_ptr_raw<void> *)this);
         }
-        __forceinline operator smart_ptr<T,smart_ptr_policy<T>> & () const {
-            return *((smart_ptr<T,smart_ptr_policy<T>> *)this);
-        }
         __forceinline operator bool() const {
             return ptr != nullptr;
+        }
+        __forceinline smart_ptr<T, smart_ptr_policy<T>> marshal() const {
+            if ( ptr ) {
+                smart_ptr<T, smart_ptr_policy<T>> res = ptr;
+                DAS_VERIFY ( !smart_ptr_policy<T>::delRef(ptr) );
+                return res;
+            } else {
+                return ptr;
+            }
+        }
+        __forceinline smart_ptr<T, smart_ptr_policy<T>> marshal( const smart_ptr<T, smart_ptr_policy<T>> & expr ) const {
+            if ( !ptr  ) {
+                return nullptr;
+            } else if ( ptr!=expr.get() ) {
+                smart_ptr<T, smart_ptr_policy<T>> res = ptr;
+                DAS_VERIFY ( !smart_ptr_policy<T>::delRef(ptr) );
+                return res;
+            } else {
+                return expr;
+            }
+        }
+        __forceinline operator smart_ptr<T, smart_ptr_policy<T>> & () {
+            using SPT = smart_ptr<T, smart_ptr_policy<T>>;
+            return *(SPT *)this;
+        }
+        __forceinline operator const smart_ptr<T, smart_ptr_policy<T>> & () const {
+            using SPT = smart_ptr<T, smart_ptr_policy<T>>;
+            return *(const SPT *)this;
         }
         T * ptr;
     };
@@ -118,9 +147,8 @@ namespace das {
             return set(p.get());
         }
         __forceinline smart_ptr & operator = ( smart_ptr && p ) {
-            reset();
-            ptr = p.ptr;
-            p.ptr = nullptr;
+            set(p.get());
+            p.set(nullptr);
             return *this;
         }
         __forceinline smart_ptr & operator = ( T * p ) {
@@ -252,8 +280,7 @@ namespace das {
 
     template< class T, class... Args >
     __forceinline smart_ptr<T> make_smart ( Args&&... args ) {
-        T * p = new T(args...);
-        return smart_ptr<T>(p);
+        return new T(args...);
     }
 
     template< class T, class U >
@@ -276,21 +303,43 @@ namespace das {
         return reinterpret_cast<T *>(r.get());
     }
 
+#if DAS_SMART_PTR_ID
+    #define DAS_UPDATE_SMART_PTR_ID        ref_count_id = ++ref_count_total;
+    #define DAS_TRACK_SMART_PTR_ID         if ( ref_count_id==ref_count_track ) os_debug_break();
+#else
+    #define DAS_UPDATE_SMART_PTR_ID
+    #define DAS_TRACK_SMART_PTR_ID
+#endif
+
     class ptr_ref_count {
     public:
-        __forceinline ptr_ref_count () {}
-        __forceinline ptr_ref_count ( const ptr_ref_count &  ) {}
-        __forceinline ptr_ref_count ( const ptr_ref_count && ) {}
+#if DAS_SMART_PTR_ID
+        uint64_t    ref_count_id;
+        static uint64_t ref_count_total;
+        static uint64_t ref_count_track;
+#endif
+    public:
+        __forceinline ptr_ref_count () {
+            DAS_UPDATE_SMART_PTR_ID
+        }
+        __forceinline ptr_ref_count ( const ptr_ref_count &  ) {
+            DAS_UPDATE_SMART_PTR_ID
+        }
+        __forceinline ptr_ref_count ( const ptr_ref_count && ) {
+            DAS_UPDATE_SMART_PTR_ID
+        }
         __forceinline ptr_ref_count & operator = ( const ptr_ref_count & ) { return *this;}
         __forceinline ptr_ref_count & operator = ( ptr_ref_count && ) { return *this; }
         virtual ~ptr_ref_count() {
             DAS_ASSERTF(ref_count == 0, "can only delete when ref_count==0");
         }
         __forceinline void addRef() {
+            DAS_TRACK_SMART_PTR_ID
             ref_count ++;
             DAS_ASSERTF(ref_count, "ref_count overflow");
         }
         __forceinline bool delRef() {
+            DAS_TRACK_SMART_PTR_ID
             DAS_ASSERTF(ref_count, "deleting reference on the object with ref_count==0");
             if ( --ref_count==0 ) {
                 delete this;

@@ -11,14 +11,9 @@
 
 #define FAST_PATH_ANNOTATION    1
 #define FUNC_TO_QUERY           1
+#define MULTIPLE_REQUIRE_ES     1
 
 using namespace das;
-
-#ifndef _MSC_VER
-#define __noinline    __attribute__((noinline))
-#else
-#define __noinline    __declspec(noinline)
-#endif
 
 void testManagedInt(const TBlock<void,const vector<int32_t>> & blk, Context * context) {
     vector<int32_t> arr;
@@ -30,7 +25,7 @@ void testManagedInt(const TBlock<void,const vector<int32_t>> & blk, Context * co
     context->invoke(blk, args, nullptr);
 }
 
-__noinline void updateObject ( Object & obj ) {
+___noinline void updateObject ( Object & obj ) {
     obj.pos.x += obj.vel.x;
     obj.pos.y += obj.vel.y;
     obj.pos.z += obj.vel.z;
@@ -78,7 +73,7 @@ MAKE_TYPE_FACTORY(Object, Object)
 namespace das {
     template <>
     struct typeName<ObjectArray> {
-        static string name() {
+        constexpr static const char * name() {
             return "ObjectArray";
         }
     };
@@ -92,7 +87,7 @@ namespace das {
 }
 
 
-__noinline int AddOne(int a) {
+___noinline int AddOne(int a) {
     return a+1;
 }
 
@@ -205,6 +200,12 @@ struct EsFunctionAnnotation : FunctionAnnotation {
     };
     virtual bool finalize ( const FunctionPtr & func, ModuleGroup & group, const AnnotationArgumentList & args,
                            const AnnotationArgumentList &, string & err ) override {
+#if MULTIPLE_REQUIRE_ES
+        if ( func->module->name.empty() ) {
+            err = "es function needs to have explicit module name, i.e. 'module YOU_MODULE_NAME' on top of the file.";
+            return false;
+        }
+#endif
         auto esData = getGroupData(group);
         auto tab = make_unique<EsPassAttributeTable>();
         if ( auto pp = args.find("es_pass", Type::tString) ) {
@@ -213,26 +214,48 @@ struct EsFunctionAnnotation : FunctionAnnotation {
             err = "pass is not specified";
             return false;
         }
-        tab->functionIndex = (int32_t) func->index;
+#if MULTIPLE_REQUIRE_ES
+        tab->mangledNameHash = func->getMangledNameHash();
+#else
+        tab->functionIndex = func->index;
         if ( tab->functionIndex<0 ) {
             err = "function is not there";
             return false;
         }
+#endif
         buildAttributeTable(*tab, func->arguments, err);
         esData->g_esPassTable.emplace_back(move(tab));
+
         return err.empty();
     }
 };
 
+void * getComponentData ( const string & name ) {
+    if (name == "pos") return g_pos.data();
+    else if (name == "vel") return g_vel.data();
+    else if (name == "velBoxed") return g_velBoxed.data();
+    else return nullptr;
+}
+
 #if FUNC_TO_QUERY
 bool EsRunPass ( Context & context, EsPassAttributeTable & table, const vector<EsComponent> &, uint32_t ) {
+#if MULTIPLE_REQUIRE_ES
+    auto fnIdx = context.fnIdxByMangledName(table.mangledNameHash);
+    auto functionPtr = context.getFunction(fnIdx-1);
+#else
     auto functionPtr = context.getFunction(table.functionIndex);
+#endif
     context.call(functionPtr, nullptr, 0);
     return true;
 }
 #else
 bool EsRunPass ( Context & context, EsPassAttributeTable & table, const vector<EsComponent> & components, uint32_t totalComponents ) {
+#if MULTIPLE_REQUIRE_ES
+    auto fnIdx = context.fnIdxByMangledName(table.mangledNameHash);
+    auto functionPtr = context.getFunction(fnIdx-1);
+#else
     auto functionPtr = context.getFunction(table.functionIndex);
+#endif
     vec4f * _args = (vec4f *)(alloca(table.attributes.size() * sizeof(vec4f)));
     context.callEx(functionPtr, _args, nullptr, 0, [&](SimNode * code){
         uint32_t nAttr = (uint32_t) table.attributes.size();
@@ -247,7 +270,7 @@ bool EsRunPass ( Context & context, EsPassAttributeTable & table, const vector<E
                 return esc.name == table.attributes[a].name;
             });
             if ( it != components.end() ) {
-                data[a]   = (char *) it->data;
+                data[a]   = (char *) getComponentData(it->name);
                 stride[a] = it->stride;
                 boxed[a]  = it->boxed;
             } else {
@@ -280,13 +303,6 @@ bool EsRunPass ( Context & context, EsPassAttributeTable & table, const vector<E
     return true;
 }
 #endif
-
-void * getComponentData ( const string & name ) {
-    if (name == "pos") return g_pos.data();
-    else if (name == "vel") return g_vel.data();
-    else if (name == "velBoxed") return g_velBoxed.data();
-    else return nullptr;
-}
 
 uint32_t EsRunBlock ( Context & context, const Block & block, const vector<EsComponent> & components, uint32_t totalComponents ) {
     auto * closure = (SimNode_ClosureBlock *) block.body;
@@ -564,7 +580,7 @@ typedef unordered_map<char *, int32_t, dictKeyHash, dictKeyEqual> dict_hash_map;
     return maxOcc;
 }
 
-__noinline bool isprime(int n) {
+___noinline bool isprime(int n) {
     for (int i = 2; i != n; ++i) {
         if (n % i == 0) {
             return false;
@@ -573,7 +589,7 @@ __noinline bool isprime(int n) {
     return true;
 }
 
-__noinline int testPrimes(int n) {
+___noinline int testPrimes(int n) {
     int count = 0;
     for (int i = 2; i != n + 1; ++i) {
         if (isprime(i)) {
@@ -583,7 +599,7 @@ __noinline int testPrimes(int n) {
     return count;
 }
 
-__noinline int testFibR(int n) {
+___noinline int testFibR(int n) {
     if (n < 2) {
         return n;
     }
@@ -592,7 +608,7 @@ __noinline int testFibR(int n) {
     }
 }
 
-__noinline int testFibI(int n) {
+___noinline int testFibI(int n) {
     int last = 0;
     int cur = 1;
     for (int i = 0; i != n - 1; ++i) {
@@ -603,7 +619,7 @@ __noinline int testFibI(int n) {
     return cur;
 }
 
-__noinline void particles(ObjectArray & objects, int count) {
+___noinline void particles(ObjectArray & objects, int count) {
     for (int i = 0; i != count; ++i) {
         for (auto & obj : objects) {
             updateObject(obj);
@@ -611,7 +627,7 @@ __noinline void particles(ObjectArray & objects, int count) {
     }
 }
 
-__noinline void particlesI(ObjectArray & objects, int count) {
+___noinline void particlesI(ObjectArray & objects, int count) {
     for (int i = 0; i != count; ++i) {
         for (auto & obj : objects) {
             obj.pos.x += obj.vel.x;
@@ -621,19 +637,19 @@ __noinline void particlesI(ObjectArray & objects, int count) {
     }
 }
 
-__noinline void testParticles(int count) {
+___noinline void testParticles(int count) {
     ObjectArray objects;
     objects.resize(50000);
     particles(objects, count);
 }
 
-__noinline void testParticlesI(int count) {
+___noinline void testParticlesI(int count) {
     ObjectArray objects;
     objects.resize(50000);
     particlesI(objects, count);
 }
 
-__noinline void testTryCatch(Context * context) {
+___noinline void testTryCatch(Context * context) {
     #if _CPPUNWIND || __cpp_exceptions
     int arr[1000];
     int cnt = 0;
@@ -656,7 +672,7 @@ __noinline void testTryCatch(Context * context) {
     #endif
 }
 
-__noinline float testExpLoop(int count) {
+___noinline float testExpLoop(int count) {
     float ret = 0;
     for (int i = 0; i < count; ++i)
         ret += expf(1.f/(1.f+i));

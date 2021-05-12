@@ -1,6 +1,6 @@
 /*
  * Dagor Engine 5
- * Copyright (C) 2003-2020  Gaijin Entertainment Corp.  All rights reserved
+ * Copyright (C) 2003-2021  Gaijin Entertainment.  All rights reserved
  *
  * (for conditions of distribution and use, see License)
 */
@@ -10,10 +10,10 @@
 #pragma once
 
 #if !defined(_TARGET_PC_LINUX) && !defined(_TARGET_PC_MACOSX) && !defined(_TARGET_PC_WIN)\
- && !defined(_TARGET_PS4)  && !defined(_TARGET_XBOX) && !defined(_TARGET_PC)
+ && !defined(_TARGET_PS4) && !defined(_TARGET_PS5)  && !defined(_TARGET_XBOX) && !defined(_TARGET_PC)
   #if __linux__ || __unix__
     #define _TARGET_PC_LINUX 1
-  #elif __APPLE_
+  #elif __APPLE__
     #define _TARGET_PC_MACOSX 1
   #elif _WIN32
     #define _TARGET_PC_WIN 1
@@ -31,11 +31,8 @@
 #else
 #include <emmintrin.h>
 #if _TARGET_PC_MACOSX
-#include <pmmintrin.h>
-#else
-#ifdef __GNUC__
-#include <x86intrin.h> // MAC GCC
-#endif
+  #include <pmmintrin.h>
+  #include <tmmintrin.h>
 #endif
 #endif
 
@@ -59,15 +56,15 @@ VECMATH_FINLINE vec4i VECTORCALL v_splatsi(int a) {return _mm_set1_epi32(a);}
 #if defined(DAGOR_ASAN_ENABLED) && defined(__GNUC__) && __GNUC__ >= 7
 NO_ASAN_INLINE vec4f v_ld(const float *m) { return  *(__m128 *)m; }
 NO_ASAN_INLINE vec4f v_ldu(const float *m) { return *(__m128_u *)m; }
-NO_ASAN_INLINE vec4i v_ld_w(const int *m) { return  *(__m128i *)m; }
-NO_ASAN_INLINE vec4i v_ldu_w(const int *m) { return *(__m128i_u *)m; }
-NO_ASAN_INLINE vec4f v_ld_x(const float *m) { union { float x; vec4f vec; } mm{}; mm.x = *m; return mm.vec; } // load x, zero others
+NO_ASAN_INLINE vec4i v_ldi(const int *m) { return  *(__m128i *)m; }
+NO_ASAN_INLINE vec4i v_ldui(const int *m) { return *(__m128i_u *)m; }
+NO_ASAN_INLINE vec4f v_ldu_x(const float *m) { union { float x; vec4f vec; } mm{}; mm.x = *m; return mm.vec; } // load x, zero others
 #else
 NO_ASAN_INLINE vec4f v_ld(const float *m) { return _mm_load_ps(m); }
 NO_ASAN_INLINE vec4f v_ldu(const float *m) { return _mm_loadu_ps(m); }
-NO_ASAN_INLINE vec4i v_ld_w(const int *m) { return  _mm_load_si128((const vec4i*)m); }
-NO_ASAN_INLINE vec4i v_ldu_w(const int *m) { return _mm_loadu_si128((const vec4i*)m); }
-NO_ASAN_INLINE vec4f v_ld_x(const float *m) { return _mm_load_ss(m); } // load x, zero others
+NO_ASAN_INLINE vec4i v_ldi(const int *m) { return  _mm_load_si128((const vec4i*)m); }
+NO_ASAN_INLINE vec4i v_ldui(const int *m) { return _mm_loadu_si128((const vec4i*)m); }
+NO_ASAN_INLINE vec4f v_ldu_x(const float *m) { return _mm_load_ss(m); } // load x, zero others
 #endif
 
 VECMATH_FINLINE vec4i VECTORCALL v_ldush(const signed short *m)
@@ -88,6 +85,8 @@ VECMATH_FINLINE vec4f VECTORCALL v_ldu_half(const void *m) { return v_cast_vec4f
 VECMATH_FINLINE vec4i VECTORCALL v_cvt_ush_vec4i(vec4i a) { return _mm_unpacklo_epi16(a, _mm_setzero_si128()); }
 VECMATH_FINLINE vec4i VECTORCALL
   v_cvt_ssh_vec4i(vec4i a) { vec4i sx = _mm_cmplt_epi16(a, _mm_setzero_si128()); return _mm_unpacklo_epi16(a, sx); }
+
+VECMATH_FINLINE vec4i VECTORCALL v_cvt_byte_vec4i(vec4i a) { return _mm_unpacklo_epi8(a, _mm_setzero_si128()); }
 
 VECMATH_FINLINE vec4f VECTORCALL v_make_vec4f(float x, float y, float z, float w)
 { return _mm_setr_ps(x, y, z, w); }
@@ -261,6 +260,9 @@ VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a) { return sse4_packus(a); }
 VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a, vec4i b) { return sse2_packus(a, b); }
 VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a) { return sse2_packus(a); }
 #endif
+
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a, vec4i b) { return _mm_packus_epi16(a,b); }
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a) { return _mm_packus_epi16(a,a); }
 
 VECMATH_FINLINE vec4f VECTORCALL v_rcp_est(vec4f a) { return _mm_rcp_ps(a); }
 VECMATH_FINLINE vec4f VECTORCALL v_rcp(vec4f a)
@@ -523,7 +525,6 @@ VECMATH_FINLINE vec4f VECTORCALL v_dot3(vec4f a, vec4f b) { return sse2_dot3(a,b
 VECMATH_FINLINE vec4f VECTORCALL v_dot3_x(vec4f a, vec4f b) { return sse2_dot3_x(a,b); }
 VECMATH_FINLINE vec4f VECTORCALL v_distance3p_x(plane3f a, vec3f b) { return sse2_distance3p_x(a,b); }
 #endif
-
 
 VECMATH_FINLINE vec4f VECTORCALL v_norm4(vec4f a) { return v_div(a, v_splat_x(v_sqrt_x(v_dot4_x(a,a)))); }
 VECMATH_FINLINE vec4f VECTORCALL v_norm3(vec4f a) { return v_div(a, v_splat_x(v_sqrt_x(v_dot3_x(a,a)))); }

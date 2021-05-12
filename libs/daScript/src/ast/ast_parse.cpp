@@ -26,12 +26,13 @@ namespace das {
         return (ch>='0' && ch<='9') || (ch>='a' && ch<='z') || (ch>='A' && ch<='Z');
     }
 
-    vector<string> getAllRequie ( const char * src, uint32_t length ) {
+    void getAllRequireReq ( FileInfo * fi, const FileAccessPtr & access, vector<string> & req, das_set<FileInfo *> & collected  ) {
+        const char * src = fi->source;
+        uint32_t length = fi->sourceLength;
         if ( isUtf8Text(src,length) ) { // skip utf8 byte order mark
             src += 3;
             length -= 3;
         }
-        vector<string> req;
         const char * src_end = src + length;
         bool wb = true;
         while ( src < src_end ) {
@@ -66,8 +67,10 @@ namespace das {
                 src +=2;
                 wb = true;
                 continue;
-            } else if ( wb && ((src+8)<src_end) && src[0]=='r') {   // need space for 'require '
-                if ( memcmp(src, "require", 7)==0 ) {
+            } else if ( wb && ((src+8)<src_end) && (src[0]=='r' || src[0]=='i') ) {   // need space for 'require ' || 'include '
+                bool isReq = memcmp(src, "require", 7)==0;
+                bool isInc = !isReq && (memcmp(src, "include", 7)==0);
+                if ( isReq || isInc ) {
                     src += 7;
                     if ( isspace(src[0]) ) {
                         while ( src < src_end && isspace(src[0]) ) {
@@ -81,7 +84,18 @@ namespace das {
                             while ( src < src_end && (isalnumE(src[0]) || src[0]=='_' || src[0]=='.' || src[0]=='/') ) {
                                 mod += *src ++;
                             }
-                            req.push_back(mod);
+                            if ( isReq ) {
+                                req.push_back(mod);
+                            } else if ( isInc ) {
+                                string incFileName = access->getIncludeFileName(fi->name,mod);
+                                auto info = access->getFileInfo(incFileName);
+                                if ( info ) {
+                                    if ( collected.find(info)==collected.end() ) {
+                                        collected.insert(info);
+                                        getAllRequireReq(info, access, req, collected);
+                                    }
+                                }
+                            }
                             continue;
                         } else {
                             wb = true;
@@ -99,6 +113,12 @@ namespace das {
             wb = src[0]!='_' && (wb ? !isalnumE(src[0]) : !isalphaE(src[0]));
             src ++;
         }
+    }
+
+    vector<string> getAllRequire ( FileInfo * fi, const FileAccessPtr & access  ) {
+        das_set<FileInfo *> collected;
+        vector<string> req;
+        getAllRequireReq(fi, access, req, collected);
         return req;
     }
 
@@ -115,6 +135,14 @@ namespace das {
         return fname;
     }
 
+    void addRequirements(ModuleGroup & libGroup, Module * mod) {
+        if ( libGroup.addModule(mod) ) {
+            for ( const auto & dep : mod->requireModule ) {
+                addRequirements(libGroup, dep.first);
+            }
+        }
+    }
+
     bool getPrerequisits ( const string & fileName,
                           const FileAccessPtr & access,
                           vector<ModuleInfo> & req,
@@ -122,55 +150,82 @@ namespace das {
                           vector<string> & circular,
                           das_set<string> & dependencies,
                           ModuleGroup & libGroup,
-                          TextWriter & log,
-                          int tab ) {
+                          TextWriter * log,
+                          int tab,
+                          bool allowPromoted ) {
         if ( auto fi = access->getFileInfo(fileName) ) {
-            log << string(tab,'\t') << "in " << fileName << "\n";
-            vector<string> ownReq = getAllRequie(fi->source, fi->sourceLength);
+            if ( log ) {
+                *log << string(tab,'\t') << "in " << fileName << "\n";
+            }
+            vector<string> ownReq = getAllRequire(fi, access);
             for ( auto & mod : ownReq ) {
-                log << string(tab,'\t') << "require " << mod << "\n";
-                auto module = Module::require(mod); // try native with that name
+                if ( log ) {
+                    *log << string(tab,'\t') << "require " << mod << "\n";
+                }
+                auto module = Module::requireEx(mod, allowPromoted); // try native with that name
                 if ( !module ) {
                     auto info = access->getModuleInfo(mod, fileName);
                     if ( !info.moduleName.empty() ) {
                         mod = info.moduleName;
-                        log << string(tab,'\t') << " resolved as " << mod << "\n";
+                        if ( log ) {
+                            *log << string(tab,'\t') << " resolved as " << mod << "\n";
+                        }
                     }
-                    auto it_r = find_if(req.begin(), req.end(), [&] ( const ModuleInfo & reqM ) {
-                        return reqM.moduleName == mod;
-                    });
-                    if ( it_r==req.end() ) {
-                        if ( dependencies.find(mod) != dependencies.end() ) {
-                            // circular dependency
-                            log << string(tab,'\t') << "from " << fileName << " require " << mod << " - CIRCULAR DEPENDENCY\n";
-                            circular.push_back(mod);
-                            return false;
+                    module = Module::requireEx(mod, allowPromoted); // try native with that name AGAIN (promoted?)
+                    if ( !module ) {
+                        auto it_r = find_if(req.begin(), req.end(), [&] ( const ModuleInfo & reqM ) {
+                            return reqM.moduleName == mod;
+                        });
+                        if ( it_r==req.end() ) {
+                            if ( dependencies.find(mod) != dependencies.end() ) {
+                                // circular dependency
+                                if ( log ) {
+                                    *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - CIRCULAR DEPENDENCY\n";
+                                }
+                                circular.push_back(mod);
+                                return false;
+                            }
+                            dependencies.insert(mod);
+                            // module file name
+                            if ( info.moduleName.empty() ) {
+                                // request can't be translated to module name
+                                if ( log ) {
+                                    *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - MODULE INFO NOT FOUND\n";
+                                }
+                                missing.push_back(mod);
+                                return false;
+                            }
+                            if ( !getPrerequisits(info.fileName, access, req, missing, circular, dependencies, libGroup, log, tab + 1, allowPromoted) ) {
+                                return false;
+                            }
+                            if ( log ) {
+                                *log << string(tab,'\t') << "from " << fileName << " require " << mod
+                                    << " - ok, new module " << info.moduleName << " at " << info.fileName << "\n";
+                            }
+                            req.push_back(info);
+                        } else {
+                            if ( log ) {
+                                *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - already required\n";
+                            }
                         }
-                        dependencies.insert(mod);
-                        // module file name
-                        if ( info.moduleName.empty() ) {
-                            // request can't be translated to module name
-                            log << string(tab,'\t') << "from " << fileName << " require " << mod << " - MODULE INFO NOT FOUND\n";
-                            missing.push_back(mod);
-                            return false;
-                        }
-                        if ( !getPrerequisits(info.fileName, access, req, missing, circular, dependencies, libGroup, log, tab + 1) ) {
-                            return false;
-                        }
-                        log << string(tab,'\t') << "from " << fileName << " require " << mod
-                            << " - ok, new module " << info.moduleName << " at " << info.fileName << "\n";
-                        req.push_back(info);
                     } else {
-                        log << string(tab,'\t') << "from " << fileName << " require " << mod << " - already required\n";
+                        if ( log ) {
+                            *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - shared, ok\n";
+                        }
+                        addRequirements(libGroup, module);
                     }
                 } else {
-                    log << string(tab,'\t') << "from " << fileName << " require " << mod << " - ok\n";
+                    if ( log ) {
+                        *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - ok\n";
+                    }
                     libGroup.addModule(module);
                 }
             }
             return true;
         } else {
-            log << string(tab,'\t') << "in " << fileName << " - NOT FOUND\n";
+            if ( log ) {
+                *log << string(tab,'\t') << "in " << fileName << " - NOT FOUND\n";
+            }
             missing.push_back(fileName);
             return false;
         }
@@ -192,11 +247,14 @@ namespace das {
                               TextWriter & logs,
                               ModuleGroup & libGroup,
                               bool exportAll,
+                              bool isDep,
                               CodeOfPolicies policies ) {
         auto time0 = ref_time_ticks();
         int err;
         auto program = g_Program = make_smart<Program>();
+        program->promoteToBuiltin = false;
         program->isCompiling = true;
+        program->isDependency = isDep;
         g_Program->policies = policies;
         g_Access = access;
         g_ReaderMacro = nullptr;
@@ -254,9 +312,6 @@ namespace das {
                 if (program->options.getBoolOption("log")) {
                     logs << *program;
                 }
-                if (program->options.getBoolOption("plot")) {
-                    logs << "\n" << program->dotGraph() << "\n";
-                }
             }
             g_Program.reset();
             sort(program->errors.begin(), program->errors.end());
@@ -278,19 +333,50 @@ namespace das {
                                 ModuleGroup & libGroup,
                                 bool exportAll,
                                 CodeOfPolicies policies ) {
+        ReuseGuard<TypeDecl> rguard;
         vector<ModuleInfo> req;
         vector<string> missing, circular;
         das_set<string> dependencies;
-        TextWriter tw;
-        if ( getPrerequisits(fileName, access, req, missing, circular, dependencies, libGroup, tw, 1) ) {
+        if ( getPrerequisits(fileName, access, req, missing, circular, dependencies, libGroup, nullptr, 1, !policies.ignore_shared_modules) ) {
             for ( auto & mod : req ) {
                 if ( !libGroup.findModule(mod.moduleName) ) {
-                    auto program = parseDaScript(mod.fileName, access, logs, libGroup, true, policies);
+                    auto program = parseDaScript(mod.fileName, access, logs, libGroup, true, true, policies);
                     if ( program->failed() ) {
                         return program;
                     }
+                    if ( policies.fail_on_lack_of_aot_export ) {
+                        if ( !program->options.getBoolOption("no_aot",false) ) {
+                            if ( program->options.getBoolOption("remove_unused_symbols",true) ) {
+                                program->error("Module " + program->thisModule->name + " aka " + mod.moduleName + " is not setup correctly for AOT",
+                                    "options remove_unused_symbols = false is required", "", LineInfo(),
+                                        CompilationError::module_does_not_export_unused_symbols);
+                                return program;
+                            }
+                            if ( program->thisModule->name.empty() ) {
+                                program->error("Module " + mod.moduleName + " is not setup correctly for AOT",
+                                    "module " + mod.moduleName + " is required", "", LineInfo(),
+                                        CompilationError::module_does_not_have_a_name);
+                                return program;
+                            }
+                        }
+                    }
                     if ( program->thisModule->name.empty() ) {
                         program->thisModule->name = mod.moduleName;
+                    }
+                    if ( program->promoteToBuiltin ) {
+                        bool regFromShar = false;
+                        for ( auto & reqM : program->thisModule->requireModule ) {
+                            if ( !reqM.first->builtIn ) {
+                                program->error("Shared module " + program->thisModule->name + " has incorrect dependency type.",
+                                    "Can't require " + reqM.first->name + " because its not shared", "", LineInfo(),
+                                        CompilationError::module_required_from_shared);
+                                regFromShar = true;
+                            }
+                        }
+                        if (  regFromShar ) {
+                            return program;
+                        }
+                        program->thisModule->promoteToBuiltin(access);
                     }
                     libGroup.addModule(program->thisModule.release());
                     program->library.foreach([&](Module * pm) -> bool {
@@ -303,12 +389,33 @@ namespace das {
                     }, "*");
                 }
             }
-            auto res = parseDaScript(fileName, access, logs, libGroup, exportAll, policies);
+            auto res = parseDaScript(fileName, access, logs, libGroup, exportAll, false, policies);
+            /*
+            if ( res->promoteToBuiltin ) {
+                res->thisModule->promoteToBuiltin(access);
+            }
+            */
             if ( res->options.getBoolOption("log_require",false) ) {
+                TextWriter tw;
+                req.clear();
+                missing.clear();
+                circular.clear();
+                dependencies.clear();
+                getPrerequisits(fileName, access, req, missing, circular, dependencies, libGroup, &tw, 1, false);
                 logs << "module dependency graph:\n" << tw.str();
+            }
+            if ( !res->failed() ) {
+                uint32_t hf = hash_blockz32((uint8_t *)fileName.c_str());
+                res->thisNamespace = "_anon_" + to_string(hf);
             }
             return res;
         } else {
+            TextWriter tw;
+            req.clear();
+            missing.clear();
+            circular.clear();
+            dependencies.clear();
+            getPrerequisits(fileName, access, req, missing, circular, dependencies, libGroup, &tw, 1, false);
             auto program = make_smart<Program>();
             program->policies = policies;
             program->thisModuleGroup = &libGroup;

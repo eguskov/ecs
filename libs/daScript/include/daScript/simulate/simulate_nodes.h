@@ -43,10 +43,11 @@ namespace das {
                 union {
                     uint32_t    stackTop;
                     uint32_t    argStackTop;
+                    uint32_t    mangledNameHash;
                 };
                 uint32_t    offset;
             };
-            vec4f __dummy = v_zero();
+            vec4f __dummy;
         };
         SimSourceType   type = SimSourceType::sSimNode;
         union {
@@ -55,6 +56,9 @@ namespace das {
             };
             uint32_t    flags = 0;
         };
+        __forceinline SimSource() {
+            __dummy = v_zero();         // this is not an inline initialization to work around EDG compiler
+        }
         void visit ( SimVisitor & vis );
         // construct
         __forceinline void setSimNode(SimNode * se) {
@@ -74,12 +78,14 @@ namespace das {
             type = SimSourceType::sCMResOff;
             offset = ofs;
         }
-        __forceinline void setGlobal(uint32_t ofs) {
+        __forceinline void setGlobal(uint32_t ofs, uint32_t mnh) {
             type = SimSourceType::sGlobal;
+            mangledNameHash = mnh;
             offset = ofs;
         }
-        __forceinline void setShared(uint32_t ofs) {
+        __forceinline void setShared(uint32_t ofs, uint32_t mnh) {
             type = SimSourceType::sShared;
+            mangledNameHash = mnh;
             offset = ofs;
         }
         __forceinline void setBlockCMResOfs(uint32_t asp, uint32_t ofs) {
@@ -234,6 +240,9 @@ namespace das {
             DAS_PROFILE_NODE
             auto res = new TT();
             res->addRef();
+#if DAS_ENABLE_SMART_PTR_TRACKING
+            Context::sptrAllocations.push_back(res);
+#endif
             return (char *) res;
         }
         virtual SimNode * visit ( SimVisitor & vis ) override;
@@ -586,7 +595,9 @@ SIM_NODE_AT_VECTOR(Float, float)
             for (int i = 0; i != nElem; ++i)
                 argValues[i] = arguments[i]->eval(context);
     }};
-    template <> struct EvalBlock<0> { static __forceinline void eval(Context &, SimNode **, vec4f *) {} };
+    template <> struct EvalBlock<0> { static __forceinline void eval(Context &, SimNode **, vec4f * argValues ) {
+        argValues[0] = v_zero();
+    }};
     template <> struct EvalBlock<1> { static __forceinline void eval(Context & context, SimNode ** arguments, vec4f * argValues) {
             argValues[0] = arguments[0]->eval(context);
     }};
@@ -611,10 +622,15 @@ SIM_NODE_AT_VECTOR(Float, float)
     ///////////////////////////////////////
 
     // FUNCTION CALL via FASTCALL convention
+
+    struct SimNode_FastCallAny : SimNode_CallBase {
+        SimNode_FastCallAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_FastCall : SimNode_CallBase {
-        SimNode_FastCall ( const LineInfo & at ) : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+    struct SimNode_FastCall : SimNode_FastCallAny {
+        SimNode_FastCall ( const LineInfo & at ) : SimNode_FastCallAny(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             vec4f argValues[argCount ? argCount : 1];
@@ -642,11 +658,46 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNode_FastCall<-1> : SimNode_FastCallAny {
+        SimNode_FastCall(const LineInfo& at) : SimNode_FastCallAny(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            auto aa = context.abiArg;
+            context.abiArg = argValues;
+            auto res = fnPtr->code->eval(context);
+            context.stopFlags &= ~(EvalFlags::stopForReturn | EvalFlags::stopForBreak | EvalFlags::stopForContinue);
+            context.abiArg = aa;
+            return res;
+        }
+#define EVAL_NODE(TYPE,CTYPE)\
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+                DAS_PROFILE_NODE \
+                vec4f argValues[32]; \
+                evalArgs(context, argValues); \
+                auto aa = context.abiArg; \
+                context.abiArg = argValues; \
+                auto res = EvalTT<CTYPE>::eval(context, fnPtr->code);  \
+                context.stopFlags &= ~(EvalFlags::stopForReturn | EvalFlags::stopForBreak | EvalFlags::stopForContinue); \
+                context.abiArg = aa; \
+                return res; \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // FUNCTION CALL
+
+    struct SimNode_CallAny : SimNode_CallBase {
+        SimNode_CallAny ( const LineInfo & at ) : SimNode_CallBase(at) {}
+        virtual SimNode * visit ( SimVisitor& vis ) override;
+    };
+
     template <int argCount>
-    struct SimNode_Call : SimNode_CallBase {
-        SimNode_Call ( const LineInfo & at ) : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+    struct SimNode_Call : SimNode_CallAny {
+        SimNode_Call ( const LineInfo & at ) : SimNode_CallAny(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             vec4f argValues[argCount ? argCount : 1];
@@ -664,12 +715,37 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNode_Call<-1> : SimNode_CallAny {
+        SimNode_Call ( const LineInfo & at ) : SimNode_CallAny(at) {}
+        virtual vec4f eval ( Context & context ) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            return context.call(fnPtr, argValues, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+                DAS_PROFILE_NODE \
+                vec4f argValues[32]; \
+                evalArgs(context, argValues); \
+                return cast<CTYPE>::to(context.call(fnPtr, argValues, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // FUNCTION CALL with copy-or-move-on-return
+
+    struct SimNode_CallAndCopyOrMoveAny : SimNode_CallBase {
+        SimNode_CallAndCopyOrMoveAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_CallAndCopyOrMove : SimNode_CallBase {
+    struct SimNode_CallAndCopyOrMove : SimNode_CallAndCopyOrMoveAny {
         DAS_PTR_NODE;
-        SimNode_CallAndCopyOrMove ( const LineInfo & at ) : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+        SimNode_CallAndCopyOrMove ( const LineInfo & at ) : SimNode_CallAndCopyOrMoveAny(at) {}
         __forceinline char * compute ( Context & context ) {
                 DAS_PROFILE_NODE
                 auto cmres = cmresEval->evalPtr(context);
@@ -679,15 +755,33 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+    template <>
+    struct SimNode_CallAndCopyOrMove<-1> : SimNode_CallAndCopyOrMoveAny {
+        DAS_PTR_NODE;
+        SimNode_CallAndCopyOrMove(const LineInfo& at) : SimNode_CallAndCopyOrMoveAny(at) {}
+        __forceinline char* compute(Context& context) {
+            DAS_PROFILE_NODE
+            auto cmres = cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            return cast<char*>::to(context.callWithCopyOnReturn(fnPtr, argValues, cmres, &debugInfo));
+        }
+    };
+
     // Invoke
+
+    struct SimNode_InvokeAny : SimNode_CallBase {
+        SimNode_InvokeAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_Invoke : SimNode_CallBase {
+    struct SimNode_Invoke : SimNode_InvokeAny {
         SimNode_Invoke ( const LineInfo & at)
-            : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+            : SimNode_InvokeAny(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             Block * block = cast<Block *>::to(argValues[0]);
             if ( argCount>1 ) {
@@ -699,7 +793,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1];                                                          \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             Block * block = cast<Block *>::to(argValues[0]);                                    \
             if ( argCount>1 ) {                                                                 \
@@ -712,16 +806,44 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
-    // Invoke with copy-or-move-on-return
-    template <int argCount>
-    struct SimNode_InvokeAndCopyOrMove : SimNode_CallBase {
-        SimNode_InvokeAndCopyOrMove ( const LineInfo & at, SimNode * spCMRES )
-            : SimNode_CallBase(at){ cmresEval = spCMRES; }
-        virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f eval ( Context & context ) override {
+    template <>
+    struct SimNode_Invoke<-1> : SimNode_InvokeAny {
+        SimNode_Invoke(const LineInfo& at)
+            : SimNode_InvokeAny(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            Block* block = cast<Block*>::to(argValues[0]);
+            return context.invoke(*block, argValues + 1, nullptr, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            Block * block = cast<Block *>::to(argValues[0]); \
+            return cast<CTYPE>::to(context.invoke(*block, argValues + 1, nullptr, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+    // Invoke with copy-or-move-on-return
+
+    struct SimNode_InvokeAndCopyOrMoveAny : SimNode_CallBase {
+        SimNode_InvokeAndCopyOrMoveAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
+    template <int argCount>
+    struct SimNode_InvokeAndCopyOrMove : SimNode_InvokeAndCopyOrMoveAny {
+        SimNode_InvokeAndCopyOrMove ( const LineInfo & at, SimNode * spCMRES )
+            : SimNode_InvokeAndCopyOrMoveAny(at) { cmresEval = spCMRES; }
+        virtual vec4f eval ( Context & context ) override {
+            DAS_PROFILE_NODE
             auto cmres = cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             Block * block = cast<Block *>::to(argValues[0]);
             if ( argCount>1 ) {
@@ -734,7 +856,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context);                                           \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             Block * block = cast<Block *>::to(argValues[0]);                                    \
             if ( argCount>1 ) {                                                                 \
@@ -747,14 +869,46 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNode_InvokeAndCopyOrMove<-1> : SimNode_InvokeAndCopyOrMoveAny {
+        SimNode_InvokeAndCopyOrMove(const LineInfo& at, SimNode* spCMRES)
+            : SimNode_InvokeAndCopyOrMoveAny(at) {
+            cmresEval = spCMRES;
+        }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            Block* block = cast<Block*>::to(argValues[0]);
+            return context.invoke(*block, argValues + 1, cmres, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            Block * block = cast<Block *>::to(argValues[0]);  \
+            return cast<CTYPE>::to(context.invoke(*block, argValues + 1, cmres, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // Invoke function
+
+    struct SimNode_InvokeFnAny : SimNode_CallBase {
+        SimNode_InvokeFnAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_InvokeFn : SimNode_CallBase {
-        SimNode_InvokeFn ( const LineInfo & at ) : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+    struct SimNode_InvokeFn : SimNode_InvokeFnAny {
+        SimNode_InvokeFn ( const LineInfo & at ) : SimNode_InvokeFnAny(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);
             if (!simFunc) context.throw_error_at(debugInfo,"invoke null function");
@@ -767,7 +921,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);  \
             if (!simFunc) context.throw_error_at(debugInfo,"invoke null function");             \
@@ -781,14 +935,43 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
-    // Invoke function
+    template <>
+    struct SimNode_InvokeFn<-1> : SimNode_InvokeFnAny {
+        SimNode_InvokeFn(const LineInfo& at) : SimNode_InvokeFnAny(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            SimFunction* simFunc = context.getFunction(cast<Func>::to(argValues[0]).index - 1);
+            if (!simFunc) context.throw_error_at(debugInfo, "invoke null function");
+            return context.call(simFunc, argValues + 1, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1); \
+            if (!simFunc) context.throw_error_at(debugInfo,"invoke null function"); \
+            return cast<CTYPE>::to(context.call(simFunc, argValues + 1, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+    // Invoke lambda
+
+    struct SimNode_InvokeLambdaAny : SimNode_CallBase {
+        SimNode_InvokeLambdaAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_InvokeLambda : SimNode_CallBase {
-        SimNode_InvokeLambda ( const LineInfo & at ) : SimNode_CallBase(at) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+    struct SimNode_InvokeLambda : SimNode_InvokeLambdaAny {
+        SimNode_InvokeLambda ( const LineInfo & at ) : SimNode_InvokeLambdaAny(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);
             if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda");
@@ -799,7 +982,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);                             \
             if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda");              \
@@ -811,16 +994,50 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNode_InvokeLambda<-1> : SimNode_InvokeLambdaAny {
+        SimNode_InvokeLambda(const LineInfo& at) : SimNode_InvokeLambdaAny(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            int32_t* funIndex = cast<int32_t*>::to(argValues[0]);
+            if (!funIndex) context.throw_error_at(debugInfo, "invoke null lambda");
+            SimFunction* simFunc = context.getFunction(*funIndex - 1);
+            if (!simFunc) context.throw_error_at(debugInfo, "invoke null function");
+            return context.call(simFunc, argValues, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            int32_t * funIndex = cast<int32_t *>::to(argValues[0]); \
+            if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda"); \
+            SimFunction * simFunc = context.getFunction(*funIndex-1);  \
+            if (!simFunc) context.throw_error_at(debugInfo,"invoke null function"); \
+            return cast<CTYPE>::to(context.call(simFunc, argValues, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+
     // Invoke function with copy-or-move-on-return
+
+    struct SimNode_InvokeAndCopyOrMoveFnAny : SimNode_CallBase {
+        SimNode_InvokeAndCopyOrMoveFnAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_InvokeAndCopyOrMoveFn : SimNode_CallBase {
+    struct SimNode_InvokeAndCopyOrMoveFn : SimNode_InvokeAndCopyOrMoveFnAny {
         SimNode_InvokeAndCopyOrMoveFn ( const LineInfo & at, SimNode * spEval )
-            : SimNode_CallBase(at) { cmresEval = spEval; }
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+            : SimNode_InvokeAndCopyOrMoveFnAny(at) { cmresEval = spEval; }
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);
             if (!simFunc) context.throw_error_at(debugInfo,"invoke null function");
@@ -834,7 +1051,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                                   \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context);                                               \
-            vec4f argValues[argCount];                                                              \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                               \
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);      \
             if (!simFunc) context.throw_error_at(debugInfo,"invoke null function");                 \
@@ -848,16 +1065,50 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
-    // Invoke function
+    template <>
+    struct SimNode_InvokeAndCopyOrMoveFn<-1> : SimNode_InvokeAndCopyOrMoveFnAny {
+        SimNode_InvokeAndCopyOrMoveFn(const LineInfo& at, SimNode* spEval)
+            : SimNode_InvokeAndCopyOrMoveFnAny(at) {
+            cmresEval = spEval;
+        }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            SimFunction* simFunc = context.getFunction(cast<Func>::to(argValues[0]).index - 1);
+            if (!simFunc) context.throw_error_at(debugInfo, "invoke null function");
+            return context.callWithCopyOnReturn(simFunc, argValues + 1, cmres, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1); \
+            if (!simFunc) context.throw_error_at(debugInfo,"invoke null function"); \
+            return cast<CTYPE>::to(context.callWithCopyOnReturn(simFunc, argValues + 1, cmres, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+    // Invoke lambda with copy-or-move-on-return
+
+    struct SimNode_InvokeAndCopyOrMoveLambdaAny : SimNode_CallBase {
+        SimNode_InvokeAndCopyOrMoveLambdaAny(const LineInfo& at) : SimNode_CallBase(at) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+    };
+
     template <int argCount>
-    struct SimNode_InvokeAndCopyOrMoveLambda : SimNode_CallBase {
+    struct SimNode_InvokeAndCopyOrMoveLambda : SimNode_InvokeAndCopyOrMoveLambdaAny {
         SimNode_InvokeAndCopyOrMoveLambda ( const LineInfo & at, SimNode * spEval )
-            : SimNode_CallBase(at) { cmresEval = spEval; }
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+            : SimNode_InvokeAndCopyOrMoveLambdaAny(at) { cmresEval = spEval; }
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             auto cmres = cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);
             if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda");
@@ -869,7 +1120,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context);                                           \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1];                                           \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);                             \
             if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda");              \
@@ -881,11 +1132,47 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNode_InvokeAndCopyOrMoveLambda<-1> : SimNode_InvokeAndCopyOrMoveLambdaAny {
+        SimNode_InvokeAndCopyOrMoveLambda(const LineInfo& at, SimNode* spEval)
+            : SimNode_InvokeAndCopyOrMoveLambdaAny(at) {
+            cmresEval = spEval;
+        }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            int32_t* funIndex = cast<int32_t*>::to(argValues[0]);
+            if (!funIndex) context.throw_error_at(debugInfo, "invoke null lambda");
+            SimFunction* simFunc = context.getFunction(*funIndex - 1);
+            if (!simFunc) context.throw_error_at(debugInfo, "invoke null function");
+            return context.callWithCopyOnReturn(simFunc, argValues, cmres, &debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            int32_t * funIndex = cast<int32_t *>::to(argValues[0]); \
+            if (!funIndex) context.throw_error_at(debugInfo,"invoke null lambda"); \
+            SimFunction * simFunc = context.getFunction(*funIndex-1); \
+            if (!simFunc) context.throw_error_at(debugInfo,"invoke null function"); \
+            return cast<CTYPE>::to(context.callWithCopyOnReturn(simFunc, argValues, cmres, &debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+#if DAS_DEBUGGER
+
     /////////////////////////////////////////////
     // CALL, INVOKE, INVOKEFN, INVOKELAMBDA DEBUG
     /////////////////////////////////////////////
 
     // FUNCTION CALL via FASTCALL convention
+
     template <int argCount>
     struct SimNodeDebug_FastCall : SimNode_FastCall<argCount> {
         SimNodeDebug_FastCall ( const LineInfo & at )
@@ -919,7 +1206,41 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_FastCall<-1> : SimNode_FastCall<0> {
+        SimNodeDebug_FastCall(const LineInfo& at)
+            : SimNode_FastCall<0>(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            auto aa = context.abiArg;
+            context.abiArg = argValues;
+            DAS_SINGLE_STEP(context, this->fnPtr->code->debugInfo, true);
+            auto res = this->fnPtr->code->eval(context);
+            context.stopFlags &= ~(EvalFlags::stopForReturn | EvalFlags::stopForBreak | EvalFlags::stopForContinue);
+            context.abiArg = aa;
+            return res;
+        }
+#define EVAL_NODE(TYPE,CTYPE)\
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+                DAS_PROFILE_NODE \
+                vec4f argValues[32]; \
+                evalArgs(context, argValues); \
+                auto aa = context.abiArg; \
+                context.abiArg = argValues; \
+                DAS_SINGLE_STEP(context,this->fnPtr->code->debugInfo,true); \
+                auto res = EvalTT<CTYPE>::eval(context, this->fnPtr->code); \
+                context.stopFlags &= ~(EvalFlags::stopForReturn | EvalFlags::stopForBreak | EvalFlags::stopForContinue); \
+                context.abiArg = aa; \
+                return res; \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // FUNCTION CALL
+
     template <int argCount>
     struct SimNodeDebug_Call : SimNode_Call<argCount> {
         SimNodeDebug_Call ( const LineInfo & at )
@@ -943,7 +1264,31 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_Call<-1> : SimNode_Call<0> {
+        SimNodeDebug_Call(const LineInfo& at)
+            : SimNode_Call<0>(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            DAS_SINGLE_STEP(context, this->fnPtr->code->debugInfo, true);
+            return context.call(this->fnPtr, argValues, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE)\
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+                DAS_PROFILE_NODE \
+                vec4f argValues[32]; \
+                evalArgs(context, argValues); \
+                DAS_SINGLE_STEP(context,this->fnPtr->code->debugInfo,true); \
+                return cast<CTYPE>::to(context.call(this->fnPtr, argValues, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // FUNCTION CALL with copy-or-move-on-return
+
     template <int argCount>
     struct SimNodeDebug_CallAndCopyOrMove : SimNode_CallAndCopyOrMove<argCount> {
         DAS_PTR_NODE;
@@ -959,14 +1304,30 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+    template <>
+    struct SimNodeDebug_CallAndCopyOrMove<-1> : SimNode_CallAndCopyOrMove<0> {
+        DAS_PTR_NODE;
+        SimNodeDebug_CallAndCopyOrMove(const LineInfo& at)
+            : SimNode_CallAndCopyOrMove<0>(at) {}
+        __forceinline char* compute(Context& context) {
+            DAS_PROFILE_NODE
+            auto cmres = this->cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context,argValues);
+            DAS_SINGLE_STEP(context, this->fnPtr->code->debugInfo, true);
+            return cast<char*>::to(context.callWithCopyOnReturn(this->fnPtr, argValues, cmres, &this->debugInfo));
+        }
+    };
+
     // Invoke
+
     template <int argCount>
     struct SimNodeDebug_Invoke : SimNode_Invoke<argCount> {
         SimNodeDebug_Invoke ( const LineInfo & at)
             : SimNode_Invoke<argCount>(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             Block * block = cast<Block *>::to(argValues[0]);
             DAS_SINGLE_STEP(context,block->body->debugInfo,true);
@@ -979,7 +1340,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                     \
             Block * block = cast<Block *>::to(argValues[0]);                                    \
             DAS_SINGLE_STEP(context,block->body->debugInfo,true);                               \
@@ -993,7 +1354,34 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_Invoke<-1> : SimNode_Invoke<0> {
+        SimNodeDebug_Invoke(const LineInfo& at)
+            : SimNode_Invoke<0>(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            Block* block = cast<Block*>::to(argValues[0]);
+            DAS_SINGLE_STEP(context, block->body->debugInfo, true);
+            return context.invoke(*block, argValues + 1, nullptr, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            Block * block = cast<Block *>::to(argValues[0]); \
+            DAS_SINGLE_STEP(context,block->body->debugInfo,true); \
+            return cast<CTYPE>::to(context.invoke(*block, argValues + 1, nullptr, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+
     // Invoke with copy-or-move-on-return
+
     template <int argCount>
     struct SimNodeDebug_InvokeAndCopyOrMove : SimNode_InvokeAndCopyOrMove<argCount> {
         SimNodeDebug_InvokeAndCopyOrMove ( const LineInfo & at, SimNode * spCMRES )
@@ -1001,7 +1389,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
             auto cmres = this->cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             Block * block = cast<Block *>::to(argValues[0]);
             DAS_SINGLE_STEP(context,block->body->debugInfo,true);
@@ -1015,7 +1403,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
             auto cmres = this->cmresEval->evalPtr(context);                                     \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                     \
             Block * block = cast<Block *>::to(argValues[0]);                                    \
             DAS_SINGLE_STEP(context,block->body->debugInfo,true);                               \
@@ -1029,14 +1417,43 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_InvokeAndCopyOrMove<-1> : SimNode_InvokeAndCopyOrMove<0> {
+        SimNodeDebug_InvokeAndCopyOrMove(const LineInfo& at, SimNode* spCMRES)
+            : SimNode_InvokeAndCopyOrMove<0>(at, spCMRES) { }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = this->cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            Block* block = cast<Block*>::to(argValues[0]);
+            DAS_SINGLE_STEP(context, block->body->debugInfo, true);
+            return context.invoke(*block, argValues + 1, cmres, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = this->cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            Block * block = cast<Block *>::to(argValues[0]); \
+            DAS_SINGLE_STEP(context,block->body->debugInfo,true); \
+            return cast<CTYPE>::to(context.invoke(*block, argValues + 1, cmres, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+
     // Invoke function
+
     template <int argCount>
     struct SimNodeDebug_InvokeFn : SimNode_InvokeFn<argCount> {
         SimNodeDebug_InvokeFn ( const LineInfo & at )
             : SimNode_InvokeFn<argCount>(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);
             if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function");
@@ -1050,7 +1467,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                     \
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);  \
             if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function");       \
@@ -1065,14 +1482,42 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
-    // Invoke function
+    template <>
+    struct SimNodeDebug_InvokeFn<-1> : SimNode_InvokeFn<0> {
+        SimNodeDebug_InvokeFn(const LineInfo& at)
+            : SimNode_InvokeFn<0>(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            SimFunction* simFunc = context.getFunction(cast<Func>::to(argValues[0]).index - 1);
+            if (!simFunc) context.throw_error_at(this->debugInfo, "invoke null function");
+            DAS_SINGLE_STEP(context, simFunc->code->debugInfo, true);
+            return context.call(simFunc, argValues + 1, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1); \
+            if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function"); \
+            DAS_SINGLE_STEP(context,simFunc->code->debugInfo,true); \
+            return cast<CTYPE>::to(context.call(simFunc, argValues + 1, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+    // Invoke lambda
+
     template <int argCount>
     struct SimNodeDebug_InvokeLambda : SimNode_InvokeLambda<argCount> {
         SimNodeDebug_InvokeLambda ( const LineInfo & at )
             : SimNode_InvokeLambda<argCount>(at) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);
             if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda");
@@ -1084,7 +1529,7 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                     \
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);                             \
             if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda");        \
@@ -1097,7 +1542,39 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_InvokeLambda<-1> : SimNode_InvokeLambda<0> {
+        SimNodeDebug_InvokeLambda(const LineInfo& at)
+            : SimNode_InvokeLambda<0>(at) {}
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            int32_t* funIndex = cast<int32_t*>::to(argValues[0]);
+            if (!funIndex) context.throw_error_at(this->debugInfo, "invoke null lambda");
+            SimFunction* simFunc = context.getFunction(*funIndex - 1);
+            if (!simFunc) context.throw_error_at(this->debugInfo, "invoke null function");
+            DAS_SINGLE_STEP(context, simFunc->code->debugInfo, true);
+            return context.call(simFunc, argValues, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            int32_t * funIndex = cast<int32_t *>::to(argValues[0]); \
+            if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda"); \
+            SimFunction * simFunc = context.getFunction(*funIndex-1); \
+            if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function"); \
+            DAS_SINGLE_STEP(context,simFunc->code->debugInfo,true); \
+            return cast<CTYPE>::to(context.call(simFunc, argValues, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
     // Invoke function with copy-or-move-on-return
+
     template <int argCount>
     struct SimNodeDebug_InvokeAndCopyOrMoveFn : SimNode_InvokeAndCopyOrMoveFn<argCount> {
         SimNodeDebug_InvokeAndCopyOrMoveFn ( const LineInfo & at, SimNode * spEval )
@@ -1105,7 +1582,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE \
             auto cmres = this->cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);
             if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function");
@@ -1120,7 +1597,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                                   \
             DAS_PROFILE_NODE \
             auto cmres = this->cmresEval->evalPtr(context);                                         \
-            vec4f argValues[argCount];                                                              \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                         \
             SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1);      \
             if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function");           \
@@ -1135,7 +1612,38 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
-    // Invoke function
+    template <>
+    struct SimNodeDebug_InvokeAndCopyOrMoveFn<-1> : SimNode_InvokeAndCopyOrMoveFn<0> {
+        SimNodeDebug_InvokeAndCopyOrMoveFn(const LineInfo& at, SimNode* spEval)
+            : SimNode_InvokeAndCopyOrMoveFn<0>(at, spEval) { }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = this->cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            SimFunction* simFunc = context.getFunction(cast<Func>::to(argValues[0]).index - 1);
+            if (!simFunc) context.throw_error_at(this->debugInfo, "invoke null function");
+            DAS_SINGLE_STEP(context, simFunc->code->debugInfo, true);
+            return context.callWithCopyOnReturn(simFunc, argValues + 1, cmres, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = this->cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            SimFunction * simFunc = context.getFunction(cast<Func>::to(argValues[0]).index-1); \
+            if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function"); \
+            DAS_SINGLE_STEP(context,simFunc->code->debugInfo,true); \
+            return cast<CTYPE>::to(context.callWithCopyOnReturn(simFunc, argValues + 1, cmres, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+
+    // Invoke lambda-with-copy-or-move
+
     template <int argCount>
     struct SimNodeDebug_InvokeAndCopyOrMoveLambda : SimNode_InvokeAndCopyOrMoveLambda<argCount> {
         SimNodeDebug_InvokeAndCopyOrMoveLambda ( const LineInfo & at, SimNode * spEval )
@@ -1143,7 +1651,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             auto cmres = this->cmresEval->evalPtr(context);
-            vec4f argValues[argCount];
+            vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, this->arguments, argValues);
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);
             if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda");
@@ -1156,7 +1664,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
             auto cmres = this->cmresEval->evalPtr(context);                                     \
-            vec4f argValues[argCount];                                                          \
+            vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, this->arguments, argValues);                     \
             int32_t * funIndex = cast<int32_t *>::to(argValues[0]);                             \
             if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda");        \
@@ -1169,6 +1677,40 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef  EVAL_NODE
     };
 
+    template <>
+    struct SimNodeDebug_InvokeAndCopyOrMoveLambda<-1> : SimNode_InvokeAndCopyOrMoveLambda<0> {
+        SimNodeDebug_InvokeAndCopyOrMoveLambda(const LineInfo& at, SimNode* spEval)
+            : SimNode_InvokeAndCopyOrMoveLambda<0>(at, spEval) {  }
+        virtual vec4f eval(Context& context) override {
+            DAS_PROFILE_NODE
+            auto cmres = this->cmresEval->evalPtr(context);
+            vec4f argValues[32];
+            evalArgs(context, argValues);
+            int32_t* funIndex = cast<int32_t*>::to(argValues[0]);
+            if (!funIndex) context.throw_error_at(this->debugInfo, "invoke null lambda");
+            SimFunction* simFunc = context.getFunction(*funIndex - 1);
+            if (!simFunc) context.throw_error_at(this->debugInfo, "invoke null function");
+            DAS_SINGLE_STEP(context, simFunc->code->debugInfo, true);
+            return context.callWithCopyOnReturn(simFunc, argValues, cmres, &this->debugInfo);
+        }
+#define EVAL_NODE(TYPE,CTYPE) \
+        virtual CTYPE eval##TYPE ( Context & context ) override { \
+            DAS_PROFILE_NODE \
+            auto cmres = this->cmresEval->evalPtr(context); \
+            vec4f argValues[32]; \
+            evalArgs(context, argValues); \
+            int32_t * funIndex = cast<int32_t *>::to(argValues[0]); \
+            if (!funIndex) context.throw_error_at(this->debugInfo,"invoke null lambda"); \
+            SimFunction * simFunc = context.getFunction(*funIndex-1); \
+            if (!simFunc) context.throw_error_at(this->debugInfo,"invoke null function"); \
+            DAS_SINGLE_STEP(context,simFunc->code->debugInfo,true); \
+            return cast<CTYPE>::to(context.callWithCopyOnReturn(simFunc, argValues, cmres, &this->debugInfo)); \
+        }
+        DAS_EVAL_NODE
+#undef  EVAL_NODE
+    };
+
+#endif
 
     // StringBuilder
     struct SimNode_StringBuilder : SimNode_CallBase {
@@ -1398,17 +1940,15 @@ SIM_NODE_AT_VECTOR(Float, float)
         uint32_t offset, size;
     };
 
-    template <int size>
-    struct SimNode_InitLocalCMResN : SimNode {
+    template <int SIB>
+    struct SimNode_InitLocalCMResN : SimNode_InitLocalCMRes {
         SimNode_InitLocalCMResN(const LineInfo & at, uint32_t o)
-            : SimNode(at), offset(o) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+            : SimNode_InitLocalCMRes(at, o, SIB) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            memset(context.abiCopyOrMoveResult() + offset, 0, size);
+            memset(context.abiCopyOrMoveResult() + offset, 0, SIB);
             return v_zero();
         }
-        uint32_t offset;
     };
 
     // ZERO MEMORY OF UNITIALIZED LOCAL VARIABLE VIA REFERENCE AND OFFSET
@@ -1488,7 +2028,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             DAS_PROFILE_NODE
             return subexpr.computeArgumentRefOff(context);
         }
-        uint32_t offset;
     };
 
     template <typename TT>
@@ -1615,9 +2154,9 @@ SIM_NODE_AT_VECTOR(Float, float)
     // GLOBAL VARIABLE "GET"
     struct SimNode_GetGlobal : SimNode_SourceBase {
         DAS_PTR_NODE;
-        SimNode_GetGlobal ( const LineInfo & at, uint32_t o )
+        SimNode_GetGlobal ( const LineInfo & at, uint32_t o, uint32_t mnh )
             : SimNode_SourceBase(at) {
-            subexpr.setGlobal(o);
+            subexpr.setGlobal(o,mnh);
         }
         virtual SimNode * visit ( SimVisitor & vis ) override;
         __forceinline char * compute (Context & context) {
@@ -1628,8 +2167,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 
     template <typename TT>
     struct SimNode_GetGlobalR2V : SimNode_GetGlobal {
-        SimNode_GetGlobalR2V ( const LineInfo & at, uint32_t o )
-            : SimNode_GetGlobal(at,o) {}
+        SimNode_GetGlobalR2V ( const LineInfo & at, uint32_t o, uint32_t mnh )
+            : SimNode_GetGlobal(at,o,mnh) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         virtual vec4f eval ( Context & context ) override {
             TT * pR = (TT *)compute(context);
@@ -1646,9 +2185,9 @@ SIM_NODE_AT_VECTOR(Float, float)
     // SHARER VARIABLE "GET"
     struct SimNode_GetShared : SimNode_SourceBase {
         DAS_PTR_NODE;
-        SimNode_GetShared ( const LineInfo & at, uint32_t o )
+        SimNode_GetShared ( const LineInfo & at, uint32_t o, uint32_t mnh )
             : SimNode_SourceBase(at) {
-            subexpr.setShared(o);
+            subexpr.setShared(o,mnh);
         }
         virtual SimNode * visit ( SimVisitor & vis ) override;
         __forceinline char * compute (Context & context) {
@@ -1659,8 +2198,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 
     template <typename TT>
     struct SimNode_GetSharedR2V : SimNode_GetShared {
-        SimNode_GetSharedR2V ( const LineInfo & at, uint32_t o )
-            : SimNode_GetShared(at,o) {}
+        SimNode_GetSharedR2V ( const LineInfo & at, uint32_t o, uint32_t mnh )
+            : SimNode_GetShared(at,o,mnh) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         virtual vec4f eval ( Context & context ) override {
             TT * pR = (TT *)compute(context);
@@ -1690,6 +2229,22 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         virtual vec4f eval ( Context & context ) override;
         SimNode * subexpr;
+    };
+
+    // DEREFERENCE
+    template <typename TT>
+    struct SimNode_ReturnAndMoveR2V : SimNode_Return {
+        SimNode_ReturnAndMoveR2V ( const LineInfo & at, SimNode * s )
+            : SimNode_Return(at,s) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override;
+        virtual vec4f eval ( Context & context ) override {
+            DAS_PROFILE_NODE
+            TT * pR = (TT *) subexpr->evalPtr(context);
+            context.abiResult() = cast<TT>::from(*pR);
+            memset(pR, 0, sizeof(TT));
+            context.stopFlags |= EvalFlags::stopForReturn;
+            return v_zero();
+        }
     };
 
     struct SimNode_ReturnNothing : SimNode {
@@ -2049,13 +2604,21 @@ SIM_NODE_AT_VECTOR(Float, float)
         uint32_t    stackTop;
     };
 
+    // new with initializer
+
+    struct SimNode_NewWithInitializerAny : SimNode_CallBase {
+        SimNode_NewWithInitializerAny(const LineInfo& at, uint32_t b, bool ps)
+            : SimNode_CallBase(at), bytes(b), persistent(ps) {}
+        virtual SimNode* visit(SimVisitor& vis) override;
+        uint32_t     bytes;
+        bool         persistent;
+    };
 
     template <int argCount>
-    struct SimNode_NewWithInitializer : SimNode_CallBase {
+    struct SimNode_NewWithInitializer : SimNode_NewWithInitializerAny {
         DAS_PTR_NODE;
         SimNode_NewWithInitializer ( const LineInfo & at, uint32_t b, bool ps )
-            : SimNode_CallBase(at), bytes(b), persistent(ps) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
+            : SimNode_NewWithInitializerAny(at,b,ps) {}
         __forceinline char * compute ( Context & context ) {
             DAS_PROFILE_NODE
             char * ptr;
@@ -2076,9 +2639,36 @@ SIM_NODE_AT_VECTOR(Float, float)
                 return nullptr;
             }
         }
-        uint32_t     bytes;
-        bool         persistent;
     };
+
+    template <>
+    struct SimNode_NewWithInitializer<-1> : SimNode_NewWithInitializer<0> {
+        DAS_PTR_NODE;
+        SimNode_NewWithInitializer(const LineInfo& at, uint32_t b, bool ps)
+            : SimNode_NewWithInitializer<0>(at, b, ps) {}
+        __forceinline char* compute(Context& context) {
+            DAS_PROFILE_NODE
+            char* ptr;
+            if (!persistent) {
+                ptr = context.heap->allocate(bytes);
+                context.heap->mark_comment(ptr, "new with initializer");
+                context.heap->mark_location(ptr, &debugInfo);
+            } else {
+                ptr = (char*)das_aligned_alloc16(bytes);
+            }
+            if (ptr) {
+                vec4f argValues[32];
+                evalArgs(context, argValues);
+                context.callWithCopyOnReturn(fnPtr, argValues, ptr, &debugInfo);
+                return ptr;
+            } else {
+                context.throw_error_at(debugInfo, "out of heap");
+                return nullptr;
+            }
+        }
+    };
+
+    // new array
 
     struct SimNode_NewArray : SimNode {
         DAS_PTR_NODE;
@@ -2224,8 +2814,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 
     // COPY REFERENCE VALUE
     struct SimNode_CopyRefValue : SimNode {
-        SimNode_CopyRefValue(const LineInfo & at, SimNode * ll, SimNode * rr, uint32_t sz)
-            : SimNode(at), l(ll), r(rr), size(sz) {};
+        SimNode_CopyRefValue(const LineInfo & at, SimNode * ll, SimNode * rr, size_t sz)
+            : SimNode(at), l(ll), r(rr), size(uint32_t(sz)) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         virtual vec4f eval ( Context & context ) override;
         SimNode * l, * r;
@@ -2340,6 +2930,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef EVAL_NODE
     };
 
+#if DAS_DEBUGGER
+
     // IF-THEN-ELSE (also Cond)
     struct SimNodeDebug_IfThenElse : SimNode_IfThenElse {
         SimNodeDebug_IfThenElse ( const LineInfo & at, SimNode * c, SimNode * t, SimNode * f )
@@ -2373,6 +2965,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef EVAL_NODE
     };
 
+#endif
+
     template <typename TT>
     struct SimNode_IfZeroThenElse : SimNode_IfTheElseAny {
         SimNode_IfZeroThenElse ( const LineInfo & at, SimNode * c, SimNode * t, SimNode * f )
@@ -2400,6 +2994,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         DAS_EVAL_NODE
 #undef EVAL_NODE
     };
+
+#if DAS_DEBUGGER
 
     template <typename TT>
     struct SimNodeDebug_IfZeroThenElse : SimNode_IfZeroThenElse<TT> {
@@ -2434,6 +3030,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef EVAL_NODE
     };
 
+#endif
+
     template <typename TT>
     struct SimNode_IfNotZeroThenElse : SimNode_IfTheElseAny {
         SimNode_IfNotZeroThenElse ( const LineInfo & at, SimNode * c, SimNode * t, SimNode * f )
@@ -2464,6 +3062,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         DAS_EVAL_NODE
 #undef EVAL_NODE
     };
+
+#if DAS_DEBUGGER
 
     template <typename TT>
     struct SimNodeDebug_IfNotZeroThenElse : SimNode_IfNotZeroThenElse<TT> {
@@ -2498,6 +3098,8 @@ SIM_NODE_AT_VECTOR(Float, float)
 #undef EVAL_NODE
     };
 
+#endif
+
     // IF-THEN
     struct SimNode_IfThen : SimNode_IfTheElseAny {
         SimNode_IfThen ( const LineInfo & at, SimNode * c, SimNode * t )
@@ -2513,6 +3115,8 @@ SIM_NODE_AT_VECTOR(Float, float)
             }
         }
     };
+
+#if DAS_DEBUGGER
 
     struct SimNodeDebug_IfThen : SimNode_IfThen {
         SimNodeDebug_IfThen ( const LineInfo & at, SimNode * c, SimNode * t )
@@ -2530,6 +3134,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+#endif
+
     template <typename TT>
     struct SimNode_IfZeroThen : SimNode_IfTheElseAny {
         SimNode_IfZeroThen ( const LineInfo & at, SimNode * c, SimNode * t )
@@ -2545,6 +3151,8 @@ SIM_NODE_AT_VECTOR(Float, float)
             }
         }
     };
+
+#if DAS_DEBUGGER
 
     template <typename TT>
     struct SimNodeDebug_IfZeroThen : SimNode_IfZeroThen<TT> {
@@ -2563,6 +3171,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+#endif
+
     template <typename TT>
     struct SimNode_IfNotZeroThen : SimNode_IfTheElseAny {
         SimNode_IfNotZeroThen ( const LineInfo & at, SimNode * c, SimNode * t )
@@ -2578,6 +3188,8 @@ SIM_NODE_AT_VECTOR(Float, float)
             }
         }
     };
+
+#if DAS_DEBUGGER
 
     template <typename TT>
     struct SimNodeDebug_IfNotZeroThen : SimNode_IfNotZeroThen<TT> {
@@ -2596,6 +3208,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+#endif
+
     // WHILE
     struct SimNode_While : SimNode_Block {
         SimNode_While ( const LineInfo & at, SimNode * c )
@@ -2605,11 +3219,15 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode * cond;
     };
 
+#if DAS_DEBUGGER
+
     struct SimNodeDebug_While : SimNode_While {
         SimNodeDebug_While ( const LineInfo & at, SimNode * c )
             : SimNode_While(at,c) {}
         virtual vec4f eval ( Context & context ) override;
     };
+
+#endif
 
     template <typename OT, typename Fun, Fun PROP, bool SAFE, typename CTYPE>
     struct SimNode_PropertyImpl : SimNode {
@@ -2845,6 +3463,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
     };
 
+#if DAS_DEBUGGER
+
     //////////////////////////
     // FOR WITH ITERATOR DEBUG
     //////////////////////////
@@ -2934,6 +3554,8 @@ SIM_NODE_AT_VECTOR(Float, float)
             return v_zero();
         }
     };
+
+#endif
 
     // ANY ITER
 
@@ -3065,13 +3687,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode *   subexpr;
         int32_t     variant;
     };
-
-
-#if !_TARGET_64BIT && !defined(__clang__) && (_MSC_VER <= 1900)
-#define _msc_inline_bug __declspec(noinline)
-#else
-#define _msc_inline_bug __forceinline
-#endif
 
 #define DEFINE_POLICY(CALL) template <typename SimPolicy> struct Sim_##CALL;
 

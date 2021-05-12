@@ -37,9 +37,10 @@ namespace das {
                 }
                 modGet = context->findFunction("module_get");
                 DAS_ASSERTF(modGet!=nullptr, "can't find module_get function");
+                includeGet = context->findFunction("include_get"); // note, this one CAN be null
                 // get it ready
                 context->restart();
-                context->runInitScript();
+                context->runInitScript();   // note: we assume sane init stack size here
                 // setup pak root
                 int ipr = context->findVariable("DAS_PAK_ROOT");
                 if ( ipr != -1 ) {
@@ -78,12 +79,24 @@ namespace das {
         } res;
         memset(&res, 0, sizeof(res));
         context->evalWithCatch(modGet, args, &res);
-        auto exc = context->getException();
-        DAS_ASSERTF(!exc, "exception failed: %s", exc);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `module_get`: %s", exc);
         ModuleInfo info;
         info.moduleName = res.modName ? res.modName : "";
         info.fileName = res.modFileName ? res.modFileName : "";
         info.importName = res.modImportName ? res.modImportName : "";
         return info;
+    }
+
+    string ModuleFileAccess::getIncludeFileName ( const string & fileName, const string & incFileName ) const {
+        if (failed() || !includeGet) return FileAccess::getIncludeFileName(fileName,incFileName);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(incFileName.c_str());
+        args[1] = cast<const char *>::from(fileName.c_str());
+        vec4f res = context->evalWithCatch(includeGet, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `include_get`: %s", exc);
+        auto fname = cast<const char *>::to(res);
+        return fname ? fname : "";
     }
 }

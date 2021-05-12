@@ -2,6 +2,7 @@
 
 #include "daScript/misc/memory_model.h"
 #include "daScript/misc/fnv.h"
+#include "daScript/misc/callable.h"
 
 namespace das {
 
@@ -170,7 +171,7 @@ namespace das {
 
     class StringHeapAllocator : public AnyHeapAllocator {
     public:
-        virtual void forEachString ( const function<void (const char *)> & fn ) = 0;
+        virtual void forEachString ( const callable<void (const char *)> & fn ) = 0;
         virtual void reset() override;
     public:
         char * allocateString ( const char * text, uint32_t length );
@@ -262,7 +263,7 @@ namespace das {
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
         virtual void reset() override { model.reset(); }
-        virtual void forEachString ( const function<void (const char *)> & fn ) override ;
+        virtual void forEachString ( const callable<void (const char *)> & fn ) override ;
         virtual void report() override ;
         virtual bool mark() override;
         virtual void mark ( char * ptr, uint32_t size ) override;
@@ -289,7 +290,7 @@ namespace das {
         virtual uint64_t bytesAllocated() const override { return model.bytesAllocated(); }
         virtual uint64_t totalAlignedMemoryAllocated() const override { return model.totalAlignedMemoryAllocated(); }
         virtual void reset() override { model.reset(); }
-        virtual void forEachString ( const function<void (const char *)> & fn ) override;
+        virtual void forEachString ( const callable<void (const char *)> & fn ) override;
         virtual void report() override;
         virtual bool mark() override { return false; }
         virtual void mark ( char *, uint32_t ) override { DAS_ASSERT(0 && "not supported"); }
@@ -303,9 +304,13 @@ namespace das {
     };
 
     struct NodePrefix {
-        uint32_t    magic = 0xdeadc0de;
         uint32_t    size = 0;
-        uint32_t    padd0 = 0, padd1 = 0;
+#ifdef NDEBUG
+        uint32_t    magic;
+#else
+        uint32_t    magic = 0xdeadc0de;
+#endif
+        uint32_t    padd0, padd1;
         NodePrefix ( size_t sz ) : size(uint32_t(sz)) {}
     };
     static_assert(sizeof(NodePrefix)==sizeof(vec4f), "node prefix must be one alignment line");
@@ -317,8 +322,13 @@ namespace das {
     public:
         NodeAllocator() {}
 
+        /*
+        * GCC really likes the version with separate if. CLANG \ MSVC strongly prefer the one bellow with __forceinline.
+        * This saves ~1.6mb of code on MSVC\CLANG as of 11/23/2020.
+        */
+#if defined(__GNUC__) && !defined(__clang__)
         template<typename TT, typename... Params>
-        __forceinline TT * makeNode(Params... args) {
+        TT * makeNode(Params... args) {
             totalNodesAllocated ++;
             if ( prefixWithHeader ) {
                 char * data = allocate(sizeof(TT) + sizeof(NodePrefix));
@@ -328,6 +338,18 @@ namespace das {
                 return new (allocate(sizeof(TT))) TT(args...);
             }
         }
+#else
+        template<typename TT, typename... Params>
+        __forceinline TT * makeNode(Params... args) {
+            totalNodesAllocated++;
+            char * data = allocate(prefixWithHeader ? (sizeof(TT)+sizeof(NodePrefix)) : sizeof(TT));
+            if ( prefixWithHeader ) {
+                new (data) NodePrefix(sizeof(TT));
+                data += sizeof(NodePrefix);
+            }
+            return new (data) TT(args...);
+        }
+#endif
 
         template < template <typename TT> class NodeType, typename... Params>
         SimNode * makeNumericValueNode(Type baseType, Params... args) {
@@ -386,6 +408,21 @@ namespace das {
                 DAS_ASSERTF(0, "we should not even be here. we are calling makeValueNode on an uspported baseType."
                               "likely new by-value builtin type been added.");
                 return nullptr;
+            }
+        }
+
+        template < template <int TT> class NodeType, typename... Params>
+        SimNode* makeNodeUnrollAny(int count, Params... args) {
+            switch (count) {
+            case  0: return makeNode<NodeType< 0>>(args...);
+            case  1: return makeNode<NodeType< 1>>(args...);
+            case  2: return makeNode<NodeType< 2>>(args...);
+            case  3: return makeNode<NodeType< 3>>(args...);
+            case  4: return makeNode<NodeType< 4>>(args...);
+            case  5: return makeNode<NodeType< 5>>(args...);
+            case  6: return makeNode<NodeType< 6>>(args...);
+            case  7: return makeNode<NodeType< 7>>(args...);
+            default: return makeNode<NodeType<-1>>(args...);
             }
         }
 
@@ -472,6 +509,25 @@ namespace das {
                 DAS_ASSERTF(0, "we should not even be here. we are calling makeNodeUnroll on a large number or a negative number."
                             "if its negative, there is some issue with the logic of count."
                             "if its large, bigger specialization for unroll should be added.");
+                return nullptr;
+            }
+        }
+
+        template < template <int TT> class NodeType, typename... Params>
+        SimNode* makeNodeUnrollNZ_FOR(int count, Params... args) {
+            switch (count) {
+            case  1: return makeNode<NodeType< 1>>(args...);
+            case  2: return makeNode<NodeType< 2>>(args...);
+            case  3: return makeNode<NodeType< 3>>(args...);
+            case  4: return makeNode<NodeType< 4>>(args...);
+            case  5: return makeNode<NodeType< 5>>(args...);
+            case  6: return makeNode<NodeType< 6>>(args...);
+            case  7: return makeNode<NodeType< 7>>(args...);
+            case  8: return makeNode<NodeType< 8>>(args...);
+            default:
+                DAS_ASSERTF(0, "we should not even be here. we are calling makeNodeUnrollNZ8 on a large number or a negative number."
+                    "if its negative, there is some issue with the logic of count."
+                    "if its large, bigger specialization for unroll should be added.");
                 return nullptr;
             }
         }

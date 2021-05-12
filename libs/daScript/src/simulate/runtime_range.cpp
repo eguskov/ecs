@@ -8,7 +8,7 @@ namespace das
         int32_t * value = (int32_t *) _value;
         *value      = rng.from;
         range_to    = rng.to;
-        return (rng.from!=rng.to);
+        return isSigned ? (rng.from < rng.to) : (uint32_t(rng.from) < uint32_t(rng.to));
     }
 
     bool RangeIterator::next  ( Context &, char * _value ) {
@@ -29,7 +29,7 @@ namespace das
         char * iter = context.heap->allocate(sizeof(RangeIterator));
         context.heap->mark_comment(iter,"range iterator");
         context.heap->mark_location(iter,&debugInfo);
-        new (iter) RangeIterator(r);
+        new (iter) RangeIterator(r, isSigned);
         return cast<char *>::from(iter);
     }
 
@@ -43,7 +43,8 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode ** __restrict tail = list + total;
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode ** __restrict tail = list + total;
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             SimNode ** __restrict body = list;
@@ -52,7 +53,7 @@ namespace das
                 (*body)->eval(context);
                 DAS_PROCESS_LOOP_FLAGS(break);
             }
-        }
+        } }
     loopend:;
         evalFinal(context);
         context.stopFlags &= ~EvalFlags::stopForBreak;
@@ -65,13 +66,15 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode ** __restrict tail = list + total;
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode ** __restrict tail = list + total;
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             for (SimNode ** __restrict body = list; body!=tail; ++body) {
                 (*body)->eval(context);
             }
-        }
+        } }
+    loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
         return v_zero();
@@ -83,12 +86,13 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode * __restrict pbody = list[0];
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode * __restrict pbody = list[0];
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             pbody->eval(context);
             DAS_PROCESS_LOOP1_FLAGS(continue);
-        }
+        } }
     loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
@@ -101,15 +105,19 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode * __restrict pbody = list[0];
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode * __restrict pbody = list[0];
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             pbody->eval(context);
-        }
+        } }
+    loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
         return v_zero();
     }
+
+#if DAS_DEBUGGER
 
     //////////////////
     // FOR RANGE DEBUG
@@ -121,7 +129,8 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode ** __restrict tail = list + total;
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode ** __restrict tail = list + total;
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             SimNode ** __restrict body = list;
@@ -131,7 +140,7 @@ namespace das
                 (*body)->eval(context);
                 DAS_PROCESS_LOOP_FLAGS(break);
             }
-        }
+        } }
     loopend:;
         evalFinal(context);
         context.stopFlags &= ~EvalFlags::stopForBreak;
@@ -144,14 +153,16 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode ** __restrict tail = list + total;
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode ** __restrict tail = list + total;
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             for (SimNode ** __restrict body = list; body!=tail; ++body) {
                 DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
                 (*body)->eval(context);
             }
-        }
+        } }
+    loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
         return v_zero();
@@ -163,13 +174,14 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode * __restrict pbody = list[0];
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode * __restrict pbody = list[0];
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             DAS_SINGLE_STEP(context,pbody->debugInfo,true);
             pbody->eval(context);
             DAS_PROCESS_LOOP1_FLAGS(continue);
-        }
+        } }
     loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
@@ -182,15 +194,19 @@ namespace das
         range r = cast<range>::to(ll);
         int32_t * __restrict pi = (int32_t *)(context.stack.sp() + stackTop[0]);
         int32_t r_to = r.to;
-        SimNode * __restrict pbody = list[0];
+        if ( !first(r.from,r_to) ) goto loopend;
+        { SimNode * __restrict pbody = list[0];
         for (int32_t i = r.from; i != r_to; ++i) {
             *pi = i;
             DAS_SINGLE_STEP(context,pbody->debugInfo,true);
             pbody->eval(context);
-        }
+        } }
+    loopend:;
         evalFinal(context);
         context.stopFlags &= ~(EvalFlags::stopForBreak | EvalFlags::stopForContinue);
         return v_zero();
     }
+
+#endif
 
 }

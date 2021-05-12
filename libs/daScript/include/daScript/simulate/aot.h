@@ -1,6 +1,6 @@
 #pragma once
 
-#include "daScript/misc/function_traits.h"
+#include "daScript/misc/callable.h"
 #include "daScript/simulate/runtime_profile.h"
 #include "daScript/simulate/debug_print.h"
 #include "daScript/simulate/sim_policy.h"
@@ -11,6 +11,10 @@
 #include "daScript/simulate/runtime_table.h"
 #include "daScript/simulate/interop.h"
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4946)   // reinterpret_cast used between related classes
+#endif
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #if __GNUC__>=9
@@ -23,6 +27,7 @@ namespace das {
 
     #define DAS_SETBOOLOR(a,b)  (([&]()->bool{ bool & A=((a)); A=A||((b)); return A; })())
     #define DAS_SETBOOLAND(a,b) (([&]()->bool{ bool & A=((a)); A=A&&((b)); return A; })())
+    #define DAS_SETBOOLXOR(a,b) (([&]()->bool{ bool & A=((a)); A=A^((b)); return A; })())
 
     #define DAS_MAKE_ANNOTATION(name)   ((TypeAnnotation*)(intptr_t(name)|1))
 
@@ -36,21 +41,42 @@ namespace das {
     void das_debug ( Context * context, TypeInfo * typeInfo, const char * FILE, int LINE, vec4f res, const char * message = nullptr );
 
     template <typename TT>
+    struct das_auto_cast {
+        template <typename QQ>
+        __forceinline static TT cast ( QQ && expr ) {
+            return (TT) expr;
+        }
+    };
+
+    template <typename TT>
+    struct das_auto_cast_move {
+        template <typename QQ>
+        __forceinline static TT cast ( QQ && expr ) {
+            TT res = expr;
+            memset(&expr, 0, sizeof(QQ));
+            return res;
+        }
+    };
+
+    template <typename TT>
     __forceinline void das_zero ( TT & a ) {
-        memset(&a, 0, sizeof(TT));
+        using TTNC = typename remove_const<TT>::type;
+        memset(const_cast<TTNC *>(&a), 0, sizeof(TT));
     }
 
     template <typename TT, typename QQ>
     __forceinline void das_move ( TT & a, const QQ & b ) {
+        using TTNC = typename remove_const<TT>::type;
         static_assert(sizeof(TT)<=sizeof(QQ),"can't move from smaller type");
-        memcpy(&a, &b, sizeof(TT));
-        memset((TT *)&b, 0, sizeof(TT));
+        memcpy(const_cast<TTNC *>(&a), &b, sizeof(TT));
+        memset((TTNC *)&b, 0, sizeof(TT));
     }
 
     template <typename TT, typename QQ>
     __forceinline void das_copy ( TT & a, const QQ b ) {
+        using TTNC = typename remove_const<TT>::type;
         static_assert(sizeof(TT)<=sizeof(QQ),"can't copy from smaller type");
-        memcpy(&a, &b, sizeof(TT));
+        memcpy(const_cast<TTNC *>(&a), &b, sizeof(TT));
     }
 
     template <typename TT>
@@ -73,28 +99,36 @@ namespace das {
         return a != b;
     }
 
-    template <typename TT, int offset>
+    template <typename TT, uint32_t mnh>
     __forceinline TT & das_global ( Context * __context__ ) {
+        uint32_t offset =  __context__->globalOffsetByMangledName(mnh);
         return *(TT *)(__context__->globals + offset);
     }
 
-    template <typename TT, int offset>
+    template <typename TT, uint32_t mnh>
     __forceinline void das_global_zero ( Context * __context__ ) {
+        uint32_t offset =  __context__->globalOffsetByMangledName(mnh);
         memset(__context__->globals + offset, 0, sizeof(TT));
     }
 
-    template <typename TT, int offset>
+    template <typename TT, uint32_t mnh>
     __forceinline TT & das_shared ( Context * __context__ ) {
+        uint32_t offset =  __context__->globalOffsetByMangledName(mnh);
         return *(TT *)(__context__->shared + offset);
     }
 
-    template <typename TT, int offset>
+    template <typename TT, uint32_t mnh>
     __forceinline void das_shared_zero ( Context * __context__ ) {
+        uint32_t offset =  __context__->globalOffsetByMangledName(mnh);
         memset(__context__->shared + offset, 0, sizeof(TT));
     }
 
     __forceinline int das_memcmp ( void * left, void * right, int size ) {
         return memcmp(left, right, size);
+    }
+
+    __forceinline void das_memcpy ( void * left, void * right, int size ) {
+        memcpy(left, right, size);
     }
 
     template <typename TT>
@@ -165,6 +199,13 @@ namespace das {
 
     template <>
     struct das_reinterpret<const vec4f>;
+
+    template <typename TT>
+    struct das_typedecl_value {
+        TT operator () () const {
+            return TT();
+        };
+    };
 
     template <typename ResT,typename VecT, int index>
     struct das_swizzle_ref {
@@ -260,6 +301,13 @@ namespace das {
         static __forceinline TT * cast ( QQ * expr ) {
             return reinterpret_cast<TT *>(expr);
         }
+        static __forceinline TT * cast ( nullptr_t ) {
+            return nullptr;
+        }
+        template <typename QQ>
+        static __forceinline TT * cast ( const QQ * expr ) {
+            return const_cast<TT *>(reinterpret_cast<const TT *>(expr));
+        }
         template <typename QQ>
         static __forceinline TT * cast ( const smart_ptr_raw<QQ> & expr ) {
             return reinterpret_cast<TT *>(expr.get());
@@ -270,7 +318,7 @@ namespace das {
         }
         template <typename QQ>
         static __forceinline TT * cast ( const QQ & expr ) {
-            return reinterpret_cast<TT *>(&expr);
+            return const_cast<TT *>(reinterpret_cast<const TT *>(&expr));
         }
     };
 
@@ -504,6 +552,11 @@ namespace das {
     template <typename TT> struct das_index<const vec3<TT>> : das_vec_index<TT, vec3<TT>, 3> {};
     template <typename TT> struct das_index<const vec4<TT>> : das_vec_index<TT, vec4<TT>, 4> {};
 
+    template<> struct das_index<range> : das_vec_index<int32_t, range, 2> {};
+    template<> struct das_index<const range> : das_vec_index<int32_t, range, 2> {};
+
+    template<> struct das_index<urange> : das_vec_index<uint32_t, urange, 2> {};
+    template<> struct das_index<const urange> : das_vec_index<uint32_t, urange, 2> {};
 
     template <typename VecT, int size>
     struct das_index<Matrix<VecT,size>> {
@@ -568,6 +621,7 @@ namespace das {
         using THIS_TYPE = TDim<TT, size>;
         enum { capacity = size };
         TT  data[size];
+        TDim() {}
         __forceinline TT & operator [] ( int32_t index ) {
             return data[index];
         }
@@ -704,8 +758,32 @@ namespace das {
         }
     };
 
+    template <typename TT>
+    struct is_workhorse_type {
+        enum {
+            value =
+                    is_enum<TT>::value
+                ||  is_pointer<TT>::value
+                ||  is_arithmetic<TT>::value
+                ||  is_same<TT,bool>::value
+                ||  is_same<TT,Bitfield>::value
+                ||  is_same<TT,range>::value
+                ||  is_same<TT,urange>::value
+                ||  is_same<TT,int2>::value
+                ||  is_same<TT,int3>::value
+                ||  is_same<TT,int4>::value
+                ||  is_same<TT,uint2>::value
+                ||  is_same<TT,uint3>::value
+                ||  is_same<TT,uint4>::value
+                ||  is_same<TT,float2>::value
+                ||  is_same<TT,float3>::value
+                ||  is_same<TT,float4>::value
+        };
+    };
+
     template <typename TK, typename TV>
     struct TTable : Table {
+        static_assert(is_workhorse_type<TK>::value,"only supported for `workhorse` types");
         using THIS_TYPE = TTable<TK, TV>;
         TTable()  {}
         TTable(TTable & arr) { moveT(arr); }
@@ -866,20 +944,29 @@ namespace das {
     };
 
     template <typename TT>
-    struct das_iterator;
-
-    template <>
-    struct das_iterator <const range> {
-        __forceinline das_iterator(const range & r) : that(r) {}
-        __forceinline bool first ( Context *, int32_t & i ) { i = that.from; return i!=that.to; }
-        __forceinline bool next  ( Context *, int32_t & i ) { i++; return i!=that.to; }
-        __forceinline void close ( Context *, int32_t &   ) {}
-        range that;
+    struct TSequence : Sequence {
+        __forceinline TSequence () { this->iter = nullptr; }
+        __forceinline TSequence ( Sequence && s ) { this->iter = s.iter; s.iter = nullptr; }
+        __forceinline TSequence ( const Sequence & s ) { this->iter = s.iter; }
+        __forceinline TSequence<TT> & operator = ( Sequence && s ) { this->iter = s.iter; s.iter = nullptr;return *this; }
+        __forceinline TSequence<TT> & operator = ( const Sequence & s ) { this->iter = s.iter; return *this; }
     };
 
-    template <>
-    struct das_iterator <range> : das_iterator<const range> {
-        __forceinline das_iterator(const range & r) : das_iterator<const range>(r) {}
+    template <typename TT>
+    struct das_iterator;
+
+    template <typename TT>
+    struct das_iterator <const RangeType<TT>> {
+        __forceinline das_iterator(const RangeType<TT> & r) : that(r) {}
+        __forceinline bool first ( Context *, TT & i ) { i = that.from; return i < that.to; }
+        __forceinline bool next  ( Context *, TT & i ) { i++; return i!=that.to; }
+        __forceinline void close ( Context *, TT &   ) {}
+        RangeType<TT> that;
+    };
+
+    template <typename TT>
+    struct das_iterator <RangeType<TT>> : das_iterator<const RangeType<TT>> {
+        __forceinline das_iterator(const RangeType<TT> & r) : das_iterator<const RangeType<TT>>(r) {}
     };
 
     template <>
@@ -909,17 +996,20 @@ namespace das {
             that = &r;
             array_end = (TT *)(that->data + that->size * sizeof(TT));
         }
-        __forceinline bool first(Context * __context__, TT * & i) {
+        template <typename QQ>
+        __forceinline bool first(Context * __context__, QQ * & i) {
             context = __context__;
             array_lock(*__context__, *that);
-            i = (TT *)that->data;
-            return i != array_end;
+            i = (QQ *)that->data;
+            return i != (QQ *)array_end;
         }
-        __forceinline bool next(Context *, TT * & i) {
+        template <typename QQ>
+        __forceinline bool next(Context *, QQ * & i) {
             i++;
-            return i != array_end;
+            return i != (QQ *)array_end;
         }
-        __forceinline void close(Context * __context__, TT * & i) {
+        template <typename QQ>
+        __forceinline void close(Context * __context__, QQ * & i) {
             array_unlock(*__context__, *that);
             context = nullptr;
             i = nullptr;
@@ -939,17 +1029,20 @@ namespace das {
             that = &r;
             array_end = (TT *)(that->data + that->size*sizeof(TT));
         }
-        __forceinline bool first ( Context * __context__, const TT * & i ) {
+        template <typename QQ>
+        __forceinline bool first ( Context * __context__, const QQ * & i ) {
             context = __context__;
             array_lock(*__context__, *(Array *)(that)); // technically we don't need for the const array, but...
-            i = (const TT *) that->data;
-            return i!=array_end;
+            i = (const QQ *) that->data;
+            return i!=(const QQ *)array_end;
         }
-        __forceinline bool next  ( Context *, const TT * & i ) {
+        template <typename QQ>
+        __forceinline bool next  ( Context *, const QQ * & i ) {
             i++;
-            return i!=array_end;
+            return i!=(const QQ *)array_end;
         }
-        __forceinline void close ( Context * __context__, const TT * & i ) {
+        template <typename QQ>
+        __forceinline void close ( Context * __context__, const QQ * & i ) {
             array_unlock(*__context__, *(Array *)(that));  // technically we don't need for the const array, but...
             context = nullptr;
             i = nullptr;
@@ -1010,15 +1103,18 @@ namespace das {
             array_start = r.data();
             array_end = array_start + r.size();
         }
-        __forceinline bool first ( Context *, TT * & i ) {
-            i = array_start;
-            return i!=array_end;
+        template <typename QQ>
+        __forceinline bool first ( Context *, QQ * & i ) {
+            i = (QQ *)array_start;
+            return i!=(QQ *)array_end;
         }
-        __forceinline bool next  ( Context *, TT * & i ) {
+        template <typename QQ>
+        __forceinline bool next  ( Context *, QQ * & i ) {
             i++;
-            return i!=array_end;
+            return i!=(QQ *)array_end;
         }
-        __forceinline void close ( Context *, TT * & i ) {
+        template <typename QQ>
+        __forceinline void close ( Context *, QQ * & i ) {
             i = nullptr;
         }
         TT *            array_start;
@@ -1031,15 +1127,18 @@ namespace das {
             array_start = r.data();
             array_end = array_start + r.size();
         }
-        __forceinline bool first ( Context *, const TT * & i ) {
-            i = array_start;
-            return i!=array_end;
+        template <typename QQ>
+        __forceinline bool first ( Context *, const QQ * & i ) {
+            i = (const QQ *)array_start;
+            return i!=(const QQ *)array_end;
         }
-        __forceinline bool next  ( Context *, const TT * & i ) {
+        template <typename QQ>
+        __forceinline bool next  ( Context *, const QQ * & i ) {
             i++;
-            return i!=array_end;
+            return i!=(const QQ *)array_end;
         }
-        __forceinline void close ( Context *, const TT * & i ) {
+        template <typename QQ>
+        __forceinline void close ( Context *, const QQ * & i ) {
             i = nullptr;
         }
         const TT *      array_start;
@@ -1399,51 +1498,53 @@ namespace das {
         }
     };
 
-    template <typename Result>
-    struct ImplAotStaticFunction {
-        template <typename FunctionType, typename ArgumentsType, size_t... I>
-        static __forceinline vec4f call(FunctionType && fn, Context & ctx, index_sequence<I...> ) {
-            return cast<Result>::from(
-            fn( cast_aot_arg< typename tuple_element<I, ArgumentsType>::type  >::to ( ctx, ctx.abiArguments()[ I ? I-1 : 0 ] )... ) );
+    template <typename R, typename ...Arg, size_t... I>
+    __forceinline R CallAotStaticFunction ( R (* fn) (Arg...), Context & ctx, index_sequence<I...> ) {
+        return fn(cast_aot_arg<Arg>::to(ctx,ctx.abiArguments()[I?I-1:0])...);
+    }
+
+    template <typename FunctionType>
+    struct ImplAotStaticFunction;
+
+    template <typename R, typename ...Arg>
+    struct ImplAotStaticFunction<R (*)(Arg...)> {
+        static __forceinline vec4f call ( R (*fn) (Arg...), Context & ctx ) {
+            return cast<R>::from(
+                CallAotStaticFunction<R,Arg...>(fn,ctx,make_index_sequence<sizeof...(Arg)>())
+            );
         }
     };
 
-    template <>
-    struct ImplAotStaticFunction<void> {
-        template <typename FunctionType, typename ArgumentsType, size_t... I>
-        static __forceinline vec4f call(FunctionType && fn, Context & ctx, index_sequence<I...> ) {
-            fn( cast_aot_arg< typename tuple_element<I, ArgumentsType>::type  >::to ( ctx, ctx.abiArguments()[ I ? I-1 : 0 ] )... );
+    template <typename ...Arg>
+    struct ImplAotStaticFunction<void (*)(Arg...)> {
+        static __forceinline vec4f call ( void (*fn) (Arg...), Context & ctx ) {
+            CallAotStaticFunction<void,Arg...>(fn,ctx,make_index_sequence<sizeof...(Arg)>());
             return v_zero();
         }
     };
 
-    template <typename Result>
-    struct ImplAotStaticFunctionCMRES {
-        template <typename FunctionType, typename ArgumentsType, size_t... I>
-        static __forceinline Result call(FunctionType && fn, Context & ctx, index_sequence<I...> ) {
-            return fn( cast_aot_arg< typename tuple_element<I, ArgumentsType>::type  >::to ( ctx, ctx.abiArguments()[ I ? I-1 : 0 ] )... );
+    template <typename FunctionType>
+    struct ImplAotStaticFunctionCMRES;
+
+    template <typename R, typename ...Arg>
+    struct ImplAotStaticFunctionCMRES<R (*)(Arg...)> {
+        static __forceinline void call ( R (*fn) (Arg...), Context & ctx ) {
+            using result = typename remove_const<R>::type;
+            *((result *) ctx.abiCMRES) = CallAotStaticFunction<R,Arg...>(fn,ctx,make_index_sequence<sizeof...(Arg)>());
         }
     };
 
     template <typename FuncT, FuncT fn>
     struct SimNode_Aot : SimNode_CallBase {
-        const char * extFnName = nullptr;
         __forceinline SimNode_Aot ( ) : SimNode_CallBase(LineInfo()) {
             aotFunction = (void*) fn;
         }
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            using FunctionTrait = function_traits<FuncT>;
-            using Result = typename FunctionTrait::return_type;
-            using Arguments = typename FunctionTrait::arguments;
-            const int nargs = tuple_size<Arguments>::value;
-            using Indices = make_index_sequence<nargs>;
-            // TODO: sort out interop
             vec4f * aa = context.abiArg;
-            vec4f stub[1] = { v_zero() };
+            vec4f stub[1];
             if ( !aa ) context.abiArg = stub;
-            auto res = ImplAotStaticFunction<Result>::template
-                call<FuncT,Arguments>(*fn, context, Indices());
+            auto res = ImplAotStaticFunction<FuncT>::call(*fn, context);
             context.abiArg = aa;
             context.abiResult() = res;
             return res;
@@ -1452,21 +1553,13 @@ namespace das {
 
     template <typename FuncT, FuncT fn>
     struct SimNode_AotCMRES : SimNode_CallBase {
-        const char * extFnName = nullptr;
         __forceinline SimNode_AotCMRES ( ) : SimNode_CallBase(LineInfo()) {}
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            using FunctionTrait = function_traits<FuncT>;
-            using Result = typename FunctionTrait::return_type;
-            using Arguments = typename FunctionTrait::arguments;
-            const int nargs = tuple_size<Arguments>::value;
-            using Indices = make_index_sequence<nargs>;
             vec4f * aa = context.abiArg;
-            vec4f stub[1] = { v_zero() };
-            if ( !aa ) { context.abiArg = stub; }
-            using ResultValue = typename remove_const<Result>::type;
-            *((ResultValue *)context.abiCMRES) = ImplAotStaticFunctionCMRES<Result>::template
-                call<FuncT,Arguments>(*fn, context, Indices());
+            vec4f stub[1];
+            if ( !aa ) context.abiArg = stub;
+            ImplAotStaticFunctionCMRES<FuncT>::call(*fn, context);
             context.abiArg = aa;
             context.abiResult() = cast<void *>::from(context.abiCMRES);
             return context.abiResult();
@@ -1561,17 +1654,24 @@ namespace das {
         char * EP, * SP;
     };
 
-    template <typename resType, typename ...argType>
-    struct das_make_block : Block, SimNode_ClosureBlock {
-        typedef function < resType ( argType... ) > BlockFn;
-        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-                : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
+    struct das_make_block_base : Block, SimNode_ClosureBlock {
+        das_make_block_base ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi )
+                : SimNode_ClosureBlock(LineInfo(),false,false,ann) {
             stackOffset = context->stack.spi();
             argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
             body = this;
-            aotFunction = &blockFunction;
             functionArguments = context->abiArguments();
             info = fi;
+        }
+    };
+
+    template <typename resType, typename ...argType>
+    struct das_make_block : das_make_block_base {
+        typedef callable < resType ( argType... ) > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
+            aotFunction = &blockFunction;
         };
         template <size_t... I>
         __forceinline resType callBlockFunction(vec4f * args, index_sequence<I...>) {
@@ -1592,16 +1692,12 @@ namespace das {
 #endif
 
     template <typename resType>
-    struct das_make_block<resType> : Block, SimNode_ClosureBlock {
-        typedef function < resType () > BlockFn;
-        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-            : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
-            stackOffset = context->stack.spi();
-            argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
-            body = this;
+    struct das_make_block<resType> : das_make_block_base {
+        typedef callable < resType () > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
             aotFunction = &blockFunction;
-            functionArguments = context->abiArguments();
-            info = fi;
         };
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
@@ -1611,16 +1707,12 @@ namespace das {
     };
 
     template <>
-    struct das_make_block<void> : Block, SimNode_ClosureBlock {
-        typedef function < void () > BlockFn;
-        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-            : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
-            stackOffset = context->stack.spi();
-            argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
-            body = this;
+    struct das_make_block<void> : das_make_block_base {
+        typedef callable < void () > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
             aotFunction = &blockFunction;
-            functionArguments = context->abiArguments();
-            info = fi;
         };
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
@@ -1635,17 +1727,13 @@ namespace das {
 #endif
 
     template <typename ...argType>
-    struct das_make_block<void,argType...> : Block, SimNode_ClosureBlock {
-        typedef function < void ( argType... ) > BlockFn;
-        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-                : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
-            stackOffset = context->stack.spi();
-            argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
-            body = this;
+    struct das_make_block<void,argType...> : das_make_block_base {
+        typedef callable < void ( argType... ) > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
             aotFunction = &blockFunction;
-            functionArguments = context->abiArguments();
-            info = fi;
-       };
+        };
         template <size_t... I>
         __forceinline void callBlockFunction(vec4f * args, index_sequence<I...>) {
             blockFunction((cast<argType>::to(args[I]))...);
@@ -1661,16 +1749,12 @@ namespace das {
     };
 
     template <typename resType, typename ...argType>
-    struct das_make_block_cmres : Block, SimNode_ClosureBlock {
-        typedef function < resType ( argType... ) > BlockFn;
-        __forceinline das_make_block_cmres ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-            : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
-            stackOffset = context->stack.spi();
-            argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
-            body = this;
+    struct das_make_block_cmres : das_make_block_base {
+        typedef callable < resType ( argType... ) > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block_cmres ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
             aotFunction = &blockFunction;
-            functionArguments = context->abiArguments();
-            info = fi;
         };
         template <size_t... I>
         __forceinline resType callBlockFunction(vec4f * args, index_sequence<I...>) {
@@ -1689,16 +1773,12 @@ namespace das {
     };
 
     template <typename resType>
-    struct das_make_block_cmres<resType> : Block, SimNode_ClosureBlock {
-        typedef function < resType () > BlockFn;
-        __forceinline das_make_block_cmres ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, BlockFn && func )
-            : SimNode_ClosureBlock(LineInfo(),false,false,ann), blockFunction(func) {
-            stackOffset = context->stack.spi();
-            argumentsOffset = argStackTop ? (context->stack.spi() + argStackTop) : 0;
-            body = this;
+    struct das_make_block_cmres<resType> : das_make_block_base {
+        typedef callable < resType () > BlockFn;
+        template <typename Functor>
+        __forceinline das_make_block_cmres ( Context * context, uint32_t argStackTop, uint64_t ann, FuncInfo * fi, Functor && func )
+                : das_make_block_base(context,argStackTop,ann,fi), blockFunction(func) {
             aotFunction = &blockFunction;
-            functionArguments = context->abiArguments();
-            info = fi;
         };
         virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
@@ -1719,7 +1799,7 @@ namespace das {
     struct das_invoke {
         // vector cast
         static __forceinline ResType invoke ( Context * __context__, const Block & blk ) {
-            using BlockFn = function < ResType () >;
+            using BlockFn = callable < ResType () >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
                 return (*fn) ();
@@ -1730,10 +1810,10 @@ namespace das {
         }
         template <typename ...ArgType>
         static __forceinline ResType invoke ( Context * __context__, const Block & blk, ArgType ...arg ) {
-            using BlockFn = function < ResType ( ArgType... ) >;
+            using BlockFn = callable < ResType ( ArgType... ) >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
-                return (*fn) ( arg... );
+                return (*fn) ( forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 vec4f result = __context__->invoke(blk, arguments, nullptr);
@@ -1742,7 +1822,7 @@ namespace das {
         }
         // cmres
         static __forceinline ResType invoke_cmres ( Context * __context__, const Block & blk ) {
-            using BlockFn = function < ResType () >;
+            using BlockFn = callable < ResType () >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
                 return (*fn) ();
@@ -1754,10 +1834,10 @@ namespace das {
         }
         template <typename ...ArgType>
         static __forceinline ResType invoke_cmres ( Context * __context__, const Block & blk, ArgType ...arg ) {
-            using BlockFn = function < ResType ( ArgType... ) >;
+            using BlockFn = callable < ResType ( ArgType... ) >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
-                return (*fn) ( arg... );
+                return (*fn) ( forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 typename remove_const<ResType>::type result;
@@ -1767,14 +1847,14 @@ namespace das {
         }
         template <typename BLK, typename ...ArgType>
         static __forceinline ResType invoke_cmres ( Context *, const BLK & blk, ArgType ...arg ) {
-            return blk(arg...);
+            return blk(forward<ArgType>(arg)...);
         }
     };
 
     template <>
     struct das_invoke<void> {
         static __forceinline void invoke ( Context * __context__, const Block & blk ) {
-            using BlockFn = function < void () >;
+            using BlockFn = callable < void () >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
                 (*fn) ();
@@ -1784,10 +1864,10 @@ namespace das {
         }
         template <typename ...ArgType>
         static __forceinline void invoke ( Context * __context__, const Block & blk, ArgType ...arg ) {
-            using BlockFn = function < void ( ArgType... ) >;
+            using BlockFn = callable < void ( ArgType... ) >;
             if ( blk.aotFunction ) {
                 auto fn = (BlockFn *) blk.aotFunction;
-                (*fn) ( arg... );
+                (*fn) ( forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 __context__->invoke(blk, arguments, nullptr);
@@ -1795,7 +1875,7 @@ namespace das {
         }
         template <typename BLK, typename ...ArgType>
         static __forceinline void invoke ( Context *, const BLK & blk, ArgType ...arg ) {
-            return blk(arg...);
+            return blk(forward<ArgType>(arg)...);
         }
     };
 
@@ -1820,7 +1900,7 @@ namespace das {
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
-                return (*fnPtr) ( __context__, arg... );
+                return (*fnPtr) ( __context__, forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 vec4f result = __context__->callOrFastcall(simFunc, arguments, 0);
@@ -1847,7 +1927,7 @@ namespace das {
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
-                return (*fnPtr) ( __context__, arg... );
+                return (*fnPtr) ( __context__, forward<ArgType>(arg)... );
             } else {
                 if (!simFunc) __context__->throw_error("invoke null function");
                 typename remove_const<ResType>::type result;
@@ -1900,7 +1980,7 @@ namespace das {
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
-                return (*fnPtr) ( __context__, blk.capture, arg... );
+                return (*fnPtr) ( __context__, blk.capture, forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 vec4f result = __context__->callOrFastcall(simFunc, arguments, 0);
@@ -1933,7 +2013,7 @@ namespace das {
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
-                return (*fnPtr) ( __context__, blk.capture, arg... );
+                return (*fnPtr) ( __context__, blk.capture, forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 typename remove_const<ResType>::type result;
@@ -1969,7 +2049,7 @@ namespace das {
             if ( simFunc->aotFunction ) {
                 using fnPtrType = void (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
-                (*fnPtr) ( __context__, blk.capture, arg... );
+                (*fnPtr) ( __context__, blk.capture, forward<ArgType>(arg)... );
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 __context__->callOrFastcall(simFunc, arguments, 0);
@@ -2103,14 +2183,88 @@ namespace das {
         return thh.erase(tab, key, hfn) != -1;
     }
 
+    template <typename VectorType>
+    struct StdVectorIterator : Iterator {
+        using OT = typename VectorType::value_type;
+        StdVectorIterator  ( VectorType * ar ) : array(ar) {}
+        virtual bool first ( Context &, char * _value ) override {
+            char ** value = (char **) _value;
+            char * data     = (char *) array->data();
+            uint32_t size   = (uint32_t) array->size();
+            *value          = data;
+            array_end       = data + size * sizeof(OT);
+            return (bool) size;
+        }
+        virtual bool next  ( Context &, char * _value ) override {
+            char ** value = (char **) _value;
+            char * data = *value + sizeof(OT);
+            *value = data;
+            return data != array_end;
+        }
+        virtual void close ( Context & context, char * _value ) override {
+            if ( _value ) {
+                char ** value = (char **) _value;
+                *value = nullptr;
+            }
+            context.heap->free((char *)this, sizeof(StdVectorIterator));
+        }
+        VectorType * array;
+        char * array_end = nullptr;
+    };
+
+    template <typename TT>
+    Sequence das_vector_each_sequence ( const vector<TT> & vec, Context * context ) {
+        using VectorIterator = StdVectorIterator<vector<TT>>;
+        char * iter = context->heap->allocate(sizeof(VectorIterator));
+        context->heap->mark_comment(iter, "std::vector<> iterator");
+        new (iter) VectorIterator((vector<TT> *)&vec);
+        return { (Iterator *) iter };
+    }
+
+    template <typename TT>
+    __forceinline TSequence<TT &> das_vector_each ( vector<TT> & vec, Context * context ) {
+        return das_vector_each_sequence(vec,context);
+    }
+
+    template <typename TT>
+    __forceinline TSequence<const TT &> das_vector_each_const ( const vector<TT> & vec, Context * context ) {
+        return das_vector_each_sequence(vec,context);
+    }
+
     template <typename TT, typename QQ>
-    __forceinline void das_vector_push ( vector<TT> & vec, const QQ & value ) {
+    __forceinline void das_vector_push ( vector<TT> & vec, const QQ & value, int32_t at, Context * context ) {
+        if ( uint32_t(at)>vec.size() ) {
+            context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
+        }
+        vec.insert(vec.begin() + at, value);
+    }
+
+    template <typename TT, typename QQ>
+    __forceinline void das_vector_push_value ( vector<TT> & vec, QQ value, int32_t at, Context * context ) {
+        if ( uint32_t(at)>vec.size() ) {
+            context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
+        }
+        vec.insert(vec.begin() + at, value);
+    }
+
+    template <typename TT, typename QQ>
+    __forceinline void das_vector_emplace ( vector<TT> & vec, QQ & value, int32_t at ) {
+        vec.emplace(vec.begin()+at, move(value));
+    }
+
+    template <typename TT, typename QQ>
+    __forceinline void das_vector_push_back ( vector<TT> & vec, const QQ & value ) {
         vec.push_back(value);
     }
 
     template <typename TT, typename QQ>
-    __forceinline void das_vector_push_value ( vector<TT> & vec, QQ value ) {
+    __forceinline void das_vector_push_back_value ( vector<TT> & vec, QQ value ) {
         vec.push_back(value);
+    }
+
+    template <typename TT, typename QQ>
+    __forceinline void das_vector_emplace_back ( vector<TT> & vec, QQ & value ) {
+        vec.emplace_back(move(value));
     }
 
     template <typename TT>
@@ -2129,6 +2283,14 @@ namespace das {
     }
 
     template <typename TT>
+    __forceinline void das_vector_erase ( vector<TT> & vec, int32_t index, Context * context ) {
+        if ( uint32_t(index)>vec.size() ) {
+            context->throw_error_ex("erasing vector index out of range %i of %i", index, int32_t(vec.size()));
+        }
+        vec.erase(vec.begin() + index);
+    }
+
+    template <typename TT>
     void peek_das_string_T(const string & str, TT && block, Context *) {
         block((char *)str.c_str());
     }
@@ -2137,12 +2299,182 @@ namespace das {
 
     char * builtin_string_clone ( const char *str, Context * context );
 
-    __forceinline void das_clone ( string & dst, const string & src ) { dst = src; }
+    template <typename TT, typename QQ>
+    struct das_clone {
+        static __forceinline void clone ( TT & dst, const QQ & src ) {
+            dst = src;
+        }
+    };
 
     char * to_das_string(const string & str, Context * ctx);
     void set_das_string(string & str, const char * bs);
+
+    __forceinline bool das_str_equ ( const string & a, const string & b ) { return a==b; }
+    __forceinline bool das_str_nequ ( const string & a, const string & b ) { return a!=b; }
+
+    __forceinline int32_t enum_to_int   ( EnumStub stub )   { return stub.value; }
+    __forceinline int32_t enum8_to_int  ( EnumStub8 stub )  { return stub.value; }
+    __forceinline int32_t enum16_to_int ( EnumStub16 stub ) { return stub.value; }
+
+    __forceinline uint32_t enum_to_uint   ( EnumStub stub )   { return uint32_t(stub.value); }
+    __forceinline uint32_t enum8_to_uint  ( EnumStub8 stub )  { return uint32_t(stub.value); }
+    __forceinline uint32_t enum16_to_uint ( EnumStub16 stub ) { return uint32_t(stub.value); }
+
+
+    template <typename CType>
+    struct das_using {
+        template <typename TT>
+        static __forceinline void use ( TT && block ) {
+            CType value;
+            block ( value );
+        }
+        template <typename TT, typename A1>
+        static __forceinline void use ( A1 a1, TT && block ) {
+            CType value ( a1 );
+            block ( value );
+        }
+        template <typename TT, typename A1, typename A2>
+        static __forceinline void use ( A1 a1, A2 a2, TT && block ) {
+            CType value ( a1, a2 );
+            block ( value );
+        }
+        template <typename TT, typename A1, typename A2, typename A3>
+        static __forceinline void use ( A1 a1, A2 a2, A3 a3, TT && block ) {
+            CType value ( a1, a2, a3 );
+            block ( value );
+        }
+        template <typename TT, typename A1, typename A2, typename A3, typename A4>
+        static __forceinline void use ( A1 a1, A2 a2, A3 a3, A4 a4, TT && block ) {
+            CType value ( a1, a2, a3, a4 );
+            block ( value );
+        }
+        template <typename TT, typename A1, typename A2, typename A3, typename A4, typename A5>
+        static __forceinline void use ( A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, TT && block ) {
+            CType value ( a1, a2, a3, a4, a5 );
+            block ( value );
+        }
+        template <typename TT, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
+        static __forceinline void use ( A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, TT && block ) {
+            CType value ( a1, a2, a3, a4, a5, a6 );
+            block ( value );
+        }
+    };
+
+#define DAS_CALL_MEMBER(type_and_fun)    \
+    das::das_call_member< DAS_BIND_MEMBER_FUN(type_and_fun) >
+
+
+#define DAS_CALL_MEMBER_CPP(type_and_fun) \
+    "das_call_member< DAS_BIND_MEMBER_FUN(" #type_and_fun ")>::invoke"
+
+    template <typename FuncT, FuncT fun>
+    struct das_call_member;
+
+    template <typename R, typename CC, typename ...Args, R (CC::*func)(Args...) >
+    struct das_call_member < R (CC::*)(Args...),  func> {
+        static R invoke ( CC & THIS, Args... args ) {
+            return ((THIS).*(func)) ( args... );
+        }
+    };
+
+    template <typename R, typename CC, typename ...Args, R (CC::*func)(Args...) const >
+    struct das_call_member < R (CC::*)(Args...) const,  func> {
+        static R invoke ( const CC & THIS, Args... args ) {
+            return ((THIS).*(func)) ( args... );
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_AND {
+        static ET invoke ( ET a, ET b ) {
+            return ET(int(a) & int(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke ( EA a, EB b ) {
+            return ET(int(a) & int(b));
+        }
+    };
+    template <typename ET>
+    struct das_operator_enum_OR {
+        static ET invoke ( ET a, ET b ) {
+            return ET(int(a) | int(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke ( EA a, EB b ) {
+            return ET(int(a) | int(b));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_XOR {
+        static ET invoke ( ET a, ET b ) {
+            return ET(int(a) ^ int(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke ( EA a, EB b ) {
+            return ET(int(a) ^ int(b));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_OR_EQU {
+        static void invoke ( ET & a, ET b ) {
+            a = ET(int(a) | int(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke ( EA & a, EB b ) {
+            a = EA(int(a) | int(b));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_XOR_EQU {
+        static void invoke ( ET & a, ET b ) {
+            a = ET(int(a) ^ int(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke ( EA & a, EB b ) {
+            a = EA(int(a) ^ int(b));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_AND_EQU {
+        static void invoke ( ET & a, ET b ) {
+            a = ET(int(a) & int(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke ( EA & a, EB b ) {
+            a = EA(int(a) & int(b));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_AND_AND {
+        static bool invoke ( ET a, ET b ) {
+            return (int(a) & int(b))!=0;
+        }
+        template <typename EA, typename EB>
+        static bool invoke ( EA a, EB b ) {
+            return (int(a) & int(b))!=0;
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_NOT {
+        static ET invoke ( ET a ) {
+            return ET(~int(a));
+        }
+        template <typename EA>
+        static ET invoke ( EA a ) {
+            return ET(~int(a));
+        }
+    };
 }
 
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif

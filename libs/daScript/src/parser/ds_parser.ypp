@@ -194,6 +194,7 @@
 %token  DAS_IMPLICIT        "implicit"
 %token  DAS_EXPLICIT        "explicit"
 %token  DAS_SHARED          "shared"
+%token  DAS_PRIVATE         "private"
 %token  DAS_SMART_PTR       "smart_ptr"
 %token  DAS_UNSAFE          "unsafe"
 
@@ -339,6 +340,7 @@
 %type <b>               kwd_let
 %type <b>               is_public_module
 %type <b>               optional_shared
+%type <i>               optional_shared_or_private
 %type <i>               block_or_lambda
 %type <b>               optional_ref
 
@@ -374,6 +376,7 @@
 %type <pExpression>     expr_new
 %type <pExpression>     expr_pipe
 %type <pExpression>     expr_type_info
+%type <pExpression>     expr_type_decl
 %type <pExpression>     expr_cast
 %type <pExpression>     expr_block
 %type <pExpression>     expr_named_call
@@ -431,7 +434,8 @@
 %right      UNARY_MINUS UNARY_PLUS '~' '!' PRE_INC PRE_DEC ADDADD SUBSUB
 %left       DAS_IS DAS_AS
 %left       LPIPE RPIPE LBPIPE LAPIPE
-%left       POST_INC POST_DEC '.' RARROW DEREF
+%left       POST_INC POST_DEC RARROW DEREF
+%left       '.'
 %nonassoc  '[' ']' '(' ')' QDOT QBRA BRABRAB BRACBRB CBRCBRB
 %nonassoc   '$' '@'
 %nonassoc   COLCOL
@@ -455,12 +459,15 @@ program
     ;
 
 module_declaration
-    :   DAS_MODULE  NAME[name] {
+    :   DAS_MODULE  NAME[name] optional_shared[mtype] {
         if ( g_Program->thisModule->name.empty() ) {
             g_Program->thisModule->name = *$name;
         } else if ( g_Program->thisModule->name != *$name ){
             das_yyerror("this module already has a name, and its " + g_Program->thisModule->name,tokAt(@name),
                 CompilationError::module_already_has_a_name);
+        }
+        if ( !g_Program->policies.ignore_shared_modules ) {
+            g_Program->promoteToBuiltin = $mtype;
         }
         delete $name;
     }
@@ -822,6 +829,7 @@ annotation_argument_list
 annotation_declaration_name
     :   name_in_namespace[name]     { $$ = $name; }
     |   DAS_REQUIRE                 { $$ = new string("require"); }
+    |   DAS_PRIVATE                 { $$ = new string("private"); }
     ;
 
 annotation_declaration
@@ -1053,6 +1061,18 @@ expr_pipe
         if ( pipeCall->rtti_isCallLikeExpr() ) {
             auto pCall = (ExprLooksLikeCall *) pipeCall;
             pCall->arguments.push_back(ExpressionPtr($arg));
+            $$ = $fncall;
+        } else if ( pipeCall->rtti_isVar() ) {
+            // a += b <| c
+            auto pVar = (ExprVar *) pipeCall;
+            auto pCall = g_Program->makeCall(pVar->at,pVar->name);
+            pCall->arguments.push_back(ExpressionPtr($arg));
+            if ( !$fncall->swap_tail(pVar,pCall) ) {
+                delete pVar;
+                $$ = pCall;
+            } else {
+                $$ = $fncall;
+            }
         } else if ( pipeCall->rtti_isMakeStruct() ) {
             auto pMS = (ExprMakeStruct *) pipeCall;
             if ( pMS->block ) {
@@ -1062,12 +1082,13 @@ expr_pipe
             } else {
                 pMS->block = $arg;
             }
+            $$ = $fncall;
         } else {
             das_yyerror("can only pipe into function call or [[ make structure ]]",
                 tokAt(@loc),CompilationError::cant_pipe);
             delete $arg;
+            $$ = $fncall;
         }
-        $$ = $fncall;
     }
     |   LAPIPE expr_block[arg] {
         $$ = $arg;
@@ -1225,33 +1246,42 @@ expr_cast
     }
     ;
 
+expr_type_decl
+    :  DAS_TYPE[loc] '<' { das_arrow_depth ++; } type_declaration[decl] '>' { das_arrow_depth --; } {
+        $$ = new ExprTypeDecl(tokAt(@loc),TypeDeclPtr($decl));
+    }
+    ;
+
 expr_type_info
     :   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] expr[subexpr] ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr));
+            if ( $subexpr->rtti_isTypeDecl() ) {
+                auto ptd = (ExprTypeDecl *)$subexpr;
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ptd->typeexpr);
+                delete $subexpr;
+            } else {
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr));
+            }
             delete $trait;
     }
     |   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] '<' NAME[subtrait] '>' expr[subexpr] ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr),*$subtrait);
+            if ( $subexpr->rtti_isTypeDecl() ) {
+                auto ptd = (ExprTypeDecl *)$subexpr;
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ptd->typeexpr,*$subtrait);
+                delete $subexpr;
+            } else {
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr),*$subtrait);
+            }
             delete $trait;
             delete $subtrait;
     }
     |   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] '<' NAME[subtrait] ';' NAME[extratrait] '>' expr[subexpr] ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr),*$subtrait,*$extratrait);
-            delete $trait;
-            delete $subtrait;
-            delete $extratrait;
-    }
-    |   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] DAS_TYPE '<' { das_arrow_depth ++; } type_declaration[decl] '>' { das_arrow_depth --; } ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,TypeDeclPtr($decl));
-            delete $trait;
-    }
-    |   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] '<' NAME[subtrait] '>' DAS_TYPE '<' { das_arrow_depth ++; } type_declaration[decl] '>' { das_arrow_depth --; } ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,TypeDeclPtr($decl),*$subtrait);
-            delete $trait;
-            delete $subtrait;
-    }
-    |   DAS_TYPEINFO[loc] '(' name_in_namespace[trait] '<' NAME[subtrait] ';' NAME[extratrait] '>' DAS_TYPE '<' { das_arrow_depth ++; } type_declaration[decl] '>' { das_arrow_depth --; } ')' {
-            $$ = new ExprTypeInfo(tokAt(@loc),*$trait,TypeDeclPtr($decl),*$subtrait,*$extratrait);
+            if ( $subexpr->rtti_isTypeDecl() ) {
+                auto ptd = (ExprTypeDecl *)$subexpr;
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ptd->typeexpr,*$subtrait,*$extratrait);
+                delete $subexpr;
+            } else {
+                $$ = new ExprTypeInfo(tokAt(@loc),*$trait,ExpressionPtr($subexpr),*$subtrait,*$extratrait);
+            }
             delete $trait;
             delete $subtrait;
             delete $extratrait;
@@ -1481,7 +1511,6 @@ expr_field
         delete $name;
     }
     |   expr[subexpr] '.'[loc] { das_supress_errors=true; } error { das_supress_errors=false; } {
-        printf("here\n");
         $$ = new ExprField(tokAt(@loc), tokAt(@loc), ExpressionPtr($subexpr), "");
         yyerrok;
     }
@@ -1586,6 +1615,7 @@ expr
         delete $vname;
     }
     |   expr_type_info[subexpr]                 { $$ = $subexpr; }
+    |   expr_type_decl[subexpr]                 { $$ = $subexpr; }
     |   expr_cast[subexpr]                      { $$ = $subexpr; }
     |   expr_new[subexpr]                       { $$ = $subexpr; }
     |   expr_method_call[subexpr]               { $$ = $subexpr; }
@@ -1596,8 +1626,14 @@ expr
             auto pCall = (ExprLooksLikeCall *) $fncall;
             pCall->arguments.push_back(ExpressionPtr($arg));
             $$ = $fncall;
+        } else if ( $fncall->rtti_isVar() ) {
+            auto pVar = (ExprVar *) $fncall;
+            auto pCall = g_Program->makeCall(pVar->at,pVar->name);
+            delete pVar;
+            pCall->arguments.push_back(ExpressionPtr($arg));
+            $$ = pCall;
         } else {
-            das_yyerror("can only pipe into a function call",tokAt(@loc),CompilationError::cant_pipe);
+            das_yyerror("can only lpipe into a function call",tokAt(@loc),CompilationError::cant_pipe);
             $$ = $fncall;
         }
     }
@@ -1606,8 +1642,14 @@ expr
             auto pCall = (ExprLooksLikeCall *) $fncall;
             pCall->arguments.insert(pCall->arguments.begin(),ExpressionPtr($arg));
             $$ = $fncall;
+        } else if ( $fncall->rtti_isVar() ) {
+            auto pVar = (ExprVar *) $fncall;
+            auto pCall = g_Program->makeCall(pVar->at,pVar->name);
+            delete pVar;
+            pCall->arguments.insert(pCall->arguments.begin(),ExpressionPtr($arg));
+            $$ = pCall;
         } else {
-            das_yyerror("can only pipe into a function call",tokAt(@loc),CompilationError::cant_pipe);
+            das_yyerror("can only lpipe into a function call",tokAt(@loc),CompilationError::cant_pipe);
             $$ = $fncall;
         }
     }
@@ -1643,6 +1685,9 @@ expr
                     das_yyerror("enumeration or bitfield not found " + *$ena, tokAt(@ena),
                         CompilationError::bitfield_not_found);
                 }
+            } else {
+                das_yyerror("expecting enumeration or bitfield " + *$ena, tokAt(@ena),
+                    CompilationError::syntax_error);
             }
         }
         if ( pEnum ) {
@@ -1790,6 +1835,12 @@ struct_variable_declaration_list
             }
             $func->delRef();
         }
+        $$ = $list;
+    }
+    |   struct_variable_declaration_list[list] '[' annotation_list[annL] ']' ';' {
+        das_yyerror("Structure field or class method annotation expected to remain on the same line with field or class.",
+            tokAt(@annL), CompilationError::syntax_error);
+        delete $annL;
         $$ = $list;
     }
     ;
@@ -1941,8 +1992,14 @@ optional_shared
     |   DAS_SHARED  { $$ = true; }
     ;
 
+optional_shared_or_private
+    :   { $$ = 0; }
+    |   DAS_SHARED  { $$ = 1; }
+    |   DAS_PRIVATE  { $$ = 2; }
+    ;
+
 global_let
-    :   kwd_let optional_shared[glob_shar] '{' global_variable_declaration_list[list] '}' {
+    :   kwd_let optional_shared_or_private[glob_shar] '{' global_variable_declaration_list[list] '}' {
         for ( auto pDecl : *$list ) {
             if ( pDecl->pTypeDecl ) {
                 for ( const auto & name_at : *pDecl->pNameList ) {
@@ -1960,7 +2017,8 @@ global_let
                     } else {
                         pVar->type->removeConstant = true;
                     }
-                    pVar->global_shared = $glob_shar;
+                    pVar->global_shared = ($glob_shar==1);
+                    pVar->private_variable = ($glob_shar==2);
                     if ( !g_Program->addVariable(pVar) )
                         das_yyerror("global variable is already declared " + name_at.first,name_at.second,
                             CompilationError::global_variable_already_declared);
@@ -1969,14 +2027,32 @@ global_let
         }
         deleteVariableDeclarationList($list);
     }
-    | kwd_let optional_shared[glob_shar] {
-            das_force_oxford_comma = true;
-            das_supress_errors = true;
-        } error[loc] ';' {
-        das_yyerror("global variable declaration requires new line", tokAt(@loc),
-            CompilationError::syntax_error);
-        das_supress_errors = false;
-        yyerrok;
+    |   kwd_let optional_shared_or_private[glob_shar] { das_force_oxford_comma=true; } let_variable_declaration[decl] {
+        auto pDecl = $decl;
+        if ( pDecl->pTypeDecl ) {
+            for ( const auto & name_at : *pDecl->pNameList ) {
+                VariablePtr pVar = make_smart<Variable>();
+                pVar->name = name_at.first;
+                pVar->at = name_at.second;
+                pVar->type = make_smart<TypeDecl>(*pDecl->pTypeDecl);
+                if ( pDecl->pInit ) {
+                    pVar->init = pDecl->pInit->clone();
+                    pVar->init_via_move = pDecl->init_via_move;
+                    pVar->init_via_clone = pDecl->init_via_clone;
+                }
+                if ( $kwd_let ) {
+                    pVar->type->constant = true;
+                } else {
+                    pVar->type->removeConstant = true;
+                }
+                pVar->global_shared = ($glob_shar==1);
+                pVar->private_variable = ($glob_shar==2);
+                if ( !g_Program->addVariable(pVar) )
+                    das_yyerror("global variable is already declared " + name_at.first,name_at.second,
+                        CompilationError::global_variable_already_declared);
+            }
+        }
+        delete pDecl;
     }
     ;
 
@@ -2650,7 +2726,6 @@ make_dim_decl
     |   BRACBRB [loc] type_declaration[mkt] make_dim[mka] '}' ']' {
        ((ExprMakeArray *)$mka)->makeType = TypeDeclPtr($mkt);
        $mka->at = tokAt(@loc);
-       $$ = $mka;
        auto tam = g_Program->makeCall(tokAt(@loc),"to_array_move");
        tam->arguments.push_back(ExpressionPtr($mka));
        $$ = tam;

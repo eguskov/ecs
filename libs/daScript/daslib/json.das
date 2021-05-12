@@ -1,6 +1,7 @@
 options indenting = 4
+options remove_unused_symbols = false
 
-module json
+module json shared
 
 require strings
 
@@ -27,28 +28,21 @@ let
     Token_string = typeinfo(variant_index<_string> type<Token>)
     Token_symbol = typeinfo(variant_index<_symbol> type<Token>)
 
-[export]
 def JV ( v : string )
     return new [[JsonValue value <- [[JsValue _string = v]]]]
 
-[export]
 def JV ( v : double )
     return new [[JsonValue value <- [[JsValue _number = v]]]]
 
-[export]
 def JV ( v : bool )
     return new [[JsonValue value <- [[JsValue _bool = v]]]]
 
-[export]
 def JV ( v : void? )
-    assert(v==null,"only null allowed")
-    return new [[JsonValue value <- [[JsValue _null = v]]]]
+    return new [[JsonValue value <- [[JsValue _null = null]]]]
 
-[export]
 def JV ( var v : table<string;JsonValue?> )
     return new [[JsonValue value <- [[JsValue _object <- v]]]]
 
-[export]
 def JV ( var v : array<JsonValue?> )
     return new [[JsonValue value <- [[JsValue _array <- v]]]]
 
@@ -64,7 +58,7 @@ def lexer ( text : array<uint8> )
 
 [private]
 def _lexer ( var stext : string implicit )
-    return <- generator<Token>() <| $()
+    return <- generator<Token>() <|
         var tin : iterator<int>
         unsafe
             tin <- each(stext)
@@ -244,14 +238,12 @@ def parse_value ( var itv : iterator<Token>; var error : string & ) : JsonValue?
         error = "{ahead}"
         return null
 
-[export]
 def read_json ( text : string implicit; var error : string& ) : JsonValue?
     var lex <- lexer(text)
     let res = parse_value(lex,error)
     delete lex
     return res
 
-[export]
 def read_json ( text : array<uint8>; var error : string& ) : JsonValue?
     var lex <- lexer(text)
     let res = parse_value(lex,error)
@@ -313,7 +305,6 @@ def write_value ( var writer : StringBuilderWriter; jsv : JsonValue?; depth : in
     else
         panic("unexpected {jsv}")
 
-[export]
 def write_json ( val : JsonValue? ) : string
     let st = build_string() <| $ (var writer)
         write_value(writer, val, 0)

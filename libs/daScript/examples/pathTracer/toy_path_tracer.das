@@ -1,17 +1,22 @@
-// options log=true
-// options logCpp=true
-// options log_nodes=true
+// options log
+// options logCpp
+// options log_nodes
 
-options no_aot=true, fusion=true
+module tpt
 
 require math
-require PathTracerHelper
-
 require random
+require strings
+require daslib/tga
+require daslib/jobque_boost
 
 let
-    DO_SAMPLES_PER_PIXEL : int const = 4
-    LIGHT_SPHERE_ID : int const = 8
+    USE_JOB_QUE = true
+    USE_THREADS = false
+
+let
+    DO_SAMPLES_PER_PIXEL = 4
+    LIGHT_SPHERE_ID = 8
 
 let
     kMinT = 0.001
@@ -23,7 +28,7 @@ var
 
 def schlick(cosine,ri:float)
     var r0 = (1. - ri) / (1. + ri)
-    return lerp ( r0*r0, 1., pow(1.-cosine,5.))
+    return lerp ( r0*r0, 1., pow(1. - cosine,5.))
 
 struct Sphere
     center : float3
@@ -57,24 +62,26 @@ struct Camera
 
 def Camera(lookFrom,lookAt,vup:float3;vfov,aspect,aperture,focusDist:float)
     var that : Camera
-    that.lensRadius = aperture / 2.
     let theta = vfov * PI / 180.
     let halfHeight = tan(theta / 2.)
     let halfWidth = aspect * halfHeight
-    that.origin = lookFrom
-    that.w = normalize(lookFrom - lookAt)
-    that.u = normalize(cross(vup, that.w))
-    that.v = cross(that.w, that.u)
-    that.lowerLeftCorner = that.origin - halfWidth*focusDist*that.u - halfHeight*focusDist*that.v - focusDist*that.w
-    that.horizontal = 2. * halfWidth * focusDist * that.u
-    that.vertical = 2. * halfHeight * focusDist * that.v
+    with that
+        lensRadius = aperture / 2.
+        origin = lookFrom
+        w = normalize(lookFrom - lookAt)
+        u = normalize(cross(vup, w))
+        v = cross(w, u)
+        lowerLeftCorner = origin - halfWidth*focusDist*u - halfHeight*focusDist*v - focusDist*w
+        horizontal = 2. * halfWidth * focusDist * u
+        vertical = 2. * halfHeight * focusDist * v
     return that
 
 def getRay(that:Camera;s,t:float)
-    let rd = that.lensRadius * random_in_unit_disk(RAND_SEED)
-    let offset = mad(that.u,rd.x,that.v*rd.y)
-    return [[Ray orig = that.origin + offset,
-        dir = normalize(mad(that.vertical,t,mad(that.horizontal,s,that.lowerLeftCorner)) - that.origin - offset) ]]
+    with that
+        let rd = lensRadius * random_in_unit_disk(RAND_SEED)
+        let offset = mad(u,rd.x,v*rd.y)
+        return [[Ray orig = origin + offset,
+            dir = normalize(mad(vertical,t,mad(horizontal,s,lowerLeftCorner)) - origin - offset) ]]
 
 enum Type
     Lambert
@@ -142,7 +149,7 @@ def hitSpheres(r:Ray const;tMin,tMax:float;var outHit:Hit)
     return id
 
 def hitWorld(r:Ray const;tMin,tMax:float;var outHit:Hit;var outID:int&)
-    outID = hitSpheres(r,tMin,tMax,outHit)
+    outID = r|>hitSpheres(tMin,tMax,outHit)
     return outID != -1
 
 def scatter(mat:Material const; r_in:Ray const; rec:Hit; var attenuation:float3&; var scattered:Ray; var outLightE:float3&; var inoutRayCount:int&)
@@ -166,7 +173,7 @@ def scatter(mat:Material const; r_in:Ray const; rec:Hit; var attenuation:float3&
         var hitID = 0
         ++inoutRayCount
         let ray = [[Ray orig=rec.pos, dir=l]]
-        if hitWorld(ray,kMinT,kMaxT,lightHit,hitID) && hitID==LIGHT_SPHERE_ID
+        if ray|>hitWorld(kMinT,kMaxT,lightHit,hitID) && hitID==LIGHT_SPHERE_ID
             let nl = dot(rec.normal,r_in.dir) < 0. ? rec.normal : -rec.normal
             outLightE += (mat.albedo*s_SphereMats[LIGHT_SPHERE_ID].emissive) * ( saturate(dot(l,nl))*mad(-2.,cosAMax,2.) )
         return true
@@ -199,17 +206,17 @@ def scatter(mat:Material const; r_in:Ray const; rec:Hit; var attenuation:float3&
         return false
     return true
 
-def trace(r:Ray;depth:int;var inoutRayCount:int&;var doMaterialE:bool = true)
+def trace(ray:Ray;depth:int;var inoutRayCount:int&;var doMaterialE:bool = true)
     var rec : Hit
     var id = 0
     ++inoutRayCount
-    if hitWorld(r,kMinT,kMaxT,rec,id)
+    if ray|>hitWorld(kMinT,kMaxT,rec,id)
         var scattered : Ray
         var attenuation : float3
         var lightE : float3
         let mat : Material & = s_SphereMats[id]
         var matE = mat.emissive
-        if depth<kMaxDepth && scatter(mat,r,rec,attenuation,scattered,lightE,inoutRayCount)
+        if depth<kMaxDepth && mat|>scatter(ray,rec,attenuation,scattered,lightE,inoutRayCount)
             if !doMaterialE
                 matE = float3(0)
             doMaterialE = mat.mtype != Type Lambert
@@ -217,7 +224,7 @@ def trace(r:Ray;depth:int;var inoutRayCount:int&;var doMaterialE:bool = true)
         else
             return matE
     else
-        let t = mad(r.dir,0.5,float3(1.))
+        let t = mad(ray.dir,0.5,float3(1.))
         return  lerp(0.3*float3(1.), 0.3*float3(0.5, 0.7, 1.0), t)
 
 def trace(screenWidth,screenHeight,frameCount,ymin,ymax:int;var backbuffer:array<float3>;cam:Camera)
@@ -231,7 +238,7 @@ def trace(screenWidth,screenHeight,frameCount,ymin,ymax:int;var backbuffer:array
             var col = float3(0)
             for s in range(DO_SAMPLES_PER_PIXEL)
                 let uv = (float2(x,y) + random_float4(RAND_SEED).xy) * invWH
-                col += trace(getRay(cam, uv.x, uv.y), 0, rayCount)
+                col += cam |> getRay(uv.x,uv.y) |> trace(0, rayCount)
             col *= 1. / float(DO_SAMPLES_PER_PIXEL)
             backbuffer[backbufferIdx] = lerp(col, backbuffer[backbufferIdx], lerpFac)
             backbufferIdx ++
@@ -253,16 +260,7 @@ def prepare
         sph.iRadius = 1. / sph.radius
 
 [export]
-def job(var backbuffer:array<float3>;frameCount,width,height,ymin,ymax:int)
-    prepare()
-    var totalRayCount = 0
-    draw(frameCount, width, height, ymin, ymax, backbuffer, totalRayCount)
-    return totalRayCount
-
-
-[export]
-def test
-    prepare()
+def main
     let width = 320
     let height = 240
     let kFrameCount = 16
@@ -270,10 +268,61 @@ def test
     resize(backbuffer,width*height)
     print("\ntracing...\n")
     var i = 0
-    profile(kFrameCount,"ray-trace frame") <|
-        var rayCount = 0
-        draw(i, width, height, 0, height, backbuffer, rayCount)
-        i ++
-    saveTga("path_tracer.tga",backbuffer,width,height)
-    return true
-
+    if USE_JOB_QUE
+        with_job_que <|
+            var t0 = ref_time_ticks()
+            var totalRays = 0
+            profile(kFrameCount,"ray-trace frame (with JOB-QUE)") <|
+                var pbb : array<float3>?
+                var ptr : int?
+                unsafe
+                    pbb = addr(backbuffer)                  // NOTE: we actually share data here
+                    ptr = addr(totalRays)
+                with_job_status(height) <| $ ( status )
+                    for y in range(height)
+                        new_job <| @
+                            prepare()
+                            var rayCount = 0
+                            draw(i, width, height, y, y+1, *pbb, rayCount)
+                            *ptr += rayCount
+                            status |> notify
+                    status |> join
+                    i ++
+            var dt = get_time_usec(t0)
+            var sec = double(dt)/1000000.0lf
+            print("{totalRays} in {sec} sec, {format("%.3f",double(totalRays)/double(dt))} mrays/sec\n")
+    elif USE_THREADS
+        var t0 = ref_time_ticks()
+        var totalRays = 0
+        profile(kFrameCount,"ray-trace frame (with THREADS)") <|
+            var pbb : array<float3>?
+            var ptr : int?
+            unsafe
+                pbb = addr(backbuffer)                  // NOTE: we actually share data here
+                ptr = addr(totalRays)
+            let hwThreads = get_total_hw_threads()
+            with_job_status(hwThreads) <| $ ( status )
+                let chunk = (height+hwThreads-1) / hwThreads
+                for c in range(hwThreads)
+                    let yMin = c * chunk
+                    let yMax = min((c + 1)*chunk, height)
+                    new_thread <| @
+                        prepare()
+                        var rayCount = 0
+                        draw(i, width, height, yMin, yMax, *pbb, rayCount)
+                        *ptr += rayCount
+                        status |> notify
+                status |> join
+                i ++
+        var dt = get_time_usec(t0)
+        var sec = double(dt)/1000000.0lf
+        print("{totalRays} in {sec} sec, {format("%.3f",double(totalRays)/double(dt))} mrays/sec\n")
+    else
+        prepare()
+        profile(kFrameCount,"ray-trace frame") <|
+            var rayCount = 0
+            draw(i, width, height, 0, height, backbuffer, rayCount)
+            i ++
+    save_TGA("path_tracer.tga",width,height,backbuffer)
+    // while true
+    //    pass

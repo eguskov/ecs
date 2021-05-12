@@ -1,6 +1,6 @@
 /*
  * Dagor Engine 5
- * Copyright (C) 2003-2020  Gaijin Entertainment Corp.  All rights reserved
+ * Copyright (C) 2003-2021  Gaijin Entertainment.  All rights reserved
  *
  * (for conditions of distribution and use, see License)
 */
@@ -16,9 +16,9 @@ VECMATH_FINLINE vec4f VECTORCALL v_msbit() { return (vec4f)vdupq_n_u32(0x8000000
 VECMATH_FINLINE vec4f VECTORCALL v_splat4(const float *a) { return vld1q_dup_f32(a); }
 VECMATH_FINLINE vec4f VECTORCALL v_ld(const float *m) { return vld1q_f32(m); }
 VECMATH_FINLINE vec4f VECTORCALL v_ldu(const float *m) { return vld1q_f32(m); }
-VECMATH_FINLINE vec4f VECTORCALL v_ld_x(const float *m) { return vsetq_lane_f32(*m, v_zero(), 0); } // load x, zero others
-VECMATH_FINLINE vec4i VECTORCALL v_ld_w(const int *m) { return vld1q_s32(m); }
-VECMATH_FINLINE vec4i VECTORCALL v_ldu_w(const int *m) { return vld1q_s32(m); }
+VECMATH_FINLINE vec4f VECTORCALL v_ldu_x(const float *m) { return vsetq_lane_f32(*m, v_zero(), 0); } // load x, zero others
+VECMATH_FINLINE vec4i VECTORCALL v_ldi(const int *m) { return vld1q_s32(m); }
+VECMATH_FINLINE vec4i VECTORCALL v_ldui(const int *m) { return vld1q_s32(m); }
 VECMATH_FINLINE vec4i VECTORCALL v_ldush(const signed short *m) { return vmovl_s16(vld1_s16(m)); }
 VECMATH_FINLINE vec4i VECTORCALL v_lduush(const unsigned short *m) { return (vec4i)vmovl_u16(vld1_u16(m)); }
 VECMATH_FINLINE vec4f VECTORCALL v_splat_x(vec4f a) { return vdupq_lane_f32(vget_low_f32(a), 0); }
@@ -1042,6 +1042,14 @@ VECMATH_FINLINE vec4f VECTORCALL v_ldu_half(const void *m)
 VECMATH_FINLINE vec4i VECTORCALL v_cvt_ush_vec4i(vec4i a) { return (int32x4_t)vmovl_u16(vget_low_u16(vreinterpretq_u16_s32(a))); }
 VECMATH_FINLINE vec4i VECTORCALL v_cvt_ssh_vec4i(vec4i a) { return vmovl_s16(vget_low_s16(vreinterpretq_s16_s32(a))); }
 
+VECMATH_FINLINE vec4i v_cvt_byte_vec4i(vec4i a)
+{
+  int8x8_t a1 = vreinterpret_s8_s16(vget_low_s16(vreinterpretq_s16_s32(a)));
+  int8x8_t b1 = vdup_n_s8(0);
+  int8x8x2_t result = vzip_s8(a1, b1);
+  return vreinterpretq_s32_s8(vcombine_s8(result.val[0], result.val[1]));
+}
+
 #if __APPLE__ || defined(__clang__)
 #define v_slli(v, bits) (int32x4_t)vshlq_n_u32((uint32x4_t)(v), bits)
 #define v_srli(v, bits) (int32x4_t)vshrq_n_u32((uint32x4_t)(v), bits)
@@ -1072,6 +1080,17 @@ VECMATH_FINLINE vec4i VECTORCALL v_packus(vec4i a)
 {
   uint16x4_t w = vqmovun_s32(a);
   return vreinterpretq_s32_u16(vcombine_u16(w, w));
+}
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a, vec4i b)
+{
+  return vreinterpretq_s32_u8(
+    vcombine_u8(vqmovun_s16(vreinterpretq_s16_s32(a)),
+      vqmovun_s16(vreinterpretq_s16_s32(b))));
+}
+VECMATH_FINLINE vec4i VECTORCALL v_packus16(vec4i a)
+{
+  uint8x8_t t = vqmovun_s16(vreinterpretq_s16_s32(a));
+  return vreinterpretq_s32_u8(vcombine_u8(t,t));
 }
 
 #endif

@@ -43,10 +43,12 @@ void wait_for_file_to_change ( const string & fn ) {
     }
 }
 
-bool compile_and_run ( const string & fn ) {
+bool compile_and_run(const string& fn, bool recompile) {
     auto access = make_smart<FsFileAccess>();
     ModuleGroup dummyGroup;
-    if ( auto program = compileDaScript(fn,access,tout,dummyGroup) ) {
+    CodeOfPolicies policies;
+    policies.ignore_shared_modules = recompile;
+    if ( auto program = compileDaScript(fn,access,tout,dummyGroup, false, policies) ) {
         if ( program->failed() ) {
             for ( auto & err : program->errors ) {
                 tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
@@ -90,21 +92,27 @@ int main(int argc, char * argv[]) {
         return -1;
     }
     main_das = argv[1];
+    // register modules
     NEED_MODULE(Module_BuiltIn);
     NEED_MODULE(Module_Math);
     NEED_MODULE(Module_Strings);
+    NEED_MODULE(Module_Random);
     NEED_MODULE(Module_Rtti);
     NEED_MODULE(Module_Ast);
     NEED_MODULE(Module_Debugger);
-    NEED_MODULE(Module_FIO);
-    NEED_MODULE(Module_Random);
     NEED_MODULE(Module_Network);
     NEED_MODULE(Module_UriParser);
+    NEED_MODULE(Module_JobQue);
+    NEED_MODULE(Module_FIO);
     require_project_specific_modules();
+    #include "modules/external_need.inc"
+    Module::Initialize();
+    bool recompile = false;
     for ( ;; ) {
-        if ( !compile_and_run(main_das) ) {
+        if ( !compile_and_run(main_das, recompile) ) {
             wait_for_file_to_change(main_das);
         }
+        recompile = true;
     }
     Module::Shutdown();
     return 0;

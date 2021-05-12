@@ -12,6 +12,7 @@
 #pragma warning(disable:4702)    // unreachable code (due to exceptions)
 #pragma warning(disable:4316)    // '__m128': object allocated on the heap may not be aligned 16
 #pragma warning(disable:4714)    // marked as __forceinline not inlined
+#pragma warning(disable:4180)    // qualifier applied to function type has no meaning; ignored
 #endif
 
 #ifdef __clang__
@@ -62,10 +63,14 @@
 #include <math.h>
 
 #include <stdint.h>
+#include <float.h>
 #include <daScript/das_config.h>
 
 #ifndef _MSC_VER
     #define __forceinline inline __attribute__((always_inline))
+    #define ___noinline __attribute__((noinline))
+#else
+    #define ___noinline __declspec(noinline)
 #endif
 
 #if defined(__has_feature)
@@ -82,7 +87,7 @@
     #define DAS_NORETURN_PREFIX
     #define DAS_NORETURN_SUFFIX  __attribute__((noreturn))
 #elif defined(_MSC_VER)
-    #if _MSC_VER>1900
+    #if _MSC_VER>=1900
         #define DAS_NORETURN_PREFIX  __declspec(noreturn)
         #define DAS_NORETURN_SUFFIX
     #else
@@ -94,12 +99,14 @@
     #define DAS_NORETURN_SUFFIX
 #endif
 
-#if defined(_MSC_VER) && !defined(__clang__)
-__forceinline uint32_t __builtin_clz(uint32_t x) {
-    unsigned long r = 0;
-    _BitScanReverse(&r, x);
-    return uint32_t(31 - r);
-}
+#if defined(_MSC_VER)
+    __forceinline uint32_t das_clz(uint32_t x) {
+        unsigned long r = 0;
+        _BitScanReverse(&r, x);
+        return uint32_t(31 - r);
+    }
+#else
+    #define das_clz __builtin_clz
 #endif
 
 #ifdef _MSC_VER
@@ -187,6 +194,12 @@ inline void das_aligned_free16(void *ptr) {
 
 #ifndef DAS_SANITIZER
 #define DAS_SANITIZER   0
+#endif
+
+#if !_TARGET_64BIT && !defined(__clang__) && (_MSC_VER <= 1900)
+#define _msc_inline_bug __declspec(noinline)
+#else
+#define _msc_inline_bug __forceinline
 #endif
 
 #include "daScript/misc/smart_ptr.h"

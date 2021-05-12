@@ -4,6 +4,7 @@
 #include "module_unitTest.h"
 
 #include "daScript/simulate/simulate_visit_op.h"
+#include "daScript/ast/ast_policy_types.h"
 
  int32_t TestObjectSmart::total = 0;
 
@@ -21,7 +22,7 @@ namespace das {
         }
     };
 
-    template <> struct typeName<Point3>   { static string name() { return "Point3"; } };
+    template <> struct typeName<Point3>   { constexpr static const char * name() { return "Point3"; } };
 }
 
 DAS_BASE_BIND_ENUM_98(SomeEnum_16, SomeEnum_16, SomeEnum_16_zero, SomeEnum_16_one, SomeEnum_16_two)
@@ -31,6 +32,8 @@ MAKE_TYPE_FACTORY(TestObjectSmart,TestObjectSmart)
 MAKE_TYPE_FACTORY(TestObjectFoo,TestObjectFoo)
 MAKE_TYPE_FACTORY(TestObjectBar, TestObjectBar)
 MAKE_TYPE_FACTORY(TestObjectNotLocal, TestObjectNotLocal)
+MAKE_TYPE_FACTORY(TestObjectNotNullPtr, TestObjectNotNullPtr)
+MAKE_TYPE_FACTORY(FancyClass, FancyClass)
 
 MAKE_TYPE_FACTORY(SomeDummyType, SomeDummyType)
 MAKE_TYPE_FACTORY(Point3Array, Point3Array)
@@ -60,7 +63,15 @@ struct TestObjectNotLocalAnnotation : ManagedStructureAnnotation <TestObjectNotL
     TestObjectNotLocalAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("TestObjectNotLocal", ml) {
         addField<DAS_BIND_MANAGED_FIELD(fooData)>("fooData");
     }
-    virtual bool isLocal() const { return false; }
+    virtual bool isLocal() const { return false; }                  // this is here so that the class is not local
+    virtual bool canBePlacedInContainer() const { return false; }   // this can't be in the container either
+};
+
+struct TestObjectNotNullPtrAnnotation : ManagedStructureAnnotation <TestObjectNotNullPtr> {
+    TestObjectNotNullPtrAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("TestObjectNotNullPtr", ml) {
+        addField<DAS_BIND_MANAGED_FIELD(fooData)>("fooData");
+    }
+    virtual bool avoidNullPtr() const override { return true; }         // obvious null-ptr-ing this object is an error
 };
 
 struct TestObjectSmartAnnotation : ManagedStructureAnnotation <TestObjectSmart> {
@@ -72,9 +83,6 @@ struct TestObjectSmartAnnotation : ManagedStructureAnnotation <TestObjectSmart> 
         // reason: recursive type
         addField<DAS_BIND_MANAGED_FIELD(first)>("first");
     }
-    virtual bool isLocal() const override { return false; }
-    virtual bool canMove() const override { return false; }
-    virtual bool canCopy() const override { return false; }
 };
 
 struct TestObjectFooAnnotation : ManagedStructureAnnotation <TestObjectFoo> {
@@ -84,13 +92,20 @@ struct TestObjectFooAnnotation : ManagedStructureAnnotation <TestObjectFoo> {
         addField<DAS_BIND_MANAGED_FIELD(e16)>("e16");
         addProperty<DAS_BIND_MANAGED_PROP(propAdd13)>("propAdd13");
         addProperty<DAS_BIND_MANAGED_PROP(hitPos)>("hitPos");
+        addProperty<DAS_BIND_MANAGED_PROP(hitPosRef)>("hitPosRef");
+        addPropertyExtConst<
+            bool (TestObjectFoo::*)(), &TestObjectFoo::isReadOnly,
+            bool (TestObjectFoo::*)() const, &TestObjectFoo::isReadOnly
+        >("isReadOnly","isReadOnly");
+        addField<DAS_BIND_MANAGED_FIELD(fooArray)>("fooArray");
     }
     void init() {
         addField<DAS_BIND_MANAGED_FIELD(foo_loop)>("foo_loop");
+        addPropertyExtConst<
+            TestObjectFoo * (TestObjectFoo::*)(), &TestObjectFoo::getLoop,
+            const TestObjectFoo * (TestObjectFoo::*)() const, &TestObjectFoo::getLoop
+        >("getLoop","getLoop");
     }
-    virtual bool isLocal() const override { return true; }
-    virtual bool canMove() const override { return true; }
-    virtual bool canCopy() const override { return true; }
 };
 
 struct TestObjectBarAnnotation : ManagedStructureAnnotation <TestObjectBar> {
@@ -100,7 +115,6 @@ struct TestObjectBarAnnotation : ManagedStructureAnnotation <TestObjectBar> {
         addProperty<DAS_BIND_MANAGED_PROP(getFoo)>("getFoo");
         addProperty<DAS_BIND_MANAGED_PROP(getFooPtr)>("getFooPtr");
     }
-    virtual bool isLocal() const { return true; }
 };
 
 void testFoo ( TestObjectFoo & foo ) {
@@ -270,15 +284,15 @@ struct IntFieldsAnnotation : StructureTypeAnnotation {
         }
         return !fail;
     }
-    virtual TypeDeclPtr makeFieldType ( const string & na ) const override {
-        if ( auto pF = makeSafeFieldType(na) ) {
+    virtual TypeDeclPtr makeFieldType ( const string & na, bool isConst ) const override {
+        if ( auto pF = makeSafeFieldType(na, isConst) ) {
             pF->ref = true;
             return pF;
         } else {
             return nullptr;
         }
     }
-    virtual TypeDeclPtr makeSafeFieldType ( const string & na ) const override {
+    virtual TypeDeclPtr makeSafeFieldType ( const string & na, bool ) const override {
         auto pF = structureType->findField(na);
         return pF ? make_smart<TypeDecl>(*pF->type) : nullptr;
     }
@@ -391,6 +405,14 @@ struct CheckEidFunctionAnnotation : TransformFunctionAnnotation {
             }
         }
         return nullptr;
+    }
+    // note:
+    //  the hints will appear only on the non-transformed function!!!
+    string aotArgumentPrefix(ExprCallFunc * /*call*/, int argIndex) override {
+        return "/*arg-" + to_string(argIndex) + "-prefix*/ ";
+    }
+    string aotArgumentSuffix(ExprCallFunc * /*call*/, int argIndex) override {
+        return " /*arg-" + to_string(argIndex) + "-suffix*/";
     }
 };
 
@@ -519,6 +541,38 @@ public:
     virtual bool isIndexMutable ( const TypeDeclPtr & ) const override { return true; }
 };
 
+MAKE_TYPE_FACTORY(EntityId,EntityId);
+
+struct EntityIdAnnotation final: das::ManagedValueAnnotation <EntityId> {
+    EntityIdAnnotation() : ManagedValueAnnotation  ("EntityId","EntityId") {}
+    virtual void walk ( das::DataWalker & walker, void * data ) override {
+        if ( !walker.reading ) {
+            const EntityId * t = (EntityId *) data;
+            int32_t eidV = t->value;
+            walker.Int(eidV);
+        }
+    }
+    virtual bool isLocal() const override { return true; }
+    virtual bool hasNonTrivialCtor() const override { return false; }
+    virtual bool canBePlacedInContainer() const override { return true;}
+};
+
+void tempArrayAliasExample(const das::TArray<Point3> & arr,
+    const das::TBlock<void, das::TTemporary<const das::TArray<Point3>>> & blk,
+    das::Context * context) {
+    vec4f args[1];
+    args[0] = cast<void *>::from(&arr);
+    context->invoke(blk, args, nullptr);
+}
+
+struct FancyClassAnnotation : ManagedStructureAnnotation <FancyClass> {
+    FancyClassAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("FancyClass", ml) {
+        addField<DAS_BIND_MANAGED_FIELD(value)>("value");
+    }
+    virtual bool isLocal() const override { return true; }                  // this is here so that we can make local variable and init with special c-tor
+    virtual bool canBePlacedInContainer() const override { return true; }   // this is here so that we can make array<FancyClass>
+};
+
 Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     ModuleLibrary lib;
     lib.addModule(this);
@@ -531,6 +585,7 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     // dummy type example
     addAnnotation(make_smart<DummyTypeAnnotation>("SomeDummyType", "SomeDummyType", sizeof(SomeDummyType), alignof(SomeDummyType)));
     // register types
+    addAnnotation(make_smart<TestObjectNotNullPtrAnnotation>(lib));
     addAnnotation(make_smart<TestObjectNotLocalAnnotation>(lib));
     auto fooann = make_smart<TestObjectFooAnnotation>(lib);
     addAnnotation(fooann);
@@ -545,12 +600,16 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     // test
     addAnnotation(make_smart<TestFunctionAnnotation>());
     // point3 array
+    addAlias(typeFactory<Point3>::make(lib));
     addAnnotation(make_smart<Point3ArrayAnnotation>(lib));
+    addCtorAndUsing<Point3Array>(*this, lib, "Point3Array", "Point3Array");
     addExtern<DAS_BIND_FUN(testPoint3Array)>(*this, lib, "testPoint3Array",
         SideEffects::modifyExternal, "testPoint3Array");
     // foo array
     addExtern<DAS_BIND_FUN(testFooArray)>(*this, lib, "testFooArray",
         SideEffects::modifyExternal, "testFooArray");
+    addExtern<DAS_BIND_FUN(set_foo_data)>(*this, lib, "set_foo_data",
+        das::SideEffects::modifyArgument, "set_foo_data");
     // utf8 print
     addExtern<DAS_BIND_FUN(builtin_printw)>(*this, lib, "printw",
         SideEffects::modifyExternal, "builtin_printw");
@@ -612,6 +671,8 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::modifyExternal, "start_effect");
     addExtern<DAS_BIND_FUN(tempArrayExample)>(*this, lib, "temp_array_example",
         SideEffects::modifyExternal, "tempArrayExample");
+    addExtern<DAS_BIND_FUN(tempArrayAliasExample)>(*this, lib, "temp_array_alias_example",
+        SideEffects::invoke, "tempArrayAliasExample");
     // ptr2ref
     addExtern<DAS_BIND_FUN(fooPtr2Ref),SimNode_ExtFuncCallRef>(*this, lib, "fooPtr2Ref",
         SideEffects::none, "fooPtr2Ref");
@@ -643,7 +704,22 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     // table mojo
     addExtern<DAS_BIND_FUN(tableMojo)>(*this, lib, "tableMojo",
         SideEffects::modifyExternal, "tableMojo");
-
+    // EntityId
+    addAnnotation(make_smart<EntityIdAnnotation>());
+    addExtern<DAS_BIND_FUN(make_invalid_id)>(*this, lib, "make_invalid_id",
+        SideEffects::none, "make_invalid_id");
+    addExtern<DAS_BIND_FUN(eidToInt)>(*this, lib, "int",
+        SideEffects::none, "eidToInt");
+    addExtern<DAS_BIND_FUN(intToEid)>(*this, lib, "EntityId",
+        SideEffects::none, "intToEid");
+    // FancyClass
+    addAnnotation(make_smart<FancyClassAnnotation>(lib));
+    addCtorAndUsing<FancyClass>(*this,lib,"FancyClass","FancyClass");
+    addCtorAndUsing<FancyClass,int32_t,int32_t>(*this,lib,"FancyClass","FancyClass");
+    // member function
+    using method_hitMe = DAS_CALL_MEMBER(TestObjectFoo::hitMe);
+    addExtern< DAS_CALL_METHOD(method_hitMe) >(*this, lib, "hit_me", SideEffects::modifyArgument,
+       DAS_CALL_MEMBER_CPP(TestObjectFoo::hitMe));
     // and verify
     verifyAotReady();
 }

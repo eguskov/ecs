@@ -23,7 +23,7 @@
         };
 
 #define MATCH_ANY_OP1_NODE(CTYPE,NODENAME,COMPUTE) \
-    else if ( is(info,node_x,NODENAME) ) { return context->code->makeNode<SimNode_Op1##COMPUTE>(); }
+    else if ( is(info,node_x,NODENAME) ) { return ccode.makeNode<SimNode_Op1##COMPUTE>(); }
 
 #define IMPLEMENT_OP1_SETUP_NODE(result,node)
 
@@ -36,6 +36,6 @@
 #include "daScript/simulate/simulate_fusion_op1_set_perm.h"
 
 #define REGISTER_OP1_FUSION_POINT(OPNAME,TYPE,CTYPE) \
-    (*g_fusionEngine)[fuseName(#OPNAME,typeName<CTYPE>::name())].push_back(make_unique<Op1FusionPoint_##OPNAME##_##CTYPE>());
+    registerFusion(#OPNAME,typeName<CTYPE>::name(),new Op1FusionPoint_##OPNAME##_##CTYPE());
 
 #include "daScript/simulate/simulate_fusion_op1_reg.h"

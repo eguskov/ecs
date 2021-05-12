@@ -132,11 +132,17 @@ namespace das {
         }
     }
 
-    string describeCppType ( const TypeDeclPtr & type,
+    enum CpptUseAlias {
+        no
+    ,   yes
+    };
+
+    string describeCppTypeEx ( const TypeDeclPtr & type,
                             CpptSubstitureRef substituteRef,
                             CpptSkipRef skipRef,
                             CpptSkipConst skipConst,
-                            CpptRedundantConst redundantConst ) {
+                            CpptRedundantConst redundantConst,
+                            CpptUseAlias useAlias ) {
 
         TextWriter stream;
         auto baseType = type->baseType;
@@ -154,7 +160,9 @@ namespace das {
                 stream << "TDim<";
             }
         }
-        if ( baseType==Type::alias ) {
+        if ( useAlias==CpptUseAlias::yes && type->aotAlias && !type->alias.empty() ) {
+            stream << type->alias;
+        } else if ( baseType==Type::alias ) {
             stream << "DAS_COMMENT(alias)";
         } else if ( baseType==Type::autoinfer ) {
             stream << "DAS_COMMENT(auto";
@@ -170,26 +178,27 @@ namespace das {
             }
         } else if ( baseType==Type::tArray ) {
             if ( type->firstType ) {
-                stream << "TArray<" << describeCppType(type->firstType) << ">";
+                stream << "TArray<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias) << ">";
             } else {
                 stream << "Array";
             }
         } else if ( baseType==Type::tTable ) {
             if ( type->firstType && type->secondType ) {
-                stream << "TTable<" << describeCppType(type->firstType) << "," << describeCppType(type->secondType) << ">";
+                stream << "TTable<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias)
+                << "," << describeCppTypeEx(type->secondType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias) << ">";
             } else {
                 stream << "Table";
             }
         } else if ( baseType==Type::tTuple ) {
             stream << "TTuple<" << int(type->getTupleSize());
             for ( const auto & arg : type->argTypes ) {
-                stream << "," << describeCppType(arg);
+                stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
             }
             stream << ">";
         } else if ( baseType==Type::tVariant ) {
             stream << "TVariant<" << int(type->getVariantSize());
             for ( const auto & arg : type->argTypes ) {
-                stream << "," << describeCppType(arg);
+                stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
             }
             stream << ">";
         } else if ( baseType==Type::tStructure ) {
@@ -205,14 +214,14 @@ namespace das {
         } else if ( baseType==Type::tPointer ) {
             if ( !type->smartPtr ) {
                 if ( type->firstType ) {
-                    stream << describeCppType(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no) << " *";
+                    stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias) << " *";
                 } else {
                     stream << "void *";
                 }
             } else {
                 if ( type->firstType ) {
                     stream  << (type->smartPtrNative ? "smart_ptr<" : "smart_ptr_raw<")
-                            <<  describeCppType(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no)
+                            <<  describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias)
                             << ">";
                 } else {
                     stream  << (type->smartPtrNative ? "smart_ptr<" : "smart_ptr_raw<") << "void>";
@@ -232,7 +241,7 @@ namespace das {
             }
         } else if ( baseType==Type::tIterator ) {
             if ( type->firstType ) {
-                stream << "Sequence DAS_COMMENT((" << describeCppType(type->firstType,substituteRef,skipRef,skipConst) << "))";
+                stream << "Sequence DAS_COMMENT((" << describeCppTypeEx(type->firstType,substituteRef,skipRef,skipConst,CpptRedundantConst::yes,useAlias) << "))";
             } else {
                 stream << "Sequence";
             }
@@ -242,13 +251,13 @@ namespace das {
             }
             stream << das_to_cppString(baseType) << " DAS_COMMENT((";
             if ( type->firstType ) {
-                stream << describeCppType(type->firstType);
+                stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
             } else {
                 stream << "void";
             }
             if ( type->argTypes.size() ) {
                 for ( const auto & arg : type->argTypes ) {
-                    stream << "," << describeCppType(arg);
+                    stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
                 }
             }
             stream << "))";
@@ -274,6 +283,15 @@ namespace das {
         }
         return stream.str();
     }
+
+    string describeCppType ( const TypeDeclPtr & type,
+                            CpptSubstitureRef substituteRef,
+                            CpptSkipRef skipRef,
+                            CpptSkipConst skipConst,
+                            CpptRedundantConst redundantConst ) {
+        return describeCppTypeEx(type, substituteRef, skipRef, skipConst, redundantConst, CpptUseAlias::no);
+    }
+
 
     class NoAotMarker : public Visitor {
     public:
@@ -930,8 +948,9 @@ namespace das {
                 }
                 auto castType = das_to_cppString(enu->baseType);
                 ss  << "}\n"
-                    << "template <> struct cast< " << enuName << " > : cast_enum < " << enuName << " > {};\n"
-                    << "namespace {\n";
+                    << "template <> struct cast< das::" << program->thisNamespace << "::" << enuName
+                    << " > : cast_enum < das::" << program->thisNamespace << "::" << enuName << " > {};\n"
+                    << "namespace " << program->thisNamespace << " {\n";
             }
             return Visitor::visit(enu);
         }
@@ -1040,7 +1059,7 @@ namespace das {
                 ss << (var->init ? "das_global" : "das_global_zero");
             }
             ss << "<" << describeCppType(var->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes)
-                << "," << int32_t(var->stackTop) << ">(__context__)";
+                << ",0x" << HEX << var->getMangledNameHash() << DEC << ">(__context__)";
         }
         virtual VariablePtr visitGlobalLet ( const VariablePtr & var ) override {
             ss << ";";
@@ -1131,8 +1150,11 @@ namespace das {
                 ss << string(tab,'\t');
                 describeVarLocalCppType(ss, var->type);
                 auto vname = collector.getVarName(var);
-                ss  << " " << vname << "; "
-                    << "memset(&" << vname << ",0,sizeof(" << vname << "));"
+                ss  << " " << vname;
+                if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
+                    ss << "_ConstRef";
+                }
+                ss << "; " << "memset(&" << vname << ",0,sizeof(" << vname << "));"
                     << "\n";
             }
             // pre-declare locals
@@ -1193,7 +1215,12 @@ namespace das {
                 describeVarLocalCppType(ss, var->type);
                 ss << " ";
             }
-            ss << collector.getVarName(var);
+            auto vname = collector.getVarName(var);
+            auto cvname = vname;
+            if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
+                cvname += "_ConstRef";
+            }
+            ss << cvname;
             if ( !var->init && var->type->canInitWithZero() ) {
                 if ( isLocalVec(var->type) ) {
                     ss << " = v_zero()";
@@ -1201,31 +1228,43 @@ namespace das {
                     ss << " = 0";
                 }
             } else if ( !var->init && !var->type->canInitWithZero() ) {
-                ss << "; das_zero(" << collector.getVarName(var) << ")";
+                ss << "; das_zero(" << cvname;
+                ss << ")";
             }
         }
         virtual VariablePtr visitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
             if ( !last ) ss << "; ";
+            if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
+                auto vname = collector.getVarName(var);
+                ss << ";\n\t";
+                describeLocalCppType(ss, var->type);
+                ss << " & " << vname << " = " << vname << "_ConstRef; ";
+            }
             return Visitor::visitLet(let, var, last);
         }
         virtual void preVisitLetInit ( ExprLet * let, const VariablePtr & var, Expression * expr ) override {
             Visitor::preVisitLetInit(let,var,expr);
             if ( var->init_via_move ) {
-                ss  << "; das_zero(" << collector.getVarName(var) << ")"
-                    << "; das_move(" << collector.getVarName(var) << ", ";
+                auto vname = collector.getVarName(var);
+                auto cvname = vname;
+                if ( var->type->constant && var->type->isRefType() ) {
+                    cvname += "_ConstRef";
+                }
+                ss  << "; das_zero(" << cvname << ")"
+                    << "; das_move(" << cvname << ", ";
             } else {
                 ss << " = ";
             }
             if ( var->type->constant ) {
-                ss << "(";
+                ss << "((";
                 describeVarLocalCppType(ss, var->type);
                 ss << ")";
             }
             if ( var->type->ref ) {
                 ss << "&(";
             }
-            if ( expr->type->isPointer() && (!expr->type->firstType || expr->type->firstType->isVoid()) ) {
-                ss << "(" << describeCppType(var->type) << ")(";
+            if ( needPtrCast(var->type, expr->type) ) {
+                ss << "das_auto_cast<" << describeCppType(var->type) << ">::cast(";
             }
             if ( expr->type->isString() ) {
                 ss << "(char *)(";
@@ -1235,13 +1274,16 @@ namespace das {
             if ( expr->type->isString() ) {
                 ss << ")";
             }
-            if ( expr->type->isPointer() && (!expr->type->firstType || expr->type->firstType->isVoid()) ) {
+            if ( needPtrCast(var->type, expr->type) ) {
                 ss << ")";
             }
             if ( var->type->ref ) {
                 ss << ")";
             }
             if ( var->init_via_move ) {
+                ss << ")";
+            }
+            if ( var->type->constant ) {
                 ss << ")";
             }
             return Visitor::visitLetInit(let, var, expr);
@@ -1293,7 +1335,10 @@ namespace das {
     // clone
         virtual void preVisit ( ExprClone * that ) override {
             Visitor::preVisit(that);
-            ss << "das_clone(";
+            ss << "das_clone<"
+                << describeCppType(that->left->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes) << ","
+                << describeCppType(that->right->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes)
+                << ">::clone(";
         }
         virtual void preVisitRight ( ExprClone * that, Expression * right ) override {
             Visitor::preVisitRight(that,right);
@@ -1363,7 +1408,7 @@ namespace das {
         }
     // op2
         bool isSetBool ( ExprOp2 * that ) const {
-            return (that->op=="||=" || that->op=="&&=") && that->right->type->isSimpleType(Type::tBool);
+            return (that->op=="||=" || that->op=="&&=" || that->op=="^^=") && that->right->type->isSimpleType(Type::tBool);
         }
         bool isOpPolicy ( ExprOp2 * that ) const {
             if ( isalpha(that->op[0]) ) return true;
@@ -1435,6 +1480,7 @@ namespace das {
             } else if ( isSetBool(that) ) {
                 if ( that->op=="||=" ) ss << "DAS_SETBOOLOR((";
                 else if ( that->op=="&&=" ) ss << "DAS_SETBOOLAND((";
+                else if ( that->op=="^^=" ) ss << "DAS_SETBOOLXOR((";
             }
         }
         virtual void preVisitRight ( ExprOp2 * that, Expression * right ) override {
@@ -1512,7 +1558,7 @@ namespace das {
             if ( isLocalVec(argT) ) {
                 ss << "(vec4f)";
             }
-            ss << "(";
+            ss << "das_auto_cast<" << describeCppType(that->type, CpptSubstitureRef::no, CpptSkipRef::no) << ">::cast(";
         }
         virtual void preVisitRight ( ExprOp3 * that, Expression * right ) override {
             Visitor::preVisitRight(that,right);
@@ -1521,7 +1567,7 @@ namespace das {
             if ( isLocalVec(argT) ) {
                 ss << "(vec4f)";
             }
-            ss << "(";
+            ss << "das_auto_cast<" << describeCppType(that->type, CpptSubstitureRef::no, CpptSkipRef::no) << ">::cast(";
         }
         virtual ExpressionPtr visit ( ExprOp3 * that ) override {
             ss << ")";
@@ -1533,6 +1579,20 @@ namespace das {
             Visitor::preVisit(expr);
             ss << "return ";
             if ( expr->moveSemantics ) ss << "/* <- */ ";
+            auto retT = expr->returnFunc ? expr->returnFunc->result : expr->block->returnType;
+            if ( !retT->isVoid() ) {
+                if ( expr->moveSemantics ) {
+                    ss << "das_auto_cast_move<";
+                } else {
+                    ss << "das_auto_cast<";
+                }
+                ss << describeCppType(retT, CpptSubstitureRef::no, CpptSkipRef::no) << ">::cast(";
+            }
+        }
+        virtual ExpressionPtr visit(ExprReturn* expr) override {
+            auto retT = expr->returnFunc ? expr->returnFunc->result : expr->block->returnType;
+            if (!retT->isVoid()) ss << ")";
+            return Visitor::visit(expr);
         }
     // break
         virtual void preVisit ( ExprBreak * that ) override {
@@ -1559,7 +1619,7 @@ namespace das {
             } else {
                 ss << (var->variable->global_shared ? "das_shared" : "das_global");
                 ss << "<" << describeCppType(var->variable->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes)
-                    << "," << int32_t(var->variable->stackTop) << ">(__context__) /*" << var->name << "*/";
+                    << ",0x" << HEX << var->variable->getMangledNameHash() << DEC << ">(__context__) /*" << var->name << "*/";
             }
             if ( var->type->aotAlias ) {
                 ss << ")";
@@ -1792,14 +1852,22 @@ namespace das {
         virtual void preVisitAtIndex ( ExprAt * expr, Expression * index ) override {
             Visitor::preVisitAtIndex(expr, index);
             if ( expr->subexpr->type->dim.size() || expr->subexpr->type->isGoodArrayType() || expr->subexpr->type->isGoodTableType() ) {
-                ss << "(";
+                if ( expr->subexpr->type->isNativeDim ) {
+                    ss << "[";
+                } else {
+                    ss << "(";
+                }
             } else {
                 ss << ",";
             }
 
         }
         virtual ExpressionPtr visit ( ExprAt * expr ) override {
-            ss << ",__context__)";
+            if ( expr->subexpr->type->isNativeDim ) {
+                ss << "]";
+            } else {
+                ss << ",__context__)";
+            }
             if ( expr->type->aotAlias ) {
                 ss << ")";
             }
@@ -1832,7 +1900,7 @@ namespace das {
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit(ExprFakeLineInfo * c) override {
-            ss << "nullptr";
+            ss << "((LineInfoArg *)(&LineInfo::g_LineInfoNULL))";
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstPtr * c ) override {
@@ -1844,8 +1912,17 @@ namespace das {
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstEnumeration * c ) override {
-            ss << describeCppType(c->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes,CpptRedundantConst::no)
-                << "::" << c->text;
+            ss << describeCppType(c->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::yes,CpptRedundantConst::no);
+            auto ctext = c->text;
+            for ( auto & ee : c->enumType->list ) {
+                if ( ee.name==c->text ) {
+                    if ( !ee.cppName.empty() ) {
+                        ctext = ee.cppName;
+                    }
+                    break;
+                }
+            }
+            ss << "::" << ctext;
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstInt * c ) override {
@@ -1888,16 +1965,33 @@ namespace das {
             ss << (c->getValue() ? "true" : "false");
             return Visitor::visit(c);
         }
+        void writeOutDouble ( double val ) {
+            if ( val==DBL_MIN ) ss << "DBL_MIN";
+            else if ( val==-DBL_MIN ) ss << "(-DBL_MIN)";
+            else if ( val==DBL_MAX ) ss << "DBL_MAX";
+            else if ( val==-DBL_MAX ) ss << "(-DBL_MAX)";
+            else ss << to_string_ex(val);
+        }
         virtual ExpressionPtr visit ( ExprConstDouble * c ) override {
-            ss << c->getValue();
+            writeOutDouble(c->getValue());
             return Visitor::visit(c);
         }
+        void writeOutFloat ( float val ) {
+            if ( val==FLT_MIN ) ss << "FLT_MIN";
+            else if ( val==-FLT_MIN ) ss << "(-FLT_MIN)";
+            else if ( val==FLT_MAX ) ss << "FLT_MAX";
+            else if ( val==-FLT_MAX ) ss << "(-FLT_MAX)";
+            else ss << to_string_ex(val) << "f";
+        }
         virtual ExpressionPtr visit ( ExprConstFloat * c ) override {
-            ss << to_string_ex(c->getValue()) << "f";
+            writeOutFloat(c->getValue());
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstString * c ) override {
-            ss << "((char *) \"" << escapeString(c->text,false) << "\")";
+            if (c->text.empty())
+                ss << "nullptr";
+            else
+                ss << "((char *) \"" << escapeString(c->text,false) << "\")";
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstInt2 * c ) override {
@@ -1945,9 +2039,15 @@ namespace das {
             if (val.x == 0.0f && val.y == 0.0f ) {
                 ss << "v_zero()";
             } else if (val.x == val.y ) {
-                ss << "v_splats(" << to_string_ex(val.x) << "f)";
+                ss << "v_splats(";
+                writeOutFloat(val.x);
+                ss << ")";
             } else {
-                ss << "v_make_vec4f(" << to_string_ex(val.x) << "f," << to_string_ex(val.y) << "f,0.f,0.f)";
+                ss << "v_make_vec4f(";
+                writeOutFloat(val.x);
+                ss << ",";
+                writeOutFloat(val.y);
+                ss << ",0.f,0.f)";
             }
             return Visitor::visit(c);
         }
@@ -1956,9 +2056,17 @@ namespace das {
             if (val.x == 0.0f && val.y == 0.0f && val.z == 0.0f) {
                 ss << "v_zero()";
             } else if (val.x == val.y && val.x == val.z) {
-                ss << "v_splats(" << to_string_ex(val.x) << "f)";
+                ss << "v_splats(";
+                writeOutFloat(val.x);
+                ss << ")";
             } else {
-                ss << "v_make_vec4f(" << to_string_ex(val.x) << "f," << to_string_ex(val.y) << "f," << to_string_ex(val.z) << "f,0.f)";
+                ss << "v_make_vec4f(";
+                writeOutFloat(val.x);
+                ss << ",";
+                writeOutFloat(val.y);
+                ss << ",";
+                writeOutFloat(val.z);
+                ss << ",0.f)";
             }
             return Visitor::visit(c);
         }
@@ -1967,9 +2075,19 @@ namespace das {
             if (val.x == 0.0f && val.y == 0.0f && val.z == 0.0f && val.w == 0.0f ) {
                 ss << "v_zero()";
             } else if (val.x == val.y && val.x == val.z && val.x == val.w ) {
-                ss << "v_splats(" << to_string_ex(val.x) << "f)";
+                ss << "v_splats(";
+                writeOutFloat(val.x);
+                ss << ")";
             } else {
-                ss << "v_make_vec4f(" << to_string_ex(val.x) << "f," << to_string_ex(val.y) << "f," << to_string_ex(val.z) << "f," << to_string_ex(val.w) << "f)";
+                ss << "v_make_vec4f(";
+                writeOutFloat(val.x);
+                ss << ",";
+                writeOutFloat(val.y);
+                ss << ",";
+                writeOutFloat(val.z);
+                ss << ",";
+                writeOutFloat(val.w);
+                ss << ")";
             }
             return Visitor::visit(c);
         }
@@ -2123,6 +2241,10 @@ namespace das {
         virtual ExpressionPtr visit ( ExprStringBuilder * expr ) override {
             ss << "))";
             return Visitor::visit(expr);
+        }
+    // typedecl
+        virtual void preVisit ( ExprTypeDecl * expr ) override {
+            ss << "das_typedecl_value<" << describeCppType(expr->typeexpr) << ">()()";
         }
     // type-info
         virtual void preVisit ( ExprTypeInfo * expr ) override {
@@ -2846,26 +2968,43 @@ namespace das {
             if (argType->baseType == Type::anyArgument) return false;
             return !argType->isSameType(*passType,RefMatters::no,ConstMatters::no,TemporaryMatters::no,AllowSubstitute::no);
         }
+        bool needPtrCast ( const TypeDeclPtr & argType, const TypeDeclPtr & passType ) const {
+            return argType->isVoidPointer() ^ passType->isVoidPointer();
+        }
         void CallFunc_preVisitCallArg ( ExprCallFunc * call, Expression * arg, bool ) {
-            auto it = find_if(call->arguments.begin(), call->arguments.end(), [&](const ExpressionPtr & a) {
-                return a.get() == arg;
-            });
+            vector<ExpressionPtr>::iterator it;
+            int argIndex = 0;
+            for ( it = call->arguments.begin(); it!=call->arguments.end(); ++it, ++argIndex ) {
+                if ( it->get()==arg ) {
+                    break;
+                }
+            }
             DAS_ASSERT(it != call->arguments.end());
+            ss << call->func->getAotArgumentPrefix(call, argIndex);
             auto argType = (*it)->type;
             auto funArgType = call->func->arguments[it-call->arguments.begin()]->type;
-            if ( funArgType->aotAlias ) {
-                ss << "das_alias<" << funArgType->alias << ">::to(";
+            if ( funArgType->isAotAlias() ) {
+                if ( funArgType->alias.empty() ) {
+                    ss << "das_reinterpret<"
+                    << describeCppTypeEx(funArgType,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::yes) << ">::pass(";
+                } else {
+                    ss << "das_alias<" << funArgType->alias << ">::to(";
+                }
             }
-            if ( needSubstitute(funArgType,arg->type) ) {
-                ss << "das_reinterpret<" << describeCppType(funArgType,CpptSubstitureRef::no,CpptSkipRef::no) << ">::pass(";
+            if ( !call->func->noPointerCast && needPtrCast(funArgType,arg->type) ) {
+                ss << "das_auto_cast<" << describeCppType(funArgType,CpptSubstitureRef::no,CpptSkipRef::no) << ">::cast(";
             }
-            if ( call->func->interopFn ) {
+            if ( call->func->interopFn || funArgType->baseType==Type::anyArgument ) {
                 ss << "cast<" << describeCppType(argType);
                 if ( argType->isRefType() && !argType->ref ) {
                     ss << " &";
                 }
                 ss << ">::from(";
-            } else if ( arg->type->isRefType() ) {
+            }
+            if ( needSubstitute(funArgType,arg->type) ) {
+                ss << "das_reinterpret<" << describeCppType(funArgType,CpptSubstitureRef::no,CpptSkipRef::yes) << ">::pass(";
+            }
+            if ( !call->func->interopFn && arg->type->isRefType() ) {
                 if ( needsArgPass(arg) ) {
                     ss << "das_arg<" << describeCppType(argType,CpptSubstitureRef::no,CpptSkipRef::yes) << ">::pass(";
                 }
@@ -2875,24 +3014,31 @@ namespace das {
             }
         }
         void CallFunc_visitCallArg ( ExprCallFunc * call, Expression * arg, bool last ) {
-            auto it = find_if(call->arguments.begin(), call->arguments.end(), [&](const ExpressionPtr & a) {
-                return a.get() == arg;
-            });
+            vector<ExpressionPtr>::iterator it;
+            int argIndex = 0;
+            for ( it = call->arguments.begin(); it!=call->arguments.end(); ++it, ++argIndex ) {
+                if ( it->get()==arg ) {
+                    break;
+                }
+            }
             DAS_ASSERT(it != call->arguments.end());
             auto argType = (*it)->type;
             if ( isPolicyBasedCall(call) && policyArgNeedCast(call->func->result, argType) ) {
                 ss << ")";
             }
-            if ( call->func->interopFn ) {
+            auto funArgType = call->func->arguments[it-call->arguments.begin()]->type;
+            if ( call->func->interopFn || funArgType->baseType==Type::anyArgument ) {
                 ss << ")";
-            } else if ( arg->type->isRefType() ) {
+            }
+            if ( needSubstitute(funArgType,arg->type) ) ss << ")";
+            if ( !call->func->interopFn && arg->type->isRefType() ) {
                 if ( needsArgPass(arg) ) {
                     ss << ")";
                 }
             }
-            auto funArgType = call->func->arguments[it-call->arguments.begin()]->type;
-            if ( needSubstitute(funArgType,arg->type) ) ss << ")";
-            if ( funArgType->aotAlias ) ss << ")";
+            if ( !call->func->noPointerCast && needPtrCast(funArgType,arg->type) ) ss << ")";
+            if ( funArgType->isAotAlias() ) ss << ")";
+            ss << call->func->getAotArgumentSuffix(call, argIndex);
             if ( !last ) ss << ",";
         }
         void CallFunc_visit ( ExprCallFunc * call ) {
@@ -2961,11 +3107,6 @@ namespace das {
                     ss << " && ";
                 }
                 ss << forSrcName(var->name) << ".next(__context__,";
-                if (var->type->aotAlias) {
-                    ss  << "reinterpret_cast<"
-                        << (var->type->constant ? "const " : "")
-                        << var->type->alias << " *&>";
-                }
                 ss << "(" << collector.getVarName(var) << "))";
             }
             ss << " )\n";
@@ -2983,7 +3124,7 @@ namespace das {
             ss << string(tab,'\t') << "// " << var->name << " : " << var->type->describe() << "\n";
             ss << string(tab,'\t') << "das_iterator<"
                 << describeCppType(ffor->sources[idx]->type,CpptSubstitureRef::yes,CpptSkipRef::yes,CpptSkipConst::no)
-                << "> " << forSrcName(var->name) << "(";
+                    << "> " << forSrcName(var->name) << "(";
         }
         virtual ExpressionPtr visitForSource ( ExprFor * ffor, Expression * that , bool last ) override {
             size_t idx;
@@ -3003,11 +3144,6 @@ namespace das {
             auto nl = needLoopName(ffor);
             ss << string(tab, '\t') << nl << " = " << forSrcName(var->name)
                 << ".first(__context__,";
-            if (var->type->aotAlias) {
-                ss  << "reinterpret_cast<"
-                    << (var->type->constant ? "const " : "")
-                    << var->type->alias << " *&>";
-            }
             ss << "(" << collector.getVarName(var) << ")";
             ss << ") && " << nl << ";\n";
             return Visitor::visitForSource(ffor, that, last);
@@ -3016,11 +3152,6 @@ namespace das {
             ss << "\n";
             for ( auto & var : ffor->iteratorVariables ) {
                 ss << string(tab, '\t') << forSrcName(var->name) << ".close(__context__,";
-                if (var->type->aotAlias) {
-                    ss  << "reinterpret_cast<"
-                        << (var->type->constant ? "const " : "")
-                        << var->type->alias << " *&>";
-                }
                 ss << "(" << collector.getVarName(var) << "));\n";
             }
             tab --;
@@ -3067,8 +3198,8 @@ namespace das {
                 continue;
             // SimFunction * fn = context.getFunction(i);
             uint64_t semH = fnn[i]->aotHash;
-            logs << "\t\t// " << aotFuncName(fnn[i]) << "\n";
-            logs << "\t\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n\t\treturn ";
+            logs << "\t// " << aotFuncName(fnn[i]) << "\n";
+            logs << "\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n\t\treturn ";
             logs << "ctx.code->makeNode<SimNode_Aot";
             if ( fnn[i]->copyOnReturn || fnn[i]->moveOnReturn ) {
                 logs << "CMRES";
@@ -3079,11 +3210,11 @@ namespace das {
         if ( context.totalVariables || funInit ) {
             uint64_t semH = context.getInitSemanticHash();
             semH = getInitSemanticHashWithDep(semH);
-            logs << "\t\t// [[ init script ]]\n";
-            logs << "\t\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n\t\treturn ";
+            logs << "\t// [[ init script ]]\n";
+            logs << "\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n\t\treturn ";
             logs << "ctx.code->makeNode<SimNode_Aot";
             logs << "<void (*)(Context *, bool),";
-            logs << "&__init_script>>();\n\t\t};\n";
+            logs << "&__init_script>>();\n\t};\n";
         }
         if ( headers ) {
             logs << "}\n";
@@ -3126,6 +3257,7 @@ namespace das {
         visit(collector);
         CppAot aotVisitor(this,collector);
         // pre visit all enumerations and structures for each dependency
+        bool remUS = options.getBoolOption("remove_unused_symbols",true);
         UseTypeMarker utm;
         visit(utm);
         for ( auto & pm : library.modules ) {
@@ -3134,17 +3266,16 @@ namespace das {
             }
             for ( auto & ite : pm->enumerations ) {
                 auto pe = ite.second.get();
-                if ( utm.useEnums.find(pe)!=utm.useEnums.end() ) {
+                if ( !remUS || utm.useEnums.find(pe)!=utm.useEnums.end() ) {
                     visitEnumeration(aotVisitor, pe);
                 } else {
                     aotVisitor.ss << "// unused enumeration " << pe->name << "\n";
                 }
             }
             // aotVisitor.ss << "namespace " << aotModuleName(pm) << " {\n";
-            for ( auto & its : pm->structures ) {
-                auto ps = its.second.get();
-                if ( utm.useStructs.find(ps)!=utm.useStructs.end() ) {
-                    visitStructure(aotVisitor, ps);
+            for ( const auto & ps : pm->structuresInOrder ) {
+                if ( !remUS || utm.useStructs.find(ps.get())!=utm.useStructs.end() ) {
+                    visitStructure(aotVisitor, ps.get());
                 } else {
                     aotVisitor.ss << "// unused structure " << ps->name << "\n";
                 }

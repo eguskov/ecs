@@ -8,10 +8,6 @@
 #include "daScript/misc/debug_break.h"
 
 #include <stdarg.h>
-
-// this is here for the default implementation of to_out and to_err
-#include <setjmp.h>
-
 #include <mutex>
 
 namespace das
@@ -52,7 +48,9 @@ namespace das
 
     SimNode * SimNode::copyNode ( Context &, NodeAllocator * code ) {
         auto prefix = ((NodePrefix *)this) - 1;
+#ifndef NDEBUG
         DAS_ASSERTF(prefix->magic==0xdeadc0de,"node was allocated on the heap without prefix");
+#endif
         char * newNode = code->allocate(prefix->size);
         memcpy ( newNode, (char *)this, prefix->size );
         return (SimNode *) newNode;
@@ -195,7 +193,11 @@ namespace das
             if ( message )
                 error_message = error_message + ", " + message;
             string error = reportError(debugInfo, error_message, "", "");
+#ifdef NDEBUG
+            error = context.getStackWalk(&debugInfo, false, false) + error;
+#else
             error = context.getStackWalk(&debugInfo, true, true) + error;
+#endif
             context.to_err(error.c_str());
             context.throw_error_at(debugInfo,"assert failed");
         }
@@ -330,6 +332,8 @@ namespace das
         return v_zero();
     }
 
+#if DAS_DEBUGGER
+
     vec4f SimNodeDebug_Block::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -342,6 +346,8 @@ namespace das
         return v_zero();
     }
 
+#endif
+
     vec4f SimNode_BlockNF::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -351,6 +357,8 @@ namespace das
         }
         return v_zero();
     }
+
+#if DAS_DEBUGGER
 
     vec4f SimNodeDebug_BlockNF::eval ( Context & context ) {
         DAS_PROFILE_NODE
@@ -362,6 +370,8 @@ namespace das
         }
         return v_zero();
     }
+
+#endif
 
     vec4f SimNode_ClosureBlock::eval ( Context & context ) {
         DAS_PROFILE_NODE
@@ -380,6 +390,8 @@ namespace das
         }
     }
 
+#if DAS_DEBUGGER
+
     vec4f SimNodeDebug_ClosureBlock::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -397,6 +409,8 @@ namespace das
             return v_zero();
         }
     }
+
+#endif
 
 // SimNode_BlockWithLabels
 
@@ -425,6 +439,8 @@ namespace das
         return v_zero();
     }
 
+#if DAS_DEBUGGER
+
     vec4f SimNodeDebug_BlockWithLabels::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -450,6 +466,8 @@ namespace das
         evalFinal(context);
         return v_zero();
     }
+
+#endif
 
     // SimNode_Let
 
@@ -480,6 +498,8 @@ namespace das
         return v_zero();
     }
 
+#if DAS_DEBUGGER
+
     vec4f SimNodeDebug_While::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
@@ -497,6 +517,8 @@ namespace das
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
+
+#endif
 
     // Return
 
@@ -645,19 +667,32 @@ namespace das
 
     // Context
 
-    static std::mutex g_DebugAgentMutex;
-    static DebugAgentPtr g_DebugAgent;
-    static unique_ptr<Context>   g_DebugAgentContext;
+    struct DebugAgentInstance {
+        DebugAgentPtr   debugAgent;
+        ContextPtr      debugAgentContext;
+    };
+
+    static std::recursive_mutex g_DebugAgentMutex;
+    static das_map<string, DebugAgentInstance>   g_DebugAgents;
+    static bool                  g_isInDebugAgentCreation;
+
+    template <typename TT>
+    void for_each_debug_agent ( const TT & lmbd ) {
+        std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+        for ( auto & it : g_DebugAgents ) {
+            lmbd ( it.second.debugAgent );
+        }
+    }
 
     Context::Context(uint32_t stackSize, bool ph) : stack(stackSize) {
-        code = make_smart<NodeAllocator>();
-        constStringHeap = make_smart<ConstStringAllocator>();
-        debugInfo = make_smart<DebugInfoAllocator>();
+        code = make_shared<NodeAllocator>();
+        constStringHeap = make_shared<ConstStringAllocator>();
+        debugInfo = make_shared<DebugInfoAllocator>();
         ownStack = (stackSize != 0);
         persistent = ph;
-        // register
-        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-        if ( g_DebugAgent ) g_DebugAgent->onCreateContext(this);
+        for_each_debug_agent([&]( const DebugAgentPtr & pAgent ){
+            pAgent->onCreateContext(this);
+        });
     }
 
     Context::Context(const Context & ctx): stack(ctx.stack.size()) {
@@ -699,25 +734,42 @@ namespace das
         tabMnLookup = ctx.tabMnLookup;
         tabMnMask = ctx.tabMnMask;
         tabMnRot = ctx.tabMnRot;
+        tabMnSize = ctx.tabMnSize;
+        // global mangled name table
+        tabGMnLookup = ctx.tabGMnLookup;
+        tabGMnMask = ctx.tabGMnMask;
+        tabGMnRot = ctx.tabGMnRot;
+        tabGMnSize = ctx.tabGMnSize;
         // annotation data table
         tabAdLookup = ctx.tabAdLookup;
         tabAdMask = ctx.tabAdMask;
         tabAdRot = ctx.tabAdRot;
+        tabAdSize = ctx.tabAdSize;
         // register
-        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-        if ( g_DebugAgent ) g_DebugAgent->onCreateContext(this);
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onCreateContext(this);
+        });
         // now, make it good to go
         restart();
-        runInitScript();
+        if ( stack.size() > globalInitStackSize ) {
+            runInitScript();
+        } else {
+            auto ssz = max ( int(stack.size()), 16384 ) + globalInitStackSize;
+            StackAllocator init_stack(ssz);
+            SharedStackGuard init_guard(*this, init_stack);
+            runInitScript();
+        }
         restart();
     }
 
     Context::~Context() {
         // unregister
-        {
-            std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-            if ( g_DebugAgent ) g_DebugAgent->onDestroyContext(this);
-        }
+        // register
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onDestroyContext(this);
+        });
+        // shutdown
+        runShutdownScript();
         // and free memory
         if ( globals ) {
             das_aligned_free16(globals);
@@ -745,7 +797,7 @@ namespace das
     }
 
     struct SimNodeRelocator : SimVisitor {
-        smart_ptr<NodeAllocator>   newCode;
+        shared_ptr<NodeAllocator>   newCode;
         Context * context = nullptr;
         virtual SimNode * visit ( SimNode * node ) override {
             return node->copyNode(*context, newCode.get());
@@ -755,7 +807,7 @@ namespace das
     void Context::relocateCode() {
         SimNodeRelocator rel;
         rel.context = this;
-        rel.newCode = make_smart<NodeAllocator>();
+        rel.newCode = make_shared<NodeAllocator>();
         rel.newCode->prefixWithHeader = false;
         uint32_t codeSize = uint32_t(code->bytesAllocated()) - code->totalNodesAllocated * uint32_t(sizeof(NodePrefix));
         rel.newCode->setInitialSize(codeSize);
@@ -795,6 +847,12 @@ namespace das
             uint32_t * newMnLookup = (uint32_t *) rel.newCode->allocate(tabMnSize * sizeof(uint32_t));
             memcpy ( newMnLookup, tabMnLookup, tabMnSize * sizeof(uint32_t));
             tabMnLookup = newMnLookup;
+        }
+        // relocate global mangle-name lookup
+        if ( tabGMnLookup ) {
+            uint32_t * newGMnLookup = (uint32_t *) rel.newCode->allocate(tabGMnSize * sizeof(uint32_t));
+            memcpy ( newGMnLookup, tabGMnLookup, tabGMnSize * sizeof(uint32_t));
+            tabGMnLookup = newGMnLookup;
         }
         // relocate annotation data lookup
         if ( tabAdLookup ) {
@@ -868,7 +926,7 @@ namespace das
             for ( int j=0; j!=totalFunctions && !stopFlags; ++j ) {
                 auto & pf = functions[j];
                 if ( pf.debugInfo->flags & FuncInfo::flag_init ) {
-                    call(&pf, nullptr, 0);
+                    callOrFastcall(&pf, nullptr, 0);
                 }
 
             }
@@ -885,6 +943,20 @@ namespace das
                 }
             }
         }
+    }
+
+    bool Context::runShutdownScript ( ) {
+        DAS_ASSERTF(insideContext==0,"can't run init script on the locked context");
+        if ( shutdown ) return false;
+        shutdown = true;
+        return runWithCatch([&](){
+            for ( int j=0; j!=totalFunctions && !stopFlags; ++j ) {
+                auto & pf = functions[j];
+                if ( pf.debugInfo->flags & FuncInfo::flag_shutdown ) {
+                    callOrFastcall(&pf, nullptr, 0);
+                }
+            }
+        });
     }
 
     SimFunction * Context::findFunction ( const char * name ) const {
@@ -1014,7 +1086,7 @@ namespace das
         walker->showLocalVariables =  showLocalVariables;
         walker->showOutOfScope = showOutOfScope;
         walker->stackTopOnly = stackTopOnly;
-        dapiStackWalk ( walker, *this, *at );
+        dapiStackWalk ( walker, *this, at ? *at : LineInfo() );
         ssw << "\n";
     #else
         ssw << "\nCALL STACK TRACKING DISABLED:\n\n";
@@ -1023,38 +1095,92 @@ namespace das
     }
 
     void tickDebugAgent ( ) {
-        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-        if ( g_DebugAgent ) g_DebugAgent->onTick();
+        // register
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onTick();
+        });
     }
 
-    void installDebugAgent ( DebugAgentPtr newAgent ) {
-        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-        if ( g_DebugAgent ) g_DebugAgent->onUninstall(g_DebugAgent.get());
-        g_DebugAgent = newAgent;
-        if ( g_DebugAgent ) g_DebugAgent->onInstall(g_DebugAgent.get());
+    void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context ) {
+        if ( !category ) context->throw_error_at(*at, "need to specify category");
+        std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+        auto it = g_DebugAgents.find(category);
+        if ( it != g_DebugAgents.end() ) {
+            DebugAgent * oldAgentPtr = it->second.debugAgent.get();
+            for ( auto & ap : g_DebugAgents ) {
+                ap.second.debugAgent->onUninstall(oldAgentPtr);
+            }
+        }
+        g_DebugAgents[category] = {
+            newAgent,
+            context->shared_from_this()
+        };
+        DebugAgent * newAgentPtr = newAgent.get();
+        for ( auto & ap : g_DebugAgents ) {
+            ap.second.debugAgent->onInstall(newAgentPtr);
+        }
     }
+
+    Context & getDebugAgentContext ( const char * category, LineInfoArg * at, Context * context ) {
+        if ( !category ) context->throw_error_at(*at, "need to specify category");
+        std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+        auto it = g_DebugAgents.find(category);
+        if ( it == g_DebugAgents.end() ) context->throw_error_at(*at, "can't get debug agent '%s'", category);
+        return *it->second.debugAgentContext;
+    }
+
+    bool hasDebugAgentContext ( const char * category, LineInfoArg * at, Context * context ) {
+        if ( !category ) context->throw_error_at(*at, "need to specify category");
+        std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+        auto it = g_DebugAgents.find(category);
+        return it != g_DebugAgents.end();
+    }
+}
+
+das::Context* get_clone_context( das::Context * ctx );//link time resolved dependencies
+
+namespace das
+{
 
     void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo ) {
-        unique_ptr<Context> forkContext = make_unique<Context>(*context);
+        g_isInDebugAgentCreation = true;
+        shared_ptr<Context> forkContext;
+        bool realPersistent = context->persistent;
+        context->persistent = true;
+        forkContext.reset(get_clone_context(context));
+        context->persistent = realPersistent;
+        g_isInDebugAgentCreation = false;
         vec4f args[1];
         args[0] = cast<Context *>::from(context);
         SimFunction * fun = forkContext->getFunction(exFn.index-1);
         forkContext->callOrFastcall(fun, args, lineinfo);
-        swap ( g_DebugAgentContext, forkContext );
+    }
+
+    bool isInDebugAgentCreation() {
+        return g_isInDebugAgentCreation;
     }
 
     void shutdownDebugAgent() {
-        installDebugAgent(nullptr);
-        g_DebugAgentContext.reset();
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+           for ( auto & ap : g_DebugAgents ) {
+               ap.second.debugAgent->onUninstall(pAgent.get());
+           }
+        });
+        das_map<string,DebugAgentInstance> agents;
+        {
+            std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+            swap(agents, g_DebugAgents);
+        }
     }
 
     void Context::breakPoint(const LineInfo & at) {
         if ( debugger ) {
-            std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-            if ( g_DebugAgent ) {
-                g_DebugAgent->onBreakpoint(this, at);
-                return;
-            }
+            bool any = false;
+            for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+                pAgent->onBreakpoint(this, at);
+                any = true;
+            });
+            if ( any ) return;
         }
         os_debug_break();
     }
@@ -1117,13 +1243,36 @@ namespace das
 #endif
     }
 
+    void Context::rethrow () {
+#if DAS_ENABLE_EXCEPTIONS
+        throw dasException(exception ? exception : "");
+#else
+        if ( throwBuf ) {
+            longjmp(*throwBuf,1);
+        } else {
+            to_err("\nunhandled exception\n");
+            if ( exception ) {
+                to_err(exception);
+                to_err("\n");
+            }
+            stackWalk(nullptr, false, false);
+            os_debug_break();
+        }
+#endif
+#if !defined(_MSC_VER) || (_MSC_VER>1900)
+        exit(0);
+#endif
+    }
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4611)
 #endif
 
     vec4f Context::evalWithCatch ( SimNode * node ) {
-        auto aa = abiArg; auto acm = abiCMRES;
+        auto aa = abiArg;
+        auto acm = abiCMRES;
+        auto atba = abiThisBlockArg;
         char * EP, * SP;
         stack.watermark(EP,SP);
 #if DAS_ENABLE_EXCEPTIONS
@@ -1138,7 +1287,9 @@ namespace das
              }
              stackWalk(nullptr, false, false);
              */
-            abiArg = aa; abiCMRES = acm;
+            abiArg = aa;
+            abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             return v_zero();
         }
@@ -1151,6 +1302,7 @@ namespace das
         } else {
             abiArg = aa;
             abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             throwBuf = JB;
             return v_zero();
@@ -1158,8 +1310,10 @@ namespace das
 #endif
     }
 
-    bool Context::runWithCatch ( const function<void()> & subexpr ) {
-        auto aa = abiArg; auto acm = abiCMRES;
+    bool Context::runWithCatch ( const callable<void()> & subexpr ) {
+        auto aa = abiArg;
+        auto acm = abiCMRES;
+        auto atba = abiThisBlockArg;
         char * EP, * SP;
         stack.watermark(EP,SP);
 #if DAS_ENABLE_EXCEPTIONS
@@ -1175,7 +1329,9 @@ namespace das
              }
              stackWalk(nullptr, false, false);
              */
-            abiArg = aa; abiCMRES = acm;
+            abiArg = aa;
+            abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             return false;
         }
@@ -1188,6 +1344,7 @@ namespace das
         } else {
             abiArg = aa;
             abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             throwBuf = JB;
             return false;
@@ -1198,7 +1355,9 @@ namespace das
     }
 
     vec4f Context::evalWithCatch ( SimFunction * fnPtr, vec4f * args, void * res ) {
-        auto aa = abiArg; auto acm = abiCMRES;
+        auto aa = abiArg;
+        auto acm = abiCMRES;
+        auto atba = abiThisBlockArg;
         char * EP, * SP;
         stack.watermark(EP,SP);
 #if DAS_ENABLE_EXCEPTIONS
@@ -1213,7 +1372,9 @@ namespace das
             }
             stackWalk(nullptr, false, false);
             */
-            abiArg = aa; abiCMRES = acm;
+            abiArg = aa;
+            abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             return v_zero();
         }
@@ -1226,6 +1387,7 @@ namespace das
         } else {
             abiArg = aa;
             abiCMRES = acm;
+            abiThisBlockArg = atba;
             stack.pop(EP,SP);
             throwBuf = JB;
             return v_zero();
@@ -1361,8 +1523,9 @@ namespace das
     }
 
     void Context::bpcallback( const LineInfo & at ) {
-        std::lock_guard<std::mutex> guard(g_DebugAgentMutex);
-        if ( g_DebugAgent ) g_DebugAgent->onSingleStep(this, at);
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onSingleStep(this, at);
+        });
     }
 
 }

@@ -67,7 +67,7 @@ namespace das {
             lib.foreach([&](Module * pm) {
                 for (const auto & it : pm->functions) {
                     auto fn = it.second;
-                    if (forceAll || fn->exports || fn->init) {
+                    if ( forceAll || fn->exports || fn->init || fn->shutdown ) {
                         propagateFunctionUse(fn);
                     }
                 }
@@ -76,12 +76,11 @@ namespace das {
         }
         void RemoveUnusedSymbols ( Module & mod ) {
             das_safe_map<string,FunctionPtr> functions;
-            das_safe_map<string,VariablePtr> globals;
             vector<VariablePtr> globalsInOrder;
             swap(functions,mod.functions);
-            swap(globals,mod.globals);
             swap(globalsInOrder, mod.globalsInOrder);
             mod.functionsByName.clear();
+            mod.globals.clear();
             for ( auto & fn : functions ) {
                 if ( fn.second->used ) {
                     if ( !mod.addFunction(fn.second, true) ) {
@@ -236,6 +235,7 @@ namespace das {
     }
 
     void Program::markOrRemoveUnusedSymbols(bool forceAll) {
+        forceAll |=  !options.getBoolOption("remove_unused_symbols",true);
         clearSymbolUse();
         MarkSymbolUse vis(false);
         visit(vis);

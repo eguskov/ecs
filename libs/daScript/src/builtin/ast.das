@@ -44,6 +44,7 @@ def ExpressionPtr ( expr : smart_ptr<auto(TT)> ) : ExpressionPtr
         concept_assert(false, "not derived from ast::Expression")
         return [[ExpressionPtr]]
 
+[generic]
 def FunctionPtr ( fun : Function? ) : FunctionPtr
     unsafe
         return reinterpret<FunctionPtr> fun
@@ -274,6 +275,9 @@ class AstVisitor
 // static_assert
     def abstract preVisitExprStaticAssert(expr:smart_ptr<ExprStaticAssert>) : void
     def abstract visitExprStaticAssert(expr:smart_ptr<ExprStaticAssert>) : ExpressionPtr
+// quote
+    def abstract preVisitExprQuote(expr:smart_ptr<ExprQuote>) : void
+    def abstract visitExprQuote(expr:smart_ptr<ExprQuote>) : ExpressionPtr
 // debug
     def abstract preVisitExprDebug(expr:smart_ptr<ExprDebug>) : void
     def abstract visitExprDebug(expr:smart_ptr<ExprDebug>) : ExpressionPtr
@@ -528,6 +532,13 @@ def add_new_call_macro ( name:string; someClassPtr )
     unsafe
         delete ann
 
+def add_new_pass_macro ( name:string; someClassPtr )
+    var ann <- make_pass_macro(name, someClassPtr)
+    this_module() |> add_dirty_infer_macro(ann)
+    unsafe
+        delete ann
+
+[generic]
 def find_module(name:string) : Module?
     var rm : Module?
     program_for_each_module(this_program()) <| $ ( mod )

@@ -161,7 +161,9 @@ namespace das {
                             }
                         } else if ( func->result->isVoid() ) {
                             if ( block->list.size()==1 && block->finalList.size()==0 && !block->list.back()->rtti_isBlock() ) {
-                                func->fastCall = true;
+                                if ( !block->list.back()->rtti_isWith() ) {
+                                    func->fastCall = true;
+                                }
                             }
                         }
                     }
@@ -456,6 +458,22 @@ namespace das {
                 expr->doesNotNeedInit = false;
             }
         }
+    // ExprMakeVariant
+        virtual void preVisit ( ExprMakeVariant * expr ) override {
+            Visitor::preVisit(expr);
+            if ( inStruct ) return;
+            if ( !expr->doesNotNeedSp ) {
+                auto sz = expr->type->getSizeOf();
+                uint32_t cStackTop = allocateStack(sz);
+                if ( log ) {
+                    logs << "\t" << cStackTop << "\t" << sz
+                    << "\t[[" << expr->type->describe() << "]], line " << expr->at.line << "\n";
+                }
+                expr->setRefSp(false, false, cStackTop, 0);
+                expr->doesNotNeedSp = false;
+                expr->doesNotNeedInit = false;
+            }
+        }
     // New
         virtual void preVisit ( ExprNew * expr ) override {
             Visitor::preVisit(expr);
@@ -562,14 +580,6 @@ namespace das {
             logs << "FUNCTION TABLE:\n";
         }
         for (auto & pm : library.modules) {
-            for (auto & var : pm->globalsInOrder) {
-                if (var->used) {
-                    var->index = totalVariables++;
-                }
-                else {
-                    var->index = -2;
-                }
-            }
             for (auto & pf : pm->functions) {
                 auto & func = pf.second;
                 if (func->used) {
@@ -583,6 +593,24 @@ namespace das {
                 }
             }
         }
+        if ( log ) {
+            logs << "VARIABLE TABLE:\n";
+        }
+        library.foreach_in_order([&](Module * pm){
+            for (auto & var : pm->globalsInOrder) {
+                if (var->used) {
+                    var->index = totalVariables++;
+                    if ( log ) {
+                        logs << "\t" << var->index << "\t"  << var->stackTop << "\t"
+                            << var->type->getSizeOf() << "\t" << var->getMangledName() << "\n";
+                    }
+                }
+                else {
+                    var->index = -2;
+                }
+            }
+            return true;
+        }, thisModule.get());
     }
 }
 

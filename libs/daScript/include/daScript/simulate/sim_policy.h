@@ -106,6 +106,7 @@ namespace  das {
         static __forceinline TT Min   ( TT a, TT b, Context & ) { return a < b ? a : b; }
         static __forceinline TT Max   ( TT a, TT b, Context & ) { return a > b ? a : b; }
         static __forceinline TT Sat   ( TT a, Context & )    { return a < 0 ? 0  : (a > 1 ? 1 : a);}
+        static __forceinline TT Clamp ( TT t, TT a, TT b, Context & ) { return t>a ? (t<b ? t : b) : a; }
     };
 
     struct SimPolicy_Int : SimPolicy_Bin<int32_t>, SimPolicy_MathTT<int32_t> {};
@@ -144,6 +145,7 @@ namespace  das {
         static __forceinline vec4f Sat   ( vec4f a, Context & ) {
             return v_cast_vec4f(v_mini(v_maxi(v_cast_vec4i(a),v_cast_vec4i(v_zero())),v_splatsi(1)));
         }
+        static __forceinline vec4f Clamp ( vec4f t, vec4f a, vec4f b, Context & ctx ) { return Max(a, Min(t, b, ctx), ctx); }
     };
 
     struct SimPolicy_MathFloat {
@@ -234,7 +236,7 @@ namespace  das {
             return v_make_vec4f(x, y, z, w);
         }
         static __forceinline vec4f setAligned ( const float *__restrict x ) { return v_ld(x); }
-        static __forceinline vec4f setAligned ( const int32_t  *__restrict x ) { return v_cvt_vec4f(v_ld_w(x)); }
+        static __forceinline vec4f setAligned ( const int32_t  *__restrict x ) { return v_cvt_vec4f(v_ldi(x)); }
         static __forceinline vec4f setAligned ( const uint32_t *__restrict x ) { return setAligned((const int32_t*)x); }
         static __forceinline vec4f setXY ( const float *__restrict x ) { return v_ldu_half(x); }
         static __forceinline vec4f setXY ( const int32_t  *__restrict x ) { return v_cvt_vec4f(v_ldu_half_w(x)); }
@@ -325,7 +327,7 @@ namespace  das {
             return v_cast_vec4f(v_make_vec4i(x, y, z, w));
         }
         static __forceinline vec4f setAligned ( const float *__restrict x ) { return v_cast_vec4f(v_cvt_vec4i(v_ld(x))); }
-        static __forceinline vec4f setAligned ( const int32_t *__restrict x ) { return v_cast_vec4f(v_ld_w(x)); }
+        static __forceinline vec4f setAligned ( const int32_t *__restrict x ) { return v_cast_vec4f(v_ldi(x)); }
         static __forceinline vec4f setAligned ( const uint32_t *__restrict x ) { return setAligned((const int32_t*)x); }
         static __forceinline vec4f setXY ( const float *__restrict x ) { return v_cast_vec4f(v_cvt_vec4i(v_ldu_half(x))); }
         static __forceinline vec4f setXY ( const int32_t  *__restrict x ) { return v_cast_vec4f(v_ldu_half_w(x)); }

@@ -3,61 +3,34 @@
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
 #include "daScript/simulate/interop.h"
+#include "daScript/simulate/aot.h"
 
 namespace das
 {
-    template  <typename FuncT, FuncT fn, typename SimNodeT, typename FuncArgT>
-    class ExternalFn : public BuiltInFunction {
-
-        static_assert ( is_base_of<SimNode_CallBase, SimNodeT>::value, "only call-based nodes allowed" );
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4100)
-#endif
-        template <typename ArgumentsType, size_t... I>
-        inline vector<TypeDeclPtr> makeArgs ( const ModuleLibrary & lib, index_sequence<I...> ) {
-            return { makeArgumentType< typename tuple_element<I, ArgumentsType>::type>(lib)... };
-        }
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
+    class ExternalFnBase : public BuiltInFunction {
     public:
-        ExternalFn(const string & name, const ModuleLibrary & lib, const string & cppName = string())
-        : BuiltInFunction(name,cppName) {
+        ExternalFnBase(const char * name, const char * cppName)
+            : BuiltInFunction(name, cppName) {
             callBased = true;
-            using FunctionTrait = function_traits<FuncArgT>;
-            const int nargs = tuple_size<typename FunctionTrait::arguments>::value;
-            using Indices = make_index_sequence<nargs>;
-            using Arguments = typename FunctionTrait::arguments;
-            using Result  = typename FunctionTrait::return_type;
-            auto args = makeArgs<Arguments>(lib, Indices());
-            for ( int argi=0; argi!=nargs; ++argi ) {
-                auto arg = make_smart<Variable>();
-                arg->name = "arg" + to_string(argi);
-                arg->type = args[argi];
-                if ( arg->type->baseType==Type::fakeContext ) {
-                    arg->init = make_smart<ExprFakeContext>(at);
-                } else if ( arg->type->baseType==Type::fakeLineInfo ) {
-                    arg->init = make_smart<ExprFakeLineInfo>(at);
-                }
-                this->arguments.push_back(arg);
-            }
-            this->result = makeType<Result>(lib);
-            this->totalStackSize = sizeof(Prologue);
-            if ( result->isRefType() ) {
-                if ( result->canCopy() ) {
-                    copyOnReturn = true;
-                    moveOnReturn = false;
-                } else if ( result->canMove() ) {
-                    copyOnReturn = false;
-                    moveOnReturn = true;
-                } else if ( !result->ref ) {
-                    DAS_FATAL_LOG("ExternalFn %s can't be bound. It returns values which can't be copied or moved\n", name.c_str());
-                    DAS_FATAL_ERROR;
-                }
-            }
+        };
+    };
+
+    template<typename F> struct makeFuncArgs;
+    template<typename R, typename ...Args> struct makeFuncArgs<R (*)(Args...)> : makeFuncArgs<R (Args...)> {};
+    template<typename R, typename ...Args>
+    struct makeFuncArgs<R (Args...)> {
+        static __forceinline vector<TypeDeclPtr> make ( const ModuleLibrary & lib ) {
+            return makeBuiltinArgs<R,Args...>(lib);
+        }
+    };
+
+    template  <typename FuncT, FuncT fn, typename SimNodeT, typename FuncArgT>
+    class ExternalFn : public ExternalFnBase {
+        static_assert ( is_base_of<SimNode_CallBase, SimNodeT>::value, "only call-based nodes allowed" );
+    public:
+        __forceinline ExternalFn(const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
+        : ExternalFnBase(name,cppName) {
+            constructExternal(makeFuncArgs<FuncArgT>::make(lib));
         }
         virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
             const char * fnName = context.code->allocateName(this->name);
@@ -65,35 +38,14 @@ namespace das
         }
     };
 
-    template  <typename RetT, typename ...Args>
-    class InteropFnBase : public BuiltInFunction {
-    public:
-        InteropFnBase(const string & name, const ModuleLibrary & lib, const string & cppName = string())
-            : BuiltInFunction(name,cppName) {
-            vector<TypeDeclPtr> args = { makeType<Args>(lib)... };
-            for ( size_t argi=0; argi!=args.size(); ++argi ) {
-                auto arg = make_smart<Variable>();
-                arg->name = "arg" + to_string(argi);
-                arg->type = args[argi];
-                if ( arg->type->baseType==Type::fakeContext ) {
-                    arg->init = make_smart<ExprFakeContext>(at); // arg->init = make_smart<ExprConstPtr>(at);
-                } else if ( arg->type->baseType==Type::fakeLineInfo ) {
-                    arg->init = make_smart<ExprFakeLineInfo>(at);
-                }
-                this->arguments.push_back(arg);
-            }
-            this->result = makeType<RetT>(lib);
-            this->totalStackSize = sizeof(Prologue);
-        }
-    };
-
     template  <InteropFunction func, typename RetT, typename ...Args>
-    class InteropFn : public InteropFnBase<RetT,Args...> {
+    class InteropFn : public BuiltInFunction {
     public:
-        InteropFn(const string & name, const ModuleLibrary & lib, const string & cppName = string())
-            : InteropFnBase<RetT,Args...>(name,lib,cppName) {
+        __forceinline InteropFn(const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
+            : BuiltInFunction(name,cppName) {
             this->callBased = true;
             this->interopFn = true;
+            constructInterop(makeBuiltinArgs<RetT, Args...>(lib));
         }
         virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
             const char * fnName = context.code->allocateName(this->name);
@@ -103,14 +55,15 @@ namespace das
 
     struct defaultTempFn {
         defaultTempFn() = default;
-        defaultTempFn ( bool args, bool impl, bool result )
-            : tempArgs(args), implicitArgs(impl), tempResult(result) {}
-        bool operator () ( Function * fn ) {
+        defaultTempFn ( bool args, bool impl, bool result, bool econst )
+            : tempArgs(args), implicitArgs(impl), tempResult(result), explicitConstArgs(econst) {}
+        ___noinline bool operator () ( Function * fn ) {
             if ( tempArgs || implicitArgs ) {
                 for ( auto & arg : fn->arguments ) {
                     if ( arg->type->isTempType() ) {
                         arg->type->temporary = tempArgs;
                         arg->type->implicit = implicitArgs;
+                        arg->type->explicitConst = explicitConstArgs;
                     }
                 }
             }
@@ -124,74 +77,129 @@ namespace das
         bool tempArgs = false;
         bool implicitArgs = true;
         bool tempResult = false;
+        bool explicitConstArgs = false;
     };
 
     struct permanentArgFn : defaultTempFn {
-        permanentArgFn() : defaultTempFn(false,false,false) {}
+        permanentArgFn() : defaultTempFn(false,false,false,false) {}
     };
 
     struct temporaryArgFn : defaultTempFn {
-        temporaryArgFn() : defaultTempFn(true,false,false) {}
+        temporaryArgFn() : defaultTempFn(true,false,false,false) {}
     };
 
+    struct explicitConstArgFn : defaultTempFn {
+        explicitConstArgFn() : defaultTempFn(false,true,false,true) {}
+    };
+
+    template  <typename CType, typename ...Args>
+    class BuiltIn_PlacementNew : public BuiltInFunction {
+    public:
+        __forceinline BuiltIn_PlacementNew(const char * fn, const ModuleLibrary & lib, const char * cna = nullptr)
+        : BuiltInFunction(fn,cna), fnName(fn) {
+            this->modifyExternal = true;
+            this->isTypeConstructor = true;
+            this->copyOnReturn = true;
+            this->moveOnReturn = true;
+            construct(makeBuiltinArgs<CType,Args...>(lib));
+        }
+        virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
+            return context.code->makeNode<SimNode_PlacementNew<CType,Args...>>(at,fnName);
+        }
+        const char * fnName = nullptr;
+    };
+
+    template  <typename CType, typename ...Args>
+    class BuiltIn_Using : public BuiltInFunction {
+    public:
+        __forceinline BuiltIn_Using(const ModuleLibrary & lib, const char * cppName)
+        : BuiltInFunction("using","das_using") {
+            this->cppName = string("das_using<") + cppName + ">::use";
+            this->aotTemplate = true;
+            this->modifyExternal = true;
+            this->invoke = true;
+            vector<TypeDeclPtr> args = makeBuiltinArgs<void,Args...>(lib);
+            args.emplace_back(makeType<const TBlock<void,TTemporary<TExplicit<CType>>>>(lib));
+            construct(args);
+        }
+        virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
+            return context.code->makeNode<SimNode_Using<CType,Args...>>(at);
+        }
+    };
+
+    void addExternFunc(Module& mod, const FunctionPtr & fx, bool isCmres, SideEffects seFlags);
+
     template <typename FuncT, FuncT fn, template <typename FuncTT, FuncTT fnt> class SimNodeT = SimNode_ExtFuncCall, typename QQ = defaultTempFn>
-    inline auto addExtern ( Module & mod, const ModuleLibrary & lib, const string & name, SideEffects seFlags,
-                                  const string & cppName = string(), QQ && tempFn = QQ() ) {
+    inline auto addExtern ( Module & mod, const ModuleLibrary & lib, const char * name, SideEffects seFlags,
+                                  const char * cppName = nullptr, QQ && tempFn = QQ() ) {
         auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeT<FuncT, fn>, FuncT>>(name, lib, cppName);
-        if ( !SimNodeT<FuncT,fn>::IS_CMRES ) {
-            if ( fnX->result->isRefType() && !fnX->result->ref ) {
-                DAS_FATAL_LOG(
-                    "addExtern(%s)::tempFn failed in module %s\n"
-                    "  this function should be bound with SimNode_ExtFuncCallAndCopyOrMove option\n"
-                    "  likely cast<> is implemented for the return type, and it should not\n",
-                name.c_str(), mod.name.c_str());
-                DAS_FATAL_ERROR;
-            }
-        }
-        fnX->setSideEffects(seFlags);
-        if ( !tempFn(fnX.get()) ) {
-            DAS_FATAL_LOG("addExtern(%s)::tempFn failed in module %s\n", name.c_str(), mod.name.c_str());
-            DAS_FATAL_ERROR;
-        }
-        if ( !mod.addFunction(fnX) ) {
-            DAS_FATAL_LOG("addExtern(%s) failed in module %s\n", name.c_str(), mod.name.c_str());
-            DAS_FATAL_ERROR;
-        }
+        tempFn(fnX.get());
+        addExternFunc(mod, fnX, SimNodeT<FuncT, fn>::IS_CMRES, seFlags);
         return fnX;
     }
 
     template <typename FuncArgT, typename FuncT, FuncT fn, template <typename FuncTT, FuncTT fnt> class SimNodeT = SimNode_ExtFuncCall>
-    inline auto addExternEx ( Module & mod, const ModuleLibrary & lib, const string & name, SideEffects seFlags,
-                                  const string & cppName = string()) {
+    inline auto addExternEx ( Module & mod, const ModuleLibrary & lib, const char * name, SideEffects seFlags,
+                                  const char * cppName = nullptr ) {
         auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeT<FuncT, fn>, FuncArgT>>(name, lib, cppName);
-        if ( !SimNodeT<FuncT,fn>::IS_CMRES ) {
-            if ( fnX->result->isRefType() && !fnX->result->ref ) {
-                DAS_FATAL_LOG(
-                    "addExtern(%s)::tempFn failed in module %s\n"
-                    "  this function should be bound with SimNode_ExtFuncCallAndCopyOrMove option\n"
-                    "  likely cast<> is implemented for the return type, and it should not\n",
-                name.c_str(), mod.name.c_str());
-                DAS_FATAL_ERROR;
-            }
-        }
-        fnX->setSideEffects(seFlags);
-        if ( !mod.addFunction(fnX) ) {
-            DAS_FATAL_LOG("addExternEx(%s) failed in module %s\n", name.c_str(), mod.name.c_str());
-            DAS_FATAL_ERROR;
-        }
+        addExternFunc(mod, fnX, SimNodeT<FuncT, fn>::IS_CMRES, seFlags);
         return fnX;
     }
 
     template <InteropFunction func, typename RetT, typename ...Args>
-    inline auto addInterop ( Module & mod, const ModuleLibrary & lib, const string & name, SideEffects seFlags,
-                                   const string & cppName = string() ) {
+    inline auto addInterop ( Module & mod, const ModuleLibrary & lib, const char * name, SideEffects seFlags,
+                                   const char * cppName = nullptr ) {
         auto fnX = make_smart<InteropFn<func, RetT, Args...>>(name, lib, cppName);
-        fnX->setSideEffects(seFlags);
-        if ( !mod.addFunction(fnX) ) {
-            DAS_FATAL_LOG("addInterop(%s) failed in module %s\n", name.c_str(), mod.name.c_str());
-            DAS_FATAL_ERROR;
-        }
+        addExternFunc(mod, fnX, true, seFlags);
         return fnX;
+    }
+
+    template <typename CType, typename ...Args>
+    inline auto addCtor ( Module & mod, const ModuleLibrary & lib, const char * name, const char * cppName = nullptr ) {
+        auto fn = make_smart<BuiltIn_PlacementNew<CType,Args...>>(name,lib,cppName);
+        DAS_ASSERT(fn->result->isRefType() && "can't add ctor to by-value types");
+        mod.addFunction(fn);
+    }
+
+    template <typename CType, typename ...Args>
+    inline auto addUsing ( Module & mod, const ModuleLibrary & lib, const char * cppName ) {
+        mod.addFunction(make_smart<BuiltIn_Using<CType,Args...>>(lib,cppName));
+    }
+
+    template <typename CType, typename ...Args>
+    inline auto addCtorAndUsing ( Module & mod, const ModuleLibrary & lib, const char * name, const char * cppName ) {
+        auto fn = make_smart<BuiltIn_PlacementNew<CType,Args...>>(name,lib,cppName);
+        DAS_ASSERT(fn->result->isRefType() && "can't add ctor to by-value types");
+        mod.addFunction(fn);
+        mod.addFunction(make_smart<BuiltIn_Using<CType,Args...>>(lib,cppName));
+    }
+
+    template <typename ET>
+    inline void addEnumFlagOps ( Module & mod, ModuleLibrary & lib, const string & cppName ) {
+        using method_not = das_operator_enum_NOT<ET>;
+        addExtern<ET (*)(ET a),method_not::invoke>(mod, lib, "~", SideEffects::none,
+            ("das_operator_enum_NOT<" + cppName + ">::invoke").c_str());
+        using method_or = das_operator_enum_OR<ET>;
+        addExtern<ET (*)(ET,ET),method_or::invoke>(mod, lib, "|", SideEffects::none,
+            ("das_operator_enum_OR<" + cppName + ">::invoke").c_str());
+        using method_xor = das_operator_enum_XOR<ET>;
+        addExtern<ET (*)(ET,ET),method_xor::invoke>(mod, lib, "^", SideEffects::none,
+            ("das_operator_enum_XOR<" + cppName + ">::invoke").c_str());
+        using method_and = das_operator_enum_AND<ET>;
+        addExtern<ET (*)(ET,ET),method_and::invoke>(mod, lib, "&", SideEffects::none,
+            ("das_operator_enum_AND<" + cppName + ">::invoke").c_str());
+        using method_and_and = das_operator_enum_AND_AND<ET>;
+        addExtern<bool (*)(ET,ET),method_and_and::invoke>(mod, lib, "&&", SideEffects::none,
+            ("das_operator_enum_AND_AND<" + cppName + ">::invoke").c_str());
+        using method_or_equ = das_operator_enum_OR_EQU<ET>;
+        addExtern<void (*)(ET&,ET),method_or_equ::invoke>(mod, lib, "|=", SideEffects::modifyArgument,
+            ("das_operator_enum_OR_EQU<" + cppName + ">::invoke").c_str());
+        using method_xor_equ = das_operator_enum_XOR_EQU<ET>;
+        addExtern<void (*)(ET&,ET),method_xor_equ::invoke>(mod, lib, "^=", SideEffects::modifyArgument,
+            ("das_operator_enum_XOR_EQU<" + cppName + ">::invoke").c_str());
+        using method_and_equ = das_operator_enum_AND_EQU<ET>;
+        addExtern<void (*)(ET&,ET),method_and_equ::invoke>(mod, lib, "&=", SideEffects::modifyArgument,
+            ("das_operator_enum_AND_EQU<" + cppName + ">::invoke").c_str());
     }
 }
 

@@ -31,7 +31,7 @@ namespace das {
 
 template <>
 struct typeName<ObjectArray> {
-    static string name() {
+    constexpr static const char * name() {
         return "ObjectArray";
     }
 };
@@ -153,8 +153,9 @@ int main( int argc, char * argv[] ) {
     NEED_MODULE(Module_Strings);
     NEED_MODULE(Module_TestProfile);
     NEED_MODULE(Module_Random);
+    Module::Initialize();
 #if 0
-    auto TEST_NAME = getDasRoot() +  "/examples/profile/tests/annotation.das";
+    auto TEST_NAME = getDasRoot() +  "/examples/profile/tests/nbodies.das";
     tout << "\nINTERPRETED:\n";
     unit_test(TEST_NAME,false);
     tout << "\nAOT:\n";

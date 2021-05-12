@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional> // std::hash
-
 namespace das
 {
     struct SimNode;
@@ -23,14 +21,14 @@ namespace das
 
     template <typename Result, typename ...Args>
     struct TBlock : Block {
-        TBlock()  {}
+        TBlock() {}
         TBlock( const TBlock & ) = default;
         TBlock( const Block & that ) { *(Block *)this = that; }
     };
 
     struct Func {
         int32_t     index;
-        Func() = default;
+        Func() : index(0) {}
         Func(int32_t idx) : index(idx) {}
         __forceinline operator bool () const { return index!=0; }
         __forceinline bool operator == ( void * ptr ) const {
@@ -56,7 +54,7 @@ namespace das
     };
 
     struct Lambda {
-        Lambda() = default;
+        Lambda() : capture(nullptr) {}
         Lambda(void * ptr) : capture((char *)ptr) {}
         char *      capture;
         __forceinline TypeInfo * getTypeInfo() const {
@@ -70,6 +68,13 @@ namespace das
         }
     };
     static_assert(sizeof(Lambda)==sizeof(void *), "has to be castable");
+
+    template <typename Result, typename ...Args>
+    struct TLambda : Lambda {
+        TLambda()  {}
+        TLambda( const TLambda & ) = default;
+        TLambda( const Lambda & that ) { *(Lambda *)this = that; }
+    };
 
     struct Tuple {
         Tuple() {}
@@ -100,6 +105,7 @@ namespace das
     void array_unlock ( Context & context, Array & arr );
     void array_reserve ( Context & context, Array & arr, uint32_t newCapacity, uint32_t stride );
     void array_resize ( Context & context, Array & arr, uint32_t newSize, uint32_t stride, bool zero );
+    void array_grow ( Context & context, Array & arr, uint32_t newSize, uint32_t stride );  // always grows
     void array_clear ( Context & context, Array & arr );
 
     struct Table : Array {

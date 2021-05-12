@@ -1,6 +1,7 @@
 #pragma once
 
 namespace das {
+    bool is_in_aot();
     void setCommandLineArguments ( int argc, char * argv[] );
     void getCommandLineArguments( Array & arr );
     bool is_compiling ( Context * ctx );
@@ -9,7 +10,7 @@ namespace das {
     void builtin_print ( char * text, Context * context );
     vec4f builtin_sprint ( Context & context, SimNode_CallBase * call, vec4f * args );
     vec4f builtin_breakpoint ( Context & context, SimNode_CallBase * call, vec4f * );
-    void builtin_stackwalk ( Context * context, LineInfoArg * lineInfo );
+    void builtin_stackwalk ( bool args, bool vars, Context * context, LineInfoArg * lineInfo );
     void builtin_terminate ( Context * context );
     int builtin_table_size ( const Table & arr );
     int builtin_table_capacity ( const Table & arr );
@@ -26,13 +27,12 @@ namespace das {
     int builtin_array_capacity ( const Array & arr );
     void builtin_array_resize ( Array & pArray, int newSize, int stride, Context * context );
     void builtin_array_reserve ( Array & pArray, int newSize, int stride, Context * context );
-    int builtin_array_push ( Array & pArray, int index, int stride, Context * context );
-    int builtin_array_push_zero ( Array & pArray, int index, int stride, Context * context );
     void builtin_array_erase ( Array & pArray, int index, int stride, Context * context ) ;
     void builtin_array_clear ( Array & pArray, Context * context );
     void builtin_array_lock ( const Array & arr, Context * context );
     void builtin_array_unlock ( const Array & arr, Context * context );
     void builtin_array_clear_lock ( const Array & arr, Context * );
+    void builtin_temp_array ( void * data, int size, const Block & block, Context * context );
     void builtin_array_free ( Array & dim, int szt, Context * __context__ );
     void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__ );
 
@@ -57,14 +57,16 @@ namespace das {
 
     template <typename TT>
     __forceinline void builtin_sort ( TT * data, int32_t length ) {
-        sort ( data, data + length );
+        if ( length>1 ) sort ( data, data + length );
     }
 
     void builtin_sort_string ( void * data, int32_t length );
     void builtin_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context );
+    void builtin_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context );
 
     template <typename TT>
     void builtin_sort_cblock ( TT * data, int32_t length, const TBlock<bool,TT,TT> & cmp, Context * context ) {
+        if ( length<=1 ) return;
         vec4f bargs[2];
         context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
             sort ( data, data+length, [&](TT x, TT y) -> bool {
@@ -99,4 +101,45 @@ namespace das {
     void * gc0_restore_ptr ( char * name, Context * context );
     smart_ptr_raw<void> gc0_restore_smart_ptr ( char * name, Context * context );
     void gc0_reset();
+
+    __forceinline void array_grow ( Context & context, Array & arr, uint32_t stride ) {
+        if ( arr.isLocked() ) context.throw_error("can't resize locked array");
+        uint32_t newSize = arr.size + 1;
+        if ( newSize > arr.capacity ) {
+            uint32_t newCapacity = 1 << (32 - das_clz (das::max(newSize,2u) - 1));
+            newCapacity = das::max(newCapacity, 16u);
+            array_reserve(context, arr, newCapacity, stride);
+        }
+        arr.size = newSize;
+    }
+
+    __forceinline int builtin_array_push ( Array & pArray, int index, int stride, Context * context ) {
+        uint32_t idx = pArray.size;
+        array_grow(*context, pArray, stride);
+        if ( uint32_t(index) >= pArray.size ) context->throw_error_ex("insert index out of range, %u of %u", uint32_t(index), pArray.size);
+        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, (idx-index)*stride );
+        return index;
+    }
+
+    __forceinline int builtin_array_push_zero ( Array & pArray, int index, int stride, Context * context ) {
+        uint32_t idx = pArray.size;
+        array_grow(*context, pArray, stride);
+        if ( uint32_t(index) >= pArray.size ) context->throw_error_ex("insert index out of range, %u of %u", uint32_t(index), pArray.size);
+        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, (idx-index)*stride );
+        memset ( pArray.data + index*stride, 0, stride );
+        return index;
+    }
+
+    __forceinline int builtin_array_push_back ( Array & pArray, int stride, Context * context ) {
+        uint32_t idx = pArray.size;
+        array_grow(*context, pArray, stride);
+        return idx;
+    }
+
+    __forceinline int builtin_array_push_back_zero ( Array & pArray, int stride, Context * context ) {
+        uint32_t idx = pArray.size;
+        array_grow(*context, pArray, stride);
+        memset(pArray.data + idx*stride, 0, stride);
+        return idx;
+    }
 }

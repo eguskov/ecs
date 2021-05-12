@@ -20,8 +20,7 @@ namespace das {
 
     class Visitor : public ptr_ref_count {
     protected:
-      virtual ~Visitor() {}
-
+        virtual ~Visitor() {}
     public:
         // what do we visit
         virtual bool canVisitFunction ( Function * fun ) { return true; }
@@ -30,6 +29,7 @@ namespace das {
         virtual bool canVisitExpr ( ExprTypeInfo * expr, Expression * subexpr ) { return true; }
         virtual bool canVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) { return true; }
         virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) { return true; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) { return false; }
         // WHOLE PROGRAM
         virtual void preVisitProgram ( Program * prog ) {}
         virtual void visitProgram ( Program * prog ) {}
@@ -174,6 +174,7 @@ namespace das {
         VISIT_EXPR(ExprNullCoalescing)
         VISIT_EXPR(ExprAssert)
         VISIT_EXPR(ExprStaticAssert)
+        VISIT_EXPR(ExprQuote)
         VISIT_EXPR(ExprDebug)
         VISIT_EXPR(ExprInvoke)
         VISIT_EXPR(ExprErase)
@@ -251,6 +252,7 @@ namespace das {
         VISIT_EXPR(ExprMakeTuple)
         VISIT_EXPR(ExprArrayComprehension)
         VISIT_EXPR(ExprMemZero)
+        VISIT_EXPR(ExprTypeDecl)
 #undef VISIT_EXPR
     };
 #if defined(_MSC_VER)
@@ -260,6 +262,17 @@ namespace das {
 #elif defined(__clang__)
 #pragma clang diagnostic pop
 #endif
+
+    struct AstContext {
+        bool valid = false;
+        FunctionPtr             func;
+        vector<ExpressionPtr>   loop;
+        vector<ExpressionPtr>   blocks;
+        vector<ExpressionPtr>   scopes;
+        vector<ExpressionPtr>   with;
+    };
+
+    AstContext generateAstContext( const ProgramPtr & prog, Expression * expr );
 
     class PassVisitor : public Visitor {
     public:
@@ -289,6 +302,8 @@ namespace das {
         vec4f eval ( Expression * expr, bool & failed );
         ExpressionPtr evalAndFold ( Expression * expr );
         ExpressionPtr evalAndFoldString ( Expression * expr );
+        ExpressionPtr evalAndFoldStringBuilder ( ExprStringBuilder * expr );
+        ExpressionPtr cloneWithType ( const ExpressionPtr & expr );
         bool isSameFoldValue ( const TypeDeclPtr & t, vec4f a, vec4f b ) const {
             return memcmp(&a,&b,t->getSizeOf()) == 0;
         }

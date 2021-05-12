@@ -91,7 +91,7 @@ namespace das {
         }
     }
 
-    void PersistentStringAllocator::forEachString ( const function<void (const char *)> & fn ) {
+    void PersistentStringAllocator::forEachString ( const callable<void (const char *)> & fn ) {
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {
             for ( auto ch=model.shoe.chunks[si]; ch; ch=ch->next ) {
                 uint32_t utotal = ch->total / 32;
@@ -145,7 +145,9 @@ namespace das {
     void StringHeapAllocator::recognize ( char * str ) {
         if ( !str ) return;
         uint32_t length = uint32_t(strlen(str));
-        if ( needIntern && isOwnPtr(str, length+1) ) {
+        uint32_t size = length + 1;
+        size = (size + 15) & ~15;
+        if ( needIntern && isOwnPtr(str, size) ) {
             internMap.insert(StrHashEntry(str,length));
         }
     }
@@ -250,7 +252,11 @@ namespace das {
         char buf[33];
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {
             if ( model.shoe.chunks[si] ) tout << "string decks of size " << int((si+1)<<4) << "\n";
+            uint64_t bytesInDeck = 0;
+            uint32_t totalChunks = 0;
             for ( auto ch=model.shoe.chunks[si]; ch; ch=ch->next ) {
+                bytesInDeck += ch->totalBytes;
+                totalChunks ++;
                 tout << "\t" << ch->allocated << " of " << ch->total << ", " << (ch->allocated*ch->size) << " of " << ch->totalBytes << " bytes\n";
                 uint32_t utotal = ch->total / 32;
                 for ( uint32_t i=0; i!=utotal; ++i ) {
@@ -263,15 +269,20 @@ namespace das {
                     }
                 }
             }
+            if (totalChunks != 0)
+                tout << "decks reserves " << (bytesInDeck + 1023) / 1024 << " kb in " << totalChunks << " chunks\n";
         }
+        uint64_t totalBigStuff = 0;
         if ( !model.bigStuff.empty() ) {
             tout << "big stuff:\n";
             for ( auto it : model.bigStuff ) {
                 char * ch = (char *)it.first;
                 strncpy(buf,ch,32);
                 buf[32] = 0;
-                tout << "\t" << presentStr(buf,ch,32) << "\n";
+                tout << "\t" << presentStr(buf,ch,32) << " size " << it.second << " bytes\n";
+                totalBigStuff += it.second;
             }
+            tout << " big stuff total size:" << (totalBigStuff + 1023) / 1024 << " kb\n";
         }
     }
 
@@ -293,7 +304,7 @@ namespace das {
         }
     }
 
-    void LinearStringAllocator::forEachString ( const function<void (const char *)> & fn ) {
+    void LinearStringAllocator::forEachString ( const callable<void (const char *)> & fn ) {
         for ( auto ch=model.chunk; ch; ch=ch->next ) {
             char * tail = ch->data + ch->offset;
             for ( char * txt = ch->data; txt!=tail; ) {
