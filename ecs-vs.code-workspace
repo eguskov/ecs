@@ -6,9 +6,6 @@
   ],
   "settings": {
     "explorer.autoReveal": false,
-    "search.exclude": {
-      "**/libs": true,
-    },
     "files.exclude": {
       "**/Debug": true,
       "**/Release": true,
@@ -115,7 +112,10 @@
       "bitset": "cpp",
       "hash_set": "cpp",
       "*.in": "cpp",
-      "variant": "cpp"
+      "variant": "cpp",
+      "any": "cpp",
+      "compare": "cpp",
+      "concepts": "cpp"
     },
     "editor.renderWhitespace": "all",
     "editor.tokenColorCustomizations": {

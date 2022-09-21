@@ -39,6 +39,38 @@ std::string get_hashed_string(const HashedString &s)
 
 #include <EASTL/unique_ptr.h>
 
+struct Texture2DAnnotation : das::ManagedStructureAnnotation<Texture2D, false>
+{
+  Texture2DAnnotation(das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<Texture2D, false>("Texture2D", ml)
+  {
+    cppName = " ::Texture2D";
+  }
+};
+
+ECS_COMPONENT_TYPE_DETAILS(Texture2D);
+
+struct RaylibModule final : public das::Module
+{
+  RaylibModule() : das::Module("raylib")
+  {
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(this);
+
+    addAnnotation(das::make_smart<Texture2DAnnotation>(lib));
+
+    verifyAotReady();
+  }
+
+  das::ModuleAotType aotRequire(das::TextWriter& tw) const override
+  {
+    tw << "#include \"dasModules/ecs.h\"\n";
+    return das::ModuleAotType::cpp;
+  }
+};
+
+REGISTER_MODULE(RaylibModule);
+
 struct AnimModule final : public das::Module
 {
   AnimModule() : das::Module("anim")
@@ -253,6 +285,7 @@ bool init_sample()
   NEED_MODULE(Module_Rtti);
   NEED_MODULE(Module_Ast);
   NEED_MODULE(Module_FIO);
+  NEED_MODULE(RaylibModule);
   NEED_MODULE(ECSModule);
   NEED_MODULE(AnimModule);
   NEED_MODULE(RenderModule);
@@ -739,7 +772,7 @@ int main(int argc, char *argv[])
   // TODO: Update queries after templates registratina has been done
   ecs::init();
 
-  test_struct();
+  // test_struct();
 
   init_sample();
 

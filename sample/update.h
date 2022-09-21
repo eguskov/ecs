@@ -16,52 +16,6 @@ struct EventOnKillEnemy
 
 ECS_EVENT(EventOnKillEnemy);
 
-struct Timer
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-  ECS_BIND_FIELDS(time, period);
-
-  float time = 0.f;
-  float period = 5.f;
-};
-
-ECS_COMPONENT_TYPE(Timer);
-
-struct NoHitTimer
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-
-  float time = 0.f;
-};
-
-ECS_COMPONENT_TYPE(NoHitTimer);
-
-struct ColorComponent
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-  ECS_BIND_ALL_FIELDS;
-
-  uint8_t r = 255;
-  uint8_t g = 255;
-  uint8_t b = 255;
-};
-
-ECS_COMPONENT_TYPE_ALIAS(ColorComponent, color);
-
-struct AutoMove
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-  ECS_BIND_FIELDS(jump, duration, length)
-
-  bool jump = false;
-
-  float time = 0.f;
-  float duration = 0.f;
-  float length = 0.f;
-};
-
-ECS_COMPONENT_TYPE(AutoMove);
-
 // The way to use any struct as a component
 // struct MyComp final : public ExternalLibraryStructAsComponet
 // {
@@ -69,53 +23,8 @@ ECS_COMPONENT_TYPE(AutoMove);
 //   ECS_BIND_FIELDS(foo, bar);
 // };
 
-struct Jump
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-
-  // TODO: Use ECS_COMPONENT_TYPE; here instead of outside
-  // ECS_COMPONENT_TYPE;
-  // TODO: Add ECS_BIND_ALL_FIELDS; in order to bind all fields;
-  // TODO: ADD ECS_BIND_POD; -> ECS_BIND_TYPE(...POD...); bind all fields;
-  ECS_BIND_FIELDS(active, startTime, height, duration);
-
-  bool active = false;
-
-  double startTime = 0.0;
-  float height = 0.f;
-  float duration = 0.f;
-};
-
-// This must stay as a way to craete component's types (POD types)
-ECS_COMPONENT_TYPE(Jump);
-
-//  TODO: Do not use components like this. This just a float!
-struct Gravity
-{
-  ECS_BIND_TYPE(sample, isLocal=true);
-  ECS_BIND_ALL_FIELDS;
-
-  float mass = 0.f;
-};
-
-ECS_COMPONENT_TYPE(Gravity);
-
-struct TextureAtlas
-{
-  ECS_BIND_TYPE(render, isLocal=true);
-
-  // ECS_BIND(name=path; type=string;)
-  // or
-
-  ECS_BIND(name=path)
-  eastl::string path;
-
-  Texture2D id;
-
-  ECS_DEFAULT_CTORS(TextureAtlas);
-};
-
-ECS_COMPONENT_TYPE(TextureAtlas);
+MAKE_TYPE_FACTORY(Texture2D, ::Texture2D);
+ECS_COMPONENT_TYPE(Texture2D);
 
 // TODO: Auto bind to daScript
 struct AnimGraph
@@ -156,14 +65,14 @@ struct AnimState
 {
   ECS_BIND_TYPE(anim, isLocal=true);
 
-  bool done = false;
-  int frameNo = 0;
-  double startTime = 0.0;
-
   ECS_BIND(name=node)
   eastl::string currentNode;
+
+  float startTime = 0.0;
+  int frameNo = 0;
+  bool done = false;
 
   ECS_DEFAULT_CTORS(AnimState);
 };
 
-ECS_COMPONENT_TYPE(AnimState);
+ECS_COMPONENT_TYPE_BIND(AnimState);

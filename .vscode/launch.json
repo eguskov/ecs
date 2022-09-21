@@ -116,13 +116,11 @@
       "request": "launch",
       "program": "${workspaceFolder}\\bin\\codegen.exe",
       "args": [
-        // "..\\sample\\boids.cpp",
-        // "..\\sample\\update.cpp",
-        "..\\sample\\update.h",
-        "stop"
+        "../sample/update.h",
+        "out.gen.cpp"
       ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}\\Debug",
+      "cwd": "${workspaceFolder}\\bin",
       "environment": [],
       "externalConsole": true,
       // "preLaunchTask": "build",

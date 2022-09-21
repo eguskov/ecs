@@ -154,9 +154,10 @@ static constexpr ConstQueryDescription AliveEnemy_query_desc = {
 static constexpr ConstComponentDescription PlayerCollision_components[] = {
   {HASH("eid"), ComponentType<EntityId>::size, ComponentDescriptionFlags::kNone},
   {HASH("collision_shape"), ComponentType<CollisionShape>::size, ComponentDescriptionFlags::kNone},
-  {HASH("gravity"), ComponentType<Gravity>::size, ComponentDescriptionFlags::kNone},
+  {HASH("mass"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
   {HASH("grid_cell"), ComponentType<int>::size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), ComponentType<Jump>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("jump_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("jump_startTime"), ComponentType<double>::size, ComponentDescriptionFlags::kWrite},
   {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
   {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
   {HASH("is_on_ground"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
@@ -216,9 +217,10 @@ using AliveEnemyBuilder = StructBuilder<
 using PlayerCollisionBuilder = StructBuilder<
   StructField<EntityId, INDEX_OF_COMPONENT(PlayerCollision, eid)>,
   StructField<CollisionShape, INDEX_OF_COMPONENT(PlayerCollision, collision_shape)>,
-  StructField<Gravity, INDEX_OF_COMPONENT(PlayerCollision, gravity)>,
+  StructField<float, INDEX_OF_COMPONENT(PlayerCollision, mass)>,
   StructField<int, INDEX_OF_COMPONENT(PlayerCollision, grid_cell)>,
-  StructField<Jump, INDEX_OF_COMPONENT(PlayerCollision, jump)>,
+  StructField<bool, INDEX_OF_COMPONENT(PlayerCollision, jump_active)>,
+  StructField<double, INDEX_OF_COMPONENT(PlayerCollision, jump_startTime)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerCollision, pos)>,
   StructField<glm::vec2, INDEX_OF_COMPONENT(PlayerCollision, vel)>,
   StructField<bool, INDEX_OF_COMPONENT(PlayerCollision, is_on_ground)>
@@ -364,9 +366,10 @@ template <typename Callable> void PlayerCollision::foreach(Callable callback)
     {
       GET_COMPONENT(PlayerCollision, q, EntityId, eid),
       GET_COMPONENT(PlayerCollision, q, CollisionShape, collision_shape),
-      GET_COMPONENT(PlayerCollision, q, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, q, float, mass),
       GET_COMPONENT(PlayerCollision, q, int, grid_cell),
-      GET_COMPONENT(PlayerCollision, q, Jump, jump),
+      GET_COMPONENT(PlayerCollision, q, bool, jump_active),
+      GET_COMPONENT(PlayerCollision, q, double, jump_startTime),
       GET_COMPONENT(PlayerCollision, q, glm::vec2, pos),
       GET_COMPONENT(PlayerCollision, q, glm::vec2, vel),
       GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)
@@ -381,9 +384,10 @@ PlayerCollision PlayerCollision::get(QueryIterator &iter)
   return {
       GET_COMPONENT(PlayerCollision, iter, EntityId, eid),
       GET_COMPONENT(PlayerCollision, iter, CollisionShape, collision_shape),
-      GET_COMPONENT(PlayerCollision, iter, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, iter, float, mass),
       GET_COMPONENT(PlayerCollision, iter, int, grid_cell),
-      GET_COMPONENT(PlayerCollision, iter, Jump, jump),
+      GET_COMPONENT(PlayerCollision, iter, bool, jump_active),
+      GET_COMPONENT(PlayerCollision, iter, double, jump_startTime),
       GET_COMPONENT(PlayerCollision, iter, glm::vec2, pos),
       GET_COMPONENT(PlayerCollision, iter, glm::vec2, vel),
       GET_COMPONENT(PlayerCollision, iter, bool, is_on_ground)
@@ -431,9 +435,10 @@ static void update_player_collisions_run(const RawArg &stage_or_event, Query&)
     {
       GET_COMPONENT(PlayerCollision, q, EntityId, eid),
       GET_COMPONENT(PlayerCollision, q, CollisionShape, collision_shape),
-      GET_COMPONENT(PlayerCollision, q, Gravity, gravity),
+      GET_COMPONENT(PlayerCollision, q, float, mass),
       GET_COMPONENT(PlayerCollision, q, int, grid_cell),
-      GET_COMPONENT(PlayerCollision, q, Jump, jump),
+      GET_COMPONENT(PlayerCollision, q, bool, jump_active),
+      GET_COMPONENT(PlayerCollision, q, double, jump_startTime),
       GET_COMPONENT(PlayerCollision, q, glm::vec2, pos),
       GET_COMPONENT(PlayerCollision, q, glm::vec2, vel),
       GET_COMPONENT(PlayerCollision, q, bool, is_on_ground)

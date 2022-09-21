@@ -26,13 +26,14 @@ ECS_COMPONENT_TYPE(HUD);
 struct UserInput
 {
   ECS_BIND_TYPE(sample, isLocal=true);
+  ECS_BIND_ALL_FIELDS;
 
   bool left = false;
   bool right = false;
   bool jump = false;
 };
 
-ECS_COMPONENT_TYPE(UserInput);
+ECS_COMPONENT_TYPE_BIND(UserInput);
 
 // TODO: Implement texture manager
 static eastl::hash_map<eastl::string, eastl::shared_ptr<Texture2D>> texture_map;
@@ -45,17 +46,17 @@ void clear_textures()
 
 struct load_texture_handler
 {
-  ECS_RUN(const EventOnEntityCreate &ev, TextureAtlas &texture)
+  ECS_RUN(const EventOnEntityCreate &ev, const eastl::string &texture_path, Texture2D &texture_id)
   {
-    auto it = texture_map.find(texture.path);
+    auto it = texture_map.find(texture_path);
     if (it == texture_map.end())
     {
-      auto id = eastl::make_shared<Texture2D>(LoadTexture(texture.path.c_str()));
-      texture.id = *id.get();
-      texture_map[texture.path] = id;
+      auto id = eastl::make_shared<Texture2D>(LoadTexture(texture_path.c_str()));
+      texture_id = *id.get();
+      texture_map[texture_path] = id;
     }
     else
-      texture.id = *it->second.get();
+      texture_id = *it->second.get();
   }
 };
 
@@ -116,7 +117,7 @@ struct update_anim_frame
     }
     else
     {
-      anim_state.frameNo = frameNo < (int)node.frames.size() ? frameNo : node.frames.size() - 1;
+      anim_state.frameNo = frameNo < (int)node.frames.size() ? frameNo : ((int)node.frames.size() - 1);
       anim_state.done = anim_state.frameNo >= (int)node.frames.size() - 1;
     }
     frame = node.frames[anim_state.frameNo];
@@ -131,11 +132,11 @@ struct render_walls
   QL_HAVE(wall);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
+  ECS_RUN(const EventRender &evt, const Texture2D &texture_id, const glm::vec4 &frame, const glm::vec2 &pos)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
-    DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+    DrawTextureRec(texture_id, Rectangle{ frame.x, frame.y, frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   }
 };
 
@@ -147,11 +148,11 @@ struct render_normal
   QL_NOT_HAVE(wall);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos, float dir)
+  ECS_RUN(const EventRender &evt, const Texture2D &texture_id, const glm::vec4 &frame, const glm::vec2 &pos, float dir)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
-    DrawTextureRec(texture.id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
+    DrawTextureRec(texture_id, Rectangle{ frame.x, frame.y, dir * frame.z, frame.w }, Vector2{ hw + pos.x, hh + pos.y }, WHITE);
   }
 };
 
@@ -170,58 +171,6 @@ struct read_controls
       user_input.right = true;
     if (IsKeyPressed(KEY_SPACE))
       user_input.jump = true;
-  }
-};
-
-struct apply_controls
-{
-  ECS_AFTER(read_controls);
-
-  ECS_RUN(const EventUpdate &evt, const UserInput &user_input, bool is_on_ground, Jump &jump, glm::vec2 &vel, float &dir)
-  {
-    if (user_input.left)
-    {
-      vel.x = -50.f;
-      dir = -1.f;
-    }
-    else if (user_input.right)
-    {
-      vel.x = 50.f;
-      dir = 1.f;
-    }
-    else
-      vel.x = 0.f;
-
-    if (user_input.jump && !jump.active && is_on_ground)
-    {
-      jump.active = true;
-      jump.startTime = evt.total;
-    }
-  }
-};
-
-
-struct apply_jump
-{
-  ECS_AFTER(apply_gravity);
-
-  ECS_RUN(const EventUpdate &evt, Jump &jump, bool &is_on_ground, glm::vec2 &vel)
-  {
-    // TODO: Move jump.active to component
-    if (!jump.active)
-      return;
-
-    is_on_ground = false;
-
-    const float k = (float)glm::clamp((evt.total - jump.startTime) / (double)jump.duration, 0.0, 1.0);
-    const float v = jump.height / jump.duration;
-    vel.y = -v;
-
-    if (k >= 1.f)
-    {
-      vel.y *= 0.5f;
-      jump.active = false;
-    }
   }
 };
 
@@ -245,7 +194,7 @@ struct select_current_anim_frame
 
   QL_NOT_HAVE(user_input);
 
-  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, bool is_on_ground, AnimState &anim_state)
   {
     if (vel.x != 0.f)
       set_anim_node(anim_graph, anim_state, "run", evt.total);
@@ -264,7 +213,7 @@ struct select_current_anim_frame_for_player
   ECS_AFTER(before_anim_update);
   ECS_BEFORE(update_anim_frame);
 
-  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, TextureAtlas &texture, AnimState &anim_state)
+  ECS_RUN(const EventUpdate &evt, const glm::vec2 &vel, const AnimGraph &anim_graph, const UserInput &user_input, bool is_on_ground, AnimState &anim_state)
   {
     if (vel.x != 0.f && (user_input.left || user_input.right))
       set_anim_node(anim_graph, anim_state, "run", evt.total);
@@ -317,17 +266,24 @@ struct process_on_kill_event
   }
 };
 
-static __forceinline void update_auto_move_impl(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+static __forceinline void update_auto_move_impl(
+  const EventUpdate &evt,
+  const bool auto_move_jump,
+  const float auto_move_duration,
+  const float auto_move_length,
+  float &auto_move_time,
+  glm::vec2 &vel,
+  float &dir)
 {
-  if (!auto_move.jump && auto_move.length > 0.f && auto_move.duration > 0.f)
+  if (!auto_move_jump && auto_move_length > 0.f && auto_move_duration > 0.f)
   {
     if (glm::length(vel) > 0.f)
-      vel = (auto_move.length / auto_move.duration) * glm::normalize(vel);
+      vel = (auto_move_length / auto_move_duration) * glm::normalize(vel);
 
-    auto_move.time -= evt.dt;
-    if (auto_move.time < 0.f)
+    auto_move_time -= evt.dt;
+    if (auto_move_time < 0.f)
     {
-      auto_move.time = auto_move.duration;
+      auto_move_time = auto_move_duration;
       vel = -vel;
     }
   }
@@ -346,9 +302,9 @@ struct update_active_auto_move
 
   QL_WHERE(is_alive == true && is_active == true);
 
-  ECS_RUN(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, const bool auto_move_jump, const float auto_move_duration, const float auto_move_length, float &auto_move_time, glm::vec2 &vel, float &dir)
   {
-    update_auto_move_impl(evt, auto_move, vel, dir);
+    update_auto_move_impl(evt, auto_move_jump, auto_move_duration, auto_move_length, auto_move_time, vel, dir);
   }
 };
 
@@ -361,9 +317,9 @@ struct update_always_active_auto_move
   QL_NOT_HAVE(is_active);
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const EventUpdate &evt, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt, const bool auto_move_jump, const float auto_move_duration, const float auto_move_length, float &auto_move_time, glm::vec2 &vel, float &dir)
   {
-    update_auto_move_impl(evt, auto_move, vel, dir);
+    update_auto_move_impl(evt, auto_move_jump, auto_move_duration, auto_move_length, auto_move_time, vel, dir);
   }
 };
 
@@ -386,22 +342,29 @@ struct update_auto_jump
 
   QL_WHERE(is_alive == true);
 
-  ECS_RUN(const EventUpdate &evt, bool is_alive, Jump &jump, AutoMove &auto_move, glm::vec2 &vel, float &dir)
+  ECS_RUN(const EventUpdate &evt,
+          bool is_alive,
+          bool &jump_active,
+          double &jump_startTime,
+          const bool auto_move_jump,
+          const float auto_move_duration,
+          float &auto_move_time,
+          glm::vec2 &vel,
+          float &dir)
   {
-    // TODO: auto_move.jump must be component
-    if (auto_move.jump)
+    if (!auto_move_jump)
+      return;
+
+    auto_move_time -= evt.dt;
+    if (auto_move_time < 0.f)
     {
-      auto_move.time -= evt.dt;
-      if (auto_move.time < 0.f)
-      {
-        auto_move.time = auto_move.duration;
+      auto_move_time = auto_move_duration;
 
-        jump.active = true;
-        jump.startTime = evt.total;
+      jump_active = true;
+      jump_startTime = evt.total;
 
-        vel.x = 40.f * -dir;
-        vel.y = -40.f;
-      }
+      vel.x = 40.f * -dir;
+      vel.y = -40.f;
     }
   }
 };

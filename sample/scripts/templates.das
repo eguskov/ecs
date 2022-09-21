@@ -3,6 +3,7 @@ require anim
 require render
 require phys
 require sample
+require raylib
 
 [ecsTemplate (name="physics_world")]
 def physics_world(var cm: ComponentsMap)
@@ -14,8 +15,8 @@ def death_fx(var cm: ComponentsMap)
   add(cm, "pos", float2())
   add(cm, "dir", 1.f)
   add(cm, "is_alive", true)
-  add(cm, "alive_timer", [[Timer time=5.f, period=5.f]])
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas.png")
+  add(cm, "texture_id", [[Texture2D]])
   add(cm, "frame", float4())
 
   add(cm, "anim_state", [[AnimState node:=*eastl_string("death")]])
@@ -35,7 +36,6 @@ def death_fx(var cm: ComponentsMap)
 [ecsTemplate (name="enemy_spawner")]
 def enemy_spawner(var cm: ComponentsMap)
   add(cm, "spawner", [[Tag]])
-  add(cm, "spawn_timer", [[Timer time=5.f, period=5.f]])
 
 [ecsTemplate (name="player_spawner")]
 def player_spawner(var cm: ComponentsMap)
@@ -78,10 +78,14 @@ def add_collision_sensor(var cm; size, center)
 def opossum(var cm: ComponentsMap)
   enemy(cm)
 
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas.png")
+  add(cm, "texture_id", [[Texture2D]])
   add(cm, "frame", float4())
 
-  add(cm, "auto_move", [[AutoMove jump=false, duration=2.f, length=64.f]])
+  add(cm, "auto_move_jump", false)
+  add(cm, "auto_move_duration", 2.f)
+  add(cm, "auto_move_length", 64.f)
+  add(cm, "auto_move_time", 0.f)
   add_collision_shape(cm, float2(36.f, 20.f), float2(18.f, 14.f))
 
   // TODO: add string component phys_body_type and use in event on create
@@ -107,10 +111,14 @@ def opossum(var cm: ComponentsMap)
 def eagle(var cm: ComponentsMap)
   enemy(cm)
 
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas.png")
+  add(cm, "texture_id", [[Texture2D]])
   add(cm, "frame", float4())
 
-  add(cm, "auto_move", [[AutoMove jump=false, duration=2.f, length=64.f]])
+  add(cm, "auto_move_jump", false)
+  add(cm, "auto_move_duration", 2.f)
+  add(cm, "auto_move_length", 64.f)
+  add(cm, "auto_move_time", 0.f)
   add_collision_shape(cm, float2(36.f, 36.f), float2(18.f, 18.f))
 
   // TODO: add string component phys_body_type and use in event on create
@@ -137,18 +145,25 @@ def frog(var cm: ComponentsMap)
   add(cm, "wall_collidable", [[Tag]])
   add(cm, "dir", -1.f)
 
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas.png")
+  add(cm, "texture_id", [[Texture2D]])
   add(cm, "frame", float4())
 
-  add(cm, "auto_move", [[AutoMove jump=true, duration=2.f, length=64.f]])
+  add(cm, "auto_move_jump", true)
+  add(cm, "auto_move_duration", 2.f)
+  add(cm, "auto_move_length", 64.f)
+  add(cm, "auto_move_time", 0.f)
   add_collision_shape(cm, float2(36.f, 28.f), float2(18.f, 14.f))
 
   // TODO: add string component phys_body_type and use in event on create
   // instead of create_phys_body("kinematic")
   add(cm, "phys_body", create_phys_body("kinematic"))
   add(cm, "is_on_ground", true)
-  add(cm, "jump", [[Jump height=15.f, duration=0.1f]])
-  add(cm, "gravity", [[Gravity mass=25.f]])
+  add(cm, "jump_active", false)
+  add(cm, "jump_startTime", 0.lf)
+  add(cm, "jump_height", 15.f)
+  add(cm, "jump_duration", 0.1f)
+  add(cm, "mass", 25.f)
 
   add(cm, "anim_state", [[AnimState node:=*eastl_string("idle")]])
   add(cm, "anim_graph") <|
@@ -168,15 +183,19 @@ def frog(var cm: ComponentsMap)
 def fox(var cm: ComponentsMap)
   add(cm, "grid_cell", -1)
   add(cm, "user_input", [[UserInput]])
-  add(cm, "gravity", [[Gravity mass=25.f]])
-  add(cm, "jump", [[Jump height=25.f, duration=0.1f]])
+  add(cm, "mass", 25.f)
+  add(cm, "jump_active", false)
+  add(cm, "jump_startTime", 0.lf)
+  add(cm, "jump_height", 25.f)
+  add(cm, "jump_duration", 0.1f)
   add(cm, "pos", float2())
   add(cm, "vel", float2())
   add(cm, "dir", 1.f)
   add(cm, "is_alive", true)
   add(cm, "is_on_ground", true)
   add(cm, "frame", float4())
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas.png")
+  add(cm, "texture_id", [[Texture2D]])
 
   add_collision_shape(cm, float2(20.f, 32.f), float2(16.f, 16.f))
 
@@ -221,7 +240,8 @@ def base_block(var cm: ComponentsMap)
 [ecsTemplate (name="base-textured-block")]
 def base_textured_block(var cm: ComponentsMap)
   base_block(cm)
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/atlas/atlas-props.png")]])
+  add(cm, "texture_path", "../assets/atlas/atlas-props.png")
+  add(cm, "texture_id", [[Texture2D]])
 
 [ecsTemplate (name="block-big")]
 def block_big(var cm: ComponentsMap)
@@ -235,7 +255,10 @@ def block_big_moving(var cm: ComponentsMap)
   add(cm, "vel", float2(0.f, 1.f))
   add(cm, "is_active", true)
   add(cm, "key", 0)
-  add(cm, "auto_move", [[AutoMove jump=false, duration=2.f, length=64.f]])
+  add(cm, "auto_move_jump", false)
+  add(cm, "auto_move_duration", 2.f)
+  add(cm, "auto_move_length", 64.f)
+  add(cm, "auto_move_time", 0.f)
   add_collision_shape_with_sensor(cm, float2(32.f, 32.f), float2(16.f, 16.f), float2(24.f, 16.f), float2(16.f, -5.f))
   add(cm, "phys_body", create_phys_body("kinematic"))
 
@@ -253,7 +276,8 @@ def common_block(var cm: ComponentsMap)
 [ecsTemplate (name="ground-block")]
 def ground_block(var cm: ComponentsMap)
   base_textured_block(cm)
-  add(cm, "texture", [[TextureAtlas path:=*eastl_string("../assets/environment/tileset.png")]])
+  add(cm, "texture_path", "../assets/environment/tileset.png")
+  add(cm, "texture_id", [[Texture2D]])
   add(cm, "frame", float4(16, 16, 16, 16))
   add_collision_shape(cm, float2(16.f, 16.f), float2(8.f, 8.f))
 

@@ -81,12 +81,12 @@ struct ComponentsMap
   {
     if (topChunkId < 0 || chunks[topChunkId].size() + sz > MAX_CHUNK_SIZE)
     {
-      topChunkId = chunks.size();
+      topChunkId = (int)chunks.size();
       chunks.emplace_back();
       chunks[topChunkId].reserve(MAX_CHUNK_SIZE);
     }
 
-    uint32_t offset = chunks[topChunkId].size();
+    uint32_t offset = (uint32_t)chunks[topChunkId].size();
     chunks[topChunkId].resize(offset + sz);
 
     return { (uint16_t)(chunks.size() - 1), (uint16_t)(offset) };

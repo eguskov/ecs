@@ -204,7 +204,7 @@ bool create_query_data(T first, T last, const das::AnnotationArgumentList &args,
 {
   query_data.reset(new DasQueryData);
 
-  const int argumentsCount = std::distance(first, last);
+  const std::size_t argumentsCount = std::distance(first, last);
 
   query_data->isComponentPointer.resize(argumentsCount);
   query_data->stride.resize(argumentsCount);
@@ -469,6 +469,11 @@ struct ComponentsMapDataWalker : das::DataWalker
   void Int(int32_t &value) override
   {
     createComponent<int32_t, int>() = value;
+  }
+
+  void Double(double &value) override
+  {
+    createComponent<double, double>() = value;
   }
 
   void Float(float &value) override

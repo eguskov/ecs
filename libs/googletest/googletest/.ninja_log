@@ -5,3 +5,7 @@
 0	3003	6285467149920888	CMakeFiles/gtest.dir/src/gtest-all.cc.obj	36fd83acd5a19894
 3004	3368	6285467152641123	lib/gtestd.lib	a552678a93a40d69
 3369	3694	6285467156283247	lib/gtest_maind.lib	3ea828fb7c4f0db9
+3	765	642510064	CMakeFiles/gtest_main.dir/src/gtest_main.cc.obj	db2608760aa80c15
+0	1782	642510065	CMakeFiles/gtest.dir/src/gtest-all.cc.obj	7b4b564d00fd6e9c
+1782	1855	642510065	lib/gtestd.lib	5a11db4d5f8e12e4
+1855	1897	642510065	lib/gtest_maind.lib	e5298a2476159734

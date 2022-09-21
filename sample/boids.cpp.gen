@@ -78,7 +78,7 @@ static constexpr ConstQueryDescription render_hud_boid_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_boid_obstacle_components[] = {
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kNone},
+  {HASH("texture_id"), ComponentType<Texture2D>::size, ComponentDescriptionFlags::kNone},
   {HASH("frame"), ComponentType<glm::vec4>::size, ComponentDescriptionFlags::kNone},
   {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
 };
@@ -92,7 +92,7 @@ static constexpr ConstQueryDescription render_boid_obstacle_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_boid_components[] = {
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kNone},
+  {HASH("texture_id"), ComponentType<Texture2D>::size, ComponentDescriptionFlags::kNone},
   {HASH("frame"), ComponentType<glm::vec4>::size, ComponentDescriptionFlags::kNone},
   {HASH("cur_pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
   {HASH("cur_separation_center"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
@@ -472,7 +472,7 @@ static void render_boid_obstacle_run(const RawArg &stage_or_event, Query &query)
   ecs::wait_system_dependencies(HASH("render_boid_obstacle"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_boid_obstacle::run(*(EventRender*)stage_or_event.mem,
-      GET_COMPONENT(render_boid_obstacle, q, TextureAtlas, texture),
+      GET_COMPONENT(render_boid_obstacle, q, Texture2D, texture_id),
       GET_COMPONENT(render_boid_obstacle, q, glm::vec4, frame),
       GET_COMPONENT(render_boid_obstacle, q, glm::vec2, pos));
 }
@@ -483,7 +483,7 @@ static void render_boid_run(const RawArg &stage_or_event, Query &query)
   ecs::wait_system_dependencies(HASH("render_boid"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_boid::run(*(EventRender*)stage_or_event.mem,
-      GET_COMPONENT(render_boid, q, TextureAtlas, texture),
+      GET_COMPONENT(render_boid, q, Texture2D, texture_id),
       GET_COMPONENT(render_boid, q, glm::vec4, frame),
       GET_COMPONENT(render_boid, q, glm::vec2, cur_pos),
       GET_COMPONENT(render_boid, q, glm::vec2, cur_separation_center),

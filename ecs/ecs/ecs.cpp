@@ -190,14 +190,14 @@ void EntityManager::findArchetypes(QueryDescription &desc)
 
   desc.archetypes.clear();
 
-  for (int archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
+  for (std::size_t archetypeId = 0, sz = archetypes.size(); archetypeId < sz; ++archetypeId)
   {
     const auto &type = archetypes[archetypeId];
     if (not_have_components(type, desc.notHaveComponents) &&
         has_components(type, desc.components) &&
         has_components(type, desc.haveComponents))
     {
-      desc.archetypes.push_back(archetypeId);
+      desc.archetypes.push_back((int32_t)archetypeId);
     }
   }
 }

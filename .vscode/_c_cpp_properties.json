@@ -1,0 +1,55 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/ecs",
+                "${workspaceFolder}/libs/EASTL/include",
+                "${workspaceFolder}/../daScript/include",
+                "${workspaceFolder}/libs/raylib/src",
+                "${workspaceFolder}/libs/raylib/src"
+            ],
+            "defines": [
+                "_DEBUG",
+                "WIN32",
+                "_CONSOLE"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceRoot}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "Win64",
+            "includePath": [
+                "${workspaceFolder}/ecs",
+                "${workspaceFolder}/libs/EASTL/include",
+                "${workspaceFolder}/../daScript/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "WIN64",
+                "_CONSOLE"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceRoot}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

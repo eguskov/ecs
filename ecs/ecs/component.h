@@ -11,7 +11,7 @@
 
 #define ECS_COMPONENT_TYPE(type) struct ecs_component_##type { static constexpr char const *name = #type; };
 #define ECS_COMPONENT_TYPE_BIND(type) struct ecs_component_##type { static constexpr char const *name = #type; };
-#define ECS_COMPONENT_TYPE_ALIAS(type, alias) struct ecs_component_##type { static constexpr char const *name = #alias; };
+#define ECS_COMPONENT_TYPE_ALIAS(type, alias) struct ecs_component_##alias { static constexpr char const *name = #alias; };
 
 #else
 

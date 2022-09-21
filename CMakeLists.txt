@@ -7,9 +7,10 @@ set(CMAKE_DEBUG_POSTFIX "-dbg")
 add_definitions("/FC")
 
 include("./daScript.cmake")
-include("./tests/gTest.cmake")
+# include("./tests/gTest.cmake")
 
 add_subdirectory(libs/EASTL)
+add_subdirectory(libs/fmt)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(libs/raylib)
@@ -22,5 +23,5 @@ add_subdirectory(codegen)
 
 add_subdirectory(ecs)
 add_subdirectory(sample)
-add_subdirectory(benchmark)
-add_subdirectory(tests)
+# add_subdirectory(benchmark)
+# add_subdirectory(tests)

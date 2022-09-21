@@ -5,6 +5,8 @@
 
 #include <daScript/daScript.h>
 
+MAKE_TYPE_FACTORY(Tag, ::Tag);
+
 struct EASTLStringAnnotation : das::TypeAnnotation
 {
   EASTLStringAnnotation() : das::TypeAnnotation("eastl_string", "eastl::string")

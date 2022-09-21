@@ -26,13 +26,13 @@ static void read_stack(::CONTEXT &ctx, Callstack &stack)
 {
   eastl::fill(stack.begin(), stack.end(), INVALID_ADDR);
 
-  ::STACKFRAME frm;
+  ::STACKFRAME64 frm;
   ::memset(&frm, 0, sizeof(frm));
-  frm.AddrPC.Offset    = ctx.Eip;
+  frm.AddrPC.Offset    = ctx.Rip;
   frm.AddrPC.Mode      = AddrModeFlat;
-  frm.AddrStack.Offset = ctx.Esp;
+  frm.AddrStack.Offset = ctx.Rsp;
   frm.AddrStack.Mode   = AddrModeFlat;
-  frm.AddrFrame.Offset = ctx.Ebp;
+  frm.AddrFrame.Offset = ctx.Rbp;
   frm.AddrFrame.Mode   = AddrModeFlat;
 
   HANDLE ph = ::GetCurrentProcess();
@@ -40,7 +40,7 @@ static void read_stack(::CONTEXT &ctx, Callstack &stack)
 
   for (uintptr_t &addr : stack)
   {
-    if (!::StackWalk(IMAGE_FILE_MACHINE_I386, ph, th, &frm, &ctx, NULL, ::SymFunctionTableAccess, ::SymGetModuleBase, NULL))
+    if (!::StackWalk64(IMAGE_FILE_MACHINE_I386, ph, th, &frm, &ctx, NULL, ::SymFunctionTableAccess, ::SymGetModuleBase, NULL))
       break;
     addr = frm.AddrPC.Offset;
   }
@@ -183,7 +183,7 @@ static long __stdcall unhandled_exception_filter(EXCEPTION_POINTERS *ep)
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
-static bool find_module_addr(const char *pe_img_name, uintptr_t &base_addr, uintptr_t &module_size)
+static bool find_module_addr(const char *pe_img_name, uintptr_t &base_addr, uint32_t &module_size)
 {
   HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
   MODULEENTRY32 me32;
@@ -216,12 +216,12 @@ static bool find_module_addr(const char *pe_img_name, uintptr_t &base_addr, uint
   return false;
 }
 
-static bool load_module(const char *pe_img_name, uintptr_t base_addr = 0, uintptr_t module_size = 0)
+static bool load_module(const char *pe_img_name, uintptr_t base_addr = 0, uint32_t module_size = 0)
 {
   if (base_addr == 0)
     find_module_addr(pe_img_name, base_addr, module_size);
 
-  return ::SymLoadModule(::GetCurrentProcess(), NULL, pe_img_name, NULL, base_addr, module_size);
+  return ::SymLoadModule64(::GetCurrentProcess(), NULL, pe_img_name, NULL, base_addr, module_size);
 }
 
 void stacktrace::init()
@@ -280,7 +280,7 @@ void stacktrace::print()
   DEBUG_LOG(s.c_str());
 }
 
-static void print_thread_callstack(intptr_t thread_id)
+static void print_thread_callstack(int32_t thread_id)
 {
   HANDLE thread = ::OpenThread(THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, thread_id);
   if (thread == NULL)

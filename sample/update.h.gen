@@ -5,90 +5,13 @@
 
 #include "update.h"
 
-static ComponentDescriptionDetails<Timer> _reg_comp_Timer("Timer");
-static ComponentDescriptionDetails<NoHitTimer> _reg_comp_NoHitTimer("NoHitTimer");
-static ComponentDescriptionDetails<ColorComponent> _reg_comp_color("color");
-static ComponentDescriptionDetails<AutoMove> _reg_comp_AutoMove("AutoMove");
-static ComponentDescriptionDetails<Jump> _reg_comp_Jump("Jump");
-static ComponentDescriptionDetails<Gravity> _reg_comp_Gravity("Gravity");
-static ComponentDescriptionDetails<TextureAtlas> _reg_comp_TextureAtlas("TextureAtlas");
+static ComponentDescriptionDetails<Texture2D> _reg_comp_Texture2D("Texture2D");
 static ComponentDescriptionDetails<AnimGraph> _reg_comp_AnimGraph("AnimGraph");
 static ComponentDescriptionDetails<AnimState> _reg_comp_AnimState("AnimState");
 
 
 
 
-struct TimerAnnotation final : das::ManagedStructureAnnotation<Timer, false>
-{
-  TimerAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<Timer, false>("Timer", lib)
-  {
-    cppName = " ::Timer";
-    addField<DAS_BIND_MANAGED_FIELD(time)>("time");
-    addField<DAS_BIND_MANAGED_FIELD(period)>("period");
-  }
-  bool isLocal() const override { return true; }
-};
-struct NoHitTimerAnnotation final : das::ManagedStructureAnnotation<NoHitTimer, false>
-{
-  NoHitTimerAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<NoHitTimer, false>("NoHitTimer", lib)
-  {
-    cppName = " ::NoHitTimer";
-  }
-  bool isLocal() const override { return true; }
-};
-struct ColorComponentAnnotation final : das::ManagedStructureAnnotation<ColorComponent, false>
-{
-  ColorComponentAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<ColorComponent, false>("ColorComponent", lib)
-  {
-    cppName = " ::ColorComponent";
-    addField<DAS_BIND_MANAGED_FIELD(r)>("r");
-    addField<DAS_BIND_MANAGED_FIELD(g)>("g");
-    addField<DAS_BIND_MANAGED_FIELD(b)>("b");
-  }
-  bool isLocal() const override { return true; }
-};
-struct AutoMoveAnnotation final : das::ManagedStructureAnnotation<AutoMove, false>
-{
-  AutoMoveAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<AutoMove, false>("AutoMove", lib)
-  {
-    cppName = " ::AutoMove";
-    addField<DAS_BIND_MANAGED_FIELD(jump)>("jump");
-    addField<DAS_BIND_MANAGED_FIELD(duration)>("duration");
-    addField<DAS_BIND_MANAGED_FIELD(length)>("length");
-  }
-  bool isLocal() const override { return true; }
-};
-struct JumpAnnotation final : das::ManagedStructureAnnotation<Jump, false>
-{
-  JumpAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<Jump, false>("Jump", lib)
-  {
-    cppName = " ::Jump";
-    addField<DAS_BIND_MANAGED_FIELD(active)>("active");
-    addField<DAS_BIND_MANAGED_FIELD(startTime)>("startTime");
-    addField<DAS_BIND_MANAGED_FIELD(height)>("height");
-    addField<DAS_BIND_MANAGED_FIELD(duration)>("duration");
-  }
-  bool isLocal() const override { return true; }
-};
-struct GravityAnnotation final : das::ManagedStructureAnnotation<Gravity, false>
-{
-  GravityAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<Gravity, false>("Gravity", lib)
-  {
-    cppName = " ::Gravity";
-    addField<DAS_BIND_MANAGED_FIELD(mass)>("mass");
-  }
-  bool isLocal() const override { return true; }
-};
-static void sample_auto_bind(das::Module &module, das::ModuleLibrary &lib)
-{
-  module.addAnnotation(das::make_smart<TimerAnnotation>(lib));
-  module.addAnnotation(das::make_smart<NoHitTimerAnnotation>(lib));
-  module.addAnnotation(das::make_smart<ColorComponentAnnotation>(lib));
-  module.addAnnotation(das::make_smart<AutoMoveAnnotation>(lib));
-  module.addAnnotation(das::make_smart<JumpAnnotation>(lib));
-  module.addAnnotation(das::make_smart<GravityAnnotation>(lib));
-}
-static AutoBindDescription _reg_auto_bind_sample(HASH("sample"), &sample_auto_bind);
 struct AnimGraphAnnotation final : das::ManagedStructureAnnotation<AnimGraph, true>
 {
   AnimGraphAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<AnimGraph, true>("AnimGraph", lib)
@@ -121,20 +44,6 @@ static void anim_auto_bind(das::Module &module, das::ModuleLibrary &lib)
   das::addExtern<DAS_BIND_FUN(AnimGraph::add_node), das::SimNode_ExtFuncCall>(module, lib, "add_node", das::SideEffects::modifyArgument, "AnimGraph::add_node");
 }
 static AutoBindDescription _reg_auto_bind_anim(HASH("anim"), &anim_auto_bind);
-struct TextureAtlasAnnotation final : das::ManagedStructureAnnotation<TextureAtlas, false>
-{
-  TextureAtlasAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<TextureAtlas, false>("TextureAtlas", lib)
-  {
-    cppName = " ::TextureAtlas";
-    addField<DAS_BIND_MANAGED_FIELD(path)>("path");
-  }
-  bool isLocal() const override { return true; }
-};
-static void render_auto_bind(das::Module &module, das::ModuleLibrary &lib)
-{
-  module.addAnnotation(das::make_smart<TextureAtlasAnnotation>(lib));
-}
-static AutoBindDescription _reg_auto_bind_render(HASH("render"), &render_auto_bind);
 
 uint32_t update_h_pull = HASH("update.h").hash;
 

@@ -87,7 +87,7 @@ struct PhysicsWorld
   // }
 };
 
-ECS_COMPONENT_TYPE(PhysicsWorld);
+ECS_COMPONENT_TYPE_BIND(PhysicsWorld);
 
 struct CollisionShape
 {
@@ -212,10 +212,11 @@ struct PlayerCollision
 
   const EntityId &eid;
   const CollisionShape &collision_shape;
-  const Gravity &gravity;
+  const float mass;
   int grid_cell;
 
-  Jump &jump;
+  bool &jump_active;
+  double &jump_startTime;
 
   glm::vec2 &pos;
   glm::vec2 &vel;
@@ -440,8 +441,8 @@ struct update_player_collisions
         enemy.is_alive = false;
         enemy.vel = glm::vec2(0.f, 0.f);
 
-        player.jump.active = true;
-        player.jump.startTime = evt.total;
+        player.jump_active = true;
+        player.jump_startTime = evt.total;
       }
     });
 

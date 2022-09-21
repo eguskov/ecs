@@ -8,7 +8,8 @@
 static ComponentDescriptionDetails<HUD> _reg_comp_HUD("HUD");
 static ComponentDescriptionDetails<UserInput> _reg_comp_UserInput("UserInput");
 static constexpr ConstComponentDescription load_texture_handler_components[] = {
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("texture_path"), ComponentType<eastl::string>::size, ComponentDescriptionFlags::kNone},
+  {HASH("texture_id"), ComponentType<Texture2D>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription load_texture_handler_query_desc = {
   make_const_array(load_texture_handler_components),
@@ -65,7 +66,7 @@ static constexpr ConstQueryDescription update_anim_frame_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription render_walls_components[] = {
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kNone},
+  {HASH("texture_id"), ComponentType<Texture2D>::size, ComponentDescriptionFlags::kNone},
   {HASH("frame"), ComponentType<glm::vec4>::size, ComponentDescriptionFlags::kNone},
   {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
 };
@@ -83,7 +84,7 @@ static constexpr ConstQueryDescription render_walls_query_desc = {
   make_const_array(render_walls_track_components),
 };
 static constexpr ConstComponentDescription render_normal_components[] = {
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kNone},
+  {HASH("texture_id"), ComponentType<Texture2D>::size, ComponentDescriptionFlags::kNone},
   {HASH("frame"), ComponentType<glm::vec4>::size, ComponentDescriptionFlags::kNone},
   {HASH("pos"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
   {HASH("dir"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
@@ -112,35 +113,10 @@ static constexpr ConstQueryDescription read_controls_query_desc = {
   empty_desc_array,
   empty_desc_array,
 };
-static constexpr ConstComponentDescription apply_controls_components[] = {
-  {HASH("user_input"), ComponentType<UserInput>::size, ComponentDescriptionFlags::kNone},
-  {HASH("is_on_ground"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), ComponentType<Jump>::size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
-  {HASH("dir"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
-};
-static constexpr ConstQueryDescription apply_controls_query_desc = {
-  make_const_array(apply_controls_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
-static constexpr ConstComponentDescription apply_jump_components[] = {
-  {HASH("jump"), ComponentType<Jump>::size, ComponentDescriptionFlags::kWrite},
-  {HASH("is_on_ground"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
-  {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
-};
-static constexpr ConstQueryDescription apply_jump_query_desc = {
-  make_const_array(apply_jump_components),
-  empty_desc_array,
-  empty_desc_array,
-  empty_desc_array,
-};
 static constexpr ConstComponentDescription select_current_anim_frame_components[] = {
   {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kNone},
   {HASH("anim_graph"), ComponentType<AnimGraph>::size, ComponentDescriptionFlags::kNone},
   {HASH("is_on_ground"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kWrite},
   {HASH("anim_state"), ComponentType<AnimState>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstComponentDescription select_current_anim_frame_not_have_components[] = {
@@ -157,7 +133,6 @@ static constexpr ConstComponentDescription select_current_anim_frame_for_player_
   {HASH("anim_graph"), ComponentType<AnimGraph>::size, ComponentDescriptionFlags::kNone},
   {HASH("user_input"), ComponentType<UserInput>::size, ComponentDescriptionFlags::kNone},
   {HASH("is_on_ground"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
-  {HASH("texture"), ComponentType<TextureAtlas>::size, ComponentDescriptionFlags::kWrite},
   {HASH("anim_state"), ComponentType<AnimState>::size, ComponentDescriptionFlags::kWrite},
 };
 static constexpr ConstQueryDescription select_current_anim_frame_for_player_query_desc = {
@@ -206,7 +181,10 @@ static constexpr ConstQueryDescription process_on_kill_event_query_desc = {
   empty_desc_array,
 };
 static constexpr ConstComponentDescription update_active_auto_move_components[] = {
-  {HASH("auto_move"), ComponentType<AutoMove>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move_jump"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_duration"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_length"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_time"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
   {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
   {HASH("dir"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
 };
@@ -225,7 +203,10 @@ static constexpr ConstQueryDescription update_active_auto_move_query_desc = {
   make_const_array(update_active_auto_move_track_components),
 };
 static constexpr ConstComponentDescription update_always_active_auto_move_components[] = {
-  {HASH("auto_move"), ComponentType<AutoMove>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move_jump"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_duration"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_length"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_time"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
   {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
   {HASH("dir"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
 };
@@ -255,8 +236,11 @@ static constexpr ConstQueryDescription on_enenmy_kill_handler_query_desc = {
 };
 static constexpr ConstComponentDescription update_auto_jump_components[] = {
   {HASH("is_alive"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
-  {HASH("jump"), ComponentType<Jump>::size, ComponentDescriptionFlags::kWrite},
-  {HASH("auto_move"), ComponentType<AutoMove>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("jump_active"), ComponentType<bool>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("jump_startTime"), ComponentType<double>::size, ComponentDescriptionFlags::kWrite},
+  {HASH("auto_move_jump"), ComponentType<bool>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_duration"), ComponentType<float>::size, ComponentDescriptionFlags::kNone},
+  {HASH("auto_move_time"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
   {HASH("vel"), ComponentType<glm::vec2>::size, ComponentDescriptionFlags::kWrite},
   {HASH("dir"), ComponentType<float>::size, ComponentDescriptionFlags::kWrite},
 };
@@ -281,7 +265,8 @@ static void load_texture_handler_run(const RawArg &stage_or_event, Query &query)
   ecs::wait_system_dependencies(HASH("load_texture_handler"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     load_texture_handler::run(*(EventOnEntityCreate*)stage_or_event.mem,
-      GET_COMPONENT(load_texture_handler, q, TextureAtlas, texture));
+      GET_COMPONENT(load_texture_handler, q, eastl::string, texture_path),
+      GET_COMPONENT(load_texture_handler, q, Texture2D, texture_id));
 }
 static SystemDescription _reg_sys_load_texture_handler(HASH("load_texture_handler"), &load_texture_handler_run, HASH("EventOnEntityCreate"), load_texture_handler_query_desc, "*", "*", nullptr);
 
@@ -332,7 +317,7 @@ static void render_walls_run(const RawArg &stage_or_event, Query &query)
   ecs::wait_system_dependencies(HASH("render_walls"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_walls::run(*(EventRender*)stage_or_event.mem,
-      GET_COMPONENT(render_walls, q, TextureAtlas, texture),
+      GET_COMPONENT(render_walls, q, Texture2D, texture_id),
       GET_COMPONENT(render_walls, q, glm::vec4, frame),
       GET_COMPONENT(render_walls, q, glm::vec2, pos));
 }
@@ -348,7 +333,7 @@ static void render_normal_run(const RawArg &stage_or_event, Query &query)
   ecs::wait_system_dependencies(HASH("render_normal"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     render_normal::run(*(EventRender*)stage_or_event.mem,
-      GET_COMPONENT(render_normal, q, TextureAtlas, texture),
+      GET_COMPONENT(render_normal, q, Texture2D, texture_id),
       GET_COMPONENT(render_normal, q, glm::vec4, frame),
       GET_COMPONENT(render_normal, q, glm::vec2, pos),
       GET_COMPONENT(render_normal, q, float, dir));
@@ -369,30 +354,6 @@ static void read_controls_run(const RawArg &stage_or_event, Query &query)
 }
 static SystemDescription _reg_sys_read_controls(HASH("read_controls"), &read_controls_run, HASH("EventUpdate"), read_controls_query_desc, "after_input", "before_input", nullptr);
 
-static void apply_controls_run(const RawArg &stage_or_event, Query &query)
-{
-  ecs::wait_system_dependencies(HASH("apply_controls"));
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_controls::run(*(EventUpdate*)stage_or_event.mem,
-      GET_COMPONENT(apply_controls, q, UserInput, user_input),
-      GET_COMPONENT(apply_controls, q, bool, is_on_ground),
-      GET_COMPONENT(apply_controls, q, Jump, jump),
-      GET_COMPONENT(apply_controls, q, glm::vec2, vel),
-      GET_COMPONENT(apply_controls, q, float, dir));
-}
-static SystemDescription _reg_sys_apply_controls(HASH("apply_controls"), &apply_controls_run, HASH("EventUpdate"), apply_controls_query_desc, "*", "read_controls", nullptr);
-
-static void apply_jump_run(const RawArg &stage_or_event, Query &query)
-{
-  ecs::wait_system_dependencies(HASH("apply_jump"));
-  for (auto q = query.begin(), e = query.end(); q != e; ++q)
-    apply_jump::run(*(EventUpdate*)stage_or_event.mem,
-      GET_COMPONENT(apply_jump, q, Jump, jump),
-      GET_COMPONENT(apply_jump, q, bool, is_on_ground),
-      GET_COMPONENT(apply_jump, q, glm::vec2, vel));
-}
-static SystemDescription _reg_sys_apply_jump(HASH("apply_jump"), &apply_jump_run, HASH("EventUpdate"), apply_jump_query_desc, "*", "apply_gravity", nullptr);
-
 static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &query)
 {
   ecs::wait_system_dependencies(HASH("select_current_anim_frame"));
@@ -401,7 +362,6 @@ static void select_current_anim_frame_run(const RawArg &stage_or_event, Query &q
       GET_COMPONENT(select_current_anim_frame, q, glm::vec2, vel),
       GET_COMPONENT(select_current_anim_frame, q, AnimGraph, anim_graph),
       GET_COMPONENT(select_current_anim_frame, q, bool, is_on_ground),
-      GET_COMPONENT(select_current_anim_frame, q, TextureAtlas, texture),
       GET_COMPONENT(select_current_anim_frame, q, AnimState, anim_state));
 }
 static SystemDescription _reg_sys_select_current_anim_frame(HASH("select_current_anim_frame"), &select_current_anim_frame_run, HASH("EventUpdate"), select_current_anim_frame_query_desc, "update_anim_frame", "before_anim_update", nullptr);
@@ -415,7 +375,6 @@ static void select_current_anim_frame_for_player_run(const RawArg &stage_or_even
       GET_COMPONENT(select_current_anim_frame_for_player, q, AnimGraph, anim_graph),
       GET_COMPONENT(select_current_anim_frame_for_player, q, UserInput, user_input),
       GET_COMPONENT(select_current_anim_frame_for_player, q, bool, is_on_ground),
-      GET_COMPONENT(select_current_anim_frame_for_player, q, TextureAtlas, texture),
       GET_COMPONENT(select_current_anim_frame_for_player, q, AnimState, anim_state));
 }
 static SystemDescription _reg_sys_select_current_anim_frame_for_player(HASH("select_current_anim_frame_for_player"), &select_current_anim_frame_for_player_run, HASH("EventUpdate"), select_current_anim_frame_for_player_query_desc, "update_anim_frame", "before_anim_update", nullptr);
@@ -459,7 +418,10 @@ static void update_active_auto_move_run(const RawArg &stage_or_event, Query &que
   ecs::wait_system_dependencies(HASH("update_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_active_auto_move::run(*(EventUpdate*)stage_or_event.mem,
-      GET_COMPONENT(update_active_auto_move, q, AutoMove, auto_move),
+      GET_COMPONENT(update_active_auto_move, q, bool, auto_move_jump),
+      GET_COMPONENT(update_active_auto_move, q, float, auto_move_duration),
+      GET_COMPONENT(update_active_auto_move, q, float, auto_move_length),
+      GET_COMPONENT(update_active_auto_move, q, float, auto_move_time),
       GET_COMPONENT(update_active_auto_move, q, glm::vec2, vel),
       GET_COMPONENT(update_active_auto_move, q, float, dir));
 }
@@ -476,7 +438,10 @@ static void update_always_active_auto_move_run(const RawArg &stage_or_event, Que
   ecs::wait_system_dependencies(HASH("update_always_active_auto_move"));
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_always_active_auto_move::run(*(EventUpdate*)stage_or_event.mem,
-      GET_COMPONENT(update_always_active_auto_move, q, AutoMove, auto_move),
+      GET_COMPONENT(update_always_active_auto_move, q, bool, auto_move_jump),
+      GET_COMPONENT(update_always_active_auto_move, q, float, auto_move_duration),
+      GET_COMPONENT(update_always_active_auto_move, q, float, auto_move_length),
+      GET_COMPONENT(update_always_active_auto_move, q, float, auto_move_time),
       GET_COMPONENT(update_always_active_auto_move, q, glm::vec2, vel),
       GET_COMPONENT(update_always_active_auto_move, q, float, dir));
 }
@@ -501,8 +466,11 @@ static void update_auto_jump_run(const RawArg &stage_or_event, Query &query)
   for (auto q = query.begin(), e = query.end(); q != e; ++q)
     update_auto_jump::run(*(EventUpdate*)stage_or_event.mem,
       GET_COMPONENT(update_auto_jump, q, bool, is_alive),
-      GET_COMPONENT(update_auto_jump, q, Jump, jump),
-      GET_COMPONENT(update_auto_jump, q, AutoMove, auto_move),
+      GET_COMPONENT(update_auto_jump, q, bool, jump_active),
+      GET_COMPONENT(update_auto_jump, q, double, jump_startTime),
+      GET_COMPONENT(update_auto_jump, q, bool, auto_move_jump),
+      GET_COMPONENT(update_auto_jump, q, float, auto_move_duration),
+      GET_COMPONENT(update_auto_jump, q, float, auto_move_time),
       GET_COMPONENT(update_auto_jump, q, glm::vec2, vel),
       GET_COMPONENT(update_auto_jump, q, float, dir));
 }
@@ -535,6 +503,9 @@ struct UserInputAnnotation final : das::ManagedStructureAnnotation<UserInput, fa
   UserInputAnnotation(das::ModuleLibrary &lib) : das::ManagedStructureAnnotation<UserInput, false>("UserInput", lib)
   {
     cppName = " ::UserInput";
+    addField<DAS_BIND_MANAGED_FIELD(left)>("left");
+    addField<DAS_BIND_MANAGED_FIELD(right)>("right");
+    addField<DAS_BIND_MANAGED_FIELD(jump)>("jump");
   }
   bool isLocal() const override { return true; }
 };

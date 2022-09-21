@@ -2,6 +2,8 @@
 
 #include <glm/vec2.hpp>
 
+#include <daScript/daScript.h>
+
 struct EventOnClickMouseLeftButton
 {
   glm::vec2 pos = { 0.f, 0.f };

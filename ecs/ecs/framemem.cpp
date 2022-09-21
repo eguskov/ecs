@@ -1,6 +1,10 @@
 #include "framemem.h"
 
+#if defined(_WIN64)
+static constexpr size_t default_alignment = 8;
+#else
 static constexpr size_t default_alignment = 4;
+#endif
 
 static eastl::array<uint8_t, 16 << 20> buffer; // 16MB
 static size_t buffer_offset = 0;

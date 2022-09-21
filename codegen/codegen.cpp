@@ -1,5 +1,10 @@
 #include "stdafx.h"
 
+#include <daScript/daScript.h>
+#include <daScript/simulate/fs_file_info.h>
+
+#include <filesystem>
+
 #define FMT_STRING_ALIAS 1
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -11,10 +16,11 @@
 #include <sstream>
 #include <cassert>
 #include <regex>
-#include  <iomanip>
+#include <iomanip>
 
 #include <EASTL/functional.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/unique_ptr.h>
 
 #include "utils.h"
 #include "parser.h"
@@ -58,8 +64,12 @@ void makeCharArray(const eastl::string &filename, const eastl::string &arr_name)
   out.close();
 }
 
+int main_das(int argc, char * argv[]);
+
 int main(int argc, char* argv[])
 {
+  // return main_das(argc, argv);
+
   char path[MAX_PATH];
   ::GetCurrentDirectory(MAX_PATH, path);
 
@@ -193,7 +203,7 @@ int main(int argc, char* argv[])
         auto res = eastl::find_if(state.queries.cbegin(), state.queries.cend(), [&](const VisitorState::Query &q) { return q.name == queryName; });
         if (res != state.queries.cend())
         {
-          p.queryId = eastl::distance(state.queries.cbegin(), res);
+          p.queryId = (int)eastl::distance(state.queries.cbegin(), res);
           sys.fromQuery = true;
         }
         else if (sys.fromQuery)
@@ -928,3 +938,427 @@ int main(int argc, char* argv[])
   return 0;
 }
 
+template <typename T>
+struct Pointer
+{
+  T ptr = nullptr;
+
+  Pointer() = default;
+  Pointer(T _ptr) : ptr(_ptr) {};
+  Pointer(const Pointer<T> &) = default;
+  Pointer(Pointer<T> &&) = default;
+
+  Pointer<T>& operator=(const Pointer<T> &) = default;
+  Pointer<T>& operator=(Pointer<T> &&) = default;
+
+  bool isNull() const { return ptr == nullptr; }
+};
+
+#define BIND_PTR(T)\
+  using T##Ptr = Pointer<T>;\
+  struct T##Annotation : das::ManagedStructureAnnotation<T##Ptr, false>\
+  {\
+    T##Annotation(das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<T##Ptr, false>(#T "Ptr", ml)\
+    {\
+      cppName = " ::" #T "Ptr";\
+      addProperty<DAS_BIND_MANAGED_PROP(isNull)>("isNull");\
+    }\
+  };\
+  MAKE_TYPE_FACTORY(T##Ptr, ::T##Ptr);\
+
+BIND_PTR(CXTranslationUnit);
+BIND_PTR(CXIndex);
+
+struct CXCursorAnnotation : das::ManagedStructureAnnotation<CXCursor, true, true>
+{
+  CXCursorAnnotation(das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<CXCursor, true, true>("CXCursor", ml)
+  {
+    cppName = " ::CXCursor";
+  }
+  bool isLocal() const override { return true; }
+  bool canCopy() const override { return true; }
+  bool canMove() const override { return true; }
+};
+
+MAKE_TYPE_FACTORY(CXCursor, ::CXCursor);
+
+struct CXTypeAnnotation : das::ManagedStructureAnnotation<CXType, true, true>
+{
+  CXTypeAnnotation(das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<CXType, true, true>("CXType", ml)
+  {
+    cppName = " ::CXType";
+  }
+  bool isLocal() const override { return true; }
+  bool canCopy() const override { return true; }
+  bool canMove() const override { return true; }
+};
+
+MAKE_TYPE_FACTORY(CXType, ::CXType);
+
+CXIndexPtr das_clang_createIndex(int excludeDeclarationsFromPCH, int displayDiagnostics)
+{
+  return {clang_createIndex(excludeDeclarationsFromPCH, displayDiagnostics)};
+}
+
+void das_clang_disposeIndex(const CXIndexPtr &index)
+{
+  clang_disposeIndex(index.ptr);
+}
+
+CXTranslationUnitPtr das_clang_parseTranslationUnit(const CXIndexPtr &CIdx, const char *source_filename, const das::TArray<char*> &args, unsigned options)
+{
+  return {clang_parseTranslationUnit(CIdx.ptr, source_filename, &args[0], args.size, nullptr, 0, options)};
+}
+
+void das_clang_disposeTranslationUnit(const CXTranslationUnitPtr &unit)
+{
+  clang_disposeTranslationUnit(unit.ptr);
+}
+
+CXCursor das_clang_getTranslationUnitCursor(const CXTranslationUnitPtr &unit, das::Context *context)
+{
+  // char* mem = context->heap->allocate(sizeof(CXCursor));
+  // return new (mem) CXCursor(clang_getTranslationUnitCursor(unit.ptr));
+  return clang_getTranslationUnitCursor(unit.ptr);
+}
+
+static inline char* to_das_string(CXString &str, das::Context *context)
+{
+  const char* src = clang_getCString(str);
+
+  const size_t len = ::strlen(src);
+  char *ret = context->stringHeap->allocateString(src, (uint32_t)len);
+
+  clang_disposeString(str);
+
+  return ret;
+}
+
+char* das_clang_getCursorSpelling(const CXCursor &cursor, das::Context *context)
+{
+  return to_das_string(clang_getCursorSpelling(cursor), context);
+}
+
+char* das_clang_getCursorKindSpelling(const CXCursorKind &kind, das::Context *context)
+{
+  return to_das_string(clang_getCursorKindSpelling(kind), context);
+}
+
+char* das_clang_getTypeSpelling(const CXType &type, das::Context *context)
+{
+  return to_das_string(clang_getTypeSpelling(type), context);
+}
+
+char* das_clang_getFileName(const CXCursor &cursor, das::Context *context)
+{
+  CXFile file;
+  unsigned line;
+  unsigned column;
+  unsigned offset;
+  clang_getFileLocation(clang_getCursorLocation(cursor), &file, &line, &column, &offset);
+  return to_das_string(clang_getFileName(file), context);
+}
+
+using VisitBlock = das::TBlock<CXChildVisitResult, const CXCursor, const CXCursor>;
+void das_clang_visitChildren(const CXCursor &parent,
+                             const VisitBlock &block,
+                             das::Context *context)
+{
+  struct Ctx
+  {
+    const VisitBlock &block;
+    das::Context *context;
+  }
+  ctx {block, context};
+
+  auto visitor = [](CXCursor cursor, CXCursor parent, CXClientData data)
+  {
+    Ctx &ctx = *static_cast<Ctx*>(data);
+    vec4f args[] = {
+      das::cast<CXCursor*>::from(&cursor),
+      das::cast<CXCursor*>::from(&parent),
+    };
+    const vec4f result = ctx.context->invoke(ctx.block, args, nullptr);
+    return (CXChildVisitResult)das::cast<unsigned>::to(result);
+  };
+  clang_visitChildren(parent, visitor, &ctx);
+}
+
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CXCursorKind, CXCursorKind);
+DAS_BASE_BIND_ENUM_98(CXCursorKind, CXCursorKind,
+                      CXCursor_UnexposedDecl,
+                      CXCursor_StructDecl,
+                      CXCursor_UnionDecl,
+                      CXCursor_ClassDecl,
+                      CXCursor_EnumDecl,
+                      CXCursor_FieldDecl,
+                      CXCursor_EnumConstantDecl,
+                      CXCursor_FunctionDecl,
+                      CXCursor_VarDecl,
+                      CXCursor_ParmDecl,
+                      CXCursor_TypedefDecl,
+                      CXCursor_CXXMethod,
+                      CXCursor_Namespace,
+                      CXCursor_Constructor,
+                      CXCursor_Destructor,
+                      CXCursor_TemplateTypeParameter,
+                      CXCursor_NonTypeTemplateParameter,
+                      CXCursor_TemplateTemplateParameter,
+                      CXCursor_FunctionTemplate,
+                      CXCursor_ClassTemplate,
+                      CXCursor_ClassTemplatePartialSpecialization,
+                      CXCursor_NamespaceAlias,
+                      CXCursor_TypeAliasDecl,
+                      CXCursor_CXXAccessSpecifier,
+                      CXCursor_FirstDecl,
+                      CXCursor_LastDecl,
+                      CXCursor_FirstRef,
+                      CXCursor_TypedefDecl,
+                      CXCursor_TypeRef,
+                      CXCursor_CXXBaseSpecifier,
+                      CXCursor_TemplateRef,
+                      CXCursor_NamespaceRef,
+                      CXCursor_MemberRef,
+                      CXCursor_LabelRef,
+                      CXCursor_OverloadedDeclRef,
+                      CXCursor_VariableRef,
+                      CXCursor_LastRef,
+                      CXCursor_FirstInvalid,
+                      CXCursor_InvalidFile,
+                      CXCursor_NoDeclFound,
+                      CXCursor_NotImplemented,
+                      CXCursor_InvalidCode,
+                      CXCursor_LastInvalid,
+                      CXCursor_FirstExpr,
+                      CXCursor_UnexposedExpr,
+                      CXCursor_DeclRefExpr,
+                      CXCursor_MemberRefExpr,
+                      CXCursor_CallExpr,
+                      CXCursor_BlockExpr,
+                      CXCursor_IntegerLiteral,
+                      CXCursor_FloatingLiteral,
+                      CXCursor_ImaginaryLiteral,
+                      CXCursor_StringLiteral,
+                      CXCursor_CharacterLiteral,
+                      CXCursor_ParenExpr,
+                      CXCursor_UnaryOperator,
+                      CXCursor_ArraySubscriptExpr,
+                      CXCursor_BinaryOperator,
+                      CXCursor_CompoundAssignOperator,
+                      CXCursor_ConditionalOperator,
+                      CXCursor_CStyleCastExpr,
+                      CXCursor_CompoundLiteralExpr,
+                      CXCursor_InitListExpr,
+                      CXCursor_AddrLabelExpr,
+                      CXCursor_StmtExpr,
+                      CXCursor_GenericSelectionExpr,
+                      CXCursor_CXXBoolLiteralExpr,
+                      CXCursor_CXXNullPtrLiteralExpr,
+                      CXCursor_CXXThisExpr,
+                      CXCursor_CXXNewExpr,
+                      CXCursor_CXXDeleteExpr,
+                      CXCursor_UnaryExpr,
+                      CXCursor_PackExpansionExpr,
+                      CXCursor_SizeOfPackExpr,
+                      CXCursor_LambdaExpr,
+                      CXCursor_LastExpr,
+                      CXCursor_FirstStmt,
+                      CXCursor_UnexposedStmt,
+                      CXCursor_LabelStmt,
+                      CXCursor_CompoundStmt,
+                      CXCursor_CaseStmt,
+                      CXCursor_DefaultStmt,
+                      CXCursor_IfStmt,
+                      CXCursor_SwitchStmt,
+                      CXCursor_WhileStmt,
+                      CXCursor_DoStmt,
+                      CXCursor_ForStmt,
+                      CXCursor_ContinueStmt,
+                      CXCursor_BreakStmt,
+                      CXCursor_ReturnStmt,
+                      CXCursor_CXXForRangeStmt,
+                      CXCursor_NullStmt,
+                      CXCursor_DeclStmt,
+                      CXCursor_LastStmt,
+                      CXCursor_TranslationUnit,
+                      CXCursor_FirstAttr,
+                      CXCursor_UnexposedAttr,
+                      CXCursor_AnnotateAttr,
+                      CXCursor_PackedAttr,
+                      CXCursor_PureAttr,
+                      CXCursor_ConstAttr,
+                      CXCursor_NoDuplicateAttr,
+                      CXCursor_VisibilityAttr,
+                      CXCursor_LastAttr,
+                      CXCursor_PreprocessingDirective,
+                      CXCursor_MacroDefinition,
+                      CXCursor_MacroExpansion,
+                      CXCursor_MacroInstantiation,
+                      CXCursor_InclusionDirective,
+                      CXCursor_FirstPreprocessing,
+                      CXCursor_LastPreprocessing,
+                      CXCursor_ModuleImportDecl,
+                      CXCursor_TypeAliasTemplateDecl,
+                      CXCursor_StaticAssert,
+                      CXCursor_FirstExtraDecl,
+                      CXCursor_LastExtraDecl,
+                      CXCursor_OverloadCandidate);
+
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CXChildVisitResult, CXChildVisitResult);
+DAS_BASE_BIND_ENUM_98(CXChildVisitResult, CXChildVisitResult,
+                      CXChildVisit_Break,
+                      CXChildVisit_Continue,
+                      CXChildVisit_Recurse);
+
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CXTranslationUnit_Flags, CXTranslationUnit_Flags);
+DAS_BASE_BIND_ENUM_98(CXTranslationUnit_Flags, CXTranslationUnit_Flags,
+                      CXTranslationUnit_None,
+                      CXTranslationUnit_DetailedPreprocessingRecord,
+                      CXTranslationUnit_Incomplete,
+                      CXTranslationUnit_PrecompiledPreamble,
+                      CXTranslationUnit_CacheCompletionResults,
+                      CXTranslationUnit_ForSerialization,
+                      CXTranslationUnit_CXXChainedPCH,
+                      CXTranslationUnit_SkipFunctionBodies,
+                      CXTranslationUnit_IncludeBriefCommentsInCodeCompletion,
+                      CXTranslationUnit_CreatePreambleOnFirstParse,
+                      CXTranslationUnit_KeepGoing,
+                      CXTranslationUnit_SingleFileParse);
+
+CXCursorKind das_clang_getCursorKind(const CXCursor &cursor)
+{
+  return clang_getCursorKind(cursor);
+}
+
+CXType das_clang_getCursorType(const CXCursor &cursor)
+{
+  return clang_getCursorType(cursor);
+}
+
+struct ClangModule final : public das::Module
+{
+  ClangModule() : das::Module("clang")
+  {
+    das::ModuleLibrary lib;
+    lib.addBuiltInModule();
+    lib.addModule(this);
+
+    #define BIND_FN(fn)           das::addExtern<DAS_BIND_FUN(fn)>(*this, lib, #fn, das::SideEffects::accessExternal, #fn);
+    #define BIND_FN_EX(fn, n)     das::addExtern<DAS_BIND_FUN(fn)>(*this, lib, #n, das::SideEffects::accessExternal, #n);
+    #define BIND_FN_RET(fn)       das::addExtern<DAS_BIND_FUN(fn), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, #fn, das::SideEffects::accessExternal, #fn);
+    #define BIND_FN_EX_RET(fn, n) das::addExtern<DAS_BIND_FUN(fn), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, #n, das::SideEffects::accessExternal, #n);
+    #define BIND_TP(tp)           addAnnotation(das::make_smart<das::DummyTypeAnnotation>(#tp, #tp, sizeof(tp), alignof(tp)));
+
+    addAnnotation(das::make_smart<CXIndexAnnotation>(lib));
+    addAnnotation(das::make_smart<CXTranslationUnitAnnotation>(lib));
+    addAnnotation(das::make_smart<CXCursorAnnotation>(lib));
+    addAnnotation(das::make_smart<CXTypeAnnotation>(lib));
+
+    addEnumeration(das::make_smart<EnumerationCXTranslationUnit_Flags>());
+    addEnumeration(das::make_smart<EnumerationCXChildVisitResult>());
+    addEnumeration(das::make_smart<EnumerationCXCursorKind>());
+
+    BIND_FN_EX_RET(das_clang_createIndex, clang_createIndex);
+    BIND_FN_EX_RET(das_clang_parseTranslationUnit, clang_parseTranslationUnit);
+    BIND_FN_EX_RET(das_clang_getTranslationUnitCursor, clang_getTranslationUnitCursor);
+    BIND_FN_EX_RET(das_clang_getCursorType, clang_getCursorType);
+
+    BIND_FN_EX(das_clang_disposeIndex, clang_disposeIndex);
+    BIND_FN_EX(das_clang_disposeTranslationUnit, clang_disposeTranslationUnit);
+
+    BIND_FN_EX(das_clang_getCursorKind, clang_getCursorKind);
+    BIND_FN_EX(das_clang_getCursorSpelling, clang_getCursorSpelling);
+    BIND_FN_EX(das_clang_getCursorKindSpelling, clang_getCursorKindSpelling);
+    BIND_FN_EX(das_clang_getTypeSpelling, clang_getTypeSpelling);
+    BIND_FN_EX(das_clang_getFileName, clang_getFileName);
+
+    BIND_FN_EX(das_clang_visitChildren, clang_visitChildren);
+
+    verifyAotReady();
+  }
+};
+
+REGISTER_MODULE(ClangModule);
+
+das::TextPrinter tout;
+
+struct CodegenContext final : public das::Context
+{
+  CodegenContext(uint32_t stack_size) : das::Context(stack_size) {}
+
+  void to_out(const char * message) override
+  {
+    std::cout << message << std::endl;
+  }
+
+  void to_err(const char * message) override
+  {
+    std::cerr << message << std::endl;
+  }
+};
+
+void compile_and_run(const das::string &fn, const das::string &mainFnName)
+{
+  auto access = das::make_smart<das::FsFileAccess>();
+  das::ModuleGroup dummyGroup;
+  if (auto program = das::compileDaScript(fn, access, tout, dummyGroup))
+  {
+    if (program->failed())
+    {
+      for (auto & err : program->errors)
+        tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+    }
+    else
+    {
+      CodegenContext ctx(program->getContextStackSize());
+      if (!program->simulate(ctx, tout))
+      {
+        tout << "failed to simulate\n";
+        for (auto & err : program->errors)
+          tout << das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+      }
+      else
+      {
+        if (auto fnTest = ctx.findFunction(mainFnName.c_str()))
+        {
+          ctx.restart();
+          ctx.eval(fnTest, nullptr);
+        }
+        else
+          tout << "function '"  << mainFnName << " ' not found\n";
+      }
+    }
+  }
+}
+
+int main_das(int argc, char * argv[])
+{
+  if (argc <= 1)
+    return -1;
+
+  das::setDasRoot("../libs/daScript");
+  das::setCommandLineArguments(argc, argv);
+
+  NEED_MODULE(Module_BuiltIn);
+  NEED_MODULE(Module_Math);
+  NEED_MODULE(Module_Strings);
+  NEED_MODULE(Module_Random);
+  NEED_MODULE(Module_Rtti);
+  NEED_MODULE(Module_Ast);
+  NEED_MODULE(Module_Debugger);
+  NEED_MODULE(Module_Network);
+  NEED_MODULE(Module_UriParser);
+  NEED_MODULE(Module_JobQue);
+  NEED_MODULE(Module_FIO);
+
+  NEED_MODULE(ClangModule);
+
+  das::Module::Initialize();
+
+  const das::string file { std::filesystem::exists("codegen.das") ? "codegen.das" : "../codegen/codegen.das" };
+  compile_and_run(file, "main");
+
+  das::Module::Shutdown();
+
+  return 0;
+}

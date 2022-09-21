@@ -166,14 +166,14 @@ struct render_boid_obstacle
 
   QL_HAVE(boid_obstacle);
 
-  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &pos)
+  ECS_RUN(const EventRender &evt, const Texture2D &texture_id, const glm::vec4 &frame, const glm::vec2 &pos)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
     Rectangle rect = {frame.x, frame.y, frame.z, frame.w};
     Rectangle destRec = {hw + pos.x, hh - pos.y, fabsf(frame.z) * 5.f, fabsf(frame.w) * 5.f};
 
-    DrawTexturePro(texture.id, rect, destRec, Vector2{0.5f * frame.z * 5.f, 0.5f * frame.w * 5.f}, 0.f, WHITE);
+    DrawTexturePro(texture_id, rect, destRec, Vector2{0.5f * frame.z * 5.f, 0.5f * frame.w * 5.f}, 0.f, WHITE);
   }
 };
 
@@ -184,14 +184,14 @@ struct render_boid
 
   QL_HAVE(boid);
 
-  ECS_RUN(const EventRender &evt, const TextureAtlas &texture, const glm::vec4 &frame, const glm::vec2 &cur_pos, const glm::vec2 &cur_separation_center, const glm::vec2 &cur_cohesion_center, float mass, float cur_rotation)
+  ECS_RUN(const EventRender &evt, const Texture2D &texture_id, const glm::vec4 &frame, const glm::vec2 &cur_pos, const glm::vec2 &cur_separation_center, const glm::vec2 &cur_cohesion_center, float mass, float cur_rotation)
   {
     const float hw = screen_width * 0.5f;
     const float hh = screen_height * 0.5f;
     Rectangle rect = {frame.x, frame.y, frame.z, frame.w};
     Rectangle destRec = {hw + cur_pos.x, hh - cur_pos.y, fabsf(frame.z) * mass, fabsf(frame.w) * mass};
 
-    DrawTexturePro(texture.id, rect, destRec, Vector2{0.5f * frame.z * mass, 0.5f * frame.w * mass}, -cur_rotation, WHITE);
+    DrawTexturePro(texture_id, rect, destRec, Vector2{0.5f * frame.z * mass, 0.5f * frame.w * mass}, -cur_rotation, WHITE);
 
     // Draw separation
     // DrawCircleV(Vector2{hw + cur_separation_center.x, hh - cur_separation_center.y}, 10.f, CLITERAL{ 255, 0, 255, 255 });

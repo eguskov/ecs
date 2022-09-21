@@ -80,7 +80,10 @@ def init()
                 let jump     & = (*v?["jump"]).value as _bool
                 let duration & = (*v?["duration"]).value as _number
                 let len      & = (*v?["length"]).value as _number
-                add(cm, key, [[AutoMove jump=jump, duration=float(duration), length=float(len)]])
+                add(cm, "auto_move_jump", jump)
+                add(cm, "auto_move_duration", float(duration))
+                add(cm, "auto_move_length", float(len))
+                add(cm, "auto_move_time", 0.f)
               elif key == "collision_shape"
                 let arr & = refComp.value as _array
                 let v   & = arr[0].value as _object
